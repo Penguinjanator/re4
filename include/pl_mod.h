@@ -28,7 +28,7 @@ public:
     cSubAshley();
     // destructor implicit (synthesized: no vptr store)
     virtual void modelSet();
-    virtual void setFace(int no);
+    virtual void setFace(int type);
     virtual void setHand(int no);
     // In-class on purpose: emitted after the synthesized destructor at the end of the unit.
     virtual void initCloth() { PlClothSetGirl(this, &girlHair, &girlSkirt, &girlSweater, 0); }
@@ -43,10 +43,10 @@ public:
     virtual void move();
     virtual void setModel();
     virtual void setMotion();
-    virtual void setRightHand(int no);
-    virtual void setLeftHand(u32 no);
-    virtual void setFace(int no);
-    virtual void setHead(int no);
+    virtual void setRightHand(int type);
+    virtual void setLeftHand(u32 type);
+    virtual void setFace(int type);
+    virtual void setHead(int type);
     virtual void setHead(void* bin, void* tpl);
     // In-class on purpose: emitted after the synthesized destructor at the end of the unit.
     virtual void initCloth() {}
@@ -62,10 +62,10 @@ public:
     virtual void move();
     virtual void setModel();
     virtual void setMotion();
-    virtual void setRightHand(int no);
-    virtual void setLeftHand(u32 no);
-    virtual void setFace(int no);
-    virtual void setHead(int no);
+    virtual void setRightHand(int type);
+    virtual void setLeftHand(u32 type);
+    virtual void setFace(int type);
+    virtual void setHead(int type);
     virtual void setHead(void* bin, void* tpl);
     virtual void initCloth();
     virtual void moveCloth();
@@ -89,10 +89,10 @@ public:
     virtual int checkXbutton();
     virtual void setModel();
     virtual void setMotion();
-    virtual void setRightHand(int no);
-    virtual void setLeftHand(u32 no);
-    virtual void setFace(int no);
-    virtual void setHead(int no);
+    virtual void setRightHand(int type);
+    virtual void setLeftHand(u32 type);
+    virtual void setFace(int type);
+    virtual void setHead(int type);
     virtual void setHead(void* bin, void* tpl);
     virtual void moveMatCalcBefore();
     // In-class on purpose: emitted after the synthesized destructor at the end of the unit.
@@ -111,10 +111,10 @@ public:
     virtual void move();
     virtual void setModel();
     virtual void setMotion();
-    virtual void setRightHand(int no);
-    virtual void setLeftHand(u32 no);
-    virtual void setFace(int no);
-    virtual void setHead(int no);
+    virtual void setRightHand(int type);
+    virtual void setLeftHand(u32 type);
+    virtual void setFace(int type);
+    virtual void setHead(int type);
     virtual void setHead(void* bin, void* tpl);
     virtual void initCloth();
     virtual void moveCloth();

@@ -29,7 +29,7 @@ cDataSwap::~cDataSwap()
 // or, when MRAM is short, DMAs them to ARAM (bit1: the data controller's free ARAM, the caller's
 // `aram`, or the subscreen area 0xD00000 for blocks under 3 MB), then creates heap 11 over the
 // range and makes it current. 1 when the range is available.
-int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
+int cDataSwap::SwapOut(u32 maddr, u32 size, u32 aaddr)
 {
     int ret = 0;
 
@@ -44,8 +44,8 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
         this->m_SwapAaddr = DC.getAramFree(size);
         if (this->m_SwapAaddr != 0) {
             m_be_flag |= 2;
-        } else if (aram != 0) {
-            this->m_SwapAaddr = aram;
+        } else if (aaddr != 0) {
+            this->m_SwapAaddr = aaddr;
             m_be_flag |= 2;
         } else if (size > 0x2FFFFF) {
             return 0;
@@ -54,8 +54,8 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
             m_be_flag |= 2;
         }
         if (m_be_flag & 2) {
-            this->m_SwapMaddr = addr;
-            Aram.DmaTransReq(0, addr, this->m_SwapAaddr, this->m_SwapSize, 1);
+            this->m_SwapMaddr = maddr;
+            Aram.DmaTransReq(0, maddr, this->m_SwapAaddr, this->m_SwapSize, 1);
         }
     } else {
         this->m_SwapMaddr = (u32) m_alloc_addr;

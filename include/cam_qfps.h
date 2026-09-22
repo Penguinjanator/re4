@@ -79,26 +79,26 @@ public:
     s16 m_search_cnt;             // 0x20E
     u32 m_state;                    // 0x210  bit0 use pl_mat, bit2 blending, bit3 blend frozen
 
-    void LRinfo(void* p);
+    void LRinfo(void* pInfo);
     int LRcheck();
     void calcDepressionRatio();
-    void setPlayerLocation(Mtx m, Vec* nrm);
-    void calcBaseMatrix(Mtx m);
+    void setPlayerLocation(Mtx mat, Vec* p_norm);
+    void calcBaseMatrix(Mtx mat);
     int checkFBLR();
-    void setBlendRatio(f32 r);
-    void setBlendCount(int n);
+    void setBlendRatio(f32 ratio);
+    void setBlendCount(int counter);
     f32 getFloorRatio();
     void setFloorRatio(f32 ratio);
     void checkCameraType();
-    void calcOffset(QfpsOfs* out);
+    void calcOffset(QfpsOfs* p_offset);
     void hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out);
     void setBlendData(void* src, void* dst);
     void getAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3]);
     void setAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3]);
-    void setAreaData(struct CameraCut* cut);
+    void setAreaData(struct CameraCut* pCdat);
     void offsetCorrection();
     void bindDefaultCamera();
-    void bindAreaCamera(CameraAreaRec* rec);
+    void bindAreaCamera(CameraAreaRec* pCut);
     void init();
     void move();
 };

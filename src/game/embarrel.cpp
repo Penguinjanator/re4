@@ -148,7 +148,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
 
 // Room 227 only: creates the burning barrel (type 1) from the room archive models 0x20 / 0x21 and
 // starts it rolling (Rno1 2) with its own effect Core_kind. NULL outside room 227 or on failure.
-cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
+cEmBarrel* SetR227Barrel(Vec* pPos, Vec* pAng)
 {
     cEmBarrel* em;
     EmBarrelWork* w;
@@ -162,11 +162,11 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
         return 0;
     }
     w = EMBARREL_WK(em);
-    if (pos) {
-        em->pos = *pos;
+    if (pPos) {
+        em->pos = *pPos;
     }
-    if (rot) {
-        em->ang = *rot;
+    if (pAng) {
+        em->ang = *pAng;
     }
     if (em->modelInit(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21)) == 0) {
         barrelInitFailed(em);
@@ -208,26 +208,26 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
 // Explosive barrel damage check: a damage volume hit or any registered weapon hit (not knife /
 // grenades) blows the barrel up, with the break style from the weapon class (shotguns by
 // distance).
-void emBarrelDmCk(cEmBarrel* em)
+void emBarrelDmCk(cEmBarrel* pEm)
 {
     u8 wep;
     Vec hit;
 
-    if (em->hp > 0) {
-        switch (DmgMgr.hitCheck(&em->pos, &hit)) {
+    if (pEm->hp > 0) {
+        switch (DmgMgr.hitCheck(&pEm->pos, &hit)) {
         case DMG_TYPE_FIRE:
         case DMG_TYPE_FLAME:
         case DMG_TYPE_LAMP:
         case DMG_TYPE_ENV_FIRE:
-            emBarrelSetBreak(em, 2);
+            emBarrelSetBreak(pEm, 2);
             return;
         }
     }
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmg.m_Wep;
-    em->dmg.m_Flag = 0;
+    wep = pEm->dmg.m_Wep;
+    pEm->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -249,11 +249,11 @@ void emBarrelDmCk(cEmBarrel* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmg.m_Timer = 0;
+        pEm->dmg.m_Timer = 0;
         break;
     }
-    em->hp = 0;
-    switch (em->dmg.m_Wep) {
+    pEm->hp = 0;
+    switch (pEm->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -273,15 +273,15 @@ void emBarrelDmCk(cEmBarrel* em)
     case 0x27:
     case 0x28:
     case 0x2B:
-        emBarrelSetBreak(em, 0);
+        emBarrelSetBreak(pEm, 0);
         break;
     case 7:
     case 8:
     case 0x21:
-        if (em->dmg.m_Dist > 36000000.0f) {
-            emBarrelSetBreak(em, 0);
+        if (pEm->dmg.m_Dist > 36000000.0f) {
+            emBarrelSetBreak(pEm, 0);
         } else {
-            emBarrelSetBreak(em, 1);
+            emBarrelSetBreak(pEm, 1);
         }
         break;
     case 5:
@@ -295,7 +295,7 @@ void emBarrelDmCk(cEmBarrel* em)
     case 0x2C:
     case 0x2D:
     default:
-        emBarrelSetBreak(em, 2);
+        emBarrelSetBreak(pEm, 2);
         break;
     }
 }
@@ -303,7 +303,7 @@ void emBarrelDmCk(cEmBarrel* em)
 // Rolling barrel damage check: a damage volume hit explodes it; a weapon hit takes damage by
 // weapon class (shotguns by distance) and explodes it when the hp is gone, else spawns the hit
 // est (owner 1, est 2).
-void emBarrelDmCk2(cEmBarrel* em)
+void emBarrelDmCk2(cEmBarrel* pEm)
 {
     YARARE_INFO* part;
     u8 wep;
@@ -311,26 +311,26 @@ void emBarrelDmCk2(cEmBarrel* em)
     int near;
     Vec hit;
 
-    if (em->hp > 0) {
-        switch (DmgMgr.hitCheck(&em->pos, &hit)) {
+    if (pEm->hp > 0) {
+        switch (DmgMgr.hitCheck(&pEm->pos, &hit)) {
         case DMG_TYPE_FIRE:
         case DMG_TYPE_FLAME:
         case DMG_TYPE_LAMP:
         case DMG_TYPE_ENV_FIRE:
-            emBarrelSetBreak(em, 2);
+            emBarrelSetBreak(pEm, 2);
             return;
         }
     }
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    em->dmg.m_Flag = 0;
-    part = em->dmg.m_pDamageYarare;
+    pEm->dmg.m_Flag = 0;
+    part = pEm->dmg.m_pDamageYarare;
     near = 0;
     if (part->len < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmg.m_Wep;
+    wep = pEm->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -346,7 +346,7 @@ void emBarrelDmCk2(cEmBarrel* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmg.m_Timer = 1;
+    pEm->dmg.m_Timer = 1;
     switch (wep) {
     case 0:
     case 1:
@@ -398,9 +398,9 @@ void emBarrelDmCk2(cEmBarrel* em)
         dmg = 0;
         break;
     }
-    LifeDownSet(em, dmg, 0);
-    if (em->hp <= 0) {
-        switch (em->dmg.m_Wep) {
+    LifeDownSet(pEm, dmg, 0);
+    if (pEm->hp <= 0) {
+        switch (pEm->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -420,15 +420,15 @@ void emBarrelDmCk2(cEmBarrel* em)
         case 0x27:
         case 0x28:
         case 0x2B:
-            emBarrelSetBreak(em, 0);
+            emBarrelSetBreak(pEm, 0);
             break;
         case 7:
         case 8:
         case 0x21:
-            if (em->dmg.m_Dist > 36000000.0f) {
-                emBarrelSetBreak(em, 0);
+            if (pEm->dmg.m_Dist > 36000000.0f) {
+                emBarrelSetBreak(pEm, 0);
             } else {
-                emBarrelSetBreak(em, 1);
+                emBarrelSetBreak(pEm, 1);
             }
             break;
         case 5:
@@ -442,11 +442,11 @@ void emBarrelDmCk2(cEmBarrel* em)
         case 0x2C:
         case 0x2D:
         default:
-            emBarrelSetBreak(em, 2);
+            emBarrelSetBreak(pEm, 2);
             break;
         }
     } else {
-        EmDmBloodSet2(em, 1, 2, 0, 0, 0);
+        EmDmBloodSet2(pEm, 1, 2, 0, 0, 0);
     }
 }
 
@@ -514,63 +514,63 @@ void cEmBarrel::move()
 }
 
 // Rno0 == 0: resets to the Set state.
-void emBarrel_R0_Init(cEmBarrel* em)
+void emBarrel_R0_Init(cEmBarrel* pEm)
 {
-    em->r_no_0 = 1;
-    em->r_no_1 = 0;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 0;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 Break, 2 R227Roll).
-void emBarrel_R0_Move(cEmBarrel* em)
+void emBarrel_R0_Move(cEmBarrel* pEm)
 {
-    EmBarrel_R1_move_tbl[em->r_no_1](em);
+    EmBarrel_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: intact barrel; builds the matrices once, then stays a hit-box-only work.
-void emBarrel_R1_Set(cEmBarrel* em)
+void emBarrel_R1_Set(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
 
-    if (em->r_no_2 == 0) {
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
-        em->partsWorldCalc();
+    if (pEm->r_no_2 == 0) {
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
         w->Timer = 30;
-        em->r_no_2++;
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
+    pEm->be_flag |= 0x4000;
 }
 
 // Rno1 == 1: destroyed; on entry saves the etc flag (types 0 / 2), hides, drops the atari and
 // ACTIVE; the rolling barrel destroys its work after 10 frames.
-void emBarrel_R1_Break(cEmBarrel* em)
+void emBarrel_R1_Break(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     u16* flg;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        if (em->type == 0 || em->type == 2) {
+        if (pEm->type == 0 || pEm->type == 2) {
             flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
             if (flg) {
                 *flg |= 1;
             }
         }
-        em->be_flag &= ~2;
-        em->hp = 0;
-        em->atari.m_flag &= ~0x200;
-        em->clearStatus(EM_STATUS_ACTIVE);
+        pEm->be_flag &= ~2;
+        pEm->hp = 0;
+        pEm->atari.m_flag &= ~0x200;
+        pEm->clearStatus(EM_STATUS_ACTIVE);
         w->Timer = 10;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
         if (w->Timer) {
             w->Timer--;
-        } else if (em->type == 1) {
-            EmMgr.destroy(em);
+        } else if (pEm->type == 1) {
+            EmMgr.destroy(pEm);
         }
         break;
     }
@@ -581,43 +581,43 @@ void emBarrel_R1_Break(cEmBarrel* em)
 // waypoint, falls with gravity 10 and bounces on the floor (dust est / SE on hard bounces), turns
 // and spins with the travelled distance, runs the player over (emBarrelRollHitCk -> explode) or
 // kills ganados in its path; the route end or a lost route destroys it.
-void emBarrel_R1_R227Roll(cEmBarrel* em)
+void emBarrel_R1_R227Roll(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     cModel* p;
     f32 floor;
     f32 ang;
     f32 dist;
     f32 spin;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        if (emBarrelSetRollRoute(em) == 0) {
-            em->pos.x = em->mat[0][3];
-            em->pos.y = em->mat[1][3];
-            em->pos.z = em->mat[2][3];
-            Matrix2AxisAngle(em->mat, &em->ang);
-            em->r_no_0 = 1;
-            em->r_no_1 = 1;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+        if (emBarrelSetRollRoute(pEm) == 0) {
+            pEm->pos.x = pEm->mat[0][3];
+            pEm->pos.y = pEm->mat[1][3];
+            pEm->pos.z = pEm->mat[2][3];
+            Matrix2AxisAngle(pEm->mat, &pEm->ang);
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 1;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
             return;
         }
-        em->atari.throughOn();
+        pEm->atari.throughOn();
         w->rollSe = 0;
         if ((Rnd() & 3) == 0) {
             w->rollSe = 1;
-            EstSet(em, -1, 0, 0, EFF_ROOM, 4, 0, w->EffKindId, em, 0);
+            EstSet(pEm, -1, 0, 0, EFF_ROOM, 4, 0, w->EffKindId, pEm, 0);
         }
         w->Se_wait = 0;
         w->floorOfs = 700.0f;
         w->Roll_spd.x = 0.0f;
         w->Roll_spd.y = 0.0f;
         w->Roll_spd.z = 0.0f;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        if (emBarrelSetRollSpd(em)) {
-            emBarrelSetBreak(em, 0);
+        if (emBarrelSetRollSpd(pEm)) {
+            emBarrelSetBreak(pEm, 0);
             return;
         }
     default:
@@ -625,53 +625,53 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
             if (w->Se_wait) {
                 w->Se_wait--;
             } else {
-                w->Seid = SndCall(6, 6, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 6, &pEm->pos, 0, 0, pEm);
                 w->Se_wait = 30;
             }
         }
         w->Roll_spd.y -= 10.0f;
-        PSVECAdd(&em->pos, &w->Roll_spd, &em->pos);
-        floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
-        if (em->pos.y < floor + w->floorOfs) {
-            em->pos.y = floor + w->floorOfs;
+        PSVECAdd(&pEm->pos, &w->Roll_spd, &pEm->pos);
+        floor = EatMgr.getFloor(&pEm->pos, 0, 600.0f, 100000.0f, 0);
+        if (pEm->pos.y < floor + w->floorOfs) {
+            pEm->pos.y = floor + w->floorOfs;
             w->Roll_spd.y *= -0.3f;
             if (w->Roll_spd.y > 20.0f) {
                 Vec v;
 
-                v = em->pos;
+                v = pEm->pos;
                 v.y -= w->floorOfs;
                 EstSet(0, -1, &v, 0, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(6, 2, &em->pos, 0, 0, em);
+                SndCall(6, 2, &pEm->pos, 0, 0, pEm);
             }
         }
-        ang = GetXZAngle(&em->pos_old, &em->pos);
-        em->ang.y += Muku2(em->ang.y, ang, 0.012271847f);
-        em->ang.y = LIMIT_ANGLE(em->ang.y);
-        dist = VEC_DIST(&em->pos, &em->pos_old);
+        ang = GetXZAngle(&pEm->pos_old, &pEm->pos);
+        pEm->ang.y += Muku2(pEm->ang.y, ang, 0.012271847f);
+        pEm->ang.y = LIMIT_ANGLE(pEm->ang.y);
+        dist = VEC_DIST(&pEm->pos, &pEm->pos_old);
         if (dist > 500.0f) {
             dist = 500.0f;
         }
         spin = dist * 0.002f * 0.31415927f;
-        p = em->getPartsPtr(0);
+        p = pEm->getPartsPtr(0);
         p->ang.x += spin;
         p->ang.x = LIMIT_ANGLE(p->ang.x);
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        em->partsMatCalc();
-        em->partsWorldCalc();
-        if (emBarrelRollHitCk(em)) {
-            emBarrelSetBreak(em, 0);
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
+        if (emBarrelRollHitCk(pEm)) {
+            emBarrelSetBreak(pEm, 0);
         } else {
-            emBarrelRunDownCk(em);
+            emBarrelRunDownCk(pEm);
         }
         break;
     }
 }
 
 // Finds the first EMI route entry of type 6 as the roll start waypoint; 0 when there is none.
-int emBarrelSetRollRoute(cEmBarrel* em)
+int emBarrelSetRollRoute(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     u8* emi;
     int i;
     int idx;
@@ -703,9 +703,9 @@ int emBarrelSetRollRoute(cEmBarrel* em)
 
 // Steers the roll: when within 500 units of the waypoint advances to the next type-6 entry
 // (1 = route finished), then points Roll_spd (50..150 units / frame, accelerating by 1) at it.
-int emBarrelSetRollSpd(cEmBarrel* em)
+int emBarrelSetRollSpd(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     u8* emi;
     EmiEntry* e;
     int idx;
@@ -718,7 +718,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
         return 1;
     }
     e = w->pRoute;
-    spd = (e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z);
+    spd = (e->pos.x - pEm->pos.x) * (e->pos.x - pEm->pos.x) + (e->pos.z - pEm->pos.z) * (e->pos.z - pEm->pos.z);
     if (spd < 250000.0f) {
         idx = -1;
         for (i = w->Route_no + 1; i < pG->pEmi->n; i++) {
@@ -740,7 +740,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
         }
         w->pRoute = e;
     }
-    PSVECSubtract(&e->pos, &em->pos, &dir);
+    PSVECSubtract(&e->pos, &pEm->pos, &dir);
     dir.y = 0.0f;
 #line 1017 "D:/Bio4/Prog/embarrel.cpp"
     VECNormalize(&dir, &dir);
@@ -758,51 +758,51 @@ int emBarrelSetRollSpd(cEmBarrel* em)
 }
 
 // Est id of the explosion.
-void cEmBarrel::setEff(u8 eff)
+void cEmBarrel::setEff(u8 eff_id)
 {
     EmBarrelWork* w = EMBARREL_WK(this);
 
-    w->Eff_id = eff;
+    w->Eff_id = eff_id;
 }
 
 // The explosion: hides the barrel, plays the type's blast SE (room 404 has its own), spawns est
 // Eff_id, schedules the 6000 radius damage check 2 frames later at pos + 500 y and shakes the
 // camera with a power falling off with distance (10 .. 4 within 20000 units).
-void emBarrelSetBomb(cEmBarrel* em)
+void emBarrelSetBomb(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     Camera* cam;
     cModel* p;
     Vec v;
     f32 d2;
     f32 power;
 
-    em->hp = 0;
-    em->be_flag &= ~2;
-    switch (em->type) {
+    pEm->hp = 0;
+    pEm->be_flag &= ~2;
+    switch (pEm->type) {
     case 0:
     default:
-        SndCall(6, 0x48, &em->pos, 0, 0, em);
+        SndCall(6, 0x48, &pEm->pos, 0, 0, pEm);
         break;
     case 1:
-        SndCall(6, 8, &em->pos, 0, 0, em);
+        SndCall(6, 8, &pEm->pos, 0, 0, pEm);
         break;
     case 2:
         if (pG->room_id == 0x404) {
-            SndCall(6, 0x53, &em->pos, 0, 0, em);
+            SndCall(6, 0x53, &pEm->pos, 0, 0, pEm);
         } else {
-            SndCall(6, 0x56, &em->pos, 0, 0, em);
+            SndCall(6, 0x56, &pEm->pos, 0, 0, pEm);
         }
         break;
     }
-    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
-    v = em->pos;
+    EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
+    v = pEm->pos;
     v.y += 500.0f;
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 6000.0f;
     cam = &pG->Camera;
-    p = em->getPartsPtr(1);
+    p = pEm->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
          (p->world.z - cam->param.pos.z) * (p->world.z - cam->param.pos.z);
@@ -823,36 +823,36 @@ void emBarrelSetBomb(cEmBarrel* em)
 
 // The smaller blast of the burning rolling barrel: same as emBarrelSetBomb without the est and
 // with a 4000 radius damage check.
-void emBarrelSetBomb2(cEmBarrel* em)
+void emBarrelSetBomb2(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     Camera* cam;
     cModel* p;
     Vec v;
     f32 d2;
     f32 power;
 
-    em->hp = 0;
-    em->be_flag &= ~2;
-    switch (em->type) {
+    pEm->hp = 0;
+    pEm->be_flag &= ~2;
+    switch (pEm->type) {
     case 0:
     default:
-        SndCall(6, 0x48, &em->pos, 0, 0, em);
+        SndCall(6, 0x48, &pEm->pos, 0, 0, pEm);
         break;
     case 1:
-        SndCall(6, 8, &em->pos, 0, 0, em);
+        SndCall(6, 8, &pEm->pos, 0, 0, pEm);
         break;
     case 2:
-        SndCall(6, 0x56, &em->pos, 0, 0, em);
+        SndCall(6, 0x56, &pEm->pos, 0, 0, pEm);
         break;
     }
-    v = em->pos;
+    v = pEm->pos;
     v.y += 500.0f;
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 4000.0f;
     cam = &pG->Camera;
-    p = em->getPartsPtr(1);
+    p = pEm->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
          (p->world.z - cam->param.pos.z) * (p->world.z - cam->param.pos.z);
@@ -873,18 +873,18 @@ void emBarrelSetBomb2(cEmBarrel* em)
 
 // Keeps an intact explosive barrel's effect collision quad (660 wide, 1250 high, attribute
 // 0x400000) at its position; the rolling barrel has none.
-void emBarrelEatSet(cEmBarrel* em)
+void emBarrelEatSet(cEmBarrel* pEm)
 {
-    EmBarrelWork* w = EMBARREL_WK(em);
+    EmBarrelWork* w = EMBARREL_WK(pEm);
     Vec v[4];
 
-    if (em->type == 1) {
+    if (pEm->type == 1) {
         return;
     }
     if (w->sat) {
         w->sat->m_Flag &= ~4;
     }
-    if (em->hp <= 0) {
+    if (pEm->hp <= 0) {
         return;
     }
     if (w->sat == 0) {
@@ -902,17 +902,17 @@ void emBarrelEatSet(cEmBarrel* em)
         v[3].x = -r;
         v[3].y = 0.0f;
         v[3].z = r;
-        w->sat = EatMgr.create(&em->pos, &em->ang, v, 1250.0f, 0x400000, 0);
+        w->sat = EatMgr.create(&pEm->pos, &pEm->ang, v, 1250.0f, 0x400000, 0);
     } else {
         w->sat->m_Flag |= 4;
-        w->sat->setCoord(&em->pos, &em->ang);
+        w->sat->setCoord(&pEm->pos, &pEm->ang);
     }
 }
 
 // Rolling barrel vs player: when the live player stands inside the barrel's box (2500 x 700 x
 // 1400 in barrel space) takes 600 life, starts damage motion 8, vibrates and shakes the camera;
 // returns 1 (the barrel then explodes).
-int emBarrelRollHitCk(cEmBarrel* em)
+int emBarrelRollHitCk(cEmBarrel* pEm)
 {
     Mtx inv;
     Vec v;
@@ -928,7 +928,7 @@ int emBarrelRollHitCk(cEmBarrel* em)
     if (dead) {
         return 0;
     }
-    PSMTXInverse(em->mat, inv);
+    PSMTXInverse(pEm->mat, inv);
     PSMTXMultVec(inv, &pPL->pos, &v);
     if (v.x > 1250.0f) {
         return 0;
@@ -957,14 +957,14 @@ int emBarrelRollHitCk(cEmBarrel* em)
 
 // Rolling barrel vs enemies: every live ganado (ids 0x10..0x20) inside the barrel's box is killed
 // outright (hp 0, Rno0 3 / Rno1 4 death routine).
-void emBarrelRunDownCk(cEmBarrel* em)
+void emBarrelRunDownCk(cEmBarrel* pEm)
 {
     Mtx inv;
     Vec v;
     cEm* e;
     u32 i;
 
-    PSMTXInverse(em->mat, inv);
+    PSMTXInverse(pEm->mat, inv);
     for (i = 0; i < EmMgr.getArrayNum(); i++) {
         e = EmMgr.fastAt(i);
         if ((e->be_flag & 0x201) != 1) {
@@ -979,7 +979,7 @@ void emBarrelRunDownCk(cEmBarrel* em)
         if (e->hp <= 0) {
             continue;
         }
-        if (e == em) {
+        if (e == pEm) {
             continue;
         }
         PSMTXMultVec(inv, &e->pos, &v);

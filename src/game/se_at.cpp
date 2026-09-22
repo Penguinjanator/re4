@@ -92,19 +92,19 @@ void SeAtCheck()
 }
 
 // Room script: enables / disables emitter `no` (flags bit0). 0 when not found.
-int SeAtSetOnOff(int no, int on)
+int SeAtSetOnOff(int no, int sw)
 {
     SeAt* at = GetSeAtPtr(no);
 
     if (at == 0) {
-        if (on == 1) {
+        if (sw == 1) {
             pLog->err(0, 0, "SeAtSetEnable() : AT DATA NOT FOUND");
         } else {
             pLog->err(0, 0, "SeAtSetDisable() : AT DATA NOT FOUND");
         }
         return 0;
     }
-    if (on == 1) {
+    if (sw == 1) {
         at->flags |= 1;
     } else {
         at->flags &= ~1;

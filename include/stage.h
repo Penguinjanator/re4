@@ -5,13 +5,13 @@
 
 // game/stage.cpp: enemy list (ESL) selection and the sub-missions (C linkage).
 extern "C" {
-int checkEmListNo(u16 room);
+int checkEmListNo(u16 room_no);
 const char* getEmListName(u32 no);
 const char* getEmListDbgName(int no);
 int getEmListNum();
 void StageSet();
-void readEmList(int mode);
-int checkSubMissionTarget(int stage, int no);
+void readEmList(int proc);
+int checkSubMissionTarget(int stage_no, int target_no);
 void SubMissionCheck();
 }
 

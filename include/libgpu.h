@@ -112,10 +112,10 @@ typedef POLY_F4 LINE_F4;
 #ifdef __cplusplus
 extern "C" {
 #endif
-void AddPrim(u32* ot, u32* prim);
-void DelPrim(u32* ot, u32* prim);
-void ClearOTagR(u32* ot, int n);
-void DrawOTag(u32* ot);
+void AddPrim(u32* pOt, u32* pWk);
+void DelPrim(u32* pOt, u32* pWk);
+void ClearOTagR(u32* pOt, int n);
+void DrawOTag(u32* pOt);
 #ifdef __cplusplus
 }
 #endif

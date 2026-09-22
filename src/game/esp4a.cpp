@@ -57,11 +57,11 @@ void Esp4a_Trans()
 }
 
 // Maps Work8[0] 0/1/2 to axis mask 2/1/3 (anything else fails), fade range from Vec0.z.
-int cEsp4a::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp4a::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp4aWork* w = &m_Free;
 
-    switch ((s8)gen->Work8[0]) {
+    switch ((s8)pSeq->Work8[0]) {
     case 0:
         w->quake_type = 2;
         break;
@@ -72,9 +72,9 @@ int cEsp4a::SetFreeWork(EspGenWork* gen, u32* seed)
         w->quake_type = 3;
         break;
     default:
-        pLog->err(0, 0, "ESP4A : Invalid Type[%d]", (s8)gen->Work8[0]);
+        pLog->err(0, 0, "ESP4A : Invalid Type[%d]", (s8)pSeq->Work8[0]);
         return 0;
     }
-    w->range = gen->Vec0.z;
+    w->range = pSeq->Vec0.z;
     return 1;
 }

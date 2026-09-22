@@ -47,46 +47,46 @@ void cLog::mes(int flag, int col, const char* fmt, ...)
 }
 
 // Adds an error line (red, 0x16); `errId` is a duplicate key (0 = none).
-void cLog::err(int flag, int errId, const char* fmt, ...)
+void cLog::err(int flag, int errId, const char* mes, ...)
 {
     va_list ap;
-    va_start(ap, fmt);
-    verr(flag, errId, fmt, ap);
+    va_start(ap, mes);
+    verr(flag, errId, mes, ap);
     va_end(ap);
 }
 
 // Adds a warning line (yellow, 0x10).
-void cLog::warn(int flag, int errId, const char* fmt, ...)
+void cLog::warn(int flag, int errId, const char* mes, ...)
 {
     va_list ap;
-    va_start(ap, fmt);
-    vwarn(flag, errId, fmt, ap);
+    va_start(ap, mes);
+    vwarn(flag, errId, mes, ap);
     va_end(ap);
 }
 
 // va_list form of mes (suppressed entirely by Debug_flg[3] 0x04000000).
-void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
+void cLog::vmes(int flag, int col, const char* mes, va_list argptr)
 {
     if (!DbgFlagChk(pG, DBG_LOG_OFF)) {
-        cLogWork* w = add(flag, 0, fmt, ap);
+        cLogWork* w = add(flag, 0, mes, argptr);
         w->m_Col = col;
     }
 }
 
 // va_list form of err.
-void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
+void cLog::verr(int flag, int errId, const char* mes, va_list argptr)
 {
     if (!DbgFlagChk(pG, DBG_LOG_OFF)) {
-        cLogWork* w = add(flag, errId, fmt, ap);
+        cLogWork* w = add(flag, errId, mes, argptr);
         w->m_Col = 0x16;
     }
 }
 
 // va_list form of warn.
-void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
+void cLog::vwarn(int flag, int errId, const char* mes, va_list argptr)
 {
     if (!DbgFlagChk(pG, DBG_LOG_OFF)) {
-        cLogWork* w = add(flag, errId, fmt, ap);
+        cLogWork* w = add(flag, errId, mes, argptr);
         w->m_Col = 0x10;
     }
 }
@@ -112,13 +112,13 @@ int cLog::modeReset()
 }
 
 // Window position, display duration (frames, 0xFF = always) and visible line count.
-int cLog::modeSet(int x, int y, int time, int lines)
+int cLog::modeSet(int x, int y, int dispTime, int dispNum)
 {
     cLog* l = pLog.p;
     l->m_Bx = x;
     l->m_By = y;
-    this->m_DispTime = time;
-    this->m_DispNum = lines;
+    this->m_DispTime = dispTime;
+    this->m_DispNum = dispNum;
     return 1;
 }
 
@@ -176,9 +176,9 @@ int cLog::dispLineNum(int x, int y)
 }
 
 // Shows the window for `flag` frames (0xFF = until cleared).
-int cLog::on(int flag)
+int cLog::on(int time)
 {
-    m_DispTimer = flag;
+    m_DispTimer = time;
     return 1;
 }
 
@@ -200,16 +200,16 @@ int cLog::scrSet(s8 n)
 // duplicate marker is raised, else it is appended to the ring (64 chars) and printed to the
 // console (unless LOG_NO_PRINTF). Restarts the display timer unless LOG_NO_SHOW (LOG_DUP_QUIET
 // for duplicates). Returns the entry so the caller can set its colour.
-cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
+cLogWork* cLog::add(int flag, int errId, const char* mes, va_list ap)
 {
     char buf[256];
     int dup = 0;
     cLogWork* w = &m_Mes[m_BuffIdx];
 
-    vsprintf(buf, fmt, ap);
+    vsprintf(buf, mes, ap);
     m_Flag |= 2;
-    if (key != 0) {
-        if (strcmp(w->m_Str, buf) == 0 || w->m_Id == key) {
+    if (errId != 0) {
+        if (strcmp(w->m_Str, buf) == 0 || w->m_Id == errId) {
             dup = 1;
         }
     }
@@ -228,7 +228,7 @@ cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
         if (!(flag & LOG_NO_PRINTF)) {
             printf("%s\n", buf);
         }
-        w->m_Id = key;
+        w->m_Id = errId;
         if (!(flag & LOG_NO_SHOW)) {
             m_DispTimer = m_DispTime;
         }

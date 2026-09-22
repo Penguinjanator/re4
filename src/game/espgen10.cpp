@@ -67,28 +67,28 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
 }
 // Fills the controller's EspInfo owner block: Core_flg = a, Call_no = b, Core_kind = c, Core_pEm = d,
 // owner = e (the ids EfmDelete / EspDelete use to find effects by owner).
-void SetEspCore(EspgenWork* w, int Core_flg, u32 Call_no, u8 Core_kind, void* Core_pEm, int owner)
+void SetEspCore(EspgenWork* pCore, int Core_flg, u32 Call_no, u8 Core_kind, void* Core_pEm, int owner)
 {
-    w->info.Core_flg = Core_flg;
-    w->info.Core_kind = Core_kind;
-    w->info.Call_no = Call_no;
-    w->info.Core_pEm = Core_pEm;
-    w->info.owner = owner;
+    pCore->info.Core_flg = Core_flg;
+    pCore->info.Core_kind = Core_kind;
+    pCore->info.Call_no = Call_no;
+    pCore->info.Core_pEm = Core_pEm;
+    pCore->info.owner = owner;
 }
 
 // Takes a free controller from the pool (front == 1: from the front, drawn first) and stamps the
 // owner info on it. Returns 0 when the pool is empty.
-int PullEspEspgen(EspgenWork** out, int Core_flg, int Core_kind, u32 Call_no, void* Core_pEm, int owner, int front)
+int PullEspEspgen(EspgenWork** ppEspgen, int Core_flg, int Core_kind, u32 Call_no, void* Core_pEm, int owner, int type)
 {
     int ret;
 
-    if (front == 1) {
-        ret = PullEspgenFront(out);
+    if (type == 1) {
+        ret = PullEspgenFront(ppEspgen);
     } else {
-        ret = PullEspgen(out);
+        ret = PullEspgen(ppEspgen);
     }
     if (ret) {
-        SetEspCore(*out, Core_flg, Call_no, Core_kind, Core_pEm, owner);
+        SetEspCore(*ppEspgen, Core_flg, Call_no, Core_kind, Core_pEm, owner);
     }
     return ret;
 }
@@ -97,22 +97,22 @@ int PullEspEspgen(EspgenWork** out, int Core_flg, int Core_kind, u32 Call_no, vo
 // parts (or Offset/Ang for 0xFE) unless Flg bit 0 says it is fixed; then spawns every record whose
 // Set_time == Time_cnt (records must be sorted, otherwise "no SORT" error) and ends the controller
 // after the last record.
-void espgen10_Update(EspgenWork* w)
+void espgen10_Update(EspgenWork* pEspgen)
 {
-    Espgen10Work* p = (Espgen10Work*) w->work;
+    Espgen10Work* p = (Espgen10Work*) pEspgen->work;
     EspSeqData* head = p->head;
     EspGenWork* rec = &head->rec[p->Seq_ptr];
     cModel* model = p->pMod;
 
     if (model != NULL) {
         if ((model->be_flag & 0x201) != 1 || model->guid != p->Guid_pMod) {
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             return;
         }
     }
     if ((p->Null_parts_no >= 0xF8 && p->Null_parts_no <= 0xFD) || p->Null_parts_no == 0xFF) {
         pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO[%x] invalid.", p->Null_parts_no);
-        PushEspgen(w);
+        PushEspgen(pEspgen);
         return;
     }
     if (p->Null_parts_no == 0xFE) {
@@ -124,7 +124,7 @@ void espgen10_Update(EspgenWork* w)
     } else {
         if (p->pMod == NULL) {
             pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO is set but No Parent.");
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             return;
         }
         if (!(p->Flg & 1)) {
@@ -134,7 +134,7 @@ void espgen10_Update(EspgenWork* w)
 
             if (p->Null_parts_no >= model->nParts) {
                 pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO[%d] is invalid(MAX:%d).", p->Null_parts_no, model->nParts);
-                PushEspgen(w);
+                PushEspgen(pEspgen);
                 return;
             }
             part = model->getPartsPtr(p->Null_parts_no);
@@ -152,7 +152,7 @@ void espgen10_Update(EspgenWork* w)
     }
     if (rec->Set_time < p->Time_cnt) {
         pLog->err(0, 0, "ESP_ESTSET : DATA[%d] is no SORT.", p->Seq_ptr);
-        PushEspgen(w);
+        PushEspgen(pEspgen);
         return;
     }
     while (rec->Set_time == p->Time_cnt) {
@@ -160,14 +160,14 @@ void espgen10_Update(EspgenWork* w)
         if (p->Flg & 2) {
             flag = 1;
         }
-        if (!EspgenDataSet(head, p->Seq_ptr, &w->info, &p->Rand_seed, p->pMod, p->Null_parts_no, &p->Mat, &p->Offset, &p->Ang, p->p8,
+        if (!EspgenDataSet(head, p->Seq_ptr, &pEspgen->info, &p->Rand_seed, p->pMod, p->Null_parts_no, &p->Mat, &p->Offset, &p->Ang, p->p8,
                            flag)) {
             return;
         }
         p->Seq_ptr++;
         rec++;
         if (p->Seq_ptr >= head->num) {
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             break;
         }
     }
@@ -175,22 +175,22 @@ void espgen10_Update(EspgenWork* w)
 }
 
 // Step 0 of Espgen10MoveTbl: first frame, then step 1.
-void espgen10_Move00(EspgenWork* w)
+void espgen10_Move00(EspgenWork* pEspgen)
 {
-    espgen10_Update(w);
-    w->step = 1;
+    espgen10_Update(pEspgen);
+    pEspgen->step = 1;
 }
 
 // Step 1 of Espgen10MoveTbl: steady state.
-void espgen10_Move01(EspgenWork* w)
+void espgen10_Move01(EspgenWork* pEspgen)
 {
-    espgen10_Update(w);
+    espgen10_Update(pEspgen);
 }
 
 // EspgenMoveTbl entry for controller type 0x10: dispatches on w->step.
-void Espgen10_Move(EspgenWork* w)
+void Espgen10_Move(EspgenWork* pEspgen)
 {
     static void (*Espgen10MoveTbl[])(EspgenWork*) = {espgen10_Move00, espgen10_Move01};
 
-    Espgen10MoveTbl[w->step](w);
+    Espgen10MoveTbl[pEspgen->step](pEspgen);
 }

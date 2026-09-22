@@ -55,23 +55,23 @@ struct EmShieldWork {
 class cEmShield : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMSHIELD_WK)
-    virtual void beginEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
     virtual void move();
 
-    void setParent(cModel* parent, int partsNo, int flag);
-    void setFall(Vec* spd, f32 gravity);
+    void setParent(cModel* pCoord, int oya_parts, int flag);
+    void setFall(Vec* pSpd, f32 gravity);
 };
 
 extern "C" {
 cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot);
-void emShieldDmCk(cEmShield* em);
-void emShield_R0_Init(cEmShield* em);
-void emShield_R0_Move(cEmShield* em);
-void emShield_R1_Set(cEmShield* em);
-void emShield_R1_LostWait(cEmShield* em);
-void emShield_R1_Lost(cEmShield* em);
-void emShield_R1_Parent(cEmShield* em);
-void emShield_R1_Fall(cEmShield* em);
+void emShieldDmCk(cEmShield* pEm);
+void emShield_R0_Init(cEmShield* pEm);
+void emShield_R0_Move(cEmShield* pEm);
+void emShield_R1_Set(cEmShield* pEm);
+void emShield_R1_LostWait(cEmShield* pEm);
+void emShield_R1_Lost(cEmShield* pEm);
+void emShield_R1_Parent(cEmShield* pEm);
+void emShield_R1_Fall(cEmShield* pEm);
 }
 
 #endif

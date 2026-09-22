@@ -234,7 +234,7 @@ public:
     // emitted out of line like every in-class member), EmXXInit's `new (em) cEm10()` synthesizes it
     virtual ~cEm10();
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
     virtual int checkThrow();
     virtual void setHand(int no, int type);
     virtual void setWeaponFall();
@@ -276,7 +276,7 @@ extern Em10Func Em10SetFunc;
 class cObjGatling : public cObj {
 public:
     void stopFire();
-    void setRide(cEm* em);
+    void setRide(cEm* pEm);
     void setReload();
     void setFire();
     int ckReload();
@@ -322,7 +322,7 @@ void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad);
 void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int prm2, int no3, int prm3, u8 flag);
 void SetObj08Se(cObj* obj, u16 blk, u16 no);
 void Obj01SetEst(cObj* obj, int eff, int est, u32 action, int eff2, int est2, int f, int g, int h, int i);
-int GetWepDmVal(cEm* em, u32 wep_no, int near);
+int GetWepDmVal(cEm* pEm, u32 wep_no, int near);
 void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // int a: the vendor's GC signature (EmCatchSubSet__FP3cEmT0Uliffff)
 extern "C" {
 void MotSetObj16(cObj* obj, void* mot, int a, int b);

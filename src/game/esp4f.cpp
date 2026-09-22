@@ -47,8 +47,8 @@ void cEsp4f::move()
 }
 
 // Work8[0] of the record is the effect area number the sprite is gated on.
-int cEsp4f::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp4f::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
-    m_Free.area_no = gen->Work8[0];
+    m_Free.area_no = pSeq->Work8[0];
     return 1;
 }

@@ -53,13 +53,13 @@ cLightMgr::cLightMgr() : cManager<cLight>(sizeof(cLight), 0)
 }
 
 // Debug log when m_logMode is on.
-void cLightMgr::log(const char* fmt, ...)
+void cLightMgr::log(const char* pStr, ...)
 {
     va_list ap;
 
     if (m_logMode) {
-        va_start(ap, fmt);
-        pLog->vwarn(0, 0, fmt, ap);
+        va_start(ap, pStr);
+        pLog->vwarn(0, 0, pStr, ap);
     }
 }
 
@@ -153,28 +153,28 @@ int cLightMgr::construct(cLight* p, u32 id)
 }
 
 // Creates a light from a cLightWork record (front of the pool), copies it and runs its first move.
-cLight* cLightMgr::create(cLightWork* w)
+cLight* cLightMgr::create(cLightWork* pLw)
 {
-    cLight* l = cManager<cLight>::create(w->Type);
+    cLight* l = cManager<cLight>::create(pLw->Type);
     if (l == 0) {
         return 0;
     }
     if (!IS_ALIVE(l)) {
         return 0;
     }
-    *l = *w;
+    *l = *pLw;
     l->move();
     return l;
 }
 
 // Same as create(cLightWork*) but allocated from the back of the pool.
-cLight* cLightMgr::createBack(cLightWork* w)
+cLight* cLightMgr::createBack(cLightWork* pLw)
 {
-    cLight* l = cManager<cLight>::createBack(w->Type);
+    cLight* l = cManager<cLight>::createBack(pLw->Type);
     if (l == 0) {
         return 0;
     }
-    *l = *w;
+    *l = *pLw;
     l->move();
     return l;
 }
@@ -314,7 +314,7 @@ f32 cLightMgr::setElecPower(f32 d)
 
 // Replaces the light-control ctrl unit (Id 1) with one that plays light path pathNo (power
 // flicker of the room lights); 0 when the path or a ctrl slot is missing.
-int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
+int cLightMgr::setElecPower2(u8 id, u8 flag)
 {
     cCtrl* c;
     cCtrl* n;
@@ -334,14 +334,14 @@ int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
     }
     c->Id = 1;
     w = (LightCtrlWork*) c->work;
-    path = getPathPtr(pathNo);
+    path = getPathPtr(id);
     if (!VALID_PTR(path)) {
-        pLog->err(0, 0, "cLightMgr::setElecPower2() NO PATH DATA %d", pathNo);
+        pLog->err(0, 0, "cLightMgr::setElecPower2() NO PATH DATA %d", id);
         CtrlMgr.destroy(c);
         return 0;
     }
     w->pPath = w->pPath2 = path;
-    w->idx = idx;
+    w->idx = flag;
     return 1;
 }
 
@@ -462,26 +462,26 @@ void cLightMgr::hokanMove()
 // One light's frame: destroys it when its parent model died, recomputes World from the parent
 // parts (be_flag 2 = attached), snaps against collision (hitAdjust), runs the type function; an
 // etc-model parent (type 3) with hp <= 0 detaches the light.
-void lightMove(cLight* l)
+void lightMove(cLight* pLi)
 {
-    cModel* p = l->pParent;
+    cModel* p = pLi->pParent;
     cModel* em;
 
     if (p != 0 && !IS_ALIVE(p) && !DbgFlagChk(pG, DBG_TEST_MODE)) {
-        if (IS_ALIVE(l)) {
-            LightMgr.destroy(l);
+        if (IS_ALIVE(pLi)) {
+            LightMgr.destroy(pLi);
         }
         return;
     }
-    if (l->be_flag & 2) {
-        l->calcPos(&l->Pos, &l->World);
+    if (pLi->be_flag & 2) {
+        pLi->calcPos(&pLi->Pos, &pLi->World);
     }
-    l->hitAdjust();
-    l->move();
-    if (l->ParentType == 3) {
-        if (getRoomEtcOnLight(l->ParentNo, &em, 0) == 1) {
+    pLi->hitAdjust();
+    pLi->move();
+    if (pLi->ParentType == 3) {
+        if (getRoomEtcOnLight(pLi->ParentNo, &em, 0) == 1) {
             if (((cEm*) em)->hp <= 0) {
-                l->be_flag &= ~2;
+                pLi->be_flag &= ~2;
             }
         }
     }
@@ -494,15 +494,15 @@ cLightEnv* cLightMgr::getEnvPtr()
 }
 
 // LightFuncTbl[0] and the unused types: static light, DispCol = Col.
-void Light00_Move(cLight* l)
+void Light00_Move(cLight* pLi)
 {
-    l->DispCol = l->Col;
+    pLi->DispCol = pLi->Col;
 }
 
 // Picks the lights for a model: every alive, enabled light (xF mask vs EnableMask, kind on, not a
 // foot-shadow type 4, SelectMask bit, non-black colour, volume hit test) up to 8, stored in
 // LightInfo.pLight; during an event only lights on event-flagged parents.
-void cLightMgr::setModel2(cModel* m)
+void cLightMgr::setModel2(cModel* pMod)
 {
     cLight* l;
     cModel* parent;
@@ -511,15 +511,15 @@ void cLightMgr::setModel2(cModel* m)
     int hit;
     f32 pri[8];
 
-    memclr_asm(m->LightInfo.pLight, sizeof(m->LightInfo.pLight));
+    memclr_asm(pMod->LightInfo.pLight, sizeof(pMod->LightInfo.pLight));
     for (i = 0; i < nArray; i++) {
         l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (l->xF & m->LightInfo.EnableMask) {
+        if (l->xF & pMod->LightInfo.EnableMask) {
             hit = 1;
-        } else if (!(m->LightInfo.EnableMask & 0x41) && l->isParent(m)) {
+        } else if (!(pMod->LightInfo.EnableMask & 0x41) && l->isParent(pMod)) {
             hit = 1;
         } else {
             hit = 0;
@@ -533,10 +533,10 @@ void cLightMgr::setModel2(cModel* m)
         if (!checkKind(l->Kind)) {
             continue;
         }
-        if (m->id == 2 && (((cObj*) m)->attr & 1) && (l->Attribute & 4)) {
+        if (pMod->id == 2 && (((cObj*) pMod)->attr & 1) && (l->Attribute & 4)) {
             continue;
         }
-        if (i <= 31 && !((1 << i) & m->LightInfo.SelectMask) && !StaFlagChk(pG, STA_NO_LIGHTMASK)) {
+        if (i <= 31 && !((1 << i) & pMod->LightInfo.SelectMask) && !StaFlagChk(pG, STA_NO_LIGHTMASK)) {
             if (!StaFlagChk(pG, STA_THERMO_GRAPH)) {
                 continue;
             }
@@ -544,7 +544,7 @@ void cLightMgr::setModel2(cModel* m)
         if ((*(u32*) &l->DispCol & 0xFFFFFF00) == 0) {
             continue;
         }
-        if (!lightHitCheck(m, l)) {
+        if (!lightHitCheck(pMod, l)) {
             continue;
         }
         parent = l->pParent;
@@ -553,26 +553,26 @@ void cLightMgr::setModel2(cModel* m)
         }
         if (n > 7) {
             if (DbgFlagChk(pG, DBG_LIGHT_ERR_CHECK)) {
-                pLog->warn(6, 3, "MODEL'S LIGHT OVER 8 !! [%08X]", m);
+                pLog->warn(6, 3, "MODEL'S LIGHT OVER 8 !! [%08X]", pMod);
             }
-            m->error();
+            pMod->error();
             return;
         }
-        m->LightInfo.pLight[n] = l;
+        pMod->LightInfo.pLight[n] = l;
         pri[n] = (f32) l->Priority;
         n++;
     }
 }
 
 // Picks up to 8 cloth lights (xF bit 0x10) hitting the model for the cloth renderer.
-void cLightMgr::setCloth(cModel* m, u32 count)
+void cLightMgr::setCloth(cModel* pMod, u32 lightNum)
 {
     cLight* l;
     u32 i;
     int n;
 
-    if (!VALID_PTR(m)) {
-        pLog->err(0, 0, "cLightMgr::setCloth() INVALID PTR %08x", m);
+    if (!VALID_PTR(pMod)) {
+        pLog->err(0, 0, "cLightMgr::setCloth() INVALID PTR %08x", pMod);
         return;
     }
     n = 0;
@@ -590,48 +590,48 @@ void cLightMgr::setCloth(cModel* m, u32 count)
         if ((*(u32*) &l->DispCol & 0xFFFFFF00) == 0) {
             continue;
         }
-        if (!lightHitCheck(m, l)) {
+        if (!lightHitCheck(pMod, l)) {
             continue;
         }
         if (n > 7) {
             if (DbgFlagChk(pG, DBG_LIGHT_ERR_CHECK)) {
-                pLog->warn(6, 3, "MODEL'S LIGHT OVER 8 !! [%08X]", m);
+                pLog->warn(6, 3, "MODEL'S LIGHT OVER 8 !! [%08X]", pMod);
             }
-            m->error();
+            pMod->error();
             return;
         }
-        m->LightInfo.pLight[n] = l;
+        pMod->LightInfo.pLight[n] = l;
         n++;
     }
 }
 
 // Fills the effect light list with every alive light whose xF matches `mask` (max 8).
-void cLightMgr::setEsp(EspLightList* list, u8 mask)
+void cLightMgr::setEsp(EspLightList* pEnv, u8 enableMask)
 {
     cLight* l;
     u32 i;
 
-    list->num = 0;
+    pEnv->num = 0;
     for (i = 0; i < nArray; i++) {
         l = fastAt(i);
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (!(l->xF & mask)) {
+        if (!(l->xF & enableMask)) {
             continue;
         }
-        if (list->num == 8) {
+        if (pEnv->num == 8) {
             pLog->warn(0, 0, "cLightMgr::setEsp():ESP LIGHT MAX(%d)", 8);
             return;
         }
-        list->p[list->num] = l;
-        list->num++;
+        pEnv->p[pEnv->num] = l;
+        pEnv->num++;
     }
 }
 
 // Does the light reach the model's light volume? Dispatches on LightInfo.Flag & 3 (0 cylinder, 1/3
 // sphere, 2 box).
-int lightHitCheck(cModel* m, cLight* l)
+int lightHitCheck(cModel* pMod, cLight* pLight)
 {
     static int (*funcTbl[4])(cModel*, cLight*) = {
         lightHitCheckCylinder,
@@ -639,38 +639,38 @@ int lightHitCheck(cModel* m, cLight* l)
         lightHitCheckBBox,
         lightHitCheckSphere,
     };
-    return funcTbl[m->LightInfo.Flag & 3](m, l);
+    return funcTbl[pMod->LightInfo.Flag & 3](pMod, pLight);
 }
 
 // Sphere volume (Size.x) vs light radius (0 = infinite).
-int lightHitCheckSphere(cModel* m, cLight* l)
+int lightHitCheckSphere(cModel* pMod, cLight* pLight)
 {
     Vec pos;
     Vec lpos;
-    cLightInfo* li = &m->LightInfo;
+    cLightInfo* li = &pMod->LightInfo;
 
-    li->getPos(m, &pos);
-    l->getPos(&lpos);
-    if (GetDistance3(&pos, &lpos) < li->Size.x + l->Radius || l->Radius == 0.0f) {
+    li->getPos(pMod, &pos);
+    pLight->getPos(&lpos);
+    if (GetDistance3(&pos, &lpos) < li->Size.x + pLight->Radius || pLight->Radius == 0.0f) {
         return 1;
     }
     return 0;
 }
 
 // Capsule volume: spheres of Size.x at +-Size.y along the parts' up axis vs the light radius.
-int lightHitCheckCylinder(cModel* m, cLight* l)
+int lightHitCheckCylinder(cModel* pMod, cLight* pLight)
 {
     static const Vec vech = { 0.0f, 1.0f, 0.0f };
     Vec pos;
     Vec tmp;
     Vec lpos;
-    cLightInfo* li = &m->LightInfo;
+    cLightInfo* li = &pMod->LightInfo;
     cModel* c;
     f32 r;
 
-    c = li->getPos(m, &pos);
-    l->getPos(&lpos);
-    r = l->Radius;
+    c = li->getPos(pMod, &pos);
+    pLight->getPos(&lpos);
+    r = pLight->Radius;
     if (r == 0.0f) {
         return 1;
     }
@@ -687,7 +687,7 @@ int lightHitCheckCylinder(cModel* m, cLight* l)
 }
 
 // Box volume: the light position in the volume's local space against Size * model scale + radius.
-int lightHitCheckBBox(cModel* m, cLight* l)
+int lightHitCheckBBox(cModel* pMod, cLight* pLight)
 {
     Vec p;
     Vec* size;
@@ -695,16 +695,16 @@ int lightHitCheckBBox(cModel* m, cLight* l)
     f32 sz;
     f32 sy;
 
-    if (l->Radius == 0.0f) {
+    if (pLight->Radius == 0.0f) {
         return 1;
     }
-    p = l->World;
-    PSMTXMultVec(m->LightInfo.imat, &p, &p);
-    size = &m->LightInfo.Size;
-    sx = size->x * m->scale.x;
-    sy = size->y * m->scale.y;
-    sz = size->z * m->scale.z;
-    if (p.x - l->Radius > sx || p.x + l->Radius < -sx || p.z - l->Radius > sz || p.z + l->Radius < -sz || p.y - l->Radius > sy || p.y + l->Radius < -sy) {
+    p = pLight->World;
+    PSMTXMultVec(pMod->LightInfo.imat, &p, &p);
+    size = &pMod->LightInfo.Size;
+    sx = size->x * pMod->scale.x;
+    sy = size->y * pMod->scale.y;
+    sz = size->z * pMod->scale.z;
+    if (p.x - pLight->Radius > sx || p.x + pLight->Radius < -sx || p.z - pLight->Radius > sz || p.z + pLight->Radius < -sz || p.y - pLight->Radius > sy || p.y + pLight->Radius < -sy) {
         return 0;
     }
     return 1;
@@ -714,7 +714,7 @@ int lightHitCheckBBox(cModel* m, cLight* l)
 // current room lights, applies the cut's environment (fog over `hokan` frames, -1 = the cut's own)
 // and loads its lights, then reserves the spare slots (nMaxLight - nLight, at least 10) as
 // invisible placeholders. No-op in thermal mode; Status_flg[2] 0x00400000 keeps the old cut.
-int cLightMgr::update(int cut_no, int hokan)
+int cLightMgr::update(int cutNo, int hokan)
 {
     cLightEnv* cut;
     cLight* l;
@@ -722,9 +722,9 @@ int cLightMgr::update(int cut_no, int hokan)
     u32 i;
 
     if (StaFlagChk(pG, STA_LIT_NO_UPDATE)) {
-        cut_no = m_oldCutNo;
+        cutNo = m_oldCutNo;
     } else {
-        m_oldCutNo = cut_no;
+        m_oldCutNo = cutNo;
     }
     if (StaFlagChk(pG, STA_THERMO_GRAPH)) {
         return 0;
@@ -733,13 +733,13 @@ int cLightMgr::update(int cut_no, int hokan)
         pLog->err(0, 0, "cLightMgr::update() NO LIGHT DATA");
         return 0;
     }
-    if (cut_no == -1) {
+    if (cutNo == -1) {
         pLog->warn(0, 0, "cLightMgr::update() Cut No is [-1]");
-        cut_no = 0;
+        cutNo = 0;
     }
     deleteScr();
-    cut_no = pLitHeader->getSafeCutNo(cut_no);
-    cut = pLitHeader->getCut(cut_no);
+    cutNo = pLitHeader->getSafeCutNo(cutNo);
+    cut = pLitHeader->getCut(cutNo);
     registCut(cut, hokan);
     if (pLitHeader->nMaxLight >= nArray) {
         int max;
@@ -784,15 +784,15 @@ int cLightMgr::setThermo()
 }
 
 // Applies a cut: environment (setEnv) then all its lights (loadLit), clamped to the pool size.
-int cLightMgr::registCut(cLightEnv* cut, int hokan)
+int cLightMgr::registCut(cLightEnv* pLe, int hokan)
 {
-    setEnv(cut, hokan);
-    if (cut->nLight > nArray) {
+    setEnv(pLe, hokan);
+    if (pLe->nLight > nArray) {
         pLog->err(0, 0, "LightRegistCut() LIGHT NUM OVER %d", nArray);
-        cut->nLight = nArray;
+        pLe->nLight = nArray;
         return 0;
     }
-    loadLit(cut->getLightWork(0), cut->nLight);
+    loadLit(pLe->getLightWork(0), pLe->nLight);
     return 1;
 }
 
@@ -816,11 +816,11 @@ u32 cLightEnv::getSize()
 }
 
 // Cut record of block litNo (0 core, 1 room, 2 third).
-cLightEnv* cLightMgr::getCutAddr(int litNo, int cutNo)
+cLightEnv* cLightMgr::getCutAddr(int type, int cutNo)
 {
     cLit* lit;
 
-    switch (litNo) {
+    switch (type) {
     case 0:
     default:
         lit = m_pLitCore;
@@ -836,24 +836,24 @@ cLightEnv* cLightMgr::getCutAddr(int litNo, int cutNo)
 }
 
 // The cut number, or 0 when it is out of range / missing.
-int cLit::getSafeCutNo(int no)
+int cLit::getSafeCutNo(int cutNo)
 {
-    if (no < 0 || no >= CutNum || !VALID_PTR(getCut(no))) {
-        no = 0;
+    if (cutNo < 0 || cutNo >= CutNum || !VALID_PTR(getCut(cutNo))) {
+        cutNo = 0;
     }
-    return no;
+    return cutNo;
 }
 
 // Event fog curve: sets the fog start distance.
-void cLightMgr::setFogStart(f32 v)
+void cLightMgr::setFogStart(f32 datStart)
 {
-    LightEnv.Fog.Start = v;
+    LightEnv.Fog.Start = datStart;
 }
 
 // Event fog curve: sets the fog end distance.
-void cLightMgr::setFogEnd(f32 v)
+void cLightMgr::setFogEnd(f32 datEnd)
 {
-    LightEnv.Fog.End = v;
+    LightEnv.Fog.End = datEnd;
 }
 
 // Current fog start distance.
@@ -918,7 +918,7 @@ void cLightMgr::deleteScr()
 }
 
 // Clears mask bits from every room light's xF (light class mask).
-void cLightMgr::offScr(u8 mask)
+void cLightMgr::offScr(u8 enable)
 {
     cLight* l;
     u32 i;
@@ -926,7 +926,7 @@ void cLightMgr::offScr(u8 mask)
     for (i = 0; i < nArray; i++) {
         l = fastAt(i);
         if (l->checkScr()) {
-            l->xF &= ~mask;
+            l->xF &= ~enable;
         }
     }
 }
@@ -948,11 +948,11 @@ int cLightMgr::countScr()
 // Installs a cut's environment: fog target (interpolated over hokan frames, -1 = cut->Hokan; with
 // interpolation the old fog/bg colour are kept as the start), fog, blur, mipmap, tune, wind and
 // the two TEV colour scales.
-int cLightMgr::setEnv(cLightEnv* cut, int hokan)
+int cLightMgr::setEnv(cLightEnv* pLe, int hokan)
 {
-    fogNew = cut->Fog;
+    fogNew = pLe->Fog;
     if (hokan < 0) {
-        m_Hokan = cut->Hokan;
+        m_Hokan = pLe->Hokan;
     } else {
         m_Hokan = hokan;
     }
@@ -960,38 +960,38 @@ int cLightMgr::setEnv(cLightEnv* cut, int hokan)
         f32 fs = LightEnv.Fog.Start;
         f32 fe = LightEnv.Fog.End;
         GXColor fc = LightEnv.Fog.Color;
-        LightEnv = *cut;
+        LightEnv = *pLe;
         LightEnv.Fog.Start = fs;
         LightEnv.Fog.End = fe;
         LightEnv.Fog.Color = fc;
     } else {
-        LightEnv = *cut;
+        LightEnv = *pLe;
     }
     setFog();
     setBlur();
-    setMipmap(cut);
-    setTune(cut);
-    cut->wind.set();
-    if (cut->tev_scale[0] > 2) {
-        pLog->err(0, 0, "setEnv() TEV_SCALE ERROR %d", cut->tev_scale[0]);
+    setMipmap(pLe);
+    setTune(pLe);
+    pLe->wind.set();
+    if (pLe->tev_scale[0] > 2) {
+        pLog->err(0, 0, "setEnv() TEV_SCALE ERROR %d", pLe->tev_scale[0]);
         return 0;
     }
-    if (cut->tev_scale[1] > 2) {
-        pLog->err(0, 0, "setEnv() TEV_SCALE ERROR %d", cut->tev_scale[1]);
+    if (pLe->tev_scale[1] > 2) {
+        pLog->err(0, 0, "setEnv() TEV_SCALE ERROR %d", pLe->tev_scale[1]);
         return 0;
     }
-    gxCsScale[0] = cut->tev_scale[0];
-    gxCsScale[1] = cut->tev_scale[1];
+    gxCsScale[0] = pLe->tev_scale[0];
+    gxCsScale[1] = pLe->tev_scale[1];
     return 1;
 }
 
 // Tune colours (the three character colour tints): the cut's when tuneOn bit 0, else the defaults.
-void cLightMgr::setTune(cLightEnv* cut)
+void cLightMgr::setTune(cLightEnv* pLe)
 {
-    if (cut->tuneOn & 1) {
-        m_Tune[0] = cut->Tune[0];
-        m_Tune[1] = cut->Tune[1];
-        m_Tune[2] = cut->Tune[2];
+    if (pLe->tuneOn & 1) {
+        m_Tune[0] = pLe->Tune[0];
+        m_Tune[1] = pLe->Tune[1];
+        m_Tune[2] = pLe->Tune[2];
     } else {
         m_Tune[0].r = 0xC8;
         m_Tune[0].g = 0xC0;
@@ -1009,30 +1009,30 @@ void cLightMgr::setTune(cLightEnv* cut)
 }
 
 // Global texture LOD settings from the cut (min/max lod 0..9, anisotropy 0..2, lod bias -5..10).
-int cLightMgr::setMipmap(cLightEnv* cut)
+int cLightMgr::setMipmap(cLightEnv* pLe)
 {
-    if (!VALID_PTR(cut)) {
-        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED PTR %08X", cut);
+    if (!VALID_PTR(pLe)) {
+        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED PTR %08X", pLe);
         return 0;
     }
-    if (cut->min_lod > 9) {
-        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED MIN_LOD %d", cut->min_lod);
-        cut->min_lod = 0;
+    if (pLe->min_lod > 9) {
+        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED MIN_LOD %d", pLe->min_lod);
+        pLe->min_lod = 0;
     }
-    if (cut->max_lod > 9) {
-        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED MAX_LOD %d", cut->max_lod);
-        cut->max_lod = 5;
+    if (pLe->max_lod > 9) {
+        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED MAX_LOD %d", pLe->max_lod);
+        pLe->max_lod = 5;
     }
-    if (cut->max_lod < cut->min_lod) {
-        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED MIN > MAX %d %d", cut->min_lod, cut->max_lod);
+    if (pLe->max_lod < pLe->min_lod) {
+        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED MIN > MAX %d %d", pLe->min_lod, pLe->max_lod);
         max_lod = min_lod;
     }
-    min_lod = cut->min_lod;
-    max_lod = cut->max_lod;
-    switch (cut->aniso) {
+    min_lod = pLe->min_lod;
+    max_lod = pLe->max_lod;
+    switch (pLe->aniso) {
     default:
-        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED ANISO %d", cut->aniso);
-        cut->aniso = 0;
+        pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED ANISO %d", pLe->aniso);
+        pLe->aniso = 0;
         aniso = 0;
         break;
     case 0:
@@ -1051,18 +1051,18 @@ int cLightMgr::setMipmap(cLightEnv* cut)
     if (lod_bias > 10.0f) {
         lod_bias = 10.0f;
     }
-    lod_bias = cut->lod_bias;
+    lod_bias = pLe->lod_bias;
     return 0;
 }
 
 // Creates n lights from consecutive records; attached ones get their parent and world position.
-int cLightMgr::loadLit(cLightWork* w, u32 n)
+int cLightMgr::loadLit(cLightWork* pLw, u32 nL)
 {
     cLight* l;
     u32 i;
 
-    for (i = 0; i < n; i++, w++) {
-        l = create(w);
+    for (i = 0; i < nL; i++, pLw++) {
+        l = create(pLw);
         if (l->be_flag & 2) {
             l->calcParent();
             l->calcPos(&l->Pos, &l->World);
@@ -1073,7 +1073,7 @@ int cLightMgr::loadLit(cLightWork* w, u32 n)
 }
 
 // Tool: writes every room light back into cLightWork records.
-int cLightMgr::saveLit(cLightWork* w)
+int cLightMgr::saveLit(cLightWork* pLw)
 {
     cLight* l;
     u32 i;
@@ -1081,8 +1081,8 @@ int cLightMgr::saveLit(cLightWork* w)
     for (i = 0; i < nArray; i++) {
         l = fastAt(i);
         if (l->checkScr()) {
-            *w = *l;
-            w++;
+            *pLw = *l;
+            pLw++;
         }
     }
     return 1;
@@ -1106,7 +1106,7 @@ int cLightMgr::initPath(LightPathHeader* p)
 }
 
 // Light path `no` (0 with an error when missing).
-cLightPathData* cLightMgr::getPathPtr(u8 no)
+cLightPathData* cLightMgr::getPathPtr(u8 id)
 {
     u32 ofs;
 
@@ -1114,11 +1114,11 @@ cLightPathData* cLightMgr::getPathPtr(u8 no)
         pLog->err(0, 0, "cLightMgr::getPathPtr() PATH NOT INITIALIZED.");
         return 0;
     }
-    if (no >= pLitPath->num) {
-        pLog->err(0, 0, "cLightMgr::getPathPtr() INVALID ID %d.", no);
+    if (id >= pLitPath->num) {
+        pLog->err(0, 0, "cLightMgr::getPathPtr() INVALID ID %d.", id);
         return 0;
     }
-    ofs = *(u32*) (no * 4 + (u32) pLitPath + 4);
+    ofs = *(u32*) (id * 4 + (u32) pLitPath + 4);
     if (ofs == 0) {
         return 0;
     }
@@ -1208,46 +1208,46 @@ int cLight::checkScr()
 }
 
 // Sets the parent parts number (high 16 bits of ParentNo).
-void cLight::setPartsNo(int no)
+void cLight::setPartsNo(int pno)
 {
-    ParentNo = (no << 16) | parent.no;
+    ParentNo = (pno << 16) | parent.no;
 }
 
 // Attaches the light to parent (type, id) and resolves the model pointer.
-int cLight::setParent(u8 type, u32 id)
+int cLight::setParent(u8 type, u32 no)
 {
     ParentType = type;
-    ParentNo = id;
+    ParentNo = no;
     calcParent();
     return 1;
 }
 
 // Attaches to a model by searching it among enemies (type 1), scroll objects (2) and objects (4).
-int cLight::setParent(cModel* m)
+int cLight::setParent(cModel* pMod)
 {
     u32 i;
     u32 n;
 
-    if (!VALID_PTR(m)) {
-        pLog->err(0, 0, "cLight::setParent() INVALID PTR %08x", m);
+    if (!VALID_PTR(pMod)) {
+        pLog->err(0, 0, "cLight::setParent() INVALID PTR %08x", pMod);
         return 0;
     }
     n = EmMgr.getArrayNum();
     for (i = 0; i < n; i++) {
-        if ((cModel*) EmMgr.fastAt(i) == m) {
-            setParent(1, (ParentNo & 0xFFFF0000) | m->id);
+        if ((cModel*) EmMgr.fastAt(i) == pMod) {
+            setParent(1, (ParentNo & 0xFFFF0000) | pMod->id);
             return 1;
         }
     }
     for (i = 0; i < 250; i++) {
-        if (SmdGetGroupObjPtr2(i) == m) {
+        if (SmdGetGroupObjPtr2(i) == pMod) {
             setParent(2, (ParentNo & 0xFFFF0000) | i);
             return 1;
         }
     }
     n = ObjMgr.getArrayNum();
     for (i = 0; i < n; i++) {
-        if ((cModel*) ObjMgr.fastAt(i) == m) {
+        if ((cModel*) ObjMgr.fastAt(i) == pMod) {
             setParent(4, (ParentNo & 0xFFFF0000) | i);
             return 1;
         }
@@ -1297,28 +1297,28 @@ cModel* cLight::getCoord()
 }
 
 // 1 when m is the parent model.
-int cLight::isParent(cModel* m)
+int cLight::isParent(cModel* pMod)
 {
-    return m == pParent;
+    return pMod == pParent;
 }
 
 // Local -> world position through the parent (calcPos).
-int cLight::getPos2(Vec* src, Vec* dst)
+int cLight::getPos2(Vec* pLiPos, Vec* pPos)
 {
-    return calcPos(src, dst);
+    return calcPos(pLiPos, pPos);
 }
 
 // Transforms a local position by the parent parts' matrix (etc models by number); unattached
 // lights copy; a missing parent detaches the light (setTrans(0)).
-int cLight::calcPos(Vec* src, Vec* dst)
+int cLight::calcPos(Vec* pLiPos, Vec* pPos)
 {
     cModel* p;
     cModel* c;
     int partsNo;
     int no;
 
-    if (!VALID_PTR(dst)) {
-        pLog->err(0, 0, "cLight::getPos() INVALED PTR %08x", dst);
+    if (!VALID_PTR(pPos)) {
+        pLog->err(0, 0, "cLight::getPos() INVALED PTR %08x", pPos);
         return 0;
     }
     switch (ParentType) {
@@ -1326,14 +1326,14 @@ int cLight::calcPos(Vec* src, Vec* dst)
         pLog->err(0, 0, "Lit:calcPos() %d-%d INVALID PARENT TYPE", ParentType, ParentNo);
         setParent(0, 1);
     case 0:
-        *dst = *src;
+        *pPos = *pLiPos;
         break;
     case 1:
     case 2:
     case 4:
         c = getCoord();
         if (c != 0) {
-            PSMTXMultVec(c->mat, src, dst);
+            PSMTXMultVec(c->mat, pLiPos, pPos);
         } else if (!(ParentType == 1 && parent.no == 3)) {
             if (G_ROOM_ID != 0x320) {
                 pLog->err(0, 0, "Lit:calcPos() MODEL PARENT NOT FOUND");
@@ -1350,7 +1350,7 @@ int cLight::calcPos(Vec* src, Vec* dst)
                 pLog->err(0, 0, "Lit:calcPos() %d-%d ETCMODEL PARENT NOT FOUND", no, partsNo);
             }
         } else if (p != 0 && IS_ALIVE(p) && partsNo < p->nParts) {
-            PSMTXMultVec(p->getPartsPtr(partsNo)->mat, src, dst);
+            PSMTXMultVec(p->getPartsPtr(partsNo)->mat, pLiPos, pPos);
         }
         break;
     }
@@ -1358,21 +1358,21 @@ int cLight::calcPos(Vec* src, Vec* dst)
 }
 
 // Rotates a local direction by the parent parts' matrix (enemy / scroll / etc / object parents).
-int cLight::getNormal(Vec* src, Vec* dst)
+int cLight::getNormal(Vec* pInNorm, Vec* pNorm)
 {
     cModel* p;
     int partsNo;
     int no;
 
-    if (!VALID_PTR(dst)) {
-        pLog->err(0, 0, "cLight::getNormal() INVALED PTR %08x", dst);
+    if (!VALID_PTR(pNorm)) {
+        pLog->err(0, 0, "cLight::getNormal() INVALED PTR %08x", pNorm);
         return 0;
     }
     switch (ParentType) {
     default:
         pLog->err(0, 0, "cLight::getPos() INVALID PARENT TYPE %d", ParentType);
     case 0:
-        *dst = *src;
+        *pNorm = *pInNorm;
         break;
     case 1: {
         u32 pid = ParentNo;
@@ -1385,10 +1385,10 @@ int cLight::getNormal(Vec* src, Vec* dst)
                     setTrans(0);
                 }
             }
-            *dst = *src;
+            *pNorm = *pInNorm;
             return 0;
         }
-        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
+        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, pInNorm, pNorm);
         break;
     }
     case 2: {
@@ -1398,18 +1398,18 @@ int cLight::getNormal(Vec* src, Vec* dst)
         p = SmdGetGroupObjPtr(no);
         if (!VALID_PTR(p)) {
             pLog->err(0, 0, "cLight::getNormal() SCROLL No Error %d", no);
-            *dst = *src;
+            *pNorm = *pInNorm;
             return 0;
         }
         if (IS_ALIVE(p) && partsNo < p->nParts) {
-            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
-            if (dst->x == 0.0f && dst->y == 0.0f && dst->z == 0.0f) {
-                dst->x = 0.001f;
+            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, pInNorm, pNorm);
+            if (pNorm->x == 0.0f && pNorm->y == 0.0f && pNorm->z == 0.0f) {
+                pNorm->x = 0.001f;
             }
             break;
         }
         pLog->err(0, 0, "cLight::getNormal() FAILED.");
-        *dst = *src;
+        *pNorm = *pInNorm;
         return 0;
     }
     case 3:
@@ -1421,7 +1421,7 @@ int cLight::getNormal(Vec* src, Vec* dst)
                 pLog->err(0, 0, "cLight::getNormal() ETCMODEL PARENT NOT FOUND %d %d", no, partsNo);
             }
         } else if ((p->be_flag & 1) && partsNo < p->nParts) {
-            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
+            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, pInNorm, pNorm);
         }
         break;
     case 4: {
@@ -1433,10 +1433,10 @@ int cLight::getNormal(Vec* src, Vec* dst)
             if (!DbgFlagChk(pG, DBG_TEST_MODE)) {
                 pLog->err(0, 0, "cLight::getNormal() FAILED.");
             }
-            *dst = *src;
+            *pNorm = *pInNorm;
             return 0;
         }
-        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
+        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, pInNorm, pNorm);
         break;
     }
     }
@@ -1444,9 +1444,9 @@ int cLight::getNormal(Vec* src, Vec* dst)
 }
 
 // Attaches (1) / detaches (0) the light from its parent (be_flag 2).
-void cLight::setTrans(int on)
+void cLight::setTrans(int on_off)
 {
-    if (on) {
+    if (on_off) {
         be_flag |= 2;
     } else {
         be_flag &= ~2;
@@ -1476,21 +1476,21 @@ void cLight::hitAdjust()
 }
 
 // Sets the spot direction (only for spot types xD 3 / 6).
-void cLight::setSpotNormal(Vec* n)
+void cLight::setSpotNormal(Vec* norm)
 {
     if (xD != 3 && xD != 6) {
         pLog->err(0, 0, "lit.setSpot() TYPE ERROR");
         return;
     }
-    normal = *n;
+    normal = *norm;
 }
 
 // Aims the spot at a world point.
-void cLight::setSpotTarget(Vec* target)
+void cLight::setSpotTarget(Vec* pos)
 {
     Vec n;
 
-    PSVECSubtract(target, &Pos, &n);
+    PSVECSubtract(pos, &Pos, &n);
 #line 2629 "D:/Bio4/Prog/light.cpp"
     VECNormalize(&n, &n);
     setSpotNormal(&n);
@@ -1516,10 +1516,10 @@ void cLightMgr::endEvent()
 }
 
 // Tool: replaces the room light block.
-void cLightMgr::dbSetRoomLit(cLit* lit)
+void cLightMgr::dbSetRoomLit(cLit* pLit)
 {
-    pLitHeader = lit;
-    m_pLitRoom = lit;
+    pLitHeader = pLit;
+    m_pLitRoom = pLit;
 }
 
 // Cut record `no` of the block (0 when absent).

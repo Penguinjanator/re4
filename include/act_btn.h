@@ -161,9 +161,9 @@ public:
     ~cActionButton() {}
     void init();
     void move();
-    void disp(ActBtnWork* w);
-    int checkButton(ActBtnWork* w);
-    int checkPLStatus(ActBtnWork* w);
+    void disp(ActBtnWork* work);
+    int checkButton(ActBtnWork* work);
+    int checkPLStatus(ActBtnWork* work);
     ActBtnWork* pullWork();
     // set(kind, slot, func, arg, flags, btn, type, d): pulls a work, fills it and adds the prim.
     // PS2: set(ACTION_TYPE act_type, SCE_PRIORITY priority, func, param, ctrl_flag, DISP_FLAG button_type,

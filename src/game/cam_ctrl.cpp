@@ -55,7 +55,7 @@ static const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f
 
 // Converts a rail cut into the CameraMotion key-frame format (cam_motion): header, 4 channels
 // (pos, at, roll, fovy) x 3 components of hermite keys {value, tangent in, tangent out}.
-int CameraControl::HermiteExport(CameraCut* cut, u8* p)
+int CameraControl::HermiteExport(CameraCut* pCdat, u8* p)
 {
     u8* buf = p;  // the parameter is the running pointer (r5: `sth 0(r5); stbu 2(r5); addi r5,1`), buf the saved base
     u32* table;
@@ -74,7 +74,7 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
     f32 dt1;
     int n;
 
-    *(u16*) p = (cut->num - 1) * 30;
+    *(u16*) p = (pCdat->num - 1) * 30;
     p += 2;
     *p++ = 4;
     for (i = 0; i < 4; i++) {
@@ -104,49 +104,49 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
     for (i = 0; i < 4; i++) {
         table[i] = p - buf;
         for (j = 0; j < 3; j++) {
-            *(u16*) p = cut->num;
+            *(u16*) p = pCdat->num;
             p += 2;
             v = 0.0f;
             v0 = 0.0f;
             v1 = 0.0f;
             frames = (u16*) p;
-            for (k = 0; k < cut->num; k++) {
-                if (cut->frames == NULL) {
+            for (k = 0; k < pCdat->num; k++) {
+                if (pCdat->frames == NULL) {
                     *(u16*) p = k * 30;
                 } else {
-                    *(u16*) p = cut->frames[k];
+                    *(u16*) p = pCdat->frames[k];
                 }
                 p += 2;
             }
-            for (k = 0; k < cut->num; k++) {
+            for (k = 0; k < pCdat->num; k++) {
                 k1 = k + 1;
                 k0 = k - 1;
-                if (k1 > cut->num - 1) {
-                    k1 = cut->num - 1;
+                if (k1 > pCdat->num - 1) {
+                    k1 = pCdat->num - 1;
                 }
                 if (k0 < 0) {
                     k0 = 0;
                 }
                 switch (i) {
                 case 0:
-                    v = (&cut->pos[k].x)[j];
-                    v0 = (&cut->pos[k0].x)[j];
-                    v1 = (&cut->pos[k1].x)[j];
+                    v = (&pCdat->pos[k].x)[j];
+                    v0 = (&pCdat->pos[k0].x)[j];
+                    v1 = (&pCdat->pos[k1].x)[j];
                     break;
                 case 1:
-                    v = (&cut->at[k].x)[j];
-                    v0 = (&cut->at[k0].x)[j];
-                    v1 = (&cut->at[k1].x)[j];
+                    v = (&pCdat->at[k].x)[j];
+                    v0 = (&pCdat->at[k0].x)[j];
+                    v1 = (&pCdat->at[k1].x)[j];
                     break;
                 case 2:
-                    v = cut->roll[k];
-                    v0 = cut->roll[k0];
-                    v1 = cut->roll[k1];
+                    v = pCdat->roll[k];
+                    v0 = pCdat->roll[k0];
+                    v1 = pCdat->roll[k1];
                     break;
                 case 3:
-                    v = cut->fovy[k];
-                    v0 = cut->fovy[k0];
-                    v1 = cut->fovy[k1];
+                    v = pCdat->fovy[k];
+                    v0 = pCdat->fovy[k0];
+                    v1 = pCdat->fovy[k1];
                     v1 *= DEG2RAD;
                     v *= DEG2RAD;
                     v0 *= DEG2RAD;
@@ -158,7 +158,7 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
                 dt1 = (f32) (frames[k1] - frames[k]);
                 if (k == 0) {
                     tan = (v1 - v) / dt1;
-                } else if (cut->num - 1 == k) {
+                } else if (pCdat->num - 1 == k) {
                     tan = (v - v0) / dt0;
                 } else {
                     tan = (dt1 * ((v - v0) / dt0) + dt0 * ((v1 - v) / dt1)) / (dt0 + dt1);
@@ -182,7 +182,7 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
             }
         }
     }
-    *(u16*) buf = frames[cut->num - 1];
+    *(u16*) buf = frames[pCdat->num - 1];
     return p - buf;
 }
 
@@ -217,9 +217,9 @@ void CameraControl::Disable()
 }
 
 // mode 0 disables the per-frame area check (the current camera stays), else re-enables it.
-void CameraControl::AreaCheckOnOff(int mode)
+void CameraControl::AreaCheckOnOff(int sw)
 {
-    switch (mode) {
+    switch (sw) {
     case 0:
         m_system_flag |= 8;
         break;
@@ -248,14 +248,14 @@ int CameraControl::CurrentCameraNo()
 }
 
 // The cut record with camera_no `no` (the last record when not found).
-CameraCut* CameraControl::DataSearch(int no)
+CameraCut* CameraControl::DataSearch(int cameraNo)
 {
     CameraAreaRec* rec = (CameraAreaRec*) (pCamData + 1);
     CameraAreaInfo* area = (CameraAreaInfo*) (rec + pCamData->numArea);
     CameraCut* cut = (CameraCut*) (area + pCamData->numArea);
     int i = 0;
 
-    while (i < pCamData->numCut && no != cut->camera_no) {
+    while (i < pCamData->numCut && cameraNo != cut->camera_no) {
         i++;
         cut++;
     }
@@ -264,7 +264,7 @@ CameraCut* CameraControl::DataSearch(int no)
 
 // The interpolation record for the transition from one area / camera to another; NULL when the
 // data has none (a hard cut).
-CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_to, int cam_to)
+CameraLerp* CameraControl::LerpDataSearch(int srcNo, int srcSuf, int dstNo, int dstSuf)
 {
     CameraAreaRec* rec = (CameraAreaRec*) (pCamData + 1);
     CameraAreaInfo* area = (CameraAreaInfo*) (rec + pCamData->numArea);
@@ -273,8 +273,8 @@ CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_
     int i;
 
     for (i = 0; i < pCamData->numLerp; i++, lerp++) {
-        if (area_from == lerp->area_from && cam_from == lerp->cam_from && area_to == lerp->area_to &&
-            cam_to == lerp->cam_to) {
+        if (srcNo == lerp->area_from && srcSuf == lerp->cam_from && dstNo == lerp->area_to &&
+            dstSuf == lerp->cam_to) {
             return lerp;
         }
     }
@@ -341,16 +341,16 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 }
 
 // Installs the room's camera data (relocated).
-void CameraControl::RoomDataRead(CameraDataHeader* room)
+void CameraControl::RoomDataRead(CameraDataHeader* pBuff)
 {
-    pG->pCamRoom = calcAddr(room);
+    pG->pCamRoom = calcAddr(pBuff);
     pCamData = (CameraDataHeader*) pG->pCamRoom;
 }
 
 // Installs the core (shared) camera data.
-void CameraControl::CoreDataRead(CameraDataHeader* core)
+void CameraControl::CoreDataRead(CameraDataHeader* pBuff)
 {
-    pG->pCamCore = calcAddr(core);
+    pG->pCamCore = calcAddr(pBuff);
 }
 
 // Line of sight test for cameras: from -> to against characters, objects and the scenery (walls
@@ -476,39 +476,39 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
 }
 
 // Copies the cut's first key (pos / at / roll / fov) into a Camera and rebuilds its orientation.
-void CameraSetCutData(Camera* cam, CameraCut* cut)
+void CameraSetCutData(Camera* pCam, CameraCut* pData)
 {
-    cam->param.pos = *cut->pos;
-    cam->param.at = *cut->at;
-    cam->param.roll = *cut->roll;
-    cam->param.fovy = *cut->fovy;
-    CameraSetOrientationRoll(cam);
+    pCam->param.pos = *pData->pos;
+    pCam->param.at = *pData->at;
+    pCam->param.roll = *pData->roll;
+    pCam->param.fovy = *pData->fovy;
+    CameraSetOrientationRoll(pCam);
 }
 
 // Script: enables / disables the camera area (area_no, camera_no) for the area check.
-void CameraControl::AreaOnOff(int area_no, int camera_no, int on)
+void CameraControl::AreaOnOff(int No, int Suffix, int OnOff)
 {
     CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     s8 i;
 
     for (i = 0; i < d->numArea; i++, rec++) {
-        if (area_no == rec->area->area_no && camera_no == rec->area->camera_no) {
-            rec->area->enable = on;
+        if (No == rec->area->area_no && Suffix == rec->area->camera_no) {
+            rec->area->enable = OnOff;
             break;
         }
     }
 }
 
 // Script: ORs `attr` bits into the area's attribute (0x20 normal, 1 / 2 calm / battle...).
-void CameraControl::SetAreaAttr(int area_no, int camera_no, u8 attr)
+void CameraControl::SetAreaAttr(int No, int Suffix, u8 attr)
 {
     CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     s8 i;
 
     for (i = 0; i < d->numArea; i++, rec++) {
-        if (area_no == rec->area->area_no && camera_no == rec->area->camera_no) {
+        if (No == rec->area->area_no && Suffix == rec->area->camera_no) {
             rec->area->attr |= attr;
             break;
         }
@@ -516,14 +516,14 @@ void CameraControl::SetAreaAttr(int area_no, int camera_no, u8 attr)
 }
 
 // Script: clears `attr` bits of the area's attribute.
-void CameraControl::UnsetAreaAttr(int area_no, int camera_no, u8 attr)
+void CameraControl::UnsetAreaAttr(int No, int Suffix, u8 attr)
 {
     CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
     s8 i;
 
     for (i = 0; i < d->numArea; i++, rec++) {
-        if (area_no == rec->area->area_no && camera_no == rec->area->camera_no) {
+        if (No == rec->area->area_no && Suffix == rec->area->camera_no) {
             rec->area->attr &= ~attr;
             break;
         }
@@ -532,7 +532,7 @@ void CameraControl::UnsetAreaAttr(int area_no, int camera_no, u8 attr)
 
 // Script: forces camera cut `no` (its first area record) and holds it (m_state_flag bit2) until
 // Comeback.
-void CameraControl::CutCall(int no)
+void CameraControl::CutCall(int cutNo)
 {
     CameraDataHeader* d = pCamData;
     CameraAreaRec* rec = (CameraAreaRec*) (d + 1);
@@ -540,7 +540,7 @@ void CameraControl::CutCall(int no)
     s8 i;
 
     for (i = 0; i < d->numArea; i++, rec++) {
-        if (no == rec->cut->camera_no) {
+        if (cutNo == rec->cut->camera_no) {
             found = 1;
             break;
         }
@@ -552,7 +552,7 @@ void CameraControl::CutCall(int no)
         m_system_flag |= 8;
         m_state_flag |= 4;
     } else {
-        pLog->err(0, 0, "CameraControl::CutCall(): Cut %02d doesn't exist.", no);
+        pLog->err(0, 0, "CameraControl::CutCall(): Cut %02d doesn't exist.", cutNo);
     }
 }
 
@@ -695,9 +695,9 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
 }
 
 // 1 when the area is enabled and matches both attribute masks.
-int areaAttr(CameraAreaInfo* area, u8 attr, u8 attr2)
+int areaAttr(CameraAreaInfo* p_area, u8 cut_attr, u8 char_type)
 {
-    if ((area->enable & 1) && (area->attr & attr) && (area->attr2 & attr2)) {
+    if ((p_area->enable & 1) && (p_area->attr & cut_attr) && (p_area->attr2 & char_type)) {
         return 1;
     }
     return 0;
@@ -705,63 +705,63 @@ int areaAttr(CameraAreaInfo* area, u8 attr, u8 attr2)
 
 // 1 when `pos` is inside the area polygon (and, with attr 0x40, the facing `dir` is within 135
 // degrees of the area's direction).
-int areaHit(Vec* pos, CameraAreaInfo* area, f32 dir)
+int areaHit(Vec* pPos, CameraAreaInfo* pArea, f32 dir_y)
 {
     int ret;
 
-    if (area->attr & 4) {
+    if (pArea->attr & 4) {
         return 0;
     }
-    if (area->attr & 0x40) {
-        f32 d = area->dir;
-        while (dir >= PI) {
-            dir -= PI2;
+    if (pArea->attr & 0x40) {
+        f32 d = pArea->dir;
+        while (dir_y >= PI) {
+            dir_y -= PI2;
         }
-        while (dir < -PI) {
-            dir += PI2;
+        while (dir_y < -PI) {
+            dir_y += PI2;
         }
-        dir -= d;
-        while (dir >= PI) {
-            dir -= PI2;
+        dir_y -= d;
+        while (dir_y >= PI) {
+            dir_y -= PI2;
         }
-        while (dir < -PI) {
-            dir += PI2;
+        while (dir_y < -PI) {
+            dir_y += PI2;
         }
-        if (dir > 2.3561945f || dir < -2.3561945f) {
+        if (dir_y > 2.3561945f || dir_y < -2.3561945f) {
             return 0;
         }
     }
-    if (area->num > 4) {
-        ret = area_hit_pN(pos, area);
+    if (pArea->num > 4) {
+        ret = area_hit_pN(pPos, pArea);
     } else {
-        ret = area_hit_p3(pos, area);
+        ret = area_hit_p3(pPos, pArea);
     }
     return ret;
 }
 
 // Point in a convex area polygon of up to 4 points (height band base_y .. base_y + height).
-int area_hit_p3(Vec* pos, CameraAreaInfo* area)
+int area_hit_p3(Vec* pPos, CameraAreaInfo* pArea)
 {
     Vec* p[3];  // the three corner pointers live in memory (stw/lwz around the calls)
     Vec v1, v2, v0, c0, c1;
-    f32 y = pos->y + 100.0f;
+    f32 y = pPos->y + 100.0f;
     int i, n, n1, i0;
 
-    if (y < area->base_y) {
+    if (y < pArea->base_y) {
         return 0;
     }
-    if (y >= area->base_y + area->height) {
+    if (y >= pArea->base_y + pArea->height) {
         return 0;
     }
     for (i = 0; i <= 1; i++) {
-        n = area->num;
+        n = pArea->num;
         n1 = n - 1;   // its own statement: `(i0 + n - 1)` is reassociated by fold into `(i0 - 1) + n`
         i0 = i + i + 1;
         i0 %= n;      // two sets of i0: loop.c does not strength-reduce the 2i+1 giv
-        p[0] = &area->points[i0];
-        p[1] = &area->points[(i0 + n1) % n];
-        p[2] = &area->points[(i0 + 1) % n];
-        PSVECSubtract(pos, p[0], &v0);
+        p[0] = &pArea->points[i0];
+        p[1] = &pArea->points[(i0 + n1) % n];
+        p[2] = &pArea->points[(i0 + 1) % n];
+        PSVECSubtract(pPos, p[0], &v0);
         PSVECSubtract(p[1], p[0], &v1);
         PSVECSubtract(p[2], p[0], &v2);
         PSVECCrossProduct(&v1, &v0, &c0);
@@ -776,9 +776,9 @@ int area_hit_p3(Vec* pos, CameraAreaInfo* area)
 }
 
 // Point in an area polygon of more than 4 points (fan of triangles).
-int area_hit_pN(Vec* pos, CameraAreaInfo* area)
+int area_hit_pN(Vec* pPos, CameraAreaInfo* pArea)
 {
-    f32 y = pos->y + 100.0f;
+    f32 y = pPos->y + 100.0f;
     f32 a0, c, pz;
     f32 xi, zi, a, b, dx, dz, xmin, xmax, zmin, zmax;
     Vec *pi, *pj;
@@ -786,19 +786,19 @@ int area_hit_pN(Vec* pos, CameraAreaInfo* area)
                  // load (`mr r9,r7; lfs 0(r9)`), which combine cannot fold through the subreg
     int i, count, fx, fz;
 
-    if (y < area->base_y) {
+    if (y < pArea->base_y) {
         return 0;
     }
-    if (y >= area->base_y + area->height) {
+    if (y >= pArea->base_y + pArea->height) {
         return 0;
     }
     a0 = 1.0f;  // a named 1.0: cse cannot fold it inside the loop (fmsubs/fmadds with f5), pool order 100/1.0/0.0
-    pz = pos->z;
-    c = pos->x - pz;
+    pz = pPos->z;
+    c = pPos->x - pz;
     count = 0;
-    for (i = 0; i < area->num; i++) {
-        pi = &area->points[i];
-        pj = &area->points[(i + 1) % area->num];
+    for (i = 0; i < pArea->num; i++) {
+        pi = &pArea->points[i];
+        pj = &pArea->points[(i + 1) % pArea->num];
         dx = pj->x - pi->x;
         dz = pj->z - pi->z;
         pt[0] = pi;
@@ -833,7 +833,7 @@ int area_hit_pN(Vec* pos, CameraAreaInfo* area)
             zmax = pt[0]->z;
             fz = 1;
         }
-        if (!(xi >= pos->x)) {
+        if (!(xi >= pPos->x)) {
             continue;
         }
         if (fx == 0) {
@@ -873,7 +873,7 @@ void CameraControl::areaHitCheck()
     CameraDataHeader* d;
     CameraAreaRec* rec;
     CameraAreaRec* first;
-    CameraAreaInfo* area;
+    CameraAreaInfo* pArea;
     CameraCut* cut;
     u8 attr = 1;
     u8 old_attr;
@@ -945,9 +945,9 @@ void CameraControl::areaHitCheck()
 
     first = rec = (CameraAreaRec*) (d + 1);
     for (i = 0; i < d->numArea; i++, rec++) {
-        area = rec->area;
+        pArea = rec->area;
         cut = rec->cut;
-        if (areaAttr(area, 0x20, attr) && areaHit(&pPL->pos, area, pPL->ang.y)) {
+        if (areaAttr(pArea, 0x20, attr) && areaHit(&pPL->pos, pArea, pPL->ang.y)) {
             if ((m_system_flag & 0x10) || cut->camera_no != cameraNo) {
                 switchCamera(rec);
             }
@@ -979,17 +979,17 @@ void CameraControl::areaHitCheck()
     }
 
     if (areaNo != -1 && !(m_system_flag & 0x10)) {
-        area = area_rec->area;
-        if (areaAttr(area, m_cut_attr, attr) && areaHit(&pPL->pos, area, pPL->ang.y)) {
+        pArea = area_rec->area;
+        if (areaAttr(pArea, m_cut_attr, attr) && areaHit(&pPL->pos, pArea, pPL->ang.y)) {
             return;
         }
     }
 
     rec = first;
     for (i = 0; i < d->numArea; i++, rec++) {
-        area = rec->area;
+        pArea = rec->area;
         cut = rec->cut;
-        if (areaAttr(area, m_cut_attr, attr) && areaHit(&pPL->pos, area, pPL->ang.y)) {
+        if (areaAttr(pArea, m_cut_attr, attr) && areaHit(&pPL->pos, pArea, pPL->ang.y)) {
             if ((m_system_flag & 0x10) || cut->camera_no != cameraNo) {
                 switchCamera(rec);
             }
@@ -1268,7 +1268,7 @@ void CameraControl::Move()
 }
 
 // The aim point: player position + the cut's aim offset (flags bit0) or the default (1000 up).
-void CameraControl::CalcAim(CameraCut* cut)
+void CameraControl::CalcAim(CameraCut* pCdat)
 {
     static Vec offset0 = {0.0f, 1000.0f, 0.0f};
 
@@ -1279,8 +1279,8 @@ void CameraControl::CalcAim(CameraCut* cut)
     case 9:
         break;
     default:
-        if (cut->flags & 1) {
-            PSVECAdd(&pPL->pos, &cut->aim_ofs, &Aim);
+        if (pCdat->flags & 1) {
+            PSVECAdd(&pPL->pos, &pCdat->aim_ofs, &Aim);
         } else {
             PSVECAdd(&pPL->pos, &offset0, &Aim);
         }
@@ -1295,9 +1295,9 @@ f32 CameraControl::getCameraPitch()
 }
 
 // Starts an interpolation of `f` frames from camera parameters `p`.
-void CameraInterpolation::set(int f, CameraParam* p)
+void CameraInterpolation::set(int inter_frame, CameraParam* p)
 {
-    frame = f;
+    frame = inter_frame;
     param = *p;
 }
 
@@ -2004,9 +2004,9 @@ void CamCtrlShoulderSetSearchFrame(s16 frame)
 }
 
 // Shoulder camera: the aim point used during the search delay.
-void CamCtrlShoulderSetAim(Vec* aim)
+void CamCtrlShoulderSetAim(Vec* pos)
 {
-    CamCtrl.m_QuasiFPS.m_Aim = *aim;
+    CamCtrl.m_QuasiFPS.m_Aim = *pos;
 }
 
 // Shoulder camera: clears the C-stick look angles.
@@ -2028,7 +2028,7 @@ f32 CameraControl::getCameraDirection()
 
 // Fits the cut's keys (pos, at, roll, fov) with a B-spline of degree min(2, num - 1): solves the
 // de Boor-Cox basis matrix for the control points (temporary MEM_ALLOC buffers).
-void Parametrize(CameraCut* cut, CameraBSpline* bs)
+void Parametrize(CameraCut* pCdat, CameraBSpline* pB)
 {
     int i;
     f32* B;
@@ -2042,45 +2042,45 @@ void Parametrize(CameraCut* cut, CameraBSpline* bs)
     f32* roll;
     f32* fovy;
 
-    bs->num = cut->num;
-    if (bs->num > 1) {
+    pB->num = pCdat->num;
+    if (pB->num > 1) {
 #line 3058 "D:/Bio4/Prog/cam_ctrl.cpp"
-        B = (f32*) MEM_ALLOC(sizeof(f32) * bs->num * bs->num, 1, 0xd);
-        Binv = (f32*) MEM_ALLOC(sizeof(f32) * bs->num * bs->num, 1, 0xd);
-        px = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        py = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        pz = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        ax = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        ay = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        az = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        roll = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        fovy = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
-        bs->k = 2;
-        if (bs->k > bs->num - 1) {
-            bs->k = bs->num - 1;
+        B = (f32*) MEM_ALLOC(sizeof(f32) * pB->num * pB->num, 1, 0xd);
+        Binv = (f32*) MEM_ALLOC(sizeof(f32) * pB->num * pB->num, 1, 0xd);
+        px = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        py = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        pz = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        ax = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        ay = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        az = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        roll = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        fovy = (f32*) MEM_ALLOC(sizeof(f32) * pB->num, 1, 0xd);
+        pB->k = 2;
+        if (pB->k > pB->num - 1) {
+            pB->k = pB->num - 1;
         }
-        for (i = 0; i < bs->num; i++) {
-            px[i] = cut->pos[i].x;
-            py[i] = cut->pos[i].y;
-            pz[i] = cut->pos[i].z;
-            ax[i] = cut->at[i].x;
-            ay[i] = cut->at[i].y;
-            az[i] = cut->at[i].z;
-            roll[i] = cut->roll[i];
-            fovy[i] = cut->fovy[i];
+        for (i = 0; i < pB->num; i++) {
+            px[i] = pCdat->pos[i].x;
+            py[i] = pCdat->pos[i].y;
+            pz[i] = pCdat->pos[i].z;
+            ax[i] = pCdat->at[i].x;
+            ay[i] = pCdat->at[i].y;
+            az[i] = pCdat->at[i].z;
+            roll[i] = pCdat->roll[i];
+            fovy[i] = pCdat->fovy[i];
         }
-        for (i = 0; i < bs->num; i++) {
-            de_Boor_Cox(bs->num, NULL, (f32) i, bs->k, &B[bs->num * i]);
+        for (i = 0; i < pB->num; i++) {
+            de_Boor_Cox(pB->num, NULL, (f32) i, pB->k, &B[pB->num * i]);
         }
-        MtxNNInverse(bs->num, B, Binv);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, px, bs->px);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, py, bs->py);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, pz, bs->pz);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, ax, bs->ax);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, ay, bs->ay);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, az, bs->az);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, roll, bs->roll);
-        MtxNNMultVecSR(bs->num, bs->num, Binv, fovy, bs->fovy);
+        MtxNNInverse(pB->num, B, Binv);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, px, pB->px);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, py, pB->py);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, pz, pB->pz);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, ax, pB->ax);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, ay, pB->ay);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, az, pB->az);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, roll, pB->roll);
+        MtxNNMultVecSR(pB->num, pB->num, Binv, fovy, pB->fovy);
         Mem_free(B);
         Mem_free(Binv);
         Mem_free(px);
@@ -2188,7 +2188,7 @@ void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
 }
 
 // Debug: draws the cut's rail (spline samples) and its keys.
-void CameraControl::debugDrawRail(CameraCut* cut)
+void CameraControl::debugDrawRail(CameraCut* pCdat)
 {
     static Vec Fc_old;
     static Vec Ft_old;
@@ -2199,14 +2199,14 @@ void CameraControl::debugDrawRail(CameraCut* cut)
     int j;
 
     for (i = 0; i < 100; i++) {
-        de_Boor_Cox(cut->num, NULL, (f32) ((cut->num - 1) * i) / 100.0f + 0.0f, bs->k, bs->basis);
+        de_Boor_Cox(pCdat->num, NULL, (f32) ((pCdat->num - 1) * i) / 100.0f + 0.0f, bs->k, bs->basis);
         fc.x = 0.0f;
         fc.y = 0.0f;
         fc.z = 0.0f;
         ft.x = 0.0f;
         ft.y = 0.0f;
         ft.z = 0.0f;
-        for (j = 0; j < cut->num; j++) {
+        for (j = 0; j < pCdat->num; j++) {
             fc.x += bs->basis[j] * bs->px[j];
             fc.y += bs->basis[j] * bs->py[j];
             fc.z += bs->basis[j] * bs->pz[j];
@@ -2229,9 +2229,9 @@ CameraSmooth CamSmth;
 
 // Stores the up-cut placement (sel 0 position, 1 angles, 2 scale) used by the up-cut motion
 // camera.
-void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
+void CameraControl::UpCutCall(int cutNo, Vec* pos, Vec* ang, Vec* scale, int type)
 {
-    switch (sel) {
+    switch (type) {
     case 0:
         pCamData = (CameraDataHeader*) pG->pCamCore;
         break;
@@ -2242,13 +2242,13 @@ void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
     if (pos) {
         upcut_pos = *pos;
     }
-    if (at) {
-        upcut_ang = *at;
+    if (ang) {
+        upcut_ang = *ang;
     }
-    if (up) {
-        upcut_scale = *up;
+    if (scale) {
+        upcut_scale = *scale;
     }
-    CutCall(no);
+    CutCall(cutNo);
 }
 
 // Enters the push-object camera (r0 0xF, CameraPushObject extra).
@@ -2270,7 +2270,7 @@ void CameraControl::endPushObject()
 
 // Enters the look-down camera on enemy `em` (r0 0xD) from above the player; hides the HUD
 // (Status_flg[0] 0x2000000 off).
-void CameraControl::StartLookDownEm(void* em)
+void CameraControl::StartLookDownEm(void* pEm)
 {
     Vec c;
     cModel* p[2];
@@ -2279,7 +2279,7 @@ void CameraControl::StartLookDownEm(void* em)
     p[1] = pPL->getPartsPtr(0x21);
     PSVECAdd(&p[0]->world, &p[1]->world, &c);
     PSVECScale(&c, &c, 0.5f);
-    m_pProc = new (m_Free) CameraLookDownEm(em, &c);
+    m_pProc = new (m_Free) CameraLookDownEm(pEm, &c);
     r0 = 0xD;
     AreaCheckOnOff(0);
     StaFlagOff(pG, STA_SSCRN_ENABLE);
@@ -2296,12 +2296,12 @@ void CameraControl::EndLookDownEm()
 }
 
 // Enters the rifle scope camera (r0 0x10; Status_flg[0] 0x40 scope, 0x8000 first-person view).
-void CameraControl::startScope(Vec* pos, Vec* at)
+void CameraControl::startScope(Vec* campos, Vec* target)
 {
     if (!StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         StaFlagOn(pG, STA_SCOPE_CAMERA);
         StaFlagOn(pG, STA_LOOK_THROUGH);
-        m_pProc = new (m_Free) CameraScope(pos, at);
+        m_pProc = new (m_Free) CameraScope(campos, target);
         r0 = 0x10;
         DpfFlagOn(pG, DPF_PL);
         AreaCheckOnOff(0);
@@ -2323,12 +2323,12 @@ void CameraControl::endScope()
 }
 
 // While scoped: the scope camera's pos / at (the rifle's shot line).
-void CameraControl::getTrajectory(Vec* pos, Vec* at)
+void CameraControl::getTrajectory(Vec* p_pos0, Vec* p_pos1)
 {
     if (StaFlagChk(pG, STA_SCOPE_CAMERA)) {
         cCamera* c = m_pProc;
-        *pos = c->param.pos;
-        *at = c->param.at;
+        *p_pos0 = c->param.pos;
+        *p_pos1 = c->param.at;
     }
 }
 
@@ -2414,9 +2414,9 @@ int CameraControl::IsMotionEnd()
 }
 
 // Places the camera motion in the world through `mat` (event position).
-void CameraControl::setMotionBaseMatPtr(Mtx* mat)
+void CameraControl::setMotionBaseMatPtr(Mtx* p_mat)
 {
-    ((CameraMotion*) m_pProc)->m_p_base_mat = mat;
+    ((CameraMotion*) m_pProc)->m_p_base_mat = p_mat;
 }
 
 // The playing camera motion's work (frame / state).
@@ -2439,21 +2439,21 @@ void CameraControl::clearAttachCamera()
 }
 
 // Registers (or replaces) the attach camera of `model` (up to 3).
-void CameraControl::registAttachCamera(AttachCamera* cam, cModel* model)
+void CameraControl::registAttachCamera(AttachCamera* p_attach, cModel* p_model)
 {
     int i;
 
     for (i = 0; i < 3; i++) {
-        if (model == m_p_model[i]) {
-            m_p_attach[i] = cam;
+        if (p_model == m_p_model[i]) {
+            m_p_attach[i] = p_attach;
             return;
         }
     }
     for (i = 0; i < 3; i++) {
         if (m_p_model[i] == NULL) {
             m_attach_num++;
-            m_p_model[i] = model;
-            m_p_attach[i] = cam;
+            m_p_model[i] = p_model;
+            m_p_attach[i] = p_attach;
             return;
         }
     }
@@ -2461,12 +2461,12 @@ void CameraControl::registAttachCamera(AttachCamera* cam, cModel* model)
 }
 
 // Unregisters the attach camera of `model`.
-void CameraControl::deleteAttachCamera(AttachCamera* cam, cModel* model)
+void CameraControl::deleteAttachCamera(AttachCamera* p_attach, cModel* p_model)
 {
     int i;
 
     for (i = 0; i < 3; i++) {
-        if (model == m_p_model[i] && cam == m_p_attach[i]) {
+        if (p_model == m_p_model[i] && p_attach == m_p_attach[i]) {
             m_attach_num--;
             m_p_model[i] = NULL;
             m_p_attach[i] = NULL;
@@ -2476,11 +2476,11 @@ void CameraControl::deleteAttachCamera(AttachCamera* cam, cModel* model)
 }
 
 // The model whose attach camera is active (any when `model` is NULL, else `model` if registered).
-cModel* CameraControl::getAttachModel(cModel* model)
+cModel* CameraControl::getAttachModel(cModel* p_model)
 {
     int i;
 
-    if (model == NULL) {
+    if (p_model == NULL) {
         for (i = 0; i < 3; i++) {
             if (m_p_model[i] != NULL) {
                 return m_p_model[i];
@@ -2488,8 +2488,8 @@ cModel* CameraControl::getAttachModel(cModel* model)
         }
     } else {
         for (i = 0; i < 3; i++) {
-            if (model == m_p_model[i]) {
-                return model;
+            if (p_model == m_p_model[i]) {
+                return p_model;
             }
         }
     }
@@ -2497,11 +2497,11 @@ cModel* CameraControl::getAttachModel(cModel* model)
 }
 
 // The active attach camera (any when `model` is NULL, else that model's).
-AttachCamera* CameraControl::getAttachCamera(cModel* model)
+AttachCamera* CameraControl::getAttachCamera(cModel* p_model)
 {
     int i;
 
-    if (model == NULL) {
+    if (p_model == NULL) {
         for (i = 0; i < 3; i++) {
             if (m_p_model[i] != NULL) {
                 return m_p_attach[i];
@@ -2509,7 +2509,7 @@ AttachCamera* CameraControl::getAttachCamera(cModel* model)
         }
     } else {
         for (i = 0; i < 3; i++) {
-            if (model == m_p_model[i]) {
+            if (p_model == m_p_model[i]) {
                 return m_p_attach[i];
             }
         }
@@ -2573,23 +2573,23 @@ void CameraControl::checkAttachCamera()
 }
 
 // The numeric version of a camera data file ("B40x" -> x); -1 when not camera data.
-int cameraDataVersion(char* data)
+int cameraDataVersion(char* verStr)
 {
-    if (strncmp(data, "B404", 4) == 0) {
+    if (strncmp(verStr, "B404", 4) == 0) {
         return 4;
     }
-    if (strncmp(data, "B403", 4) == 0) {
+    if (strncmp(verStr, "B403", 4) == 0) {
         return 3;
     }
-    if (strncmp(data, "B402", 4) == 0) {
+    if (strncmp(verStr, "B402", 4) == 0) {
         return 2;
     }
-    if (strncmp(data, "B401", 4) == 0) {
+    if (strncmp(verStr, "B401", 4) == 0) {
         return 1;
     }
-    if (strncmp(data, "B400", 4) == 0) {
+    if (strncmp(verStr, "B400", 4) == 0) {
         return 0;
     }
-    strncmp(data, "EMPT", 4);
+    strncmp(verStr, "EMPT", 4);
     return -1;
 }

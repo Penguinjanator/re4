@@ -17,13 +17,13 @@ struct TprimView {
 };
 
 void TprimInitEnv2D3D(TprimView* view, MtxPtr proj, MtxPtr view_mtx);
-void TprimDraw3D(u32 blend);
-void TprimSetBlend(u32 blend);
+void TprimDraw3D(u32 mode);
+void TprimSetBlend(u32 mode);
 // The tool modules link the full t_prim (tools/t_prim.cpp); the DOL link dead-stripped these.
-void TprimDraw2D(u32 blend);
-void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n);
-void TprimDrawCursor(Vec* pos, f32 z, GXColor* col);
-void TprimDrawMtxDirection(Mtx m, GXColor* fill, GXColor* line);
+void TprimDraw2D(u32 mode);
+void TprimDrawPolyFn(Vec* v, GXColor* c, u16 n);
+void TprimDrawCursor(Vec* pos, f32 z, GXColor* c);
+void TprimDrawMtxDirection(Mtx mat, GXColor* c0, GXColor* c1);
 
 // The full build (Tools REL, tools/t_prim.cpp with TPRIM_FULL): 2D-only environment, line strips, tiles,
 // the hit marker (Htr) and its cone, and the s16 vertex variants.
@@ -32,11 +32,11 @@ struct S16Vec {
 };
 
 void TprimInitEnv2D(TprimRect* rect);
-void TprimDrawLineFn(Vec* v, GXColor* col, u16 n);
-void TprimDrawTile2D(TprimRect* rect, f32 z, GXColor* col);
+void TprimDrawLineFn(Vec* v, GXColor* c, u16 n);
+void TprimDrawTile2D(TprimRect* v, f32 z, GXColor* c);
 void TprimDrawHtr(Vec* pos, GXColor* col);
 void TprimDrawHtrCone(Vec* pos, GXColor* col);
-void TprimDrawFrameFn_s16(S16Vec* v, GXColor* col, u16 n);
-void TprimDrawPolyFn_s16(S16Vec* v, GXColor* col, u16 n);
+void TprimDrawFrameFn_s16(S16Vec* v, GXColor* c, u16 n);
+void TprimDrawPolyFn_s16(S16Vec* v, GXColor* c, u16 n);
 
 #endif

@@ -95,18 +95,18 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
 // Damage check at the top of every frame: consumes the registered hit (dmHit / dmg.m_Wep), ignores
 // the knife, grenades and other non-bullet weapons, then by type: 0 dies (Rno1 2 Break), 1 only
 // raises Status for the owner to read, 2 sets hp to 0.
-void emHitDmCk(cEmHit* em)
+void emHitDmCk(cEmHit* pEm)
 {
-    EmHitWork* w = EMHIT_WK(em);
+    EmHitWork* w = EMHIT_WK(pEm);
     u8 wep;
 
     w->Status = 0;
-    if (em->dmg.m_Flag == 0) {
-        em->dmg.m_Wep = 0;
+    if (pEm->dmg.m_Flag == 0) {
+        pEm->dmg.m_Wep = 0;
         return;
     }
-    wep = em->dmg.m_Wep;
-    em->dmg.m_Flag = 0;
+    wep = pEm->dmg.m_Wep;
+    pEm->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -122,25 +122,25 @@ void emHitDmCk(cEmHit* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmg.m_Timer = 1;
+    pEm->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmg.m_Timer = 0x11;
+        pEm->dmg.m_Timer = 0x11;
     }
-    switch (em->type) {
+    switch (pEm->type) {
     case 0:
     default:
-        em->hp = 0;
+        pEm->hp = 0;
         w->Status = 1;
-        em->r_no_0 = 1;
-        em->r_no_1 = 2;
-        em->r_no_2 = 0;
-        em->r_no_3 = 0;
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 2;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 0;
         break;
     case 1:
         w->Status = 1;
         break;
     case 2:
-        em->hp = 0;
+        pEm->hp = 0;
         break;
     }
 }
@@ -157,52 +157,52 @@ void cEmHit::move()
 }
 
 // Rno0 == 0: resets the routine numbers to the Set state.
-void emHit_R0_Init(cEmHit* em)
+void emHit_R0_Init(cEmHit* pEm)
 {
-    em->r_no_0 = 1;
-    em->r_no_1 = 0;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 0;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 Parent, 2 Break, 3 Beetle).
-void emHit_R0_Move(cEmHit* em)
+void emHit_R0_Move(cEmHit* pEm)
 {
-    EmHit_R1_move_tbl[em->r_no_1](em);
+    EmHit_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: a static hit target; builds the matrices once (Rno2 0 -> 1) and marks itself
 // be_flag 0x4000 (hit box only, not drawn) every frame.
-void emHit_R1_Set(cEmHit* em)
+void emHit_R1_Set(cEmHit* pEm)
 {
-    if (em->r_no_2 == 0) {
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
-        em->partsWorldCalc();
-        em->r_no_2++;
+    if (pEm->r_no_2 == 0) {
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
+    pEm->be_flag |= 0x4000;
 }
 
 // Rno1 == 1: follows parts `partsNo` of pParent (setParent): mat = parent parts matrix * own
 // matrix, with the rotation columns re-normalised unless noNormalize; plays its own motion when
 // it has one.
-void emHit_R1_Parent(cEmHit* em)
+void emHit_R1_Parent(cEmHit* pEm)
 {
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
-    EmHitWork* w = EMHIT_WK(em);
+    EmHitWork* w = EMHIT_WK(pEm);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, pEm->mat, m);
         if (w->noNormalize == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -238,31 +238,31 @@ void emHit_R1_Parent(cEmHit* em)
             m[1][2] = v2.y;
             m[2][2] = v2.z;
         }
-        PSMTXCopy(m, em->mat);
+        PSMTXCopy(m, pEm->mat);
     }
-    if (em->Motion.pMot) {
-        em->Motion.Mot_flag |= 0x40000000;
-        MotionMove(em, 0);
+    if (pEm->Motion.pMot) {
+        pEm->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pEm, 0);
     } else {
-        em->partsMatCalc();
+        pEm->partsMatCalc();
     }
-    em->partsWorldCalc();
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 2: the object was shot (type 0): hides the model (be_flag bit1 off), hp 0, Status 1 on
 // the first frame, then stays as a hit-box-only work.
-void emHit_R1_Break(cEmHit* em)
+void emHit_R1_Break(cEmHit* pEm)
 {
-    EmHitWork* w = EMHIT_WK(em);
+    EmHitWork* w = EMHIT_WK(pEm);
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        em->hp = 0;
-        em->be_flag &= ~2;
+        pEm->hp = 0;
+        pEm->be_flag &= ~2;
         w->Status = 1;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        em->be_flag |= 0x4000;
+        pEm->be_flag |= 0x4000;
         break;
     }
 }
@@ -270,67 +270,67 @@ void emHit_R1_Break(cEmHit* em)
 // Rno1 == 3: the beetle (setBeetle): Rno2 0/1 idle motion until shot or until the player faces
 // it within 1500 units, 2/3 startle motion, 4/5 flies away (fly motion, speed decaying toward
 // 4 up / 4 forward) for 300 frames then fades out and hides.
-void emHit_R1_Beetle(cEmHit* em)
+void emHit_R1_Beetle(cEmHit* pEm)
 {
-    EmHitWork* w = EMHIT_WK(em);
+    EmHitWork* w = EMHIT_WK(pEm);
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->Motion, w->mot0, 0, 0, 5, 0);
-        em->r_no_2++;
+        MotionSetCore(pEm, &pEm->Motion, w->mot0, 0, 0, 5, 0);
+        pEm->r_no_2++;
     case 1:
-        MotionMove(em, 0);
-        if (em->hp <= 0) {
-            em->r_no_2++;
-        } else if (fabsf(Muku(&pPL->pos, &em->pos, em->ang.y, 3.1415927f)) < 0.5235988f) {
-            if (em->plDist2 < 2250000.0f) {
-                em->hp = 0;
-                em->r_no_2++;
+        MotionMove(pEm, 0);
+        if (pEm->hp <= 0) {
+            pEm->r_no_2++;
+        } else if (fabsf(Muku(&pPL->pos, &pEm->pos, pEm->ang.y, 3.1415927f)) < 0.5235988f) {
+            if (pEm->plDist2 < 2250000.0f) {
+                pEm->hp = 0;
+                pEm->r_no_2++;
             }
         }
         break;
     case 2:
-        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0x1F);
-        em->r_no_2++;
+        MotionSetCore(pEm, &pEm->Motion, w->mot1, 0, 0, 1, 0x1F);
+        pEm->r_no_2++;
     case 3:
-        if (MotionMove(em, 0)) {
-            em->r_no_2++;
+        if (MotionMove(pEm, 0)) {
+            pEm->r_no_2++;
         }
         break;
     case 4:
-        MotionSetCore(em, &em->Motion, w->mot2, 0, 3, 5, 0);
+        MotionSetCore(pEm, &pEm->Motion, w->mot2, 0, 3, 5, 0);
         w->spd.x = 0.0f;
         w->spd.y = 10.0f;
         w->spd.z = 10.0f;
-        PSMTXMultVecSR(em->mat, &w->spd, &w->spd);
+        PSMTXMultVecSR(pEm->mat, &w->spd, &w->spd);
         w->Timer = 300;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 5:
-        PSVECAdd(&em->pos, &w->spd, &em->pos);
+        PSVECAdd(&pEm->pos, &w->spd, &pEm->pos);
         w->spd.y = w->spd.y * 0.9f + 4.0f;
         w->spd.z = w->spd.z * 0.9f + 4.0f;
-        MotionMove(em, 0);
+        MotionMove(pEm, 0);
         if (w->Timer) {
             w->Timer--;
         } else {
-            em->invisible_factor -= 0.1f;
-            if (em->invisible_factor <= 0.0f) {
-                em->be_flag &= ~2;
-                em->invisible_factor = 0.0f;
-                em->r_no_2++;
+            pEm->invisible_factor -= 0.1f;
+            if (pEm->invisible_factor <= 0.0f) {
+                pEm->be_flag &= ~2;
+                pEm->invisible_factor = 0.0f;
+                pEm->r_no_2++;
             }
         }
         break;
     }
-    em->partsWorldCalc();
+    pEm->partsWorldCalc();
 }
 
 // Default hit box: a cube of the work's size (x/z half + 50, y full) at the origin.
-void emHitYarareInit(cEmHit* em)
+void emHitYarareInit(cEmHit* pEm)
 {
-    EmHitWork* w = EMHIT_WK(em);
+    EmHitWork* w = EMHIT_WK(pEm);
 
-    YarareInitCube(em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+    YarareInitCube(pEm, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
 }
 
 // 1 during the frame the target was hit (Status).

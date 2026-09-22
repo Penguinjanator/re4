@@ -27,7 +27,7 @@ extern void (*WeaponMoveFunc)(cPlayer*);   // game/player.cpp: the equipped weap
 // player's motion table from the weapon archive in the module.
 class cObjHand : public cObjWep {
 public:
-    virtual void setMotion(cPlayer* pl);
+    virtual void setMotion(cPlayer* pEm);
     virtual int keyKamae();
 };
 
@@ -49,8 +49,8 @@ class cObjMachinegun : public cObjWep {
 public:
     virtual void moveFire();
     virtual void moveReload();
-    virtual void init(cModel* parent);
-    virtual void setMotion(cPlayer* pl);
+    virtual void init(cModel* pMod);
+    virtual void setMotion(cPlayer* pEm);
 
     void setCartridge();
 };
@@ -62,8 +62,8 @@ class cObjTompson : public cObjWep {
 public:
     virtual void moveFire();
     virtual void moveReload();
-    virtual void init(cModel* parent);
-    virtual void setMotion(cPlayer* pl);
+    virtual void init(cModel* pMod);
+    virtual void setMotion(cPlayer* pEm);
 
     void setCartridge();
 };
@@ -75,15 +75,15 @@ class cObjHkSniper : public cObjWep {
 public:
     virtual void moveFire();
     virtual void moveReload();
-    virtual void init(cModel* parent);
-    virtual void setMotion(cPlayer* pl);
+    virtual void init(cModel* pMod);
+    virtual void setMotion(cPlayer* pEm);
 };
 
 // Knife (wep16 Leon's, wep26 Krauser's; wepXX/wepXX.cpp): a cObjWep whose own `init()` takes no
 // parent (the vtable keeps cObjWep::init); the routines are the DOL's pl_knife.cpp (wep/pl_knife.cpp).
 class cObjKnife : public cObjWep {
 public:
-    virtual void setMotion(cPlayer* pl);
+    virtual void setMotion(cPlayer* pEm);
 
     void init();
 };
@@ -93,8 +93,8 @@ public:
 class cObjAllow : public cObjWep {
 public:
     virtual void moveFire();
-    virtual void init(cModel* parent);
-    virtual void setMotion(cPlayer* pl);
+    virtual void init(cModel* pMod);
+    virtual void setMotion(cPlayer* pEm);
 };
 
 class cObjBow : public cObjWep {
@@ -102,8 +102,8 @@ public:
     virtual void moveReady();
     virtual void moveFire();
     virtual void moveDown();
-    virtual void init(cModel* parent);
-    virtual void setMotion(cPlayer* pl);
+    virtual void init(cModel* pMod);
+    virtual void setMotion(cPlayer* pEm);
     virtual void interrupt();
     virtual int keyKamae();
 

@@ -6046,42 +6046,42 @@ static void em2cBackjumpAction(cEm2c* em)
 }
 
 // Player routine of the back jump away from the tail strike, with its step SEs; escape scored.
-static void plemBackjump(cPlayer* pl)
+static void plemBackjump(cPlayer* pEm)
 {
     int fe;
 
-    pl->subArc = pl->pEmCatch->subArc;
-    fe = pl->r_no_2;
-    pl->dmg.m_Timer = 0x3C;
+    pEm->subArc = pEm->pEmCatch->subArc;
+    fe = pEm->r_no_2;
+    pEm->dmg.m_Timer = 0x3C;
     switch (fe) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x85), 0, 5, 1, 5);
-        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, (void*) fe);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->m_Work2 = fe;
+        MotionSetCore(pEm, &pEm->Motion, EM_ARC(pEm, 0x85), 0, 5, 1, 5);
+        EstSet(pEm, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pEm, (void*) fe);
+        SndCall(1, 0x43, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+        SndCall(1, 0x44, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+        pEm->m_Work2 = fe;
         GameAddPoint(LVADD_ESCAPEATTACK);
-        pl->m_Work0 = 35;
-        pl->m_Work1 = fe;
-        pl->r_no_2++;
+        pEm->m_Work0 = 35;
+        pEm->m_Work1 = fe;
+        pEm->r_no_2++;
     case 1:
-        if (pl->m_Work0) {
-            pl->m_Work0--;
+        if (pEm->m_Work0) {
+            pEm->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->m_Work1 = 1;
+            pEm->m_Work1 = 1;
         }
-        if (pl->Motion.Seq_frame > 20.7000008f && pl->Motion.Seq_frame < 21.2999992f) {
-            SndCall(5, 2, &pl->pos, 0, 0, pl);
+        if (pEm->Motion.Seq_frame > 20.7000008f && pEm->Motion.Seq_frame < 21.2999992f) {
+            SndCall(5, 2, &pEm->pos, 0, 0, pEm);
         }
-        if (pl->Motion.Seq_frame > 33.7000008f && pl->Motion.Seq_frame < 34.2999992f) {
-            SndCall(5, 3, &pl->pos, 0, 0, pl);
+        if (pEm->Motion.Seq_frame > 33.7000008f && pEm->Motion.Seq_frame < 34.2999992f) {
+            SndCall(5, 3, &pEm->pos, 0, 0, pEm);
         }
-        if (MotionMove(pl, 0) || pl->m_Work1) {
+        if (MotionMove(pEm, 0) || pEm->m_Work1) {
             EndPlDamage();
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Action button callback "back-jump" of the HideAtk strike (plemBackjump2).

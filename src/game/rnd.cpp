@@ -51,23 +51,23 @@ f32 fRand1_1()
 }
 
 // Random float in [0, 1) from a caller-owned LCG seed (deterministic per effect / enemy).
-f32 fRandSeed0_1(u32* seed)
+f32 fRandSeed0_1(u32* pSeed)
 {
     f32 f;
 
-    *seed = *seed * 0x19660D + 0x3C6EF35F;
-    *(u32*) &f = (*seed & 0x007FFFFF) | 0x3F800000;
+    *pSeed = *pSeed * 0x19660D + 0x3C6EF35F;
+    *(u32*) &f = (*pSeed & 0x007FFFFF) | 0x3F800000;
     f -= 1.0f;
     return f;
 }
 
 // Random float in [-1, 1) from a caller-owned LCG seed.
-f32 fRandSeed1_1(u32* seed)
+f32 fRandSeed1_1(u32* pSeed)
 {
     f32 f;
 
-    *seed = *seed * 0x19660D + 0x3C6EF35F;
-    *(u32*) &f = (*seed & 0x007FFFFF) | 0x3F800000;
+    *pSeed = *pSeed * 0x19660D + 0x3C6EF35F;
+    *(u32*) &f = (*pSeed & 0x007FFFFF) | 0x3F800000;
     f = f * 2.0f - 2.0f - 1.0f;
     return f;
 }

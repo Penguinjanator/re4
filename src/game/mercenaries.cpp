@@ -303,119 +303,119 @@ int MercSysMoveStart(MercSysWork* wk)
 // ComboTimerFlash, resets the combo), bonus time display/timeout (bonusTimer) and the bonus kill
 // score (500/1500/4000 by kills), the bonus score pop-up folded into the score when its animation
 // ends, added time (MF_ADD_TIME) pushed into the countdown, and the low-time warning under 0:30.
-int MercSysMoveScore(MercSysWork* wk)
+int MercSysMoveScore(MercSysWork* pWk)
 {
     int min;
     int sec;
     int cs;
     int zero;
 
-    if (wk == NULL) {
+    if (pWk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
     // combo counter
-    if (wk->flags & MF_COMBO_ON) {
-        wk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
+    if (pWk->flags & MF_COMBO_ON) {
+        pWk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
         IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
         IdSetAnmStart(MID, 0x30, IDC_GAUGE, 1);
         IdSetColInit(MID, 0x30, IDC_GAUGE);
         IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
     }
-    if (!(wk->flags & MF_COMBO_OFF)) {
-        if (wk->comboTimer > 0) {
-            wk->comboTimer--;
-            if (wk->comboTimer > ComboTimerFlash) {
+    if (!(pWk->flags & MF_COMBO_OFF)) {
+        if (pWk->comboTimer > 0) {
+            pWk->comboTimer--;
+            if (pWk->comboTimer > ComboTimerFlash) {
                 IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
                 IdSetColInit(MID, 0x30, IDC_GAUGE);
                 IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
             }
-            if (wk->comboTimer == ComboTimerFlash) {
+            if (pWk->comboTimer == ComboTimerFlash) {
                 IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
                 IdSetColStart(MID, 0x30, 0x3F, IDC_GAUGE);
                 IdSetColLoop(MID, 0x30, IDC_GAUGE, 1);
             }
-            if (wk->comboTimer == 0) {
+            if (pWk->comboTimer == 0) {
                 IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
                 IdSetColStart(MID, 0x30, 0x3E, IDC_GAUGE);
                 IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
-                wk->flags |= MF_COMBO_OFF;
+                pWk->flags |= MF_COMBO_OFF;
             }
         }
     } else {
         if (IdIsAnimEnd(MID, 0x30, IDC_GAUGE)) {
-            wk->combo = 0;
-            wk->flags &= ~MF_COMBO_OFF;
+            pWk->combo = 0;
+            pWk->flags &= ~MF_COMBO_OFF;
         }
     }
     // bonus time
-    if (wk->flags & MF_BONUS_ON) {
-        wk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
+    if (pWk->flags & MF_BONUS_ON) {
+        pWk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
         IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
         IdSetAnmStart(MID, 0x40, IDC_GAUGE, 1);
         IdSetColInit(MID, 0x40, IDC_GAUGE);
         IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
     }
-    if (!(wk->flags & MF_BONUS_OFF)) {
-        if (wk->bonusTimer > 0) {
-            wk->bonusTimer--;
-            if (wk->bonusTimer > BonusTimerFlash) {
+    if (!(pWk->flags & MF_BONUS_OFF)) {
+        if (pWk->bonusTimer > 0) {
+            pWk->bonusTimer--;
+            if (pWk->bonusTimer > BonusTimerFlash) {
                 IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
                 IdSetColInit(MID, 0x40, IDC_GAUGE);
                 IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
             }
-            if (wk->bonusTimer == BonusTimerFlash) {
+            if (pWk->bonusTimer == BonusTimerFlash) {
                 IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
                 IdSetColStart(MID, 0x40, 0x3F, IDC_GAUGE);
                 IdSetColLoop(MID, 0x40, IDC_GAUGE, 1);
             }
-            if (wk->bonusTimer <= 1) {
+            if (pWk->bonusTimer <= 1) {
                 IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
                 IdSetColStart(MID, 0x40, 0x3E, IDC_GAUGE);
                 IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
-                wk->flags |= MF_BONUS_OFF;
+                pWk->flags |= MF_BONUS_OFF;
             }
         }
     } else {
         if (IdIsAnimEnd(MID, 0x40, IDC_GAUGE)) {
-            wk->bonusTimer = 0;
-            wk->flags &= ~MF_BONUS_OFF;
+            pWk->bonusTimer = 0;
+            pWk->flags &= ~MF_BONUS_OFF;
         }
     }
     // multi kill bonus
-    if (wk->killCnt > 7) {
-        wk->bonusScore += 4000;
-    } else if (wk->killCnt > 4) {
-        wk->bonusScore += 1500;
-    } else if (wk->killCnt > 2) {
-        wk->bonusScore += 500;
+    if (pWk->killCnt > 7) {
+        pWk->bonusScore += 4000;
+    } else if (pWk->killCnt > 4) {
+        pWk->bonusScore += 1500;
+    } else if (pWk->killCnt > 2) {
+        pWk->bonusScore += 500;
     }
-    if (!(wk->flags & MF_BONUS_SCORE)) {
-        if (wk->bonusScore > 0 && wk->combo == 0 && wk->bonusTimer == 0) {
+    if (!(pWk->flags & MF_BONUS_SCORE)) {
+        if (pWk->bonusScore > 0 && pWk->combo == 0 && pWk->bonusTimer == 0) {
             IdSetTrans(MID, 0x60, IDC_GAUGE, 1);
             IdSetAnmStart(MID, 0x60, IDC_GAUGE, 1);
-            IdSetNum(MID, 0x61, IDC_GAUGE, wk->bonusScore, 9999999, 7, 0);
-            wk->flags |= MF_BONUS_SCORE;
-            wk->bonusDisp = wk->bonusScore;
-            wk->bonusScore = 0;
+            IdSetNum(MID, 0x61, IDC_GAUGE, pWk->bonusScore, 9999999, 7, 0);
+            pWk->flags |= MF_BONUS_SCORE;
+            pWk->bonusDisp = pWk->bonusScore;
+            pWk->bonusScore = 0;
         }
     } else {
         if (IdIsAnimEnd(MID, 0x60, IDC_GAUGE)) {
-            wk->flags &= ~MF_BONUS_SCORE;
-            wk->score += wk->bonusDisp;
+            pWk->flags &= ~MF_BONUS_SCORE;
+            pWk->score += pWk->bonusDisp;
         }
     }
     // score
     IdSetTrans(MID, 0x20, IDC_GAUGE, 1);
-    IdSetNum(MID, 0x21, IDC_GAUGE, wk->score, 9999999, 7, 0);
+    IdSetNum(MID, 0x21, IDC_GAUGE, pWk->score, 9999999, 7, 0);
     // time added
     zero = 0;
-    if (wk->flags & MF_ADD_TIME) {
-        wk->flags &= ~MF_ADD_TIME;
-        min = wk->addTime / 60;
-        sec = wk->addTime % 60;
+    if (pWk->flags & MF_ADD_TIME) {
+        pWk->flags &= ~MF_ADD_TIME;
+        min = pWk->addTime / 60;
+        sec = pWk->addTime % 60;
         cs = zero;
-        wk->addTime = zero;
+        pWk->addTime = zero;
         IdSetTrans(MID, 0x10, IDC_GAUGE, 1);
         IdSetAnmStart(MID, 0x10, IDC_GAUGE, 1);
         IdSetNum(MID, 0x15, IDC_GAUGE, min, 9, 1, 1);
@@ -435,44 +435,44 @@ int MercSysMoveScore(MercSysWork* wk)
             safe = sec > 29;
         }
         if (safe == 0) {
-            if (!(wk->flags & MF_TIME_WARN)) {
+            if (!(pWk->flags & MF_TIME_WARN)) {
                 IdSetColStart(MID, 0, 0xFE, IDC_GAUGE);
                 IdSetColLoop(MID, 0, IDC_GAUGE, 1);
             }
-            wk->flags |= MF_TIME_WARN;
+            pWk->flags |= MF_TIME_WARN;
         } else {
-            if (wk->flags & MF_TIME_WARN) {
+            if (pWk->flags & MF_TIME_WARN) {
                 IdSetColStart(MID, 0, 0xFD, IDC_GAUGE);
                 IdSetColLoop(MID, 0, IDC_GAUGE, 0);
             }
-            wk->flags &= ~MF_TIME_WARN;
+            pWk->flags &= ~MF_TIME_WARN;
         }
     }
-    IdSetNum(MID, 0x31, IDC_GAUGE, wk->combo, 999, 3, 0);
+    IdSetNum(MID, 0x31, IDC_GAUGE, pWk->combo, 999, 3, 0);
     IdSetNum(MID, 0x51, IDC_GAUGE, BonusTimeAdd, 9999, 4, 0);
-    IdSetNum(MID, 0x41, IDC_GAUGE, wk->bonusKill, 99, 2, 0);
-    wk->killCnt = 0;
+    IdSetNum(MID, 0x41, IDC_GAUGE, pWk->bonusKill, 99, 2, 0);
+    pWk->killCnt = 0;
     return 1;
 }
 
 // The Mercenaries scenario task: intro, then every frame the score update and the countdown check
 // (end at 0:00; the hurry-up sound in the last 15 s), the id move/trans; at the end clears the
 // combo/bonus displays and runs the result screen.
-int MercSysMoveMain(MercSysWork* wk)
+int MercSysMoveMain(MercSysWork* pWk)
 {
     u8* st;
 
-    if (wk == NULL) {
+    if (pWk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    st = wk->mainSt;
+    st = pWk->mainSt;
     memset(st, 0, 5);
-    MercSysMoveStart(wk);
+    MercSysMoveStart(pWk);
     mercId.dispMissionStart();
     st[0] = 1;
     do {
-        MercSysMoveScore(wk);
+        MercSysMoveScore(pWk);
         if (!StaFlagChk(pG, STA_DIEDEMO)) {
             CountDown* cd = Cckpt.getCountDown();
             int end = 0;
@@ -486,36 +486,36 @@ int MercSysMoveMain(MercSysWork* wk)
             }
         }
         if (Cckpt.getCountDown()->getFrame() <= 899) {
-            if (wk->sndId == 0) {
-                wk->sndId = SndCall(6, 0x78, 0, 0, 0, 0);
+            if (pWk->sndId == 0) {
+                pWk->sndId = SndCall(6, 0x78, 0, 0, 0, 0);
             }
         } else {
-            if (wk->sndId != 0) {
+            if (pWk->sndId != 0) {
                 SndCall(6, 0x7A, 0, 0, 0, 0);
-                wk->sndId = 0;
+                pWk->sndId = 0;
             }
         }
         mercId._idSys.move();
         mercId._idSys.trans();
         SceSleep(1);
     } while (st[0] != 0);
-    wk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
+    pWk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
     IdSetTrans(&mercId._idSys, 0x30, IDC_GAUGE, 0);
     int zero = 0;
-    wk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
+    pWk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
     IdSetTrans(&mercId._idSys, 0x40, IDC_GAUGE, 0);
-    wk->combo = zero;
-    wk->comboTimer = zero;
-    wk->bonusTimer = zero;
+    pWk->combo = zero;
+    pWk->comboTimer = zero;
+    pWk->bonusTimer = zero;
     SndCall(6, 0x7A, 0, 0, 0, 0);
-    MercSysResultMove(wk);
+    MercSysResultMove(pWk);
     return 1;
 }
 
 // Computes the result: remaining time, max combo, kills, rank from RankTbl[stage] (0..5), updates
 // the saved high score / best rank per stage and mode, unlocks the stage's extra (rank >= 4 sets
 // the unlock_flg bit), and the all-5-stars unlock (20 ranks of 5 -> unlock_flg 0x20000000).
-int MercSysResultInit(MercSysWork* wk)
+int MercSysResultInit(MercSysWork* pWk)
 {
     MercSaveWork save;
     int min;
@@ -523,47 +523,47 @@ int MercSysResultInit(MercSysWork* wk)
     int cs;
     int i;
 
-    if (wk == NULL) {
+    if (pWk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
     Cckpt.getCountDown()->getTime(&min, &sec, &cs);
-    wk->rslt.time = min * 6000 + sec * 100 + cs;
-    wk->rslt.maxCombo = wk->maxCombo;
-    wk->rslt.kill = wk->kill;
-    wk->rslt.mode = wk->mode;
-    wk->rslt.rank = 0;
-    wk->rslt.score = wk->score;
+    pWk->rslt.time = min * 6000 + sec * 100 + cs;
+    pWk->rslt.maxCombo = pWk->maxCombo;
+    pWk->rslt.kill = pWk->kill;
+    pWk->rslt.mode = pWk->mode;
+    pWk->rslt.rank = 0;
+    pWk->rslt.score = pWk->score;
     for (i = 0;; i++) {
-        if (i < 6 && RankTbl[wk->stage][i] <= wk->rslt.score) {
-            wk->rslt.rank = i;
+        if (i < 6 && RankTbl[pWk->stage][i] <= pWk->rslt.score) {
+            pWk->rslt.rank = i;
         } else {
             break;
         }
     }
-    if (wk->rslt.rank > 5) {
-        pLog->err(0, 0, "MercSysResult : RankId error %d", wk->rslt.rank);
-        wk->rslt.rank = 5;
+    if (pWk->rslt.rank > 5) {
+        pLog->err(0, 0, "MercSysResult : RankId error %d", pWk->rslt.rank);
+        pWk->rslt.rank = 5;
     }
     MercSysGetSaveWork(&save);
-    if (save.stage[wk->stage].score < wk->rslt.score) {
-        save.stage[wk->stage].score = wk->rslt.score;
-        save.stage[wk->stage].mode = wk->rslt.mode;
-        save.stage[wk->stage].newFlag = 1;
+    if (save.stage[pWk->stage].score < pWk->rslt.score) {
+        save.stage[pWk->stage].score = pWk->rslt.score;
+        save.stage[pWk->stage].mode = pWk->rslt.mode;
+        save.stage[pWk->stage].newFlag = 1;
     } else {
-        save.stage[wk->stage].newFlag = 0;
+        save.stage[pWk->stage].newFlag = 0;
     }
-    if (save.rank[wk->rslt.mode][wk->stage] < wk->rslt.rank) {
-        save.rank[wk->rslt.mode][wk->stage] = wk->rslt.rank;
+    if (save.rank[pWk->rslt.mode][pWk->stage] < pWk->rslt.rank) {
+        save.rank[pWk->rslt.mode][pWk->stage] = pWk->rslt.rank;
     }
     MercSysSetSaveWork(&save);
-    wk->rslt.hiScore = save.stage[wk->stage].score;
-    wk->rslt.hiMode = save.stage[wk->stage].mode;
-    wk->rslt.newRecord = save.stage[wk->stage].newFlag;
-    if (!FlagChkVar(EXT_FLAG_TBL_S, extFlagTbl[wk->stage])) {
-        if (wk->rslt.rank > 3) {
-            FlagOnVar(EXT_FLAG_TBL_S, extFlagTbl[wk->stage]);
-            FlagOnVar(&wk->flags, mercSysGetFlag[wk->stage]);
+    pWk->rslt.hiScore = save.stage[pWk->stage].score;
+    pWk->rslt.hiMode = save.stage[pWk->stage].mode;
+    pWk->rslt.newRecord = save.stage[pWk->stage].newFlag;
+    if (!FlagChkVar(EXT_FLAG_TBL_S, extFlagTbl[pWk->stage])) {
+        if (pWk->rslt.rank > 3) {
+            FlagOnVar(EXT_FLAG_TBL_S, extFlagTbl[pWk->stage]);
+            FlagOnVar(&pWk->flags, mercSysGetFlag[pWk->stage]);
         }
     }
     {
@@ -580,7 +580,7 @@ int MercSysResultInit(MercSysWork* wk)
         }
         if (!ExtFlagChk(pSys, EXT_GET_SW500) && cnt > 19) {
             ExtFlagOn(pSys, EXT_GET_SW500);
-            wk->flags |= MF_ALL_RANK;
+            pWk->flags |= MF_ALL_RANK;
         }
     }
     return 1;
@@ -589,7 +589,7 @@ int MercSysResultInit(MercSysWork* wk)
 // The result sequence: "time up", fade, MercSysResultInit, HUD off and game stopped, swaps the
 // room archive out to load the result id data (omk_r1.dat), runs the MercResult screen, restores,
 // saves the system file and requests the soft reset back to the title.
-int MercSysResultMove(MercSysWork* wk)
+int MercSysResultMove(MercSysWork* pWk)
 {
     static u32 stop_bak;
     static u32 disp_bak;
@@ -597,12 +597,12 @@ int MercSysResultMove(MercSysWork* wk)
     static char data_name[] = "SS/___/omk_r1.dat";
     MercResult* pRslt;
 
-    if (wk == NULL) {
+    if (pWk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
     {
-        MercRsltSt* rs = &wk->rsltSt;
+        MercRsltSt* rs = &pWk->rsltSt;
         u32 size;
 
         memset(rs, 0, sizeof(MercRsltSt));
@@ -618,14 +618,14 @@ int MercSysResultMove(MercSysWork* wk)
                 mercId.dispTimeUp();
                 SndRoomStrStop(3);
                 SndRoomBgmStop(0, 3);
-                SndStrReq(wk->strId, 4, 600, 0);
+                SndStrReq(pWk->strId, 4, 600, 0);
                 rs->cnt = 0;
                 rs->step++;
             case 1:
-                MercSysMoveScore(wk);
+                MercSysMoveScore(pWk);
                 if (IdIsAnimEnd(&mercId._idSys, 0, IDC_EVENT)) {
                     FadeSetW(2, 0, 0, 0);
-                    MercSysResultInit(wk);
+                    MercSysResultInit(pWk);
                     disp_bak = pG->Disp_flg;
                     pG->Disp_flg = 0xFFFFFFFF;
                     DpfFlagOff(pG, DPF_ID_SYSTEM);
@@ -649,15 +649,15 @@ int MercSysResultMove(MercSysWork* wk)
                     size += MARGIN;
                     swap.SwapOut((u32) pG->pRoom, size, 0);
                     pRslt = new MercResult;
-                    pRslt->init(wk);
-                    wk->strId = SndStrReq(0, 0x3A, 0x80000003, 0, 0, 0.0f);
+                    pRslt->init(pWk);
+                    pWk->strId = SndStrReq(0, 0x3A, 0x80000003, 0, 0, 0.0f);
                     rs->cnt = 0;
                     rs->step++;
                 }
                 break;
             case 3:
-                if (pRslt->move(wk) == 0) {
-                    SndStrReq(wk->strId, 8, 0, 0);
+                if (pRslt->move(pWk) == 0) {
+                    SndStrReq(pWk->strId, 8, 0, 0);
                     rs->cnt = 0;
                     rs->step++;
                 }
@@ -687,7 +687,7 @@ int MercSysResultMove(MercSysWork* wk)
 
 // Unpacks the Mercenaries records from the system save: per stage the high score (x10, 28 bits),
 // mode (3 bits) and new flag, and the 3-bit rank per (character, stage) from merc_rank.
-void MercSysGetSaveWork(MercSaveWork* save)
+void MercSysGetSaveWork(MercSaveWork* pSaveWk)
 {
     int i;
     int j;
@@ -702,9 +702,9 @@ void MercSysGetSaveWork(MercSaveWork* save)
         u32* tbl = pSys->MercSysRoom;
         u32 w = tbl[i];
 
-        save->stage[i].score = (w & 0x0FFFFFFF) * 10;
-        save->stage[i].mode = (w >> 28) & 7;
-        save->stage[i].newFlag = w >> 31;
+        pSaveWk->stage[i].score = (w & 0x0FFFFFFF) * 10;
+        pSaveWk->stage[i].mode = (w >> 28) & 7;
+        pSaveWk->stage[i].newFlag = w >> 31;
         for (j = 0; j < 5; j++) {
             int r = 0;
 
@@ -717,13 +717,13 @@ void MercSysGetSaveWork(MercSaveWork* save)
             if (FlagChkVar(pSys->MercSysRank, (u32) (i * 15 + j * 3 + 2))) {
                 r |= 1;
             }
-            save->rank[j][i] = r;
+            pSaveWk->rank[j][i] = r;
         }
     }
 }
 
 // Packs the records back into the system save words.
-void MercSysSetSaveWork(MercSaveWork* save)
+void MercSysSetSaveWork(MercSaveWork* pSaveWk)
 {
     int i;
     int j;
@@ -734,14 +734,14 @@ void MercSysSetSaveWork(MercSaveWork* save)
             // pseudo, so local-alloc cannot tie the first `or` to it (the result is tied to the mode
             // operand instead: `or r0,r7,r0`) and global.c gives it r7 after local-alloc took r10/r8
             // for i*12 / pSys.
-            u32 sc = save->stage[i].score;
+            u32 sc = pSaveWk->stage[i].score;
             u32 w;
             sc = (sc / 10) & 0x0FFFFFFF;
-            w = (sc | ((save->stage[i].mode & 7) << 28)) | (save->stage[i].newFlag << 31);
+            w = (sc | ((pSaveWk->stage[i].mode & 7) << 28)) | (pSaveWk->stage[i].newFlag << 31);
             pSys->MercSysRoom[i] = w;
         }
         for (j = 0; j < 5; j++) {
-            int r = save->rank[j][i];
+            int r = pSaveWk->rank[j][i];
 
             if (r & 4) {
                 FlagOnVar(pSys->MercSysRank, (u32) (i * 15 + j * 3));
@@ -760,7 +760,7 @@ void MercSysSetSaveWork(MercSaveWork* save)
 // increments the combo (starting the combo display at 2), scores defaultScoreTbl[kind] plus the
 // combo bonus from addScoreTbl (banked into bonusScore, at least BonusTimeAdd during bonus time),
 // counts kills. Ignored outside the Mercenaries (System_flg 0x40000000).
-int MercSysSetPoint(int kind, int pt)
+int MercSysSetPoint(int type, int point)
 {
     MercSysWork* wk = &MercSysWk;
     u32 idx;
@@ -773,8 +773,8 @@ int MercSysSetPoint(int kind, int pt)
     if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         return 1;
     }
-    if (kind == MT_ITEM) {
-        wk->score += pt;
+    if (type == MT_ITEM) {
+        wk->score += point;
         return 1;
     }
     if (wk->combo == 1) {
@@ -792,7 +792,7 @@ int MercSysSetPoint(int kind, int pt)
     if (idx > 8) {
         idx = 9;
     }
-    add = addScoreTbl[kind][idx] - defaultScoreTbl[kind];
+    add = addScoreTbl[type][idx] - defaultScoreTbl[type];
     if (wk->bonusTimer > 0) {
         wk->bonusKill++;
         if (add < BonusTimeAdd) {
@@ -800,14 +800,14 @@ int MercSysSetPoint(int kind, int pt)
         }
     }
     wk->bonusScore += add;
-    wk->score += defaultScoreTbl[kind];
+    wk->score += defaultScoreTbl[type];
     wk->killCnt++;
     wk->kill++;
     return 1;
 }
 
 // Time bonus pick-up: queues sec seconds to add to the countdown.
-int MercSysSetAddTime(int sec)
+int MercSysSetAddTime(int time)
 {
     MercSysWork* wk = &MercSysWk;
 
@@ -818,13 +818,13 @@ int MercSysSetAddTime(int sec)
     if (!SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         return 1;
     }
-    wk->addTime += sec;
+    wk->addTime += time;
     wk->flags |= MF_ADD_TIME;
     // no return: the original falls off the end (r3 still holds `sec`)
 }
 
 // Bonus time pick-up: extends the bonus timer (starting the display when it was 0).
-int MercSysSetBonusTime(int frames)
+int MercSysSetBonusTime(int time)
 {
     MercSysWork* wk = &MercSysWk;
 
@@ -839,20 +839,20 @@ int MercSysSetBonusTime(int frames)
         wk->bonusKill = 0;
         wk->flags |= MF_BONUS_ON;
     }
-    wk->bonusTimer += frames;
+    wk->bonusTimer += time;
     wk->flags &= ~MF_BONUS_OFF;
     return 1;
 }
 
 // Shows/hides id unit (no, type).
-void IdSetTrans(IDSystem* id, int no, u8 type, int on)
+void IdSetTrans(IDSystem* pIdSys, int idmNo, u8 idcNo, int flag)
 {
-    IdUnit* u = id->unitPtr(no, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo, idcNo);
 
     if (u == NULL) {
         pLog->err(0, 0, "IdSetTrans : pIdUnit is NULL");
     } else {
-        if (on == 1) {
+        if (flag == 1) {
             u->be_flag |= 8;
         } else {
             u->be_flag &= ~8;
@@ -861,26 +861,26 @@ void IdSetTrans(IDSystem* id, int no, u8 type, int on)
 }
 
 // Restarts an id unit's animation forwards (on) or backwards.
-void IdSetAnmStart(IDSystem* id, int no, u8 type, int on)
+void IdSetAnmStart(IDSystem* pIdSys, int idmNo, u8 idcNo, int flag)
 {
-    IdUnit* u = id->unitPtr(no, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo, idcNo);
 
     if (u == NULL) {
         pLog->err(0, 0, "IdSetAnmStart : pIdUnit is NULL");
     } else {
-        if (on == 1) {
+        if (flag == 1) {
             u->rev_flag &= ~0xF;
         } else {
             u->rev_flag |= 0xF;
         }
-        id->setTime(u, 0);
+        pIdSys->setTime(u, 0);
     }
 }
 
 // Resets an id unit to opaque white with no colour curve.
-void IdSetColInit(IDSystem* id, int no, u8 type)
+void IdSetColInit(IDSystem* pIdSys, int idmNo, u8 idcNo)
 {
-    IdUnit* u = id->unitPtr(no, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo, idcNo);
 
     if (u == NULL) {
         pLog->err(0, 0, "IdSetColInit : pIdUnit is NULL");
@@ -894,14 +894,14 @@ void IdSetColInit(IDSystem* id, int no, u8 type)
 }
 
 // Sets/clears the colour curve loop bit of an id unit (flashing).
-static void IdSetColLoop(IDSystem* id, int no, u8 type, int on)
+static void IdSetColLoop(IDSystem* pIdSys, int idmNo, u8 idcNo, int flag)
 {
-    IdUnit* u = id->unitPtr(no, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo, idcNo);
 
     if (u == NULL) {
         pLog->err(0, 0, "IdSetColInit : pIdUnit is NULL");
     } else {
-        if (on == 1) {
+        if (flag == 1) {
             u->loop_flag |= 4;
         } else {
             u->loop_flag &= ~4;
@@ -910,10 +910,10 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on)
 }
 
 // Copies the colour curve and colours of unit src onto unit no and restarts it.
-void IdSetColStart(IDSystem* id, int no, int src, u8 type)
+void IdSetColStart(IDSystem* pIdSys, int idmNo0, int idmNo1, u8 idcNo)
 {
-    IdUnit* u = id->unitPtr(no, type);
-    IdUnit* s = id->unitPtr(src, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo0, idcNo);
+    IdUnit* s = pIdSys->unitPtr(idmNo1, idcNo);
 
     if (u == NULL || s == NULL) {
         pLog->err(0, 0, "IdSetColStart : pIdUnit is NULL");
@@ -933,22 +933,22 @@ void IdSetColStart(IDSystem* id, int no, int src, u8 type)
 
 // Shows `val` (clamped to `max`) as `digits` decimal digits on the units no..no+digits-1;
 // mode 0 hides leading zeros.
-void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int mode)
+void IdSetNum(IDSystem* pIdSys, int idmNo, u8 idcNo, int num, int max, int keta, int mode)
 {
     int d[32];
     int show;
     int i;
 
-    if (val > max) {
-        val = max;
+    if (num > max) {
+        num = max;
     }
-    for (int j = 0; j < digits; j++) {
-        d[j] = val % 10;
-        val /= 10;
+    for (int j = 0; j < keta; j++) {
+        d[j] = num % 10;
+        num /= 10;
     }
     show = mode;
-    for (i = digits - 1; i >= 0; i--) {
-        IdUnit* u = id->unitPtr(no + i, type);
+    for (i = keta - 1; i >= 0; i--) {
+        IdUnit* u = pIdSys->unitPtr(idmNo + i, idcNo);
 
         if (u == NULL) {
             pLog->err(0, 0, "IdSetNum : pIdUnit is NULL");
@@ -966,9 +966,9 @@ void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int m
 }
 
 // Sets an id unit's texture frame (held).
-void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo)
+void IdSetTexNo(IDSystem* pIdSys, int idmNo, u8 idcNo, int texNo)
 {
-    IdUnit* u = id->unitPtr(no, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo, idcNo);
 
     if (u == NULL) {
         pLog->err(0, 0, "IdSetTexNo : pIdUnit is NULL");
@@ -979,9 +979,9 @@ void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo)
 }
 
 // 1 when the unit's position or size curve has ended.
-int IdIsAnimEnd(IDSystem* id, int no, u8 type)
+int IdIsAnimEnd(IDSystem* pIdSys, int idmNo, u8 idcNo)
 {
-    IdUnit* u = id->unitPtr(no, type);
+    IdUnit* u = pIdSys->unitPtr(idmNo, idcNo);
 
     if (u != NULL) {
         return (u->anima_state & 3) ? 1 : 0;
@@ -1046,12 +1046,12 @@ void MercID::dispTimeUp()
 }
 
 // Loads the result screen id data (omk_r1.dat: 5 rank layouts, extra unlock, end) and its textures.
-int MercResult::init(MercSysWork* wk)
+int MercResult::init(MercSysWork* pWk)
 {
     static char data_name[] = "SS/___/omk_r1.dat";
     void* addr;
 
-    if (wk == NULL) {
+    if (pWk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
@@ -1070,7 +1070,7 @@ int MercResult::init(MercSysWork* wk)
     pIdExtra = DATA_PTR(omk_addr, 0x28);
     pIdEnd = DATA_PTR(omk_addr, 0x2C);
     IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
-    IdSys.set(pIdRank[wk->rslt.mode], 0xFF, IDC_TITLE, 0x13, 6, 0);
+    IdSys.set(pIdRank[pWk->rslt.mode], 0xFF, IDC_TITLE, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
     _rno2 = 0;
@@ -1081,38 +1081,38 @@ int MercResult::init(MercSysWork* wk)
 // Result screen state machine (_rno0): fade in and show the rank layout with score/time/combo/kills
 // digits, wait for A; then (0xA) the "new character unlocked" screen with its message, then
 // (0x14) the all-clear screen. Returns 0 when finished.
-int MercResult::move(MercSysWork* wk)
+int MercResult::move(MercSysWork* pWk)
 {
     int mes[4];
 
-    if (wk == NULL) {
+    if (pWk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    mes[0] = wk->mes[5];
-    mes[1] = wk->mes[6];
-    mes[2] = wk->mes[7];
-    mes[3] = wk->mes[8];
+    mes[0] = pWk->mes[5];
+    mes[1] = pWk->mes[6];
+    mes[2] = pWk->mes[7];
+    mes[3] = pWk->mes[8];
     switch (_rno0) {
     case 0:
         FadeSetW(0x80000002, 10, 0, 0);
         _rno0++;
         break;
     case 1:
-        IdSetNum(&IdSys, 0x11, IDC_TITLE, wk->rslt.kill, 9999, 4, 0);
-        IdSetNum(&IdSys, 0x21, IDC_TITLE, wk->rslt.score, 999999, 6, 0);
-        IdSetNum(&IdSys, 0x31, IDC_TITLE, wk->rslt.maxCombo, 999, 3, 0);
+        IdSetNum(&IdSys, 0x11, IDC_TITLE, pWk->rslt.kill, 9999, 4, 0);
+        IdSetNum(&IdSys, 0x21, IDC_TITLE, pWk->rslt.score, 999999, 6, 0);
+        IdSetNum(&IdSys, 0x31, IDC_TITLE, pWk->rslt.maxCombo, 999, 3, 0);
         for (int i = 1; i <= 5; i++) {
-            IdSetTrans(&IdSys, i, IDC_TITLE, i <= wk->rslt.rank);
+            IdSetTrans(&IdSys, i, IDC_TITLE, i <= pWk->rslt.rank);
         }
         IdSetTrans(&IdSys, 0, IDC_TITLE, 1);
-        IdSetTexNo(&IdSys, 0, IDC_TITLE, wk->rslt.hiMode);
-        IdSetNum(&IdSys, 0x41, IDC_TITLE, wk->rslt.hiScore, 999999, 6, 0);
+        IdSetTexNo(&IdSys, 0, IDC_TITLE, pWk->rslt.hiMode);
+        IdSetNum(&IdSys, 0x41, IDC_TITLE, pWk->rslt.hiScore, 999999, 6, 0);
         if (Key.trg & KEY_A) {
             FadeSetW(2, 10, 0, 0);
-            if (FlagChkVar(&wk->flags, mercSysGetFlag[wk->stage])) {
+            if (FlagChkVar(&pWk->flags, mercSysGetFlag[pWk->stage])) {
                 _rno0 = 0xA;
-            } else if (wk->flags & MF_ALL_RANK) {
+            } else if (pWk->flags & MF_ALL_RANK) {
                 _rno0 = 0x14;
             } else {
                 return 0;
@@ -1134,9 +1134,9 @@ int MercResult::move(MercSysWork* wk)
             }
             IdSetTrans(&IdSys, i + 1, IDC_TITLE, on);
         }
-        IdSetTrans(&IdSys, wk->stage + 1, IDC_TITLE, 1);
-        IdSetAnmStart(&IdSys, wk->stage + 1, IDC_TITLE, 1);
-        IdSetColStart(&IdSys, wk->stage + 1, 0, IDC_TITLE);
+        IdSetTrans(&IdSys, pWk->stage + 1, IDC_TITLE, 1);
+        IdSetAnmStart(&IdSys, pWk->stage + 1, IDC_TITLE, 1);
+        IdSetColStart(&IdSys, pWk->stage + 1, 0, IDC_TITLE);
         _rno1 = 0;
         _rno0++;
         break;
@@ -1146,7 +1146,7 @@ int MercResult::move(MercSysWork* wk)
         }
         _rno1++;
         if (_rno1 > 29) {
-            SceMesSet(mes[wk->stage], 0xF0, 1, 100, MES_Y(cMes.getWork()));
+            SceMesSet(mes[pWk->stage], 0xF0, 1, 100, MES_Y(cMes.getWork()));
             _rno0++;
         }
         break;
@@ -1158,7 +1158,7 @@ int MercResult::move(MercSysWork* wk)
                 m->Delete(i);
             }
             FadeSetW(2, 10, 0, 0);
-            if (wk->flags & MF_ALL_RANK) {
+            if (pWk->flags & MF_ALL_RANK) {
                 _rno0 = 0x14;
             } else {
                 return 0;
@@ -1181,7 +1181,7 @@ int MercResult::move(MercSysWork* wk)
         }
         _rno1++;
         if (_rno1 > 29) {
-            SceMesSet(wk->mes[9], 0xF0, 1, 100, MES_Y(cMes.getWork()));
+            SceMesSet(pWk->mes[9], 0xF0, 1, 100, MES_Y(cMes.getWork()));
             _rno0++;
         }
         break;
@@ -1230,7 +1230,7 @@ void AdaResult::init()
 }
 
 // Assignment Ada result: fade in, show the layout and message mesNo, wait for A. Returns 0 when done.
-int AdaResult::move(int mesNo)
+int AdaResult::move(int messNo)
 {
     int i;
 
@@ -1247,7 +1247,7 @@ int AdaResult::move(int mesNo)
         }
         _rno1++;
         if (_rno1 > 29) {
-            SceMesSet(mesNo, 0xF0, 1, 100, MES_Y(cMes.getWork()));
+            SceMesSet(messNo, 0xF0, 1, 100, MES_Y(cMes.getWork()));
             _rno0++;
         }
         break;
@@ -1274,7 +1274,7 @@ void AdaResult::quit()
 }
 
 // Countdown state bit test (bit 0 = running).
-int CountDown::checkState(u32 bit)
+int CountDown::checkState(u32 state)
 {
-    return (m_state & bit) ? 1 : 0;
+    return (m_state & state) ? 1 : 0;
 }

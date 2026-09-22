@@ -151,73 +151,73 @@ void cDbWork::dispObj()
 
 // Common model dump at text column x / row y; A inverts the model colour, X squashes it, the C-
 // stick up / down moves it +-1000 in y; draws the bounding boxes.
-void cDbWork::dispModel(cModel* m, int x, int y)
+void cDbWork::dispModel(cModel* pMod, int x, int y)
 {
     int color;
 
     x *= 8;
-    eprintf(x, y * 14, 0, 0, "BE FLAG  %08X", m->be_flag);
+    eprintf(x, y * 14, 0, 0, "BE FLAG  %08X", pMod->be_flag);
     y++;
-    eprintf(x, y * 14, 0, 0, "POSITION %7.0f %7.0f %7.0f", m->pos.x, m->pos.y, m->pos.z);
+    eprintf(x, y * 14, 0, 0, "POSITION %7.0f %7.0f %7.0f", pMod->pos.x, pMod->pos.y, pMod->pos.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "ANGLE    %4.2f %4.2f %4.2f", m->ang.x, m->ang.y, m->ang.z);
+    eprintf(x, y * 14, 0, 0, "ANGLE    %4.2f %4.2f %4.2f", pMod->ang.x, pMod->ang.y, pMod->ang.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "SCALE    %4.2f %4.2f %4.2f", m->scale.x, m->scale.y, m->scale.z);
+    eprintf(x, y * 14, 0, 0, "SCALE    %4.2f %4.2f %4.2f", pMod->scale.x, pMod->scale.y, pMod->scale.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "RTN NO   %02X %02X %02X %02X", m->r_no_0, m->r_no_1, m->r_no_2, m->r_no_3);
+    eprintf(x, y * 14, 0, 0, "RTN NO   %02X %02X %02X %02X", pMod->r_no_0, pMod->r_no_1, pMod->r_no_2, pMod->r_no_3);
     y++;
-    eprintf(x, y * 14, 0, 0, "ID       %02X", m->id);
+    eprintf(x, y * 14, 0, 0, "ID       %02X", pMod->id);
     y++;
-    eprintf(x, y * 14, 0, 0, "TYPE     %02X", m->type);
+    eprintf(x, y * 14, 0, 0, "TYPE     %02X", pMod->type);
     y++;
-    eprintf(x, y * 14, 0, 0, "nParts   %02X", m->nParts);
+    eprintf(x, y * 14, 0, 0, "nParts   %02X", pMod->nParts);
     y++;
-    eprintf(x, y * 14, 0, 0, "SPEED    %7.0f %7.0f %7.0f", m->speed.x, m->speed.y, m->speed.z);
+    eprintf(x, y * 14, 0, 0, "SPEED    %7.0f %7.0f %7.0f", pMod->speed.x, pMod->speed.y, pMod->speed.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "pCldShMd %08X", m->pChildShadowModel);
+    eprintf(x, y * 14, 0, 0, "pCldShMd %08X", pMod->pChildShadowModel);
     y++;
-    eprintf(x, y * 14, 0, 0, "SHD COL  %02X", m->Shd_color);
+    eprintf(x, y * 14, 0, 0, "SHD COL  %02X", pMod->Shd_color);
     y++;
-    eprintf(x, y * 14, 0, 0, "CullMode %d", m->CullMode);
+    eprintf(x, y * 14, 0, 0, "CullMode %d", pMod->CullMode);
     y++;
-    eprintf(x, y * 14, 0, 0, "pModInfo %08X", m->pModelInfo);
+    eprintf(x, y * 14, 0, 0, "pModInfo %08X", pMod->pModelInfo);
     y++;
-    eprintf(x, y * 14, 0, 0, "pShMdIfo %08X", m->pShadowModelInfo);
+    eprintf(x, y * 14, 0, 0, "pShMdIfo %08X", pMod->pShadowModelInfo);
     y++;
     color = 0;
-    if (m->LightInfo.getLightNum() > 5) {
+    if (pMod->LightInfo.getLightNum() > 5) {
         color = 0x16;
     }
-    eprintf(x, y * 14, color, 0, "nLight   %d", m->LightInfo.getLightNum());
+    eprintf(x, y * 14, color, 0, "nLight   %d", pMod->LightInfo.getLightNum());
     if (Joy[0].on & JOY_A) {
-        if (m->pModelInfo != NULL) {
-            m->pModelInfo->color[0] = ~m->pModelInfo->color[0];
-            m->pModelInfo->color[1] = ~m->pModelInfo->color[1];
-            m->pModelInfo->color[2] = ~m->pModelInfo->color[2];
+        if (pMod->pModelInfo != NULL) {
+            pMod->pModelInfo->color[0] = ~pMod->pModelInfo->color[0];
+            pMod->pModelInfo->color[1] = ~pMod->pModelInfo->color[1];
+            pMod->pModelInfo->color[2] = ~pMod->pModelInfo->color[2];
         }
     } else {
-        if (m->pModelInfo != NULL) {
-            m->pModelInfo->color[0] = 0xFF;
-            m->pModelInfo->color[1] = 0xFF;
-            m->pModelInfo->color[2] = 0xFF;
+        if (pMod->pModelInfo != NULL) {
+            pMod->pModelInfo->color[0] = 0xFF;
+            pMod->pModelInfo->color[1] = 0xFF;
+            pMod->pModelInfo->color[2] = 0xFF;
         }
     }
     if (Joy[0].on & JOY_X) {
-        if (m->scale.y == 0.2f) {
-            m->scale.y = 1.0f;
+        if (pMod->scale.y == 0.2f) {
+            pMod->scale.y = 1.0f;
         } else {
-            m->scale.y = 0.2f;
+            pMod->scale.y = 0.2f;
         }
     }
     if (Joy[0].trg & 0x800000) {
-        m->pos.y += 1000.0f;
-        m->matUpdate();
+        pMod->pos.y += 1000.0f;
+        pMod->matUpdate();
     }
     if (Joy[0].trg & 0x400000) {
-        m->pos.y -= 1000.0f;
-        m->matUpdate();
+        pMod->pos.y -= 1000.0f;
+        pMod->matUpdate();
     }
-    m->drawAllBoundingBox(m->pModelInfo);
+    pMod->drawAllBoundingBox(pMod->pModelInfo);
 }
 
 // Light view: be_flag, position, attribute, and a sphere of its radius.

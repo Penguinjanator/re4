@@ -53,10 +53,10 @@ struct EmTreeWork {
 class cEmTree : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMTREE_WK)
-    virtual void beginEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
     virtual void move();
 
-    void setParent(cModel* parent, int partsNo, int flag);
+    void setParent(cModel* pCoord, int oya_parts, int flag);
     void clearParent();
     void setFall();
     void setThrow(Vec* spd, EmAtkInfo* atk);
@@ -70,15 +70,15 @@ extern EmAtkInfo emTreeAtk;
 
 extern "C" {
 cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot);
-void emTreeDmCk(cEmTree* em);
-void emTree_R0_Init(cEmTree* em);
-void emTree_R1_Set(cEmTree* em);
-void emTree_R1_LostWait(cEmTree* em);
-void emTree_R1_Lost(cEmTree* em);
-void emTree_R1_Parent(cEmTree* em);
-void emTree_R1_Fall(cEmTree* em);
-void emTree_R1_Throw(cEmTree* em);
-void emTree_R1_Shot(cEmTree* em);
+void emTreeDmCk(cEmTree* pEm);
+void emTree_R0_Init(cEmTree* pEm);
+void emTree_R1_Set(cEmTree* pEm);
+void emTree_R1_LostWait(cEmTree* pEm);
+void emTree_R1_Lost(cEmTree* pEm);
+void emTree_R1_Parent(cEmTree* pEm);
+void emTree_R1_Fall(cEmTree* pEm);
+void emTree_R1_Throw(cEmTree* pEm);
+void emTree_R1_Shot(cEmTree* pEm);
 }
 
 #endif

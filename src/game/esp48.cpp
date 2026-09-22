@@ -52,16 +52,16 @@ void cEsp48::move()
 }
 
 // Amplitudes (x 0.1) and frequencies per axis from Vec0..Vec2; the timer starts at a random phase.
-int cEsp48::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp48::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp48Work* w = &m_Free;
 
-    w->dist_x = gen->Vec0.x * 0.1f;
-    w->time_x = gen->Vec0.y;
-    w->dist_y = gen->Vec1.x * 0.1f;
-    w->time_y = gen->Vec1.y;
-    w->dist_z = gen->Vec2.x * 0.1f;
-    w->time_z = gen->Vec2.y;
-    w->timer = fRandSeed1_1(seed) * 2.0f * PI;
+    w->dist_x = pSeq->Vec0.x * 0.1f;
+    w->time_x = pSeq->Vec0.y;
+    w->dist_y = pSeq->Vec1.x * 0.1f;
+    w->time_y = pSeq->Vec1.y;
+    w->dist_z = pSeq->Vec2.x * 0.1f;
+    w->time_z = pSeq->Vec2.y;
+    w->timer = fRandSeed1_1(pRand_seed) * 2.0f * PI;
     return 1;
 }

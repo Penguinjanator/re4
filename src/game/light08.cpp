@@ -16,16 +16,16 @@ cLight08::cLight08()
 
 // LightFuncTbl[8]: type 0 aims the spot target at parts partsNo of enemy emId every frame.
 // Spot light that tracks an enemy model part.
-void Light08_Move(cLight* l)
+void Light08_Move(cLight* pLi)
 {
-    Light08Work* w = (Light08Work*)l->work;
+    Light08Work* w = (Light08Work*)pLi->work;
 
     if (w->type == 0) {
         cEm* em = EmMgr.getEmPtr(w->emId, 0);
         if (em) {
             cModel* parts = em->getPartsPtr(w->partsNo);
             if (parts) {
-                l->setSpotTarget(&parts->world);
+                pLi->setSpotTarget(&parts->world);
             }
         }
     }

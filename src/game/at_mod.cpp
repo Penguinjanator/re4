@@ -70,9 +70,9 @@ void yarareInit0(YARARE_INFO* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16
 }
 
 // Sets the character's primary hit box (cEm::hitInfo) as a cylinder of radius w / height h.
-void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
+void YarareInit(cEm* pEm, f32 x, f32 y, f32 z, f32 r, f32 h, s16 pno, u16 flag)
 {
-    yarareInit0(&em->hitInfo, x, y, z, w, h, no, flags);
+    yarareInit0(&pEm->hitInfo, x, y, z, r, h, pno, flag);
 }
 
 // Sets the primary hit box as a box (flags bit3): half sizes w (x) / h (y) / extent (z).
@@ -84,22 +84,22 @@ void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 
 }
 
 // Appends a cylinder hit box to the character's hit box chain (error when already linked).
-void YarareAdd(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
+void YarareAdd(cEm* pEm, YARARE_INFO* pAt, f32 x, f32 y, f32 z, f32 r, f32 h, s16 pno, u16 flag)
 {
-    YARARE_INFO* p = &em->hitInfo;
+    YARARE_INFO* p = &pEm->hitInfo;
 
-    yarareInit0(box, x, y, z, w, h, no, flags);
+    yarareInit0(pAt, x, y, z, r, h, pno, flag);
     for (; p->pList != 0; p = p->pList) {
-        if (p == box) {
-            pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", em->id);
+        if (p == pAt) {
+            pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", pEm->id);
             return;
         }
     }
-    if (p == box) {
-        pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", em->id);
+    if (p == pAt) {
+        pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", pEm->id);
         return;
     }
-    p->pList = box;
+    p->pList = pAt;
 }
 
 // Appends a box hit box to the chain.
@@ -126,24 +126,24 @@ void YarareAddCube(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h,
 // body's world position (m_flag 0x200, non-zero radius), pushes `em` against every other
 // character and then every object (__em_at_core), stores the old positions and recomputes the
 // parts world positions. A body without collision only marks m_stat bit0.
-void EmAtCheck(cModel* em)
+void EmAtCheck(cModel* pMod)
 {
     cEm* m;
     cObj* o;
 
-    if (!(em->atari.m_flag & 0x200) || em->atari.m_radius2 == 0.0f) {
-        em->atari.m_stat |= 1;
+    if (!(pMod->atari.m_flag & 0x200) || pMod->atari.m_radius2 == 0.0f) {
+        pMod->atari.m_stat |= 1;
         return;
     }
-    em->atari.getPos(em, &em->atari.m_Pos);
+    pMod->atari.getPos(pMod, &pMod->atari.m_Pos);
     for (m = EmMgr.getActiveWork(); m != 0; m = EmMgr.getNext(m)) {
         if ((m->atari.m_flag & 0x200) && m->atari.m_radius2 != 0.0f) {
             m->atari.getPos(m, &m->atari.m_Pos);
         }
     }
     for (m = EmMgr.getActiveWork(); m != 0; m = EmMgr.getNext(m)) {
-        if ((m->atari.m_flag & 0x200) && m != em && m->atari.m_radius2 != 0.0f) {
-            __em_at_core(em, m);
+        if ((m->atari.m_flag & 0x200) && m != pMod && m->atari.m_radius2 != 0.0f) {
+            __em_at_core(pMod, m);
         }
     }
     for (m = EmMgr.getActiveWork(); m != 0; m = EmMgr.getNext(m)) {
@@ -157,8 +157,8 @@ void EmAtCheck(cModel* em)
         }
     }
     for (o = ObjMgr.getActiveWork(); o != 0; o = ObjMgr.getNext(o)) {
-        if ((o->atari.m_flag & 0x200) && o != em && o->atari.m_radius2 != 0.0f) {
-            __em_at_core(em, o);
+        if ((o->atari.m_flag & 0x200) && o != pMod && o->atari.m_radius2 != 0.0f) {
+            __em_at_core(pMod, o);
         }
     }
     for (o = ObjMgr.getActiveWork(); o != 0; o = ObjMgr.getNext(o)) {
@@ -166,8 +166,8 @@ void EmAtCheck(cModel* em)
             o->atari.m_oldPos = o->atari.m_Pos;
         }
     }
-    PartsWorldPosCalc(em);
-    em->atari.m_stat &= ~1;
+    PartsWorldPosCalc(pMod);
+    pMod->atari.m_stat &= ~1;
 }
 
 // 1 when pMod's push priority (m_flag bits 3-4) is non-zero and not below pMod2's, i.e. pMod is
@@ -366,7 +366,7 @@ int em_rect2_ck_sub(cModel* pMod, cModel* pMod2)
 
 // Sphere (character) vs box (object): with overlapping heights pushes the sphere out of the box
 // along the nearest face (sphereRectCk in the box's yaw frame); 1 on contact.
-u32 At_em_sphere_rect_ck(cModel* sph, cModel* rect)
+u32 At_em_sphere_rect_ck(cModel* pMod, cModel* pMod2)
 {
     Vec ps;
     Vec pr;
@@ -382,35 +382,35 @@ u32 At_em_sphere_rect_ck(cModel* sph, cModel* rect)
     int i;
     int hit;
 
-    ps = sph->atari.m_Pos;
-    pr = rect->atari.m_Pos;
-    if (ps.y + sph->atari.m_height < pr.y - rect->atari.m_height) {
+    ps = pMod->atari.m_Pos;
+    pr = pMod2->atari.m_Pos;
+    if (ps.y + pMod->atari.m_height < pr.y - pMod2->atari.m_height) {
         return 0;
     }
-    if (ps.y - sph->atari.m_height > pr.y + rect->atari.m_height) {
+    if (ps.y - pMod->atari.m_height > pr.y + pMod2->atari.m_height) {
         return 0;
     }
-    ir = &rect->atari;
+    ir = &pMod2->atari;
     if (ir->m_parts_no != 0) {
-        cModel* pm = rect->getPartsPtr(ir->m_parts_no - 1);
+        cModel* pm = pMod2->getPartsPtr(ir->m_parts_no - 1);
         PSMTXRotRad(m, 'y', pm->ang.y);
         PSMTXMultVecSR(m, &ir->m_offset, &c);
         PSVECAdd(&c, &pr, &c);
         TransMatrix(m, &c);
     } else {
-        PSMTXRotRad(m, 'y', rect->ang.y);
-        TransMatrix(m, &rect->pos);
+        PSMTXRotRad(m, 'y', pMod2->ang.y);
+        TransMatrix(m, &pMod2->pos);
         PSMTXMultVec(m, &ir->m_offset, &c);
         m[0][3] = c.x;
         m[1][3] = c.y;
         m[2][3] = c.z;
     }
     PSMTXInverse(m, inv);
-    c = sph->atari.m_Pos;
-    rad = sph->atari.m_radius;
-    if (!(sph->atari.m_stat & 1)) {
-        PSMTXMultVec(inv, &sph->atari.m_Pos, &step);
-        PSMTXMultVec(inv, &sph->atari.m_oldPos, &p);
+    c = pMod->atari.m_Pos;
+    rad = pMod->atari.m_radius;
+    if (!(pMod->atari.m_stat & 1)) {
+        PSMTXMultVec(inv, &pMod->atari.m_Pos, &step);
+        PSMTXMultVec(inv, &pMod->atari.m_oldPos, &p);
         if (rad >= 200.0f) {
             n = (int) (GetDistance3(&step, &p) / rad) + 1;
         } else {
@@ -419,7 +419,7 @@ u32 At_em_sphere_rect_ck(cModel* sph, cModel* rect)
         PSVECSubtract(&step, &p, &step);
         PSVECScale(&step, &step, 1.0f / (f32) n);
     } else {
-        PSMTXMultVec(inv, &sph->atari.m_Pos, &p);
+        PSMTXMultVec(inv, &pMod->atari.m_Pos, &p);
         n = 1;
         step.x = 0.0f;
         step.y = 0.0f;
@@ -438,45 +438,45 @@ u32 At_em_sphere_rect_ck(cModel* sph, cModel* rect)
         PSMTXMultVec(m, &p, &q);
         PSVECSubtract(&q, &c, &q);
         q.y = 0.0f;
-        PSVECAdd(&sph->pos, &q, &sph->pos);
-        sph->atari.getPos(sph, &sph->atari.m_Pos);
+        PSVECAdd(&pMod->pos, &q, &pMod->pos);
+        pMod->atari.getPos(pMod, &pMod->atari.m_Pos);
     }
     return hit;
 }
 
 // Sphere of radius `rad` at box-space point `p` against the box `info`: moves `p` to the nearest
 // face; 1 when it was inside.
-static u32 sphereRectCk(cAtariInfo* info, Vec& p, f32 rad)
+static u32 sphereRectCk(cAtariInfo* pAt2, Vec& ipos, f32 r)
 {
     Vec corner;
     Vec d;
-    f32 rx = info->m_radius;
-    f32 rz = info->m_radius2;
+    f32 rx = pAt2->m_radius;
+    f32 rz = pAt2->m_radius2;
     f32 rr;
     int hit = 0;
 
-    if (p.z > -rz && p.z < rz) {
-        if (p.x > 0.0f) {
-            if (p.x < rx + rad) {
-                p.x = rx + rad;
+    if (ipos.z > -rz && ipos.z < rz) {
+        if (ipos.x > 0.0f) {
+            if (ipos.x < rx + r) {
+                ipos.x = rx + r;
                 hit = 1;
             }
         } else {
-            if (p.x > -(rx + rad)) {
-                p.x = -(rx + rad);
+            if (ipos.x > -(rx + r)) {
+                ipos.x = -(rx + r);
                 hit = 1;
             }
         }
     }
-    if (p.x > -rx && p.x < rx) {
-        if (p.z > 0.0f) {
-            if (p.z < rz + rad) {
-                p.z = rz + rad;
+    if (ipos.x > -rx && ipos.x < rx) {
+        if (ipos.z > 0.0f) {
+            if (ipos.z < rz + r) {
+                ipos.z = rz + r;
                 hit = 1;
             }
         } else {
-            if (p.z > -(rz + rad)) {
-                p.z = -(rz + rad);
+            if (ipos.z > -(rz + r)) {
+                ipos.z = -(rz + r);
                 hit = 1;
             }
         }
@@ -485,48 +485,48 @@ static u32 sphereRectCk(cAtariInfo* info, Vec& p, f32 rad)
         corner.x = rx;
         corner.y = 0.0f;
         corner.z = rz;
-        p.y = 0.0f;
-        rr = rad * rad;
-        if (GetDistance(&corner, &p) < rr) {
-            PSVECSubtract(&p, &corner, &d);
+        ipos.y = 0.0f;
+        rr = r * r;
+        if (GetDistance(&corner, &ipos) < rr) {
+            PSVECSubtract(&ipos, &corner, &d);
 #line 788 "D:/Bio4/Prog/at_mod.cpp"
             VECNormalize(&d, &d);
-            PSVECScale(&d, &d, rad);
+            PSVECScale(&d, &d, r);
             hit = 1;
-            PSVECAdd(&corner, &d, &p);
+            PSVECAdd(&corner, &d, &ipos);
         } else {
             corner.x = -rx;
             corner.y = 0.0f;
             corner.z = rz;
-            if (GetDistance(&corner, &p) < rr) {
-                PSVECSubtract(&p, &corner, &d);
+            if (GetDistance(&corner, &ipos) < rr) {
+                PSVECSubtract(&ipos, &corner, &d);
 #line 797 "D:/Bio4/Prog/at_mod.cpp"
                 VECNormalize(&d, &d);
-                PSVECScale(&d, &d, rad);
+                PSVECScale(&d, &d, r);
                 hit = 1;
-                PSVECAdd(&corner, &d, &p);
+                PSVECAdd(&corner, &d, &ipos);
             } else {
                 corner.x = rx;
                 corner.y = 0.0f;
                 corner.z = -rz;
-                if (GetDistance(&corner, &p) < rr) {
-                    PSVECSubtract(&p, &corner, &d);
+                if (GetDistance(&corner, &ipos) < rr) {
+                    PSVECSubtract(&ipos, &corner, &d);
 #line 806 "D:/Bio4/Prog/at_mod.cpp"
                     VECNormalize(&d, &d);
-                    PSVECScale(&d, &d, rad);
+                    PSVECScale(&d, &d, r);
                     hit = 1;
-                    PSVECAdd(&corner, &d, &p);
+                    PSVECAdd(&corner, &d, &ipos);
                 } else {
                     corner.x = -rx;
                     corner.y = 0.0f;
                     corner.z = -rz;
-                    if (GetDistance(&corner, &p) < rr) {
-                        PSVECSubtract(&p, &corner, &d);
+                    if (GetDistance(&corner, &ipos) < rr) {
+                        PSVECSubtract(&ipos, &corner, &d);
 #line 815 "D:/Bio4/Prog/at_mod.cpp"
                         VECNormalize(&d, &d);
-                        PSVECScale(&d, &d, rad);
+                        PSVECScale(&d, &d, r);
                         hit = 1;
-                        PSVECAdd(&corner, &d, &p);
+                        PSVECAdd(&corner, &d, &ipos);
                     }
                 }
             }
@@ -599,7 +599,7 @@ static int atModIsZero(f32 x)
 
 // Line pos0 -> pos1 against every collidable character body (the player only with flag bit2):
 // nearest hit and normal; 1 when hit. The camera uses it to keep characters in view.
-BOOL EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
+BOOL EmHitCheck(Vec* ret_cross, Vec* ret_norm, Vec* pos0, Vec* pos1, u32 flag)
 {
     Vec h;
     Vec n;
@@ -608,8 +608,8 @@ BOOL EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
     int ret = 0;
     cEm* m;
 
-    if (hit != 0) {
-        *hit = *pos1;
+    if (ret_cross != 0) {
+        *ret_cross = *pos1;
     }
     for (m = EmMgr.getActiveWork(); m != 0; m = EmMgr.getNext(m)) {
         if (!(m->atari.m_flag & 0x200)) {
@@ -624,11 +624,11 @@ BOOL EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
         d = GetDistance3(pos0, &h);
         if (d < dist) {
             dist = d;
-            if (hit != 0) {
-                *hit = h;
+            if (ret_cross != 0) {
+                *ret_cross = h;
             }
-            if (nrm != 0) {
-                *nrm = n;
+            if (ret_norm != 0) {
+                *ret_norm = n;
             }
             ret = 1;
         }
@@ -637,7 +637,7 @@ BOOL EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
 }
 
 // Same against every live object (except id 2): nearest hit / normal.
-int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
+int ObjHitCheck(Vec* ret_cross, Vec* ret_norm, Vec* pos0, Vec* pos1, u32 flag)
 {
     Vec h;
     Vec n;
@@ -646,8 +646,8 @@ int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
     int ret = 0;
     cObj* o;
 
-    if (hit != 0) {
-        *hit = *pos1;
+    if (ret_cross != 0) {
+        *ret_cross = *pos1;
     }
     for (o = ObjMgr.getActiveWork(); o != 0; o = ObjMgr.getNext(o)) {
         if ((o->be_flag & 0x201) != 1) {
@@ -662,11 +662,11 @@ int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
         d = (pos0->x - h.x) * (pos0->x - h.x) + (pos0->y - h.y) * (pos0->y - h.y) + (pos0->z - h.z) * (pos0->z - h.z);
         if (d < dist) {
             dist = d;
-            if (hit != 0) {
-                *hit = h;
+            if (ret_cross != 0) {
+                *ret_cross = h;
             }
-            if (nrm != 0) {
-                *nrm = n;
+            if (ret_norm != 0) {
+                *ret_norm = n;
             }
             ret = 1;
         }
@@ -676,46 +676,46 @@ int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, u32 flag)
 
 // Line against one body: a box body (flag bit0 required) through emLineCubeCrossCk in its
 // parts / model matrix, a cylinder body (flag bit1) through ObaLineHitChk. 1 on a hit.
-int ComnHitCheck(Vec* hit, Vec* nrm, cModel* m, Vec* pos0, Vec* pos1, u32 flag)
+int ComnHitCheck(Vec* cross, Vec* norm, cModel* pMod, Vec* pos0, Vec* pos1, u32 flag)
 {
     Mtx mat;
     int r;
 
-    if (m->atari.m_flag & 2) {
+    if (pMod->atari.m_flag & 2) {
         if (!(flag & 1)) {
             return 0;
         }
-        if (m->atari.m_parts_no > 0) {
-            MTX_COPY_DO(m->getPartsPtr(m->atari.m_parts_no - 1)->mat, mat);
+        if (pMod->atari.m_parts_no > 0) {
+            MTX_COPY_DO(pMod->getPartsPtr(pMod->atari.m_parts_no - 1)->mat, mat);
         } else {
-            MTX_COPY_DO(m->mat, mat);
+            MTX_COPY_DO(pMod->mat, mat);
         }
-        r = emLineCubeCrossCk(pos0, pos1, mat, &m->atari.m_offset, hit, m->atari.m_radius, m->atari.m_height,
-                              m->atari.m_radius2);
+        r = emLineCubeCrossCk(pos0, pos1, mat, &pMod->atari.m_offset, cross, pMod->atari.m_radius, pMod->atari.m_height,
+                              pMod->atari.m_radius2);
         if (r != 0) {
             return 1;
         }
     } else if (flag & 2) {
-        r = ObaLineHitChk(m, &m->atari, *pos0, *pos1, *hit, *nrm);
+        r = ObaLineHitChk(pMod, &pMod->atari, *pos0, *pos1, *cross, *norm);
         if (r != 0) {
             return 1;
         }
     }
-    if (hit != 0) {
-        *hit = *pos1;
+    if (cross != 0) {
+        *cross = *pos1;
     }
     return 0;
 }
 
 // Debug draw of the character's body and every chained info (Debug_flg[2] 0x10000000).
-void DrawOba(cModel* m)
+void DrawOba(cModel* pMod)
 {
     cAtariInfo* info;
 
-    if (m->atari.m_flag & 0x200) {
-        info = &m->atari;
+    if (pMod->atari.m_flag & 0x200) {
+        info = &pMod->atari;
         do {
-            info->disp(m);
+            info->disp(pMod);
             info = info->m_pList;
         } while (info != 0);
     }

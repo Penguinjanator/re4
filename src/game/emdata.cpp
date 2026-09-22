@@ -21,11 +21,11 @@ void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 
 // Effect owner id of enemy module `id` (enemy 0x11..0x20 -> EM10 owner 0x10, 0x2B -> 0x23, ...);
 // -1 with an error for enemies without effect data.
-int GetEmEffId(int id)
+int GetEmEffId(int em_id)
 {
     int ret = -1;
 
-    switch (id) {
+    switch (em_id) {
     case 0x11 ... 0x20:
         ret = 0x10;
         break;
@@ -66,37 +66,37 @@ int GetEmEffId(int id)
         ret = 0x2F;
         break;
     default:
-        pLog->err(0, 0, "GetEmEffId(): ID[%x] invalid.", id);
+        pLog->err(0, 0, "GetEmEffId(): ID[%x] invalid.", em_id);
         break;
     }
     return ret;
 }
 
 // Releases (reference-counted) the effect data registered by enemy `id`'s module.
-void EspEmDataSwapPush(int id)
+void EspEmDataSwapPush(int em_id)
 {
-    int eff = GetEmEffId(id);
+    int eff = GetEmEffId(em_id);
 
     if (eff == -1) {
-        pLog->err(0, 0, "EspEmDataSwapPush(): ID[%x] invalid.", id);
+        pLog->err(0, 0, "EspEmDataSwapPush(): ID[%x] invalid.", em_id);
     } else {
         EspDataRelease(eff, 1, 0);
     }
 }
 
 // Re-registers enemy `id`'s effect data from the "EFF" entry of its module archive.
-void EspEmDataSwapPop(int id)
+void EspEmDataSwapPop(int em_id)
 {
-    int eff = GetEmEffId(id);
+    int eff = GetEmEffId(em_id);
     void* data;
 
     if (eff == -1) {
-        pLog->err(0, 0, "EspEmDataSwapPop(): ID[%x] invalid.", id);
+        pLog->err(0, 0, "EspEmDataSwapPop(): ID[%x] invalid.", em_id);
         return;
     }
-    data = GetDataExt(SearchEmModule(id)->pArc, "EFF", 0);
+    data = GetDataExt(SearchEmModule(em_id)->pArc, "EFF", 0);
     if (data == 0) {
-        pLog->err(0, 0, "EspEmDataSwapPop(): ID[%x] '.EFF' not found.", id);
+        pLog->err(0, 0, "EspEmDataSwapPop(): ID[%x] '.EFF' not found.", em_id);
         return;
     }
     EspDataLoad((u32) data, eff, 0);

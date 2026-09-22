@@ -399,13 +399,13 @@ void render()
 
 // View parameters for item `id`: the merchant ext table first when ext != 0, then the main table;
 // 0 when the item has no entry.
-ExamInfo* examInfo(int id, int ext)
+ExamInfo* examInfo(int id, int ext_flag)
 {
     ExamInfo* p;
     int i;
     int n;
 
-    if (ext) {
+    if (ext_flag) {
         n = 2;
         p = exam_info_ext;
         for (i = 0; i < n; i++, p++) {
@@ -571,7 +571,7 @@ void ItemExamine::idSet()
 // its root parts, recentres the root on the model bound centre, applies the exam_info rotation
 // (degrees), builds the id overlay, sets the treasure camera (mode 2), creates the three lights of
 // the exam light set (pArc ofs_58..68 by ExamInfo::light) and starts the item's est (owner 0xD1).
-void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
+void ItemExamine::init(u16 id, cModel* p_model, u8 scrn_flag)
 {
     static f32 c0 = -0.5f;
     ModelDataHead* h;
@@ -581,10 +581,10 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     int i;
     u16 no;
 
-    m_pModel = model_;
-    m_item_id = id_;
-    m_be_flag_bak = model_->be_flag;
-    m_pos_bak = model_->pos;
+    m_pModel = p_model;
+    m_item_id = id;
+    m_be_flag_bak = p_model->be_flag;
+    m_pos_bak = p_model->pos;
     m_ang_bak = m_pModel->ang;
     m_ot_type_bak = m_pModel->ot_type;
     m_pModel->be_flag |= 0x4000;
@@ -597,7 +597,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     m_pModel->pParts->pos.z = h->center.z;
     m_pList_ang_bak = m_pModel->pParts->ang;
     m_pModel->pParts->ang.x = m_pModel->pParts->ang.y = m_pModel->pParts->ang.z = 0.0f;
-    m_scrn_flag = mode_;
+    m_scrn_flag = scrn_flag;
     idSet();
     switch (m_scrn_flag) {
     case 1:

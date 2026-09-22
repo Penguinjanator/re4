@@ -42,9 +42,9 @@ public:
     void setEatMain();
     void clrEat();
     void setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 rad);
-    void setEff(u8 v);
+    void setEff(u8 eff_id);
     u8 getEff();
-    void setEtc(u8 v);
+    void setEtc(u8 etc_no);
     u8 getEtc();
 };
 

@@ -6,27 +6,27 @@
 #include <stdio.h>
 
 // Finds "<tag" in `src`; *out = its position. 0 when absent.
-int XmlSimple::GetXmlStart(char** out, const char* src, const char* tag)
+int XmlSimple::GetXmlStart(char** pOut, const char* pIn, const char* pName)
 {
     char buf[256];
 
     strcpy(buf, "<");
-    strcat(buf, tag);
-    *out = strstr(src, buf);
-    if (*out == NULL) {
+    strcat(buf, pName);
+    *pOut = strstr(pIn, buf);
+    if (*pOut == NULL) {
         return 0;
     }
     return 1;
 }
 
 // The next "<tag" after position `src`.
-int XmlSimple::GetXmlNext(char** out, const char* src, const char* tag)
+int XmlSimple::GetXmlNext(char** pOut, const char* pIn, const char* pName)
 {
-    return GetXmlStart(out, src + 1, tag);
+    return GetXmlStart(pOut, pIn + 1, pName);
 }
 
 // Copies the text between "<tag>" and "</tag>" into `out`. 0 when either is missing.
-int XmlSimple::GetXmlElem(char* out, const char* src, const char* tag)
+int XmlSimple::GetXmlElem(char* pOut, const char* pIn, const char* pName)
 {
     char start[256];
     char end[256];
@@ -35,39 +35,39 @@ int XmlSimple::GetXmlElem(char* out, const char* src, const char* tag)
     int len;
 
     strcpy(start, "<");
-    strcat(start, tag);
+    strcat(start, pName);
     strcat(start, ">");
-    p = strstr(src, start);
+    p = strstr(pIn, start);
     if (p == NULL) {
         return 0;
     }
     p += strlen(start);
     strcpy(end, "</");
-    strcat(end, tag);
+    strcat(end, pName);
     strcat(end, ">");
-    q = strstr(src, end);
+    q = strstr(pIn, end);
     if (q == NULL) {
         return 0;
     }
     len = q - p;
-    strncpy(out, p, len);
-    out[len] = '\0';
+    strncpy(pOut, p, len);
+    pOut[len] = '\0';
     return 1;
 }
 
 // Writes the document opening tag; *size grows by its length.
-int XmlSimple::SetXmlStart(int* size, char* buf)
+int XmlSimple::SetXmlStart(int* pOut, char* pIn)
 {
-    strcpy(buf, "<XSDSchemaSof xmlns=\"http://tempuri.org/XSDSchemaSof.xsd\">\n");
-    *size += strlen(buf);
+    strcpy(pIn, "<XSDSchemaSof xmlns=\"http://tempuri.org/XSDSchemaSof.xsd\">\n");
+    *pOut += strlen(pIn);
     return 1;
 }
 
 // Writes the document closing tag.
-int XmlSimple::SetXmlEnd(int* size, char* buf)
+int XmlSimple::SetXmlEnd(int* pOut, char* pIn)
 {
-    strcpy(buf, "</XSDSchemaSof>\n");
-    *size += strlen(buf);
+    strcpy(pIn, "</XSDSchemaSof>\n");
+    *pOut += strlen(pIn);
     return 1;
 }
 
@@ -88,12 +88,12 @@ int XmlSimple::SetXmlElemEnd(int* size, char* buf)
 }
 
 // Writes "<name>value</name>".
-int XmlSimple::SetXmlElem(int* size, char* buf, const char* name, const char* value)
+int XmlSimple::SetXmlElem(int* pOut, char* pIn, const char* pName, const char* pText)
 {
     char tmp[256];
 
-    sprintf(tmp, "\t\t<%s>%s</%s>\n", name, value, name);
-    strcpy(buf, tmp);
-    *size += strlen(buf);
+    sprintf(tmp, "\t\t<%s>%s</%s>\n", pName, pText, pName);
+    strcpy(pIn, tmp);
+    *pOut += strlen(pIn);
     return 1;
 }

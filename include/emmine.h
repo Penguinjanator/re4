@@ -38,7 +38,7 @@ struct EmMineWork {
 class cEmMine : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMMINE_WK)
-    virtual void beginEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
     virtual void move();
 
     void setParent(cEm* parent, int partsNo);
@@ -51,21 +51,21 @@ public:
 cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type);
 
 extern "C" {
-void emMineDmCk(cEmMine* em);
-void emMine_R0_Init(cEmMine* em);
-void emMine_R0_Move(cEmMine* em);
-void emMine_R1_Shot(cEmMine* em);
-void emMine_R1_ShotArrow(cEmMine* em);
-void emMineSearchEm(cEmMine* em, int mode);
-void emMineHomingEm(cEmMine* em);
-void emMine_R1_Set(cEmMine* em);
-void emMine_R1_SetWater(cEmMine* em);
-void emMine_R1_Parent(cEmMine* em);
-void emMine_R1_BombWait(cEmMine* em);
-void emMine_R1_BombWait2(cEmMine* em);
-void emMine_R1_Fall(cEmMine* em);
-void emMine_R1_Lost(cEmMine* em);
-int emMineHitCk(cEmMine* em);
+void emMineDmCk(cEmMine* pEm);
+void emMine_R0_Init(cEmMine* pEm);
+void emMine_R0_Move(cEmMine* pEm);
+void emMine_R1_Shot(cEmMine* pEm);
+void emMine_R1_ShotArrow(cEmMine* pEm);
+void emMineSearchEm(cEmMine* pEm, int mode);
+void emMineHomingEm(cEmMine* pEm);
+void emMine_R1_Set(cEmMine* pEm);
+void emMine_R1_SetWater(cEmMine* pEm);
+void emMine_R1_Parent(cEmMine* pEm);
+void emMine_R1_BombWait(cEmMine* pEm);
+void emMine_R1_BombWait2(cEmMine* pEm);
+void emMine_R1_Fall(cEmMine* pEm);
+void emMine_R1_Lost(cEmMine* pEm);
+int emMineHitCk(cEmMine* pEm);
 }
 
 #endif

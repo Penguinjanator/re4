@@ -27,10 +27,10 @@ void cEsp44::move()
 
 // Plays room SE Work8[0] at m_Pos (skipped while the generator loop pre-runs so the sound is not
 // replayed) and returns 0 so the sprite is released immediately.
-int cEsp44::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp44::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     if (EspGenGetMoveLoop() == 0) {
-        EffCallRoomSeFunc((s8)gen->Work8[0], &m_Pos);
+        EffCallRoomSeFunc((s8)pSeq->Work8[0], &m_Pos);
     }
     return 0;
 }

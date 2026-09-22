@@ -421,10 +421,10 @@ void systemWorkInit()
 }
 
 // Frames per game update in vsyncs (1 = 60 Hz, 2 = 30 Hz).
-void SetSystemVcnt(int vcnt)
+void SetSystemVcnt(int v_cnt)
 {
-    if (vcnt > 0) {
-        system_vcnt = vcnt;
+    if (v_cnt > 0) {
+        system_vcnt = v_cnt;
     } else {
         system_vcnt = 1;
     }

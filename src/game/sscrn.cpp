@@ -63,9 +63,9 @@ void SscrnDataSave(u32* dst)
 }
 
 // Reads the sub screen's save word.
-void SscrnDataLoad(u32* src)
+void SscrnDataLoad(u32* pData)
 {
-    SubScreenWk.save = *src;
+    SubScreenWk.save = *pData;
 }
 
 // Game start: loads the sub screen REL ("rel/Sscrn.rel"), the common data ("SS/<lang>/ss_cmmn.dat")
@@ -100,11 +100,11 @@ void SubScreenAramRead()
 }
 
 // Writes the language directory ("jpn" / "eng" / "ger" / "fra" / "esp" / "ita") into wk->path.
-void sscrnSetLanguage(SubScreenWork* wk, int lang)
+void sscrnSetLanguage(SubScreenWork* pSscrn, int language)
 {
-    char* p = strchr(wk->filename, '/') + 1;
+    char* p = strchr(pSscrn->filename, '/') + 1;
 
-    switch (lang) {
+    switch (language) {
     case 0:
         strncpy(p, "jpn", 3);
         break;
@@ -133,9 +133,9 @@ void sscrnSetLanguage(SubScreenWork* wk, int lang)
 }
 
 // Replaces the file name part of wk->path.
-void sscrnDataFilename(SubScreenWork* wk, const char* name)
+void sscrnDataFilename(SubScreenWork* pSscrn, const char* name)
 {
-    strcpy(strrchr(wk->filename, '/') + 1, name);
+    strcpy(strrchr(pSscrn->filename, '/') + 1, name);
 }
 
 // Game start: language path, ARAM data, attache case size / map mode reset, the radio (ope) state
@@ -190,9 +190,9 @@ void SubScreenRoomInit()
 }
 
 // Blocks the sub screen from opening for `frames` frames (events, item pick-ups).
-void SubScreenWait(int frames)
+void SubScreenWait(int frame)
 {
-    SubScreenWk.wait = frames;
+    SubScreenWk.wait = frame;
 }
 
 // Per frame (game loop): when the player (and Ashley) live, the screen is armed and the player
@@ -249,9 +249,9 @@ int sscrnStageNo()
 }
 
 // Map room number: the church-interior variants 0x111.. map onto their base rooms (-0x10).
-u16 sscrnRoomNo(u16 room)
+u16 sscrnRoomNo(u16 room_no)
 {
-    switch (room) {
+    switch (room_no) {
     case 0x111:
     case 0x112:
     case 0x113:
@@ -259,9 +259,9 @@ u16 sscrnRoomNo(u16 room)
     case 0x119:
     case 0x11A:
     case 0x11B:
-        return room - 0x10;
+        return room_no - 0x10;
     }
-    return room;
+    return room_no;
 }
 
 // Requests the sub screen of `type` (SS_OPEN_*: inventory, map, terminal / radio, shop...): flags
@@ -557,16 +557,16 @@ void SubScreenExec()
 }
 
 // Unlinks the Sscrn REL, swaps the game memory back and restarts the room REL.
-void SubScreenExitCore(SubScreenWork* wk)
+void SubScreenExitCore(SubScreenWork* pSscrn)
 {
     if (StaFlagChk(pG, STA_SUB_SCRN)) {
         MapMgr.roomInit();
-        DLL_Unlink(wk->p_module);
-        wk->relAddr = 0;
+        DLL_Unlink(pSscrn->p_module);
+        pSscrn->relAddr = 0;
         MemDestroyHeap(12);
         MemSignalHeap(4);
         MemSetCurrentHeap(4);
-        MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
+        MemorySwap(pSscrn->pBuf, SS_ARAM, SS_ARAM_SIZE);
         DC.m_data_ctrl_flag = 1;
         RoomData.restartRelData();
         cModel::mm = &ModInfoMgr;
@@ -758,12 +758,12 @@ int OpeGetMdtNo()
 }
 
 // Selects radio message set `no` and marks it heard (ope_mdt_bits).
-void OpeSetMdtNo(u32 no)
+void OpeSetMdtNo(u32 mdtNo)
 {
     u32* tbl = pG->ope_mdt_bits;
 
-    BitOn(tbl[no >> 5], 0x80000000 >> (no & 0x1F));
-    pG->ope_mdt_no = no;
+    BitOn(tbl[mdtNo >> 5], 0x80000000 >> (mdtNo & 0x1F));
+    pG->ope_mdt_no = mdtNo;
 }
 
 // Applies the pending radio message set (SubScreenWk.opeMdtNo). Returns it.
@@ -776,9 +776,9 @@ int OpeMdtSetInit()
 }
 
 // Radio caller type shown on the screen (Hunnigan / Saddler...).
-void OpeOwTypeSet(u8 type)
+void OpeOwTypeSet(u8 owType)
 {
-    pG->ope_ow_type = type;
+    pG->ope_ow_type = owType;
     pG->ope_x82FC = 0;
 }
 

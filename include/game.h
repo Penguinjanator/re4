@@ -30,11 +30,11 @@ public:
     u8 pad_0;
 
     SAVE_DATA_HEAD* alloc();
-    bool load(SAVE_DATA_HEAD* data);
+    bool load(SAVE_DATA_HEAD* head);
     bool save(SAVE_DATA_HEAD* data, int mode);
-    void checkAddr(SAVE_DATA_HEAD* data);
-    void calcOffset(SAVE_DATA_HEAD* data, u32 base);
-    void calcAddr(SAVE_DATA_HEAD* data);
+    void checkAddr(SAVE_DATA_HEAD* head);
+    void calcOffset(SAVE_DATA_HEAD* head, u32 headaddr);
+    void calcAddr(SAVE_DATA_HEAD* head);
 };
 
 extern SAVE_DATA_HEAD* pSaveData;  // .sbss order: pSaveData before GameSave
@@ -51,8 +51,8 @@ void GameTask();
 void primInit();
 void primFree();
 void GameLoad();
-void GameContinue(int mode);
-void GamePointInit(u32 mode);
+void GameContinue(int option_flag);
+void GamePointInit(u32 type);
 enum LVADD {
     LVADD_UPDATE = 0,
     LVADD_DIE = 1,
@@ -74,10 +74,10 @@ enum LVADD {
 
 void GameAddPoint(int type);
 void GamePointBossReset();
-void PrimDispWorkNum(int x, int y, int col);
+void PrimDispWorkNum(int x, int y, int page);
 void DiedemoExec(int time, int type);
 void gameDiedemoCheck();
-void gameDiedemo(DiedemoWork* w);
+void gameDiedemo(DiedemoWork* pDw);
 }
 void GameStopModeEnd();
 

@@ -24,21 +24,21 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMBAR_WK)
     virtual void move();
 
-    void setEff(u8 no);
+    void setEff(u8 eff_id);
     void setMotion(void* mot);
 };
 
 extern "C" {
 cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo);
 void emBarDmCk(cEmBar* em);
-void emBarSetBreak(cEmBar* em, u32 type);
-void emBar_R0_Init(cEmBar* em);
-void emBar_R0_Move(cEmBar* em);
-void emBar_R1_Set(cEmBar* em);
-void emBar_R1_Break(cEmBar* em);
-void emBarActEscape(cEmBar* em);
-void emBarYarareInit(cEmBar* em);
-int emBarHitCk(cEmBar* em);
+void emBarSetBreak(cEmBar* pEm, u32 type);
+void emBar_R0_Init(cEmBar* pEm);
+void emBar_R0_Move(cEmBar* pEm);
+void emBar_R1_Set(cEmBar* pEm);
+void emBar_R1_Break(cEmBar* pEm);
+void emBarActEscape(cEmBar* ptr);
+void emBarYarareInit(cEmBar* pEm);
+int emBarHitCk(cEmBar* pEm);
 }
 
 #endif

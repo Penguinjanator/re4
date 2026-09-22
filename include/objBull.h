@@ -9,8 +9,8 @@
 // rooms only call the out-of-line members, so no vtable is emitted here).
 class cObjBull : public cObj {
 public:
-    void setMotion(void** tbl);
-    int ckBullRide(Vec* pos, u8* partsNo, Vec* out);
+    void setMotion(void** pMot);
+    int ckBullRide(Vec* pPos, u8* pParts_no, Vec* pOffset);
     int ckGoal();
     void setRide();
     int ckBreak1st();

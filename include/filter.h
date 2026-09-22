@@ -27,7 +27,7 @@ void Filter04Trans();
 void Filter05Init();
 void Filter05RoomInit();
 void Filter05Trans();
-void Filter05SetParam(int a, int b, int c, int d, int e, f32 x, f32 y, f32 z, int f, int g);
+void Filter05SetParam(int a, int b, int c, int d, int e, f32 d_alpha, f32 start_a, f32 size, int blend, int tex_id);
 void Filter06Init();
 void Filter06RoomInit();
 void Filter06Trans();
@@ -49,7 +49,7 @@ void Filter0bTrans();
 
 // filter00.cpp blur parameters (cLightMgr::setBlur)
 void Filter00SetAlpha(u8 alpha);
-void Filter00SetPower(s8 power);
+void Filter00SetPower(s8 pow);
 void Filter00SetType(u32 type);
 void Filter00SetContrast(u8 r, u8 g, u8 bias);
 
@@ -57,7 +57,7 @@ extern "C" {
 // filter00.cpp: additive radial blur request (highest priority wins)
 void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u32 num, f32 cx, f32 cy, f32 pow);
 // filter03.cpp
-void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag);
+void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int bUse_AlphaDraw2);
 // filter06.cpp
 void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, f32 alpha, Vec* spd, Vec* spdRand, f32 scale,
                       int alphaMin);
@@ -66,7 +66,7 @@ void Filter01SetParam(int mode, int z, u8 type, f32 level);
 void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz);
 // filter09.cpp: EFB capture of the pause screen and the blur-use switch (game.cpp)
 void Filter09GetEFB_801D19E0();
-void Filter09SetbUse(int use, int spred);
+void Filter09SetbUse(int use, int bSpred);
 // filter0b.cpp: capture buffer of the r333 screen effect
 void Filter0bAllocBuf();
 void Filter0bFreeBuf();

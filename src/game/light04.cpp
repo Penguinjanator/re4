@@ -3,6 +3,6 @@
 #include "light.h"
 
 // LightFuncTbl[4]: nothing to do.
-void Light04_Move(cLight* l)
+void Light04_Move(cLight* pLi)
 {
 }

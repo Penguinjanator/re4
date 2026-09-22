@@ -8,17 +8,17 @@ struct Light10Work {
 // LightFuncTbl[0x10]: waits `wait` frames, then multiplies Intensity by 0.3 each frame and deletes
 // the light below 0.1.
 // Fade-out light: waits, then decays power by 30% a frame and dies below 0.1.
-void Light10_Move(cLight* l)
+void Light10_Move(cLight* pLight)
 {
-    Light10Work* w = (Light10Work*)l->work;
+    Light10Work* w = (Light10Work*)pLight->work;
 
     if (w->wait != 0) {
         w->wait--;
         return;
     }
-    l->Intensity *= 0.3f;
-    if (l->Intensity < 0.1f) {
-        l->Intensity = 0.0f;
-        delete l;
+    pLight->Intensity *= 0.3f;
+    if (pLight->Intensity < 0.1f) {
+        pLight->Intensity = 0.0f;
+        delete pLight;
     }
 }

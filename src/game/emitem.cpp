@@ -147,45 +147,45 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
 // Damage check per frame: a damage volume hit (DmgMgr types 1/4/5/7) or a registered weapon hit
 // (not knife / grenades) knocks type 0 down (Rno1 3 Drop, spark est 0x57 at the hit) or breaks
 // the medal (Rno1 4 Break, its Eff_id est and SE 0x2E). Status 3 marks a weapon hit this frame.
-void emItemDmCk(cEmItem* em)
+void emItemDmCk(cEmItem* pEm)
 {
-    EmItemWork* w = EMITEM_WK(em);
+    EmItemWork* w = EMITEM_WK(pEm);
     u8 wep;
     Vec hit;
     Vec dir;
 
-    if (em->hp > 0) {
-        switch (DmgMgr.hitCheck(&em->pos, &hit)) {
+    if (pEm->hp > 0) {
+        switch (DmgMgr.hitCheck(&pEm->pos, &hit)) {
         case DMG_TYPE_FIRE:
         case DMG_TYPE_FLAME:
         case DMG_TYPE_LAMP:
         case DMG_TYPE_ENV_FIRE:
-            switch (em->type) {
+            switch (pEm->type) {
             case 0:
             default:
-                em->r_no_0 = 1;
-                em->r_no_1 = 3;
-                em->hp = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 3;
+                pEm->hp = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
                 break;
             case 1:
-                em->r_no_0 = 1;
-                em->r_no_1 = 4;
-                em->hp = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
-                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, em, 0);
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 4;
+                pEm->hp = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, pEm, 0);
                 break;
             }
             return;
         }
     }
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmg.m_Wep;
-    em->dmg.m_Flag = 0;
+    wep = pEm->dmg.m_Wep;
+    pEm->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -202,32 +202,32 @@ void emItemDmCk(cEmItem* em)
         return;
     }
     w->Status = 3;
-    switch (em->type) {
+    switch (pEm->type) {
     case 0:
     default:
-        em->hp = 0;
-        if (EmGetDmPos(em, &hit, &dir) == 0) {
+        pEm->hp = 0;
+        if (EmGetDmPos(pEm, &hit, &dir) == 0) {
             dir.x = 0.0f;
             dir.y = 0.0f;
             dir.z = 0.0f;
         }
-        EstSet(0, -1, &em->getPartsPtr(0)->world, &dir, EFF_CORE, 0x57, 0, ESP_CORE_KIND_NONE, 0, 0);
-        em->r_no_0 = 1;
-        em->r_no_1 = 3;
-        em->r_no_2 = 0;
-        em->r_no_3 = 0;
+        EstSet(0, -1, &pEm->getPartsPtr(0)->world, &dir, EFF_CORE, 0x57, 0, ESP_CORE_KIND_NONE, 0, 0);
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 3;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 0;
         break;
     case 1:
-        em->r_no_0 = 1;
-        em->r_no_1 = 4;
-        em->hp = 0;
-        em->r_no_2 = 0;
-        em->r_no_3 = 0;
-        EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, em, 0);
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 4;
+        pEm->hp = 0;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 0;
+        EstSet(pEm, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, pEm, 0);
         break;
     }
-    if (em->type == 1) {
-        SndCall(6, 0x2E, &em->pos, 0, 0, em);
+    if (pEm->type == 1) {
+        SndCall(6, 0x2E, &pEm->pos, 0, 0, pEm);
     }
 }
 
@@ -240,68 +240,68 @@ void cEmItem::move()
 }
 
 // Rno0 == 0: resets to the Set state (medals: MedalSet).
-void emItem_R0_Init(cEmItem* em)
+void emItem_R0_Init(cEmItem* pEm)
 {
-    if (em->type != 1) {
-        em->r_no_0 = 1;
-        em->r_no_1 = 0;
-        em->r_no_2 = 0;
-        em->r_no_3 = 0;
+    if (pEm->type != 1) {
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 0;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 0;
     } else {
-        em->r_no_0 = 1;
-        em->r_no_1 = 1;
-        em->r_no_2 = 0;
-        em->r_no_3 = 0;
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 1;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 0;
     }
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 MedalSet, 2 Parent, 3 Drop, 4 Break).
-void emItem_R0_Move(cEmItem* em)
+void emItem_R0_Move(cEmItem* pEm)
 {
-    EmItem_R1_move_tbl[em->r_no_1](em);
+    EmItem_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: static object; builds the matrices once, then stays a hit-box-only work.
-void emItem_R1_Set(cEmItem* em)
+void emItem_R1_Set(cEmItem* pEm)
 {
-    if (em->r_no_2 == 0) {
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
-        em->partsWorldCalc();
-        em->r_no_2++;
+    if (pEm->r_no_2 == 0) {
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
+    pEm->be_flag |= 0x4000;
 }
 
 // Rno1 == 1: the medal in place: rebuilds the matrices every frame and applies the swing.
-void emItem_R1_MedalSet(cEmItem* em)
+void emItem_R1_MedalSet(cEmItem* pEm)
 {
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
-    em->partsMatCalc();
-    em->partsWorldCalc();
-    emItemRotMove(em);
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
+    pEm->partsMatCalc();
+    pEm->partsWorldCalc();
+    emItemRotMove(pEm);
 }
 
 // Rno1 == 2: follows parts `partsNo` of pParent (setParent), re-normalising the rotation unless
 // noNormalize, plays its own motion when it has one, then applies the swing.
-void emItem_R1_Parent(cEmItem* em)
+void emItem_R1_Parent(cEmItem* pEm)
 {
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
-    EmItemWork* w = EMITEM_WK(em);
+    EmItemWork* w = EMITEM_WK(pEm);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, pEm->mat, m);
         if (w->noNormalize == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -337,101 +337,101 @@ void emItem_R1_Parent(cEmItem* em)
             m[1][2] = v2.y;
             m[2][2] = v2.z;
         }
-        PSMTXCopy(m, em->mat);
+        PSMTXCopy(m, pEm->mat);
     }
-    if (em->Motion.pMot) {
-        em->Motion.Mot_flag |= 0x40000000;
-        MotionMove(em, 0);
+    if (pEm->Motion.pMot) {
+        pEm->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pEm, 0);
     } else {
-        em->partsMatCalc();
+        pEm->partsMatCalc();
     }
-    em->partsWorldCalc();
-    emItemRotMove(em);
+    pEm->partsWorldCalc();
+    emItemRotMove(pEm);
 }
 
 // Rno1 == 3: the shot object falls: Rno2 0 takes the world position from the matrix, 1 falls with
 // gravity 10/frame until the effect collision floor (Status 1 on landing), 2 rests as a hit-box-
 // only work.
-void emItem_R1_Drop(cEmItem* em)
+void emItem_R1_Drop(cEmItem* pEm)
 {
-    EmItemWork* w = EMITEM_WK(em);
+    EmItemWork* w = EMITEM_WK(pEm);
     f32 floor;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        em->pos.x = em->mat[0][3];
-        em->pos.y = em->mat[1][3];
-        em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->ang);
+        pEm->pos.x = pEm->mat[0][3];
+        pEm->pos.y = pEm->mat[1][3];
+        pEm->pos.z = pEm->mat[2][3];
+        Matrix2AxisAngle(pEm->mat, &pEm->ang);
         w->spd.x = 0.0f;
         w->spd.y = -10.0f;
         w->spd.z = 0.0f;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
         w->spd.y -= 10.0f;
-        floor = EatMgr.getFloor(&em->pos, 0, 0.0f, 100000.0f, 0);
-        PSVECAdd(&em->pos, &w->spd, &em->pos);
-        if (em->pos.y < floor) {
-            em->pos.y = floor;
+        floor = EatMgr.getFloor(&pEm->pos, 0, 0.0f, 100000.0f, 0);
+        PSVECAdd(&pEm->pos, &w->spd, &pEm->pos);
+        if (pEm->pos.y < floor) {
+            pEm->pos.y = floor;
             w->Status = 1;
-            em->r_no_2++;
+            pEm->r_no_2++;
         }
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
-        em->partsWorldCalc();
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
         break;
     case 2:
-        em->be_flag |= 0x4000;
+        pEm->be_flag |= 0x4000;
         break;
     }
 }
 
 // Rno1 == 4: the medal is destroyed: hides the model, hp 0, Status 2, sets bit0 of its etc flag so
 // it stays collected; then hit-box-only.
-void emItem_R1_Break(cEmItem* em)
+void emItem_R1_Break(cEmItem* pEm)
 {
-    EmItemWork* w = EMITEM_WK(em);
+    EmItemWork* w = EMITEM_WK(pEm);
     u16* flg;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         w->Status = 2;
-        em->hp = 0;
-        em->be_flag &= ~2;
+        pEm->hp = 0;
+        pEm->be_flag &= ~2;
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        em->be_flag |= 0x4000;
+        pEm->be_flag |= 0x4000;
         break;
     }
 }
 
 // Hit box by type: a cube around the object's centre (type 0) or, for the medal, a cylinder
 // placed 1000 below (type 1).
-void emItemYarareInit(cEmItem* em)
+void emItemYarareInit(cEmItem* pEm)
 {
-    EmItemWork* w = EMITEM_WK(em);
+    EmItemWork* w = EMITEM_WK(pEm);
 
-    switch (em->type) {
+    switch (pEm->type) {
     case 0:
     default:
-        YarareInitCube((cEmHit*) em, 0.0f, -(w->size.y * 0.5f), 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, -(w->size.y * 0.5f), 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInitCube((cEmHit*) em, 0.0f, -1000.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 1, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, -1000.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 1, YAT_FLAG_ON);
         break;
     }
 }
 
 // Est id spawned when the medal breaks.
-void cEmItem::setEff(u8 eff)
+void cEmItem::setEff(u8 eff_id)
 {
-    EMITEM_WK(this)->Eff_id = eff;
+    EMITEM_WK(this)->Eff_id = eff_id;
 }
 
 // Frame status: 1 landed, 2 broken, 3 hit by a weapon.
@@ -464,15 +464,15 @@ void cEmItem::setRotType(u8 type)
 
 // Applies the swing to parts 0: mode 1 rotates by sin(rotAng) * rotAmp per axis and advances
 // rotAng by rotSpd, mode 2 sets the parts rotation from em->ang.
-void emItemRotMove(cEmItem* em)
+void emItemRotMove(cEmItem* pEm)
 {
-    EmItemWork* w = EMITEM_WK(em);
+    EmItemWork* w = EMITEM_WK(pEm);
     Mtx tmp;
     cModel* p;
 
     switch (w->Rot_type) {
     case 1:
-        p = em->getPartsPtr(0);
+        p = pEm->getPartsPtr(0);
         PSMTXRotRad(tmp, 'x', SINF(w->rotAng.x) * w->rotAmp.x);
         PSMTXConcat(tmp, p->mat, p->mat);
         TransMatrix(p->mat, &p->world);
@@ -490,8 +490,8 @@ void emItemRotMove(cEmItem* em)
         w->rotAng.z = LIMIT_ANGLE(w->rotAng.z);
         break;
     case 2:
-        p = em->getPartsPtr(0);
-        RotMatrix(p->mat, &em->ang);
+        p = pEm->getPartsPtr(0);
+        RotMatrix(p->mat, &pEm->ang);
         TransMatrix(p->mat, &p->world);
         break;
     }

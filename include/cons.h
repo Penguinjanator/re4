@@ -19,6 +19,6 @@ enum CONS_ROOM_INDEX {
     CONS_R_NEAT = 11
 };
 
-u32 ConsGetRoomValue(u32 no);
+u32 ConsGetRoomValue(u32 id);
 
 #endif

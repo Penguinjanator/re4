@@ -272,7 +272,7 @@ void knife_r2_fire(cPlayer* pl)
 // Knife hit: the 0x10 (knife) line from the chest (parts 2) to the blade tip (parts 9, 750 units;
 // Krauser's arm blade 1200), swept from last frame's tip in 5 steps unless flag bit3 (first frame)
 // and repeated 200 above / 100 below; flag bit2 = weak frames.
-void hitCheck(cPlayer* pl, int no, u32 flag)
+void hitCheck(cPlayer* pl, int i, u32 flag)
 {
     static Vec ohpos;
     Vec p0;
@@ -485,11 +485,11 @@ void knife_r3_down10(cPlayer* pl)
 
 // Display type 1 of the held gun (the second object pObj2 for the launcher / grenades / eggs): off
 // while the knife is out; nothing for the bow (0xD).
-void setWepTrans(cPlayer* pl, int on)
+void setWepTrans(cPlayer* pl, int onoff)
 {
     switch (pG->weapon_no) {
     default:
-        pl->Wep->m_pWep->setDisp(1, on);
+        pl->Wep->m_pWep->setDisp(1, onoff);
         break;
     case 0x13:
     case 0x16:
@@ -497,7 +497,7 @@ void setWepTrans(cPlayer* pl, int on)
     case 0x19:
     case 0x1F:
     case 0x20:
-        pl->Wep->m_pWepHand->setDisp(1, on);
+        pl->Wep->m_pWepHand->setDisp(1, onoff);
         break;
     case 0xD:
         break;

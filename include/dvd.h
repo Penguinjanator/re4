@@ -128,7 +128,7 @@ public:
     void ErrMemFree();
     int fileOpen();
     int fileGetLength();
-    int fileReadAsync(void* buf, u32 size, u32 ofs);
+    int fileReadAsync(void* addr, u32 size, u32 offset);
     int fileClose();
 };
 
@@ -153,11 +153,11 @@ public:
     ARQRequest ArqReq;      // 0x08
     AramReq AramQueue[16];   // 0x28
 
-    int DmaTransReq(int type, u32 src, u32 dst, u32 len, int wait);
-    AramReq* pullAramQueue(int* no);
-    void DmaTrans(AramReq* req, int wait);
-    int TransCheck(int no);
-    int DmaCancel(int no);
+    int DmaTransReq(int type, u32 src, u32 dst, u32 len, int mode);
+    AramReq* pullAramQueue(int* id);
+    void DmaTrans(AramReq* req, int mode);
+    int TransCheck(int id);
+    int DmaCancel(int id);
     void DmaCancelAll();
 };
 
@@ -177,25 +177,25 @@ public:
     void Init();
     void SizeTableRead();
     void ReadProc();
-    void readProcMain(cDvdQueue* q);
-    void ReadNblk2Blk(int no);
+    void readProcMain(cDvdQueue* pQueue);
+    void ReadNblk2Blk(int id);
     void FileTblExistCheck();
     int FileExistCheck(const char* name, u32* pLength);
     int ReadReq();
-    void blockRead(cDvdQueue* q);
+    void blockRead(cDvdQueue* pQueue);
     void Watcher();
-    int ReadCancel(int no, int mode);
+    int ReadCancel(int id, int mode);
     void ReadCancelAll();
     cDvdQueue* pullReadQueue();
     // Polls request `req`. Returns 1 when done and then stores the result word, the size and
     // the destination address through the non-NULL pointers; < 0 on failure.
-    int ReadCheck(int req, int* result, int* size, void** addr);
+    int ReadCheck(int id, int* mram_size, int* aram_size, void** addr);
     // Same poll, filling the caller's DvdReadInfo (read.cpp).
-    int ReadCheck(int req, DvdReadInfo* info);
-    int readCheckMain(int req, DvdReadInfo* info);
-    cDvdQueue* getQueuePtr(u8 no);
-    int ErrCheck(int disc, int flag);
-    int DiscChange(int disc);
+    int ReadCheck(int id, DvdReadInfo* pInfo);
+    int readCheckMain(int id, DvdReadInfo* pInfo);
+    cDvdQueue* getQueuePtr(u8 id);
+    int ErrCheck(int disc_new, int proc);
+    int DiscChange(int disc_no);
     int GetDiscNo();
     void queueStatusDisp();
     void DiscReadInfo();
@@ -230,8 +230,8 @@ enum DVD_MES_TBL {
     DVD_MES_MAX = 7
 };
 void MesSysMessage(int msg, int disc);
-void RomFontPrint(int x, int y, const char* str);
-void RomFontMessage(u32 msg, int disc);
+void RomFontPrint(int x, int y, const char* mes_ptr);
+void RomFontMessage(u32 mes_no, int disc_no);
 void RomFontSetting();
 }
 

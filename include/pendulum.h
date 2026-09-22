@@ -80,7 +80,7 @@ extern Vec GlobalWind;
 extern f32 GlobalWindAdd;
 
 extern "C" {
-void PenClothSet(cModel* m, PenCloth* pInfo, f32 len);
+void PenClothSet(cModel* m, PenCloth* pInfo, f32 min_len);
 void PenClothFixSet(cModel* m, PenCloth* pInfo, int no, Vec* pos);
 void PenClothFixClear(cModel* m, PenCloth* pInfo, int no);
 void PenClothMove(cModel* m, PenCloth* pInfo);

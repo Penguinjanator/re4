@@ -49,7 +49,7 @@ static void collision_cone_axis(GeoCone* cone, Vec* axis)
 
 // 1 when point p lies inside the cone (apex at cone->pos, axis direction, height, half angle in
 // radians) widened by `margin`; also stores the base radius in cone->radius.
-int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
+int collision_point_cone_rev_play(Vec* pPoint, GeoCone* pConeRev, f32 play)
 {
     int ret = 0;
     Vec axis;
@@ -61,24 +61,24 @@ int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
     f32 r;
     f32 t;
 
-    if (VecAngle(&cone->direction, &up) != 0.0f) {
-        PSVECCrossProduct(&up, &cone->direction, &axis);
+    if (VecAngle(&pConeRev->direction, &up) != 0.0f) {
+        PSVECCrossProduct(&up, &pConeRev->direction, &axis);
 #line 245
         VECNormalize(&axis, &axis);
-        VECNormalize(&cone->direction, &up);
+        VECNormalize(&pConeRev->direction, &up);
         PSVECCrossProduct(&axis, &up, &c);
 #line 248
         VECNormalize(&c, &c);
-        SetAxisMatrix(m, &axis, &up, &c, &cone->pos);
+        SetAxisMatrix(m, &axis, &up, &c, &pConeRev->pos);
     } else {
-        PSMTXTrans(m, cone->pos.x, cone->pos.y, cone->pos.z);
+        PSMTXTrans(m, pConeRev->pos.x, pConeRev->pos.y, pConeRev->pos.z);
     }
     PSMTXInverse(m, inv);
-    PSMTXMultVec(inv, p, &lp);
-    if (!(lp.y < 0.0f) && !(lp.y > cone->height)) {
-        r = cone->height * sinf(cone->angle);
-        cone->radius = r;
-        t = lp.y * r / cone->height + margin;
+    PSMTXMultVec(inv, pPoint, &lp);
+    if (!(lp.y < 0.0f) && !(lp.y > pConeRev->height)) {
+        r = pConeRev->height * sinf(pConeRev->angle);
+        pConeRev->radius = r;
+        t = lp.y * r / pConeRev->height + play;
         if (lp.x * lp.x + lp.z * lp.z < t * t) {
             ret = 1;
         }
@@ -88,14 +88,14 @@ int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
 
 // Cone test plus a facing test: the surface normal `face` must point back towards the cone axis
 // within `angle` radians.
-int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, f32 margin, Vec* face, f32 angle)
+int collision_point_cone_rev_play_face(Vec* pPoint, GeoCone* pConeRev, f32 play, Vec* pDirection, f32 open_angle)
 {
     Vec v;
-    int ret = collision_point_cone_rev_play(p, cone, margin);
+    int ret = collision_point_cone_rev_play(pPoint, pConeRev, play);
 
     if (ret) {
-        PSVECScale(face, &v, -1.0f);
-        if (VecAngle(&cone->direction, &v) < angle) {
+        PSVECScale(pDirection, &v, -1.0f);
+        if (VecAngle(&pConeRev->direction, &v) < open_angle) {
             ret = 1;
         } else {
             ret = 0;
@@ -113,18 +113,18 @@ static inline int collision_point_check(Vec* p)
 
 // 1 when the sphere touches the convex hexahedron given by six outward normals (three through
 // pointA, three through pointB); used for frustum culling.
-int collision_sphere_hexahedron(GeoSphere* s, GeoHexahedron* h)
+int collision_sphere_hexahedron(GeoSphere* pSphere, GeoHexahedron* pHexahedron)
 {
     int ret = 1;
     u32 i;
     Vec d;
 
-    PSVECSubtract(&s->pos, &h->pointA, &d);
+    PSVECSubtract(&pSphere->pos, &pHexahedron->pointA, &d);
     for (i = 0; i <= 5; i++) {
         if (i == 3) {
-            PSVECSubtract(&s->pos, &h->pointB, &d);
+            PSVECSubtract(&pSphere->pos, &pHexahedron->pointB, &d);
         }
-        if (PSVECDotProduct(&d, &h->normal[i]) > s->r + 0.01f) {
+        if (PSVECDotProduct(&d, &pHexahedron->normal[i]) > pSphere->r + 0.01f) {
             ret = 0;
             break;
         }

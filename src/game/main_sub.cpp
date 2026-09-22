@@ -220,9 +220,9 @@ void Render_DrawSyncCallback(u16 token)
 }
 
 // Blanks / unblanks the video output and mirrors it in System_flg 0x40000.
-void systemVISetBlack(int black)
+void systemVISetBlack(int sw)
 {
-    if (black == 1) {
+    if (sw == 1) {
         VISetBlack(1);
         SysFlagOn(pG, SYS_SET_BLACK);
     } else {
@@ -294,17 +294,17 @@ void EFBReSize(int w, int h)
 }
 
 // Splits seconds into h/m/s (any output may be NULL).
-void SecToTime(u32 sec, u32* h, u32* m, u32* s)
+void SecToTime(u32 sec, u32* ret_time, u32* ret_min, u32* ret_sec)
 {
     u32 hour = sec / 3600;
-    if (h) {
-        *h = hour;
+    if (ret_time) {
+        *ret_time = hour;
     }
-    if (m) {
-        *m = (sec - hour * 3600) / 60;
+    if (ret_min) {
+        *ret_min = (sec - hour * 3600) / 60;
     }
-    if (s) {
-        *s = sec % 60;
+    if (ret_sec) {
+        *ret_sec = sec % 60;
     }
 }
 
@@ -316,12 +316,12 @@ void InitGameTime()
 }
 
 // Total play time in seconds (saved play_time + the running segment), also split into h/m/s.
-u32 GetGameTime(u32* h, u32* m, u32* s)
+u32 GetGameTime(u32* ret_time, u32* ret_min, u32* ret_sec)
 {
     u32 sec;
     OSTime t = OSGetTime();
     sec = OSTicksToSeconds(t) - pG->game_start_time + pG->play_time;
-    SecToTime(sec, h, m, s);
+    SecToTime(sec, ret_time, ret_min, ret_sec);
     return sec;
 }
 
@@ -335,13 +335,13 @@ void SetGameTime()
 }
 
 // Tool: starts an automatic screen shot sequence (name prefix, frame count).
-void ScreenShotStart(char* name, int frame, int flag)
+void ScreenShotStart(char* file_name, int start_frame, int flag336)
 {
     static int AutoScreenShotExecFlag = 1;
-    AutoScreenShotExecFlag = flag;
+    AutoScreenShotExecFlag = flag336;
     AutoScreenShotExec = 1;
-    AutoScreenShotFrame = frame;
-    AutoScreenShotFilename = name;
+    AutoScreenShotFrame = start_frame;
+    AutoScreenShotFilename = file_name;
 }
 
 // Tool: stops the automatic screen shots.
@@ -393,13 +393,13 @@ void StopwatchStart()
 }
 
 // Debug profiling: stops and returns the elapsed microseconds (printed with `name` when given).
-u32 StopwatchStop(const char* name)
+u32 StopwatchStop(const char* pName)
 {
     OSTime us;
     OSStopStopwatch(&SW);
     us = OSTicksToMicroseconds(SW.total);
-    if (name) {
-        eprintf2(10, 16, 50, Line + 50, 0, 1, "%s %d", (u32) us, name);
+    if (pName) {
+        eprintf2(10, 16, 50, Line + 50, 0, 1, "%s %d", (u32) us, pName);
         Line += 16;
     }
     return us;
@@ -417,28 +417,28 @@ void after_render_proc()
 
 // Sets the VI vertical copy filter from a brightness (64 = normal): the 7 taps are scaled and the
 // remainder distributed in the `order` sequence.
-void Bg_brightness_set(f32 brightness)
+void Bg_brightness_set(f32 bright)
 {
     u8 vf[7] = {8, 8, 10, 12, 10, 8, 8};
     u8 order[7] = {5, 1, 3, 0, 4, 2, 6};
     GXRenderModeObj* rm = &Rmode;
-    f32 rate = brightness * (1.0f / 64.0f);
+    f32 rate = bright * (1.0f / 64.0f);
     int i;
     int j;
 
     for (i = 0; i < 7; i++) {
         rm->vfilter[i] = (u8) ((f32) (int) vf[i] * rate);
-        brightness -= (f32) (int) rm->vfilter[i];
+        bright -= (f32) (int) rm->vfilter[i];
     }
     i = 0;
-    while (brightness >= 1.0f) {
+    while (bright >= 1.0f) {
         for (j = 0; j < 7; j++) {
             if (order[j] == i) {
                 break;
             }
         }
         rm->vfilter[j]++;
-        brightness -= 1.0f;
+        bright -= 1.0f;
         if (i++ > 6) {
             i = 0;
         }
@@ -495,7 +495,7 @@ void DrawTpl(TEXPalette* tpl, int x, int y, int w, int h)
 }
 
 // Draws a texture object as a white screen-space quad (ortho 448 x fbWidth).
-void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
+void DrawTexture(GXTexObj* texobj, s16 x, s16 y, s16 z, s16 w, s16 h)
 {
     GXColor color;
     s16 x2;
@@ -509,7 +509,7 @@ void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
     Mtx mtx;
     Mtx44 proj;
     PSMTXIdentity(mtx);
-    GXLoadTexObj(obj, 0);
+    GXLoadTexObj(texobj, 0);
     GXLoadTexMtxImm(mtx, 30, 1);
     GXSetTexCoordGen(0, 1, 4, 30);
     GXSetNumTexGens(1);
@@ -544,13 +544,13 @@ void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
 }
 
 // Runs a REL's epilog and unlinks it; a failure logs and halts after 60 frames.
-void DLL_Unlink(OSModuleHeader* module)
+void DLL_Unlink(OSModuleHeader* pModule)
 {
-    if (module->epilog) {
-        DLL_EPILOG(module)();
+    if (pModule->epilog) {
+        DLL_EPILOG(pModule)();
     }
-    if (OSUnlink(&module->info) != 1) {
-        pLog->err(0, 0, "OSUnlink failed : 0x%08x", module);
+    if (OSUnlink(&pModule->info) != 1) {
+        pLog->err(0, 0, "OSUnlink failed : 0x%08x", pModule);
         TaskSleep(60);
 #line 1424 "D:/Bio4/Prog/main_sub.cpp"
         HALT();
@@ -559,10 +559,10 @@ void DLL_Unlink(OSModuleHeader* module)
 }
 
 // Links a REL with its bss; a failure logs and halts after 60 frames.
-void DLL_Link(OSModuleHeader* module, void* bss)
+void DLL_Link(OSModuleHeader* pModule, void* pBss)
 {
-    if (OSLink(&module->info, bss) != 1) {
-        pLog->err(0, 0, "OSLink failed : 0x%08x", module);
+    if (OSLink(&pModule->info, pBss) != 1) {
+        pLog->err(0, 0, "OSLink failed : 0x%08x", pModule);
         TaskSleep(60);
 #line 1440 "D:/Bio4/Prog/main_sub.cpp"
         HALT();

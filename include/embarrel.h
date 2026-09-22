@@ -56,27 +56,27 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMBARREL_WK)
     virtual void move();
 
-    void setEff(u8 eff);
+    void setEff(u8 eff_id);
 };
 
 extern "C" {
 cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo);
-cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot);
-void emBarrelDmCk(cEmBarrel* em);
-void emBarrelDmCk2(cEmBarrel* em);
+cEmBarrel* SetR227Barrel(Vec* pPos, Vec* pAng);
+void emBarrelDmCk(cEmBarrel* pEm);
+void emBarrelDmCk2(cEmBarrel* pEm);
 void emBarrelSetBreak(cEmBarrel* em, int kind);
-void emBarrel_R0_Init(cEmBarrel* em);
-void emBarrel_R0_Move(cEmBarrel* em);
-void emBarrel_R1_Set(cEmBarrel* em);
-void emBarrel_R1_Break(cEmBarrel* em);
-void emBarrel_R1_R227Roll(cEmBarrel* em);
-int emBarrelSetRollRoute(cEmBarrel* em);
-int emBarrelSetRollSpd(cEmBarrel* em);
-void emBarrelSetBomb(cEmBarrel* em);
-void emBarrelSetBomb2(cEmBarrel* em);
-void emBarrelEatSet(cEmBarrel* em);
-int emBarrelRollHitCk(cEmBarrel* em);
-void emBarrelRunDownCk(cEmBarrel* em);
+void emBarrel_R0_Init(cEmBarrel* pEm);
+void emBarrel_R0_Move(cEmBarrel* pEm);
+void emBarrel_R1_Set(cEmBarrel* pEm);
+void emBarrel_R1_Break(cEmBarrel* pEm);
+void emBarrel_R1_R227Roll(cEmBarrel* pEm);
+int emBarrelSetRollRoute(cEmBarrel* pEm);
+int emBarrelSetRollSpd(cEmBarrel* pEm);
+void emBarrelSetBomb(cEmBarrel* pEm);
+void emBarrelSetBomb2(cEmBarrel* pEm);
+void emBarrelEatSet(cEmBarrel* pEm);
+int emBarrelRollHitCk(cEmBarrel* pEm);
+void emBarrelRunDownCk(cEmBarrel* pEm);
 }
 
 #endif

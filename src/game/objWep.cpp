@@ -108,10 +108,10 @@ void cObjWep::move()
 
 // Sets / clears one of the three display types (0 -> disp bit2, 1 -> bit3, 2 -> bit4); the model
 // is drawn only when all three are on.
-void cObjWep::setDisp(int type, int on)
+void cObjWep::setDisp(int level, int onoff)
 {
-    if (on == 1) {
-        switch (type) {
+    if (onoff == 1) {
+        switch (level) {
         case 0:
             wep.disp |= 4;
             break;
@@ -123,7 +123,7 @@ void cObjWep::setDisp(int type, int on)
             break;
         }
     } else {
-        switch (type) {
+        switch (level) {
         case 0:
             DispOff(wep.disp, 4);
             break;
@@ -138,12 +138,12 @@ void cObjWep::setDisp(int type, int on)
 }
 
 // Hangs the weapon on parts `partsNo` of `parent` with a local offset / rotation.
-void cObjWep::parentSet(cModel* parent, int partsNo, Vec* pos, Vec* rot)
+void cObjWep::parentSet(cModel* pMod, int parts_no, Vec* pOffset, Vec* pAng)
 {
-    wep.parent = parent;
-    pParts->pParent = parent->getPartsPtr(partsNo);
-    pParts->pos = *pos;
-    pParts->ang = *rot;
+    wep.parent = pMod;
+    pParts->pParent = pMod->getPartsPtr(parts_no);
+    pParts->pos = *pOffset;
+    pParts->ang = *pAng;
 }
 
 // Detaches the weapon at its current world position (used before dropping it).
@@ -165,10 +165,10 @@ void cObjWep::parentRelease()
 
 // End of the reload motion: back to the idle motion and, unless noReload, moves ammo into the
 // magazine (ItemMgr.reload).
-void cObjWep::endReload(int noReload)
+void cObjWep::endReload(int motOnly)
 {
     resetMotion();
-    if (noReload == 0) {
+    if (motOnly == 0) {
         ItemMgr.reload();
     }
 }
@@ -355,7 +355,7 @@ void drawPoint(Vec* p0, Vec* p1)
 // Muzzle position and aim end for the current weapon_no: muzzle offset table `ofs` on parts 0
 // (parts 1 for weapon 0xE) and -50000 along its x axis (+50000 for 0x1C); the bows (9, 10) use
 // the camera trajectory.
-void cObjWep::getMarkerPos(Vec* pos, Vec* at)
+void cObjWep::getMarkerPos(Vec* lpos, Vec* lcross)
 {
     static const Vec ofs[46] = {
         { 500.0f, 0.0f, 0.0f },      { 262.0f, -24.0f, 32.0f },   { 228.0f, -24.0f, 29.0f },
@@ -382,7 +382,7 @@ void cObjWep::getMarkerPos(Vec* pos, Vec* at)
     switch (pG->weapon_no) {
     default:
         parts = getPartsPtr(pG->weapon_no == 0xE);
-        PSMTXMultVec(parts->mat, &ofs[pG->weapon_no], pos);
+        PSMTXMultVec(parts->mat, &ofs[pG->weapon_no], lpos);
         if (pG->weapon_no == 0x1C) {
             len = 50000.0f;
         } else {
@@ -392,11 +392,11 @@ void cObjWep::getMarkerPos(Vec* pos, Vec* at)
         v.y = 0.0f;
         v.z = 0.0f;
         PSMTXMultVecSR(parts->mat, &v, &v);
-        PSVECAdd(&v, pos, at);
+        PSVECAdd(&v, lpos, lcross);
         break;
     case 9:
     case 10:
-        CamCtrl.getTrajectory(pos, at);
+        CamCtrl.getTrajectory(lpos, lcross);
         break;
     }
 }
@@ -490,7 +490,7 @@ void cObjWep::satCheck()
 
 // Draws a line from p0 toward p1 clipped to 8000 units, fading its colour with the length (the
 // shooting-range laser); alpha 0xFE in `color` disables the z test.
-void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
+void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mat, u32 col, int blend)
 {
     static f32 max_laser_dist = 8000.0f;
     Vec end;
@@ -506,7 +506,7 @@ void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
     }
     CameraCurrentProjection();
     GXSetCullMode(0);
-    if ((color >> 24) == 0xFE) {
+    if ((col >> 24) == 0xFE) {
         GXSetZMode(0, 3, 1);
     } else {
         GXSetZMode(1, 3, 1);
@@ -522,11 +522,11 @@ void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    GXLoadPosMtxImm(mtx, 0);
+    GXLoadPosMtxImm(mat, 0);
     GXSetCurrentMtx(0);
-    r = (color >> 16) & 0xFF;
-    g = (color >> 8) & 0xFF;
-    b = color & 0xFF;
+    r = (col >> 16) & 0xFF;
+    g = (col >> 8) & 0xFF;
+    b = col & 0xFF;
     a = 0xFF;
 
     end = *p1;
@@ -549,7 +549,7 @@ void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
 }
 
 // Draw_line3d_local_222 in the current camera view matrix.
-void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend)
+void Draw_line3d_222(Vec* p0, Vec* p1, u32 col, int blend)
 {
-    Draw_line3d_local_222(p0, p1, pG->Camera.v_mat, color, blend);
+    Draw_line3d_local_222(p0, p1, pG->Camera.v_mat, col, blend);
 }

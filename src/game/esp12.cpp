@@ -185,17 +185,17 @@ void cEsp12::Destruct()
 
 // Num = Work8[0] + 2 (Work8[0] <= 123), allocates the esp3f buffer and fills every slot with the
 // current world position; never Z-culled (m_Flg bit1). Fails when the buffer cannot be pulled.
-int cEsp12::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp12::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp12Work* w = &m_Free;
     Vec wpos;
     int i;
 
-    if (gen->Work8[0] > 0x7B) {
+    if (pSeq->Work8[0] > 0x7B) {
         pLog->err(0, 0, "ESP_12 : WK0 > 123.");
         return 0;
     }
-    w->Num = (s8)gen->Work8[0] + 2;
+    w->Num = (s8)pSeq->Work8[0] + 2;
     if (!Esp3f_Alloc(sizeof(Vec), w->Num, &w->pBuf, &info)) {
         pLog->err(0, 0, "ESP_12 : Buf alloc failed.");
         return 0;

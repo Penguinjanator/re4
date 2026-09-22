@@ -5,6 +5,6 @@
 #include "esp.h"
 
 // EspgenMoveTbl entry for controller types 0x40 and 0x41: does nothing.
-void Espgen40_Move(EspGenWork* gen)
+void Espgen40_Move(EspGenWork* pEspgen)
 {
 }

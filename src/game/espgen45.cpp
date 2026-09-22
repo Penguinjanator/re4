@@ -114,11 +114,11 @@ void Espgen45_static_init()
 // mode 1 is the spring model (hA height, hB velocity). Both refresh the vertex heights, normals and
 // the bump texture, then flush the arrays to memory for the GP. Sets Status_flg[0] bit 0x200
 // (water present). Debug: L trigger with Debug_flg[1] 0x00800000 drops a wave in the middle.
-void Espgen45_Move00(EspgenWork* w)
+void Espgen45_Move00(EspgenWork* pGen)
 {
     static f32 g45_wave_mul = 0.001f;
     static f32 wt_pow = 10.0f;
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p = (Espgen42Work*) pGen->work;
     Vec d0;
     Vec d1;
     Vec v;
@@ -394,22 +394,22 @@ void Espgen45_Move00(EspgenWork* w)
 }
 
 // EspgenMoveTbl entry for controller type 0x45; frozen while Stop_flg bit 0x40000 is set.
-void Espgen45_Move(EspgenWork* w)
+void Espgen45_Move(EspgenWork* pGen)
 {
     static void (*Espgen45MoveTbl[])(EspgenWork*) = {Espgen45_Move00};
 
     if (SpfFlagChk(pG, SPF_WATER)) {
         return;
     }
-    Espgen45MoveTbl[w->step](w);
+    Espgen45MoveTbl[pGen->step](pGen);
 }
 
 // EspgenTransTbl entry: queues Espgen45_TransSub in OT layer 0x10 (drawn after the opaque scene) and
 // clears Status_flg[1] bit 0x20 (the "override parameters changed this frame" flag).
-void Espgen45_Trans(EspgenWork* w)
+void Espgen45_Trans(EspgenWork* pGen)
 {
-    if ((w->flag & 1) && !(w->flag & 2)) {
-        AddOtDirect(0x10, w, (void (*)()) Espgen45_TransSub, 1, 0x80, NULL, 0.0f);
+    if ((pGen->flag & 1) && !(pGen->flag & 2)) {
+        AddOtDirect(0x10, pGen, (void (*)()) Espgen45_TransSub, 1, 0x80, NULL, 0.0f);
     }
     StaFlagOff(pG, STA_ESPGEN45_SET);
 }
@@ -979,9 +979,9 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
 }
 
 // Frees the six grid buffers and clears g_pWater45.
-void Espgen45_Destruct(EspgenWork* w)
+void Espgen45_Destruct(EspgenWork* pGen)
 {
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p = (Espgen42Work*) pGen->work;
 
     if (p->hA != NULL) {
         Mem_free(p->hA);
@@ -1015,10 +1015,10 @@ void Espgen45_Destruct(EspgenWork* w)
 // MaskTex_id; colour Col_start, ambient Col_d*255, mode Work8[0] (2: damp/spread from Work8[1..2]),
 // specular Tex_id, indirect strengths prm.h xCE/xD2, stages Work8[3]. Registers g_pWater45 and runs
 // the first move. Returns 0 when the noise texture 0xFE or memory is missing.
-int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
+int Espgen45_SetFreeWork(EspgenWork* pGen, EspGenWork* pSeq, EspSeqData* pSeqHed, cModel* pMod, u16 Null_parts_no, Mtx* pMat,
+                         Vec* pOffset, Vec* pAng, EspSeqOpt* pSct)
 {
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p = (Espgen42Work*) pGen->work;
     Vec r;
     u32 nx = 0x40;
     u32 ny = 0x40;
@@ -1028,23 +1028,23 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->err(0, 0, "Espgen45 : WaterTex(0xfe) not found!");
         return 0;
     }
-    if (rec->Tool_flg & 1) {
+    if (pSeq->Tool_flg & 1) {
         p->flag |= 1;
     }
-    if (rec->Tool_flg & 0x4000) {
+    if (pSeq->Tool_flg & 0x4000) {
         p->flag |= 2;
-        p->Mask_Tex = rec->MaskTex_id;
+        p->Mask_Tex = pSeq->MaskTex_id;
         p->flag |= 1;
     }
-    if (rec->WorkSp8[0] != 0) {
-        nx = rec->WorkSp8[0];
+    if (pSeq->WorkSp8[0] != 0) {
+        nx = pSeq->WorkSp8[0];
         if (nx > 0xB8) {
             nx = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : width > 184");
         }
     }
-    if (rec->WorkSp8[1] != 0) {
-        ny = rec->WorkSp8[1];
+    if (pSeq->WorkSp8[1] != 0) {
+        ny = pSeq->WorkSp8[1];
         if (ny > 0xB8) {
             ny = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : height > 184");
@@ -1060,75 +1060,75 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->warn(0, 0, "ESP_WATER : height (%d -> %d)", ny, n);
         ny = n;
     }
-    rate = 1.0f - (f32) (int) rec->WorkSp8[2] / 255.0f;
-    p->rotY = rec->WorkSp8[2];
-    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
-    if (SetWaterWork45(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, nx, ny, rate) != 0) {
-        p->col.r = rec->Col_start_r;
-        p->col.g = rec->Col_start_g;
-        p->col.b = rec->Col_start_b;
-        p->col.a = rec->Col_start_a;
-        p->amb.r = rec->Col_d_r * 255.0f;
-        p->amb.g = rec->Col_d_g * 255.0f;
-        p->amb.b = rec->Col_d_b * 255.0f;
-        p->amb.a = rec->Col_d_a * 255.0f;
-        p->mode = rec->Work8[0];
+    rate = 1.0f - (f32) (int) pSeq->WorkSp8[2] / 255.0f;
+    p->rotY = pSeq->WorkSp8[2];
+    PSVECScale(&pSeq->Ang, &r, 6.28f / 360.0f);
+    if (SetWaterWork45(pGen, (Vec*) &pSeq->Pos.x, &r, pSeq->Size_base_x, nx, ny, rate) != 0) {
+        p->col.r = pSeq->Col_start_r;
+        p->col.g = pSeq->Col_start_g;
+        p->col.b = pSeq->Col_start_b;
+        p->col.a = pSeq->Col_start_a;
+        p->amb.r = pSeq->Col_d_r * 255.0f;
+        p->amb.g = pSeq->Col_d_g * 255.0f;
+        p->amb.b = pSeq->Col_d_b * 255.0f;
+        p->amb.a = pSeq->Col_d_a * 255.0f;
+        p->mode = pSeq->Work8[0];
         p->Base_y = p->pos0.y;
         if (p->mode == 2) {
-            p->Prm_a = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
+            p->Prm_a = 0.5f - (f32) (s8) pSeq->Work8[1] * 0.005f;
             if (p->Prm_a > 0.5f) {
                 p->Prm_a = 0.5f;
             }
             if (p->Prm_a < 0.0f) {
                 p->Prm_a = 0.0f;
             }
-            p->Prm_dmp = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
+            p->Prm_dmp = 0.99f - (f32) (int) pSeq->Work8[2] * 0.001f;
         }
-        p->texId = rec->Tex_id;
-        p->indS = rec->prm.h.xCE;
-        p->indT = rec->prm.h.xD2;
-        p->stages = rec->Work8[3];
-        g_pWater45 = w;
-        Espgen45_Move(w);
+        p->texId = pSeq->Tex_id;
+        p->indS = pSeq->prm.h.xCE;
+        p->indT = pSeq->prm.h.xD2;
+        p->stages = pSeq->Work8[3];
+        g_pWater45 = pGen;
+        Espgen45_Move(pGen);
         return 1;
     }
     return 0;
 }
 
 // Room override: 1 = the surface follows the camera target (default), 0 = uses Estgen45SetTargetPos.
-void Estgen45SetTargetCamera(int on)
+void Estgen45SetTargetCamera(int bTc)
 {
-    g_bTargetCamera = on;
+    g_bTargetCamera = bTc;
 }
 
 // Room override: 1 = surface height from Estgen45SetHeight, 0 = the record's Base_y.
-void Estgen45SetTargetHeight(int on)
+void Estgen45SetTargetHeight(int bTc)
 {
-    g_bTargetHeight = on;
+    g_bTargetHeight = bTc;
 }
 
 // Room override: use the Estgen45SetSize size instead of the record's.
-void Estgen45SetSizeOverWrite(int on)
+void Estgen45SetSizeOverWrite(int bTc)
 {
-    g_bSizeOverWrite = on;
+    g_bSizeOverWrite = bTc;
 }
 
 // Room override: replace the record colours by the Estgen45SetColor values.
-void Estgen45SetColorOverWrite(int on)
+void Estgen45SetColorOverWrite(int bTc)
 {
-    g_bColorOverWrite = on;
+    g_bColorOverWrite = bTc;
 }
 
 // Room override: multiply the record colours by the Estgen45SetColor values.
-void Estgen45SetColorMul(int on)
+void Estgen45SetColorMul(int bTc)
 {
-    g_bColorMul = on;
+    g_bColorMul = bTc;
 }
 
 // Room override: take Type/wave ratio/damp/spread/indirect/rotation/mask from the Esp4cWork block.
-void Estgen45SetParamOverWrite(int on)
+void Estgen45SetParamOverWrite(int bTc)
 {
-    g_bSetParam = on;
+    g_bSetParam = bTc;
 }
 
 // Sets the override centre of the surface and flags Status_flg[1] bit 0x20.
@@ -1140,9 +1140,9 @@ void Estgen45SetTargetPos(f32 x, f32 z)
 }
 
 // Sets the override water height.
-void Estgen45SetHeight(f32 h)
+void Estgen45SetHeight(f32 y)
 {
-    g_Target_y = h;
+    g_Target_y = y;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 
@@ -1154,23 +1154,23 @@ void Estgen45SetSize(f32 size)
 }
 
 // Sets the override tev colour (r,g,b,a) and ambient/scale factors (rs..as, 0..1).
-void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
+void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 sr, f32 sg, f32 sb, f32 sa)
 {
     g_r = r;
     g_g = g;
     g_b = b;
     g_a = a;
-    g_sr = rs;
-    g_sg = gs;
-    g_sb = bs;
-    g_sa = as;
+    g_sr = sr;
+    g_sg = sg;
+    g_sb = sb;
+    g_sa = sa;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 
 // Copies the esp4c parameter block used when the parameter override is on.
-void Estgen45SetParam(Esp4cWork* w)
+void Estgen45SetParam(Esp4cWork* pFree)
 {
-    g_Free = *w;
+    g_Free = *pFree;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 

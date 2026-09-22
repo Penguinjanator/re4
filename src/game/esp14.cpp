@@ -116,16 +116,16 @@ void cEsp14::move()
 
 // Length factor from Work8[0], clip box from Vec0 (extents) and Vec1 (centre offset); fails when
 // the box is inconsistent or has a y component. Sets Tool_flg bit0.
-int cEsp14::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp14::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp14Work* w = &m_Free;
 
-    w->Mul = (f32)(s8)gen->Work8[0] * 0.05f + 0.25f;
+    w->Mul = (f32)(s8)pSeq->Work8[0] * 0.05f + 0.25f;
     w->Base_y = m_Size_base_y;
-    w->Rimiter = *(Vec*)&gen->Vec0.x;
-    w->Rimiter_ofs = *(Vec*)&gen->Vec1.x;
-    if (fabsf(gen->Vec0.x) < fabsf(gen->Vec1.x) || fabsf(gen->Vec0.z) < fabsf(gen->Vec1.z) ||
-        fabsf(gen->Vec0.y) != 0.0f || fabsf(gen->Vec1.y) != 0.0f) {
+    w->Rimiter = *(Vec*)&pSeq->Vec0.x;
+    w->Rimiter_ofs = *(Vec*)&pSeq->Vec1.x;
+    if (fabsf(pSeq->Vec0.x) < fabsf(pSeq->Vec1.x) || fabsf(pSeq->Vec0.z) < fabsf(pSeq->Vec1.z) ||
+        fabsf(pSeq->Vec0.y) != 0.0f || fabsf(pSeq->Vec1.y) != 0.0f) {
         pLog->err(0, 0, "ESP14 : Vec0 or Vec1 Invalid Paramater.");
         return 0;
     }

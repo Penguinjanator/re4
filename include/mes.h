@@ -13,8 +13,8 @@ struct MessageData {
     u32 lang;      // 0x00
     u8* ptr[5];    // 0x04  message tables (type 0..4), each: u32 x0, u32 ofs[lang]
 
-    u16* getAddr(int no, int type);
-    int getMesNum(int type);
+    u16* getAddr(int no, int data_type);
+    int getMesNum(int data_type);
     int getSpaceWidth();
     void setPtr(int type, u8* p) { ptr[type] = p; }
 };
@@ -53,8 +53,8 @@ public:
     u8 m_char_h;           // 0xD9
     u8 pad_DA[2];
 
-    s16 getSize(s16 code, s8* left, s8* right);
-    void create(int w, int h, TEXPalette* tpl, u8* width);
+    s16 getSize(s16 mes, s8* L, s8* R);
+    void create(int char_w, int char_h, TEXPalette* addr, u8* size);
     void destroy();
     int chkFlag(u32 b) { return (be_flag & b) ? 1 : 0; }
 };
@@ -133,14 +133,14 @@ public:
 
     int chkFlag(u32 b) { return (be_flag & b) ? 1 : 0; }
     void clrActive() { be_flag &= ~1; }
-    void init(int no, int x, int y, u32 attr, int col, MessageFont* font);
+    void init(int no, int px, int py, u32 attr, int col, MessageFont* font);
     void move();
     void WidthCk();
     void QueSet(int code, MessageFont* font);
     void setNumber(u32 num, u16 digits);
     void putSelCursol();
-    void putNextCursol(int reset);
-    void setJump(u16 pos);
+    void putNextCursol(int flag);
+    void setJump(u16 mes);
     void trans();
     int CommandExec();
     int CommandArg();
@@ -197,9 +197,9 @@ public:
     // Slot address the way the original computes it (index scaled first, then the base).
     Message* getMes(int no) { return (Message*) (no * sizeof(Message) + (u32) this + sizeof(u32)); }
 
-    void setLayout(int no, int layout);
+    void setLayout(int no, int type);
     void setLanguage(int lang);
-    void setupFont(int w, int h, TEXPalette* tpl, int no);
+    void setupFont(int char_w, int char_h, TEXPalette* addr, int no);
     void releaseFont(int no);
     int loadFont(int w, int h, const char* name, int no);
     void init();
@@ -215,8 +215,8 @@ public:
     int checkState(u32 b);
     void Move();
     void Trans();
-    void setFontSize(int no, s16 w, s16 h);
-    void MesSet(int no, int x, int y, u32 attr, int slot, int col, int type);
+    void setFontSize(int no, s16 font_w, s16 font_h);
+    void MesSet(int no, int px, int py, u32 attr, int wk, int col, int font_no);
     void Delete(int no);
     void WaitEnd(int no);
 };
@@ -229,7 +229,7 @@ public:
 
     RomFont(void* font);
     void setup(void* image);
-    void draw(int x, int y, int cx, int cy);
+    void draw(int x, int y, int xChar, int yChar);
 };
 
 extern MessageControl cMes;

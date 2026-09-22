@@ -19,14 +19,14 @@ int tex_dummy = 0;
 
 
 // Creates a registry `name` with a pool of `num` GX texture objects and their in-use bitmap.
-void cTexSys::Init(const char* name, u32 num)
+void cTexSys::Init(const char* name, u32 max)
 {
     u32 i;
 
     this->m_name = name;
-    nTexObj = num;
+    nTexObj = max;
 #line 53
-    if ((pTexObj = (GXTexObj*) MEM_ALLOC(num * sizeof(GXTexObj), 1, 0xD)) == NULL) {
+    if ((pTexObj = (GXTexObj*) MEM_ALLOC(max * sizeof(GXTexObj), 1, 0xD)) == NULL) {
         nTexObj = 0;
         pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->m_name);
         return;
@@ -238,38 +238,38 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
 }
 
 // TPL of texture `id`; 0 when unregistered.
-int cTexSys::GetTplAddr(u32 id, TEXPalette** out)
+int cTexSys::GetTplAddr(u32 id, TEXPalette** tpl_addr)
 {
     TexWk* w = &m_texw_array[id];
 
     if (w->Owner == 0) {
         return 0;
     }
-    *out = w->pTpl;
+    *tpl_addr = w->pTpl;
     return 1;
 }
 
 // GX texture object `no` (animation frame) of texture `id`; 0 when unregistered.
-int cTexSys::GetTexObj(u32 id, u32 no, GXTexObj** out)
+int cTexSys::GetTexObj(u32 id, u32 no, GXTexObj** texobj)
 {
     TexWk* w = &m_texw_array[id];
 
     if (w->Owner == 0) {
         return 0;
     }
-    *out = &w->pTex_obj_start[no];
+    *texobj = &w->pTex_obj_start[no];
     return 1;
 }
 
 // Animation table of texture `id`; 0 when unregistered.
-int cTexSys::GetAnmAddr(u32 id, TexAnm** out)
+int cTexSys::GetAnmAddr(u32 id, TexAnm** anm)
 {
     TexWk* w = &m_texw_array[id];
 
     if (w->Owner == 0) {
         return 0;
     }
-    *out = w->pAnm;
+    *anm = w->pAnm;
     return 1;
 }
 
@@ -290,14 +290,14 @@ int cTexSys::GetTlutObj(u32 id, GXTlutObj** out)
 }
 
 // The registry slot of texture `id`, NULL (error unless `quiet`) when unregistered.
-TexWk* cTexSys::GetTexWk(u32 id, int quiet)
+TexWk* cTexSys::GetTexWk(u32 id, int bNoDispErrMsg)
 {
     TexWk* w = &m_texw_array[id];
 
     if (w->Owner != 0) {
         return w;
     }
-    if (quiet == 0) {
+    if (bNoDispErrMsg == 0) {
         pLog->err(0, 0, "GetTexWk(): TexId[%x] No such texture", id);
     }
     return NULL;

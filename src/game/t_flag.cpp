@@ -190,7 +190,7 @@ static void init(FE_WORK* t)
 
 // Editor frame: d-pad moves the cursor bit, C-stick / L / R change the page, A toggles the bit;
 // prints the page's words in hex, the cursor bit's value, number and name. B -> die.
-static void move(FE_WORK* t)
+static void move(FE_WORK* pTest)
 {
     JOY* joy = GetBugCheckController();
     FE_DATA* p;
@@ -203,63 +203,63 @@ static void move(FE_WORK* t)
     s16 sh;
 
     if (joy->rep & JOY_RIGHT) {
-        t->cursor++;
+        pTest->cursor++;
     }
     if (joy->rep & JOY_LEFT) {
-        t->cursor--;
+        pTest->cursor--;
     }
     if (joy->rep & JOY_UP) {
-        t->cursor -= 16;
+        pTest->cursor -= 16;
     }
     if (joy->rep & JOY_DOWN) {
-        t->cursor += 16;
+        pTest->cursor += 16;
     }
     if (joy->rep & 0x20000) {
-        t->cursor++;
+        pTest->cursor++;
     } else if (joy->rep & 0x10000) {
-        t->cursor--;
+        pTest->cursor--;
     } else if (joy->rep & 0x80000) {
-        t->cursor -= 16;
+        pTest->cursor -= 16;
     } else if (joy->rep & 0x40000) {
-        t->cursor += 16;
+        pTest->cursor += 16;
     }
-    if (t->cursor >= fe_data[t->page].max) {
-        t->cursor -= fe_data[t->page].max;
-        t->page++;
-        if (t->page > 11) {
-            t->page = 0;
+    if (pTest->cursor >= fe_data[pTest->page].max) {
+        pTest->cursor -= fe_data[pTest->page].max;
+        pTest->page++;
+        if (pTest->page > 11) {
+            pTest->page = 0;
         }
     }
-    if (t->cursor < 0) {
-        t->page--;
-        if (t->page < 0) {
-            t->page = 11;
+    if (pTest->cursor < 0) {
+        pTest->page--;
+        if (pTest->page < 0) {
+            pTest->page = 11;
         }
-        t->cursor += fe_data[t->page].max;
+        pTest->cursor += fe_data[pTest->page].max;
     }
     if (joy->rep & JOY_R) {
-        t->cursor = 0;
-        t->page++;
-        if (t->page > 11) {
-            t->page = 0;
+        pTest->cursor = 0;
+        pTest->page++;
+        if (pTest->page > 11) {
+            pTest->page = 0;
         }
     }
     if (joy->rep & JOY_L) {
-        t->cursor = 0;
-        t->page--;
-        if (t->page < 0) {
-            t->page = 11;
+        pTest->cursor = 0;
+        pTest->page--;
+        if (pTest->page < 0) {
+            pTest->page = 11;
         }
     }
-    if (strcmp(fe_data[t->page].name, "ROOM_SAVE") == 0) {
+    if (strcmp(fe_data[pTest->page].name, "ROOM_SAVE") == 0) {
         if (RoomData.getRoomSavePtr(G_ROOM_ID) != NULL) {
-            fe_data[t->page].addr = (u32*) (RoomData.getRoomSavePtr(G_ROOM_ID) + 4);
+            fe_data[pTest->page].addr = (u32*) (RoomData.getRoomSavePtr(G_ROOM_ID) + 4);
         } else {
-            fe_data[t->page].addr = NULL;
+            fe_data[pTest->page].addr = NULL;
         }
     }
-    p = &fe_data[t->page];
-    if (fe_data[t->page].addr != NULL) {
+    p = &fe_data[pTest->page];
+    if (fe_data[pTest->page].addr != NULL) {
         for (i = 0; i < p->max / 16; i++) {
             w = ((u16*) p->addr)[i];
             a = BtoX(w >> 12);
@@ -269,7 +269,7 @@ static void move(FE_WORK* t)
             line = i / 4 + 6;
             eprintf(184, (i + line) * 14, 0, 0, "%04x %04x %04x %04x", a, b, c, d);
         }
-        bit = t->cursor;
+        bit = pTest->cursor;
         cur = bit;
         {
             // COMPILER-DIFF: #17. The original keeps `cur & 0xF` in scratch r11, untied from x's
@@ -285,7 +285,7 @@ static void move(FE_WORK* t)
             int x = (m + (m >> 2) + 23) * 8;
             eprintf(x, y, 2, 0, "%01x", CkBit(p->addr, cur));
         }
-        bit = t->cursor;
+        bit = pTest->cursor;
         if (joy->trg & JOY_A) {
             sh = bit % 32;
             p->addr[bit / 32] ^= 0x80000000 >> sh;
@@ -298,12 +298,12 @@ static void move(FE_WORK* t)
         eprintf(264, 70, 4, 0, "%s", p->bit_name[bit]);
     }
     if (joy->trg & JOY_B) {
-        t->mode++;
+        pTest->mode++;
     }
 }
 
 // Editor end: restores Stop_flg, ends the task.
-void die(FE_WORK* t)
+void die(FE_WORK* p)
 {
     DbgFlagOff(pG, DBG_TEST_MODE);
     pG->Stop_flg = Test.stop_bak;
@@ -312,10 +312,10 @@ void die(FE_WORK* t)
 }
 
 // Value (0 / 1) of bit `bit` in a big-endian bit array (bit 0 = 0x80000000 of word 0).
-int CkBit(u32* flags, u32 bit)
+int CkBit(u32* pDat, u32 bit)
 {
-    flags += bit / 32;
-    if (*flags & (0x80000000 >> (bit % 32))) {
+    pDat += bit / 32;
+    if (*pDat & (0x80000000 >> (bit % 32))) {
         return 1;
     }
     return 0;

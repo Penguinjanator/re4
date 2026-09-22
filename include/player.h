@@ -42,7 +42,7 @@ public:
 
     cPlWaist();
     // cur = cur * (1 - rate) + target * rate; returns the delta applied
-    f32 set(f32 target, f32 rate);
+    f32 set(f32 dir, f32 rate);
 
     static const f32 ROT_LIMIT;   // pl_class.cpp (.sdata2), unused there
 };
@@ -165,16 +165,16 @@ public:
 
     cPlayer();
     virtual ~cPlayer() {}
-    virtual void beginEvent(u32 mode);
-    virtual void endEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
+    virtual void endEvent(u32 flag);
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
     virtual int checkXbutton() { return 0; }
     virtual void setModel() = 0;
     virtual void setMotion() {}
-    virtual void setRightHand(int no) = 0;
-    virtual void setLeftHand(u32 no) = 0;
-    virtual void setFace(int no) = 0;
+    virtual void setRightHand(int type) = 0;
+    virtual void setLeftHand(u32 type) = 0;
+    virtual void setFace(int type) = 0;
     virtual void setHead(int no) {}
     virtual void setHead(void* bin, void* tpl) {}
     virtual void setWound() {}
@@ -202,8 +202,8 @@ public:
     void keyConfigTypeA();
     void endEvent0(u32 mode);   // 0: to routine 0/1 idle, 1: flags_41C bit8, 2: routine 0
     void beginAction();
-    void endAction(int routine);
-    void setSlow(f32 rate);
+    void endAction(int hokan);
+    void setSlow(f32 speed);
     void moveEye();
     void moveEyeNormal();
     void moveEyeMotion();
@@ -231,7 +231,7 @@ public:
     void emSearch();
     // game/pl_wep.cpp
     void weaponRelease();
-    void weaponLoad(int no, int type);  // stores pG 0x4FB0/0x4FB1, then ReadWepData
+    void weaponLoad(int wep_id, int wep_type);  // stores pG 0x4FB0/0x4FB1, then ReadWepData
     void weaponInit();
     // game/pl_class.cpp: scenario damage area hit (sce_at sceAtFunc_damage)
     void setDamage(u8 kind, int arg, f32 power, int a, int b);
@@ -246,10 +246,10 @@ public:
     virtual int checkXbutton();
     virtual void setModel();
     virtual void setMotion();
-    virtual void setRightHand(int no);
-    virtual void setLeftHand(u32 no);
-    virtual void setFace(int no);
-    virtual void setHead(int no);
+    virtual void setRightHand(int type);
+    virtual void setLeftHand(u32 type);
+    virtual void setFace(int type);
+    virtual void setHead(int type);
     virtual void setHead(void* bin, void* tpl);
     virtual void setWound();
     // In-class on purpose: the original emits these after the destructor at the end of the unit
@@ -275,16 +275,16 @@ public:
     virtual ~cPlAshley() {}
     virtual void move();
     virtual void setModel();
-    virtual void setRightHand(int no);
-    virtual void setLeftHand(u32 no);
-    virtual void setFace(int no);
+    virtual void setRightHand(int type);
+    virtual void setLeftHand(u32 type);
+    virtual void setFace(int type);
     virtual void moveMatCalcBefore();
     virtual void initCloth() { PlClothSetGirl(this, &girlHair, &girlSkirt, &girlSweater, 0); }
     virtual void moveCloth() { PlClothMoveGirl(this, &girlHair, &girlSkirt, &girlSweater); }
     void moveBust();
 };
 
-void pl01weaponSet(cPlayer* pl);  // game/pl_ashley.cpp: fills m_MotTbl from the player archive
+void pl01weaponSet(cPlayer* pEm);  // game/pl_ashley.cpp: fills m_MotTbl from the player archive
 
 // Debug cheat ("maho") command table (game/pl_debug.cpp), 0x16C bytes, `new`ed by cPlayer::debugInit.
 struct PlMahoEntry {
@@ -309,14 +309,14 @@ extern u8 PlKaiou;       // game/player.cpp  kaiouken level (0..2)
 extern u8 PlDbFlag;      // game/player.cpp  bit1: draw the player position marker
 extern void* PlWepMot[3];  // game/player.cpp  weapon motion data
 
-void PlWepMotSet(int no);
+void PlWepMotSet(int type);
 void DrawGage(int x, int y, int h, int w, int now, int max, int color);
 
 // game/pl_event.cpp: routine 0 (event) and its sub-routines (index cModel::r_no_1)
-void Pl_R0_Event(cPlayer* pl);
-void pl_R1_Event_Normal(cPlayer* pl);
-void pl_R1_Event_ToWalk(cPlayer* pl);
-void pl_R1_Event_Smooth(cPlayer* pl);
+void Pl_R0_Event(cPlayer* pEm);
+void pl_R1_Event_Normal(cPlayer* pEm);
+void pl_R1_Event_ToWalk(cPlayer* pEm);
+void pl_R1_Event_Smooth(cPlayer* pEm);
 
 extern cPlayer* pPL;
 
@@ -363,7 +363,7 @@ void knife_r2_ready(cPlayer* pl);
 void knife_r2_set(cPlayer* pl);
 void knife_r2_fire(cPlayer* pl);
 void knife_r2_down(cPlayer* pl);
-void setWepTrans(cPlayer* pl, int on);
+void setWepTrans(cPlayer* pl, int onoff);
 
 // game/player.cpp: one-time init of the player system (game.cpp GameInit). C linkage.
 extern "C" void PlayerInit();

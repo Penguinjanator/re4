@@ -32,23 +32,23 @@ public:
 
     void setBreak();
     void setDelete();
-    void setEff(u8 eff);
-    void setParent(cModel* parent, int partsNo, int flag);
+    void setEff(u8 eff_id);
+    void setParent(cModel* pCoord, int oya_parts, int flag);
 };
 
 // C++ linkage (EtcModel.cpp calls it as SetTorch__FPvT0P3VecT2ii)
 cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo);
 
 extern "C" {
-void emTorchDmCk(cEmTorch* em);
+void emTorchDmCk(cEmTorch* pEm);
 void emTorchSetBreak(cEmTorch* em, u32 kind);   // 0/1: break effect 2, 2: effect 3
-void emTorch_R0_Init(cEmTorch* em);
-void emTorch_R0_Move(cEmTorch* em);
-void emTorch_R1_Set(cEmTorch* em);
-void emTorch_R1_Parent(cEmTorch* em);
-void emTorch_R1_Break(cEmTorch* em);
-void emTorch_R1_Fall(cEmTorch* em);
-void emTorchYarareInit(cEmTorch* em);
+void emTorch_R0_Init(cEmTorch* pEm);
+void emTorch_R0_Move(cEmTorch* pEm);
+void emTorch_R1_Set(cEmTorch* pEm);
+void emTorch_R1_Parent(cEmTorch* pEm);
+void emTorch_R1_Break(cEmTorch* pEm);
+void emTorch_R1_Fall(cEmTorch* pEm);
+void emTorchYarareInit(cEmTorch* pEm);
 }
 
 #endif

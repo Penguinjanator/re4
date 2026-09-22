@@ -27,14 +27,14 @@ cSofdec Sofdec;
 
 
 // Sofdec frame count (1/100 s units after scaling) -> h:m:s.frac.
-void UsrSfcnt2time(int tscale, int count, int* h, int* m, int* s, int* f)
+void UsrSfcnt2time(int sf, int ncnt, int* hh, int* mm, int* ss, int* ff)
 {
-    int t = (int) ((f32) count / (f32) tscale * 100.0f);
+    int t = (int) ((f32) ncnt / (f32) sf * 100.0f);
 
-    *h = t / 360000;
-    *m = t / 6000 - *h * 60;
-    *s = t / 100 - *h * 3600 - *m * 60;
-    *f = t % 100;
+    *hh = t / 360000;
+    *mm = t / 6000 - *hh * 60;
+    *ss = t / 100 - *hh * 3600 - *mm * 60;
+    *ff = t % 100;
 }
 
 // Debug overlay: the movie's play time (h:m:s:f) and frame info.
@@ -154,9 +154,9 @@ void restoreTevPrm()
 }
 
 // Sofdec error callback: prints the message and hangs.
-void ap_mwply_err_func(void* obj, const char* msg)
+void ap_mwply_err_func(void* obj, const char* errmsg)
 {
-    OSReport("%s\n", msg);
+    OSReport("%s\n", errmsg);
     for (;;) {
     }
 }
@@ -584,17 +584,17 @@ int cSofdec::Move()
 }
 
 // Task body: plays the movie to its end, then resumes slot 0 and exits.
-void cSofdec::ThreadMove(cSofdec* s)
+void cSofdec::ThreadMove(cSofdec* pThis)
 {
-    int r = s->initWork(s->m_fname);
+    int r = pThis->initWork(pThis->m_fname);
 
     if (r == 1) {
-        s->initApp(s->m_fname);
-        s->startApp();
+        pThis->initApp(pThis->m_fname);
+        pThis->startApp();
         StaFlagOn(pG, STA_MOVIE_ON);
-        s->initSync();
-        s->m_be_flag = 1;
-        while (s->Move() == 0) {
+        pThis->initSync();
+        pThis->m_be_flag = 1;
+        while (pThis->Move() == 0) {
             TaskSleep(1);
         }
     }
@@ -603,12 +603,12 @@ void cSofdec::ThreadMove(cSofdec* s)
 }
 
 // Pauses / resumes playback (m_be_flag bit2).
-void cSofdec::PlayPause(int pause)
+void cSofdec::PlayPause(int sw)
 {
-    if (pause == 1) {
+    if (sw == 1) {
         m_be_flag |= 4;
     } else {
         m_be_flag &= ~4;
     }
-    mwPlyPause(app.hn, pause);
+    mwPlyPause(app.hn, sw);
 }

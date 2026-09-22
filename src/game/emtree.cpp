@@ -132,24 +132,24 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
 }
 
 // Event start hook: nothing to do for trees.
-void cEmTree::beginEvent(u32 mode)
+void cEmTree::beginEvent(u32 flag)
 {
 }
 
 // A weapon hit only spawns the wood-splinter est (owner 1, est 12) at the hit.
-void emTreeDmCk(cEmTree* em)
+void emTreeDmCk(cEmTree* pEm)
 {
     u8 wep;
 
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmg.m_Wep;
-    em->dmg.m_Flag = 0;
+    wep = pEm->dmg.m_Wep;
+    pEm->dmg.m_Flag = 0;
     if (wep == 0x10) {
-        em->dmg.m_Timer = 0x11;
+        pEm->dmg.m_Timer = 0x11;
     }
-    EmDmBloodSet2(em, 1, 12, 0, 0, 0);
+    EmDmBloodSet2(pEm, 1, 12, 0, 0, 0);
 }
 
 // Per-frame: damage check, the Rno0 routine, then the model-vs-player atari and mirroring of the
@@ -180,94 +180,94 @@ void cEmTree::move()
 }
 
 // Rno0 == 0: resets to the Set state.
-void emTree_R0_Init(cEmTree* em)
+void emTree_R0_Init(cEmTree* pEm)
 {
-    em->r_no_0 = 1;
-    em->r_no_1 = 0;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 0;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 LostWait, 2 Lost, 3 Parent, 4 Fall, 5 Throw, 6 Shot).
-static void emTree_R0_Move(cEmTree* em)
+static void emTree_R0_Move(cEmTree* pEm)
 {
-    EmTree_R1_move_tbl[em->r_no_1](em);
+    EmTree_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: a standing tree; plays its motion or rebuilds the matrices from pos / ang.
-void emTree_R1_Set(cEmTree* em)
+void emTree_R1_Set(cEmTree* pEm)
 {
-    if (em->Motion.pMot) {
-        MotionMove(em, 0);
+    if (pEm->Motion.pMot) {
+        MotionMove(pEm, 0);
     } else {
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
     }
-    em->partsWorldCalc();
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 1: a fallen trunk at rest; after 90 frames (or at once when off screen) fades out and
 // goes to Lost.
-void emTree_R1_LostWait(cEmTree* em)
+void emTree_R1_LostWait(cEmTree* pEm)
 {
-    EmTreeWork* w = EMTREE_WK(em);
+    EmTreeWork* w = EMTREE_WK(pEm);
     Vec scr;
     Vec pos;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         w->Timer = 90;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
         if (w->Timer == 0) {
-            em->invisible_factor -= 0.1f;
-            if (em->invisible_factor <= 0.0f) {
-                em->invisible_factor = 0.0f;
-                em->r_no_0 = 1;
-                em->r_no_1 = 2;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+            pEm->invisible_factor -= 0.1f;
+            if (pEm->invisible_factor <= 0.0f) {
+                pEm->invisible_factor = 0.0f;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 2;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
                 break;
             }
         } else {
             w->Timer--;
         }
-        pos = em->pos;
+        pos = pEm->pos;
         GetScreenPos(&pos, &scr);
         if (scr.z > 1.0f) {
-            em->r_no_0 = 1;
-            em->r_no_1 = 2;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 2;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
         }
         break;
     }
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
-    em->partsMatCalc();
-    em->partsWorldCalc();
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
+    pEm->partsMatCalc();
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 2: hides the tree, drops its collision and destroys the work 30 frames later.
-void emTree_R1_Lost(cEmTree* em)
+void emTree_R1_Lost(cEmTree* pEm)
 {
-    EmTreeWork* w = EMTREE_WK(em);
+    EmTreeWork* w = EMTREE_WK(pEm);
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        em->hp = 0;
-        em->atari.m_flag &= ~0x200;
-        em->be_flag &= ~2;
+        pEm->hp = 0;
+        pEm->atari.m_flag &= ~0x200;
+        pEm->be_flag &= ~2;
         w->Timer = 30;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
         if (w->Timer) {
             w->Timer--;
         } else {
-            EmMgr.destroy(em);
+            EmMgr.destroy(pEm);
         }
         break;
     }
@@ -276,20 +276,20 @@ void emTree_R1_Lost(cEmTree* em)
 // Rno1 == 3: carried: follows parts `oya_parts` of pParent (rotation re-normalised unless
 // Be_flg bit0), plays its motion when it has one, and counts fallTimer down to setFall (a tree
 // stuck in the player).
-void emTree_R1_Parent(cEmTree* em)
+void emTree_R1_Parent(cEmTree* pEm)
 {
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
-    EmTreeWork* w = EMTREE_WK(em);
+    EmTreeWork* w = EMTREE_WK(pEm);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, pEm->mat, m);
         if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -325,19 +325,19 @@ void emTree_R1_Parent(cEmTree* em)
             m[1][2] = v2.y;
             m[2][2] = v2.z;
         }
-        PSMTXCopy(m, em->mat);
+        PSMTXCopy(m, pEm->mat);
     }
-    if (em->Motion.pMot) {
-        em->Motion.Mot_flag |= 0x40000000;
-        MotionMove(em, 0);
+    if (pEm->Motion.pMot) {
+        pEm->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pEm, 0);
     } else {
-        em->partsMatCalc();
+        pEm->partsMatCalc();
     }
-    em->partsWorldCalc();
+    pEm->partsWorldCalc();
     if (w->Fall_wait) {
         w->Fall_wait--;
         if (w->Fall_wait == 0) {
-            em->setFall();
+            pEm->setFall();
         }
     }
 }
@@ -346,9 +346,9 @@ void emTree_R1_Parent(cEmTree* em)
 // passes, floor contact with the landing SE / est and effect deletion, random bounce damping; the
 // matrix is rebuilt from the nodes and the tree comes to rest (Rno1 1) when the node speeds are
 // small.
-void emTree_R1_Fall(cEmTree* em)
+void emTree_R1_Fall(cEmTree* pEm)
 {
-    EmTreeWork* w = EMTREE_WK(em);
+    EmTreeWork* w = EMTREE_WK(pEm);
     Vec pt[3] = {
         { 0.0f, 7000.0f, 0.0f },
         { 0.0f, 0.0f, 0.0f },
@@ -367,8 +367,8 @@ void emTree_R1_Fall(cEmTree* em)
     f32 mag;
     f32 d;
 
-    em->hp = 0;
-    floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 300.0f;
+    pEm->hp = 0;
+    floor = EatMgr.getFloor(&pEm->pos, 0, 600.0f, 100000.0f, 0) + 300.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pt[i].x;
@@ -377,7 +377,7 @@ void emTree_R1_Fall(cEmTree* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        PSMTXMultVec(em->mat, &pt[i], &n->pos);
+        PSMTXMultVec(pEm->mat, &pt[i], &n->pos);
         n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
@@ -434,21 +434,21 @@ void emTree_R1_Fall(cEmTree* em)
             if (w->landed == 0 && n->spd.y < -50.0f) {
                 w->landed = 1;
                 if (w->seFall[0] != 0xFF) {
-                    SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
+                    SndCall(w->seFall[0], w->seFall[1], &pEm->pos, w->seFall[2], 0, pEm);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
-                    EstSet(em, -1, 0, 0, w->effFall[0], w->effFall[1], 0, ESP_CORE_KIND_NONE, em, 0);
-                    em->be_flag &= ~2;
-                    em->r_no_0 = 1;
-                    em->r_no_1 = 2;
-                    em->r_no_2 = 0;
-                    em->r_no_3 = 0;
+                    EstSet(pEm, -1, 0, 0, w->effFall[0], w->effFall[1], 0, ESP_CORE_KIND_NONE, pEm, 0);
+                    pEm->be_flag &= ~2;
+                    pEm->r_no_0 = 1;
+                    pEm->r_no_1 = 2;
+                    pEm->r_no_2 = 0;
+                    pEm->r_no_3 = 0;
                     return;
                 }
             }
-            EffectEspDelete(0, w->estNo, em, 0);
-            EffectEspgenDelete(0, w->estNo, em);
-            EffectEfmDelete(0, w->estNo, em);
+            EffectEspDelete(0, w->estNo, pEm, 0);
+            EffectEspgenDelete(0, w->estNo, pEm);
+            EffectEfmDelete(0, w->estNo, pEm);
             n->spd.x *= fRand0_1() * 0.2f + 0.5f;
             n->spd.y *= -(fRand0_1() * 0.2f + 0.5f);
             n->spd.z *= fRand0_1() * 0.2f + 0.5f;
@@ -478,88 +478,88 @@ void emTree_R1_Fall(cEmTree* em)
     VECNormalize(&a, &a);
 #line 687 "D:/Bio4/Prog/emtree.cpp"
     VECNormalize(&c, &c);
-    em->mat[0][0] = b.x;
-    em->mat[1][0] = b.y;
-    em->mat[2][0] = b.z;
-    em->mat[0][1] = a.x;
-    em->mat[1][1] = a.y;
-    em->mat[2][1] = a.z;
-    em->mat[0][2] = c.x;
-    em->mat[1][2] = c.y;
-    em->mat[2][2] = c.z;
+    pEm->mat[0][0] = b.x;
+    pEm->mat[1][0] = b.y;
+    pEm->mat[2][0] = b.z;
+    pEm->mat[0][1] = a.x;
+    pEm->mat[1][1] = a.y;
+    pEm->mat[2][1] = a.z;
+    pEm->mat[0][2] = c.x;
+    pEm->mat[1][2] = c.y;
+    pEm->mat[2][2] = c.z;
     PSVECScale(&pt[0], &tmp, -1.0f);
-    TransMatrix(em->mat, &node[0].pos);
-    PSMTXMultVec(em->mat, &tmp, &tmp);
-    TransMatrix(em->mat, &tmp);
-    em->pos = tmp;
+    TransMatrix(pEm->mat, &node[0].pos);
+    PSMTXMultVec(pEm->mat, &tmp, &tmp);
+    TransMatrix(pEm->mat, &tmp);
+    pEm->pos = tmp;
     mag = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z
         + node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z
         + node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
     if (mag < 25.0f) {
-        em->pos.x = em->mat[0][3];
-        em->pos.y = em->mat[1][3];
-        em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->ang);
-        em->r_no_0 = 1;
-        em->r_no_1 = 1;
-        em->r_no_2 = 0;
-        em->r_no_3 = 0;
+        pEm->pos.x = pEm->mat[0][3];
+        pEm->pos.y = pEm->mat[1][3];
+        pEm->pos.z = pEm->mat[2][3];
+        Matrix2AxisAngle(pEm->mat, &pEm->ang);
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 1;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 0;
     }
-    em->partsWorldCalc();
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 5: the thrown trunk flies with gravity 15 spinning end over end (36 degrees / frame
 // about the axis perpendicular to its path), looping the whoosh SE; hitting the scenery or the
 // player (EmAtkHitCk with pAtk: damage, vibration, quake, blood) makes it fall.
-void emTree_R1_Throw(cEmTree* em)
+void emTree_R1_Throw(cEmTree* pEm)
 {
-    EmTreeWork* w = EMTREE_WK(em);
+    EmTreeWork* w = EMTREE_WK(pEm);
     Vec d;
     Mtx m;
     Vec up;
     Vec fwd;
     f32 ang;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         w->Timer = 0;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
         if (w->Timer) {
             w->Timer--;
         } else {
             w->Timer = w->seAlwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
-                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
+                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &pEm->pos, w->seAlways[2], 0, pEm);
             }
         }
         break;
     }
     w->spd.y -= 15.0f;
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (EatMgr.hitCheck(&em->pos_old, &em->pos, 0, 0, 0, 0)) {
-        em->setFall();
+    PSVECAdd(&pEm->pos, &w->spd, &pEm->pos);
+    if (EatMgr.hitCheck(&pEm->pos_old, &pEm->pos, 0, 0, 0, 0)) {
+        pEm->setFall();
         if (w->seWall[0] != 0xFF && w->seWall[1] != 0xFF) {
-            SndCall(w->seWall[0], w->seWall[1], &em->pos, w->seWall[2], 0, em);
+            SndCall(w->seWall[0], w->seWall[1], &pEm->pos, w->seWall[2], 0, pEm);
         }
         SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
-        if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 1)) {
+        if (EmAtkHitCk(w->pAtk, &pEm->pos, &pEm->pos_old, 1)) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
-                SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
+                SndCall(w->seHit[0], w->seHit[1], &pEm->pos, w->seHit[2], 0, pEm);
             }
             SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
-                EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
+                EmPlBloodSet2(pEm, &pEm->pos, 1, w->effHit[0], w->effHit[1]);
             } else {
-                EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
+                EmPlBloodSet2(pEm, &pEm->pos, 1, 0xFF, 0xFF);
             }
-            em->setFall();
+            pEm->setFall();
         }
     }
-    PSVECSubtract(&em->pos, &em->pos_old, &d);
+    PSVECSubtract(&pEm->pos, &pEm->pos_old, &d);
     PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     up.x = 0.0f;
     up.y = 1.0f;
@@ -577,19 +577,19 @@ void emTree_R1_Throw(cEmTree* em)
     if (ang > 0.01f && ang < 3.1315927f) {
         PSVECCrossProduct(&up, &fwd, &up);
         PSMTXRotAxisRad(m, &up, 0.62831855f);
-        PSMTXConcat(m, em->mat, em->mat);
+        PSMTXConcat(m, pEm->mat, pEm->mat);
     }
-    TransMatrix(em->mat, &em->pos);
-    em->partsWorldCalc();
+    TransMatrix(pEm->mat, &pEm->pos);
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 6: the trunk launched straight (no gravity) for at most 90 frames; a scenery hit stops
 // it in place (Rno2 2: rests 60 frames then falls), a player hit deals the pAtk damage and either
 // makes it fall or, when the hit part is flagged 0x4000, impales the player: the tree is parented
 // to that parts and drops after 30 frames (at once when the player is dead).
-void emTree_R1_Shot(cEmTree* em)
+void emTree_R1_Shot(cEmTree* pEm)
 {
-    EmTreeWork* w = EMTREE_WK(em);
+    EmTreeWork* w = EMTREE_WK(pEm);
     Vec hit;
     Vec hitPos;
     Vec nrm;
@@ -598,93 +598,93 @@ void emTree_R1_Shot(cEmTree* em)
     int no;
     f32 len;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         w->Timer = 0;
         w->Timer2 = 90;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
         if (w->Timer) {
             w->Timer--;
         } else {
             w->Timer = w->seAlwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
-                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
+                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &pEm->pos, w->seAlways[2], 0, pEm);
             }
         }
         if (w->Timer2) {
             w->Timer2--;
         } else {
-            em->r_no_0 = 1;
-            em->r_no_1 = 2;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 2;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
             return;
         }
         break;
     case 2:
         w->pEm_old = 0;
         w->Timer = 60;
-        em->hp = 0;
-        em->r_no_2++;
+        pEm->hp = 0;
+        pEm->r_no_2++;
     case 3:
-        em->partsWorldCalc();
+        pEm->partsWorldCalc();
         if (w->Timer) {
             w->Timer--;
         } else {
-            em->setFall();
+            pEm->setFall();
             SndStop(w->seid_throw, 0);
         }
         return;
     }
     w->spd.y -= 0.0f;
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, 0, 0, 0)) {
+    PSVECAdd(&pEm->pos, &w->spd, &pEm->pos);
+    if (EatMgr.hitCheck(&pEm->pos_old, &pEm->pos, &hit, 0, 0, 0)) {
         if (w->seWall[0] != 0xFF && w->seWall[1] != 0xFF) {
-            SndCall(w->seWall[0], w->seWall[1], &em->pos, w->seWall[2], 0, em);
+            SndCall(w->seWall[0], w->seWall[1], &pEm->pos, w->seWall[2], 0, pEm);
         }
         SndStop(w->seid_throw, 0);
-        em->pos = hit;
-        TransMatrix(em->mat, &em->pos);
-        em->partsWorldCalc();
-        em->r_no_2 = 2;
-    } else if (w->pAtk && (part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0)) != 0) {
+        pEm->pos = hit;
+        TransMatrix(pEm->mat, &pEm->pos);
+        pEm->partsWorldCalc();
+        pEm->r_no_2 = 2;
+    } else if (w->pAtk && (part = (YARARE_INFO*) EmAtkLineHitCk(&pEm->pos_old, &pEm->pos, &hitPos, &nrm, 0)) != 0) {
         VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
-            SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
+            SndCall(w->seHit[0], w->seHit[1], &pEm->pos, w->seHit[2], 0, pEm);
         }
         SndStop(w->seid_throw, 0);
         QuakeExec(0, 0, 5, 22.0f, 2);
         if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
-            EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
+            EmPlBloodSet2(pEm, &pEm->pos, 1, w->effHit[0], w->effHit[1]);
         } else {
-            EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
+            EmPlBloodSet2(pEm, &pEm->pos, 1, 0xFF, 0xFF);
         }
-        EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
+        EmAtkSetDamagePL((cEm*) part, w->pAtk, &pEm->pos_old, &pEm->pos);
         if ((part->flag & YAT_FLAG_DMPOS) == 0) {
-            em->setFall();
+            pEm->setFall();
         } else {
             no = 0;
             if (part->parts_no != 0) {
                 no = part->parts_no - 1;
             }
             PSMTXInverse(pPL->getPartsPtr(no)->mat, inv);
-            PSMTXMultVec(inv, &part->cross, &em->pos);
-            len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
-            em->ang.x = -atan2f(-em->pos.y, len);
-            em->ang.y = atan2f(-em->pos.x, -em->pos.z);
-            em->ang.z = 0.0f;
+            PSMTXMultVec(inv, &part->cross, &pEm->pos);
+            len = SQRTF(pEm->pos.x * pEm->pos.x + pEm->pos.z * pEm->pos.z);
+            pEm->ang.x = -atan2f(-pEm->pos.y, len);
+            pEm->ang.y = atan2f(-pEm->pos.x, -pEm->pos.z);
+            pEm->ang.z = 0.0f;
             if ((s16) pG->pl_life <= 0) {
                 w->Fall_wait = 0;
             } else {
                 w->Fall_wait = 30;
             }
-            em->setParent(pPL, no, 0);
-            emTree_R1_Parent(em);
+            pEm->setParent(pPL, no, 0);
+            emTree_R1_Parent(pEm);
         }
     } else {
-        TransMatrix(em->mat, &em->pos);
-        em->partsWorldCalc();
+        TransMatrix(pEm->mat, &pEm->pos);
+        pEm->partsWorldCalc();
     }
 }
 

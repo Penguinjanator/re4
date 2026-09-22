@@ -17,11 +17,11 @@ void* mem_calloc(u32 size, const char* file, int line, int a, int b);
 #define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
 
 // Debug heap (CurrentDbgHeap). Debug_free is the out-of-line copy owned by main_mem.
-void* Debug_alloc(u32 size, int flag);
-void Debug_free(void* p);
+void* Debug_alloc(u32 size, int release_flag);
+void Debug_free(void* addr);
 // Free to a given heap (MEM_HEAP_CURRENT = the current one); datactrl calls them directly.
-void Mem_free_h(void* p, int heap);
-void Debug_free_h(void* p, int heap);
+void Mem_free_h(void* pAddr, int heap_no);
+void Debug_free_h(void* addr, int heap_no);
 
 extern "C" {
 // game/memset_2.s
@@ -66,26 +66,26 @@ extern u32 _epy_base;
 
 void SystemMemInit();
 void memInitHeapTbl();
-void MemSuspendHeap(int no);
-void MemSignalHeap(int no);
-int memGetHeapSattus(int no);
-int memCheckHeapActive(int no);
-int MemSetCurrentHeap(int no);
-int MemSetCurrentDbgHeap(int no);
+void MemSuspendHeap(int heap_no);
+void MemSignalHeap(int heap_no);
+int memGetHeapSattus(int heap_no);
+int memCheckHeapActive(int heap_no);
+int MemSetCurrentHeap(int heap_no);
+int MemSetCurrentDbgHeap(int heap_no);
 u8 MemGetCurrentHeap();
 u8 MemGetCurrentDbgHeap();
-u32 MemGetHeapStartAddr(int no);
-u32 MemGetHeapEndAddr(int no);
-u32 MemCheckHeapEnd(int no);
+u32 MemGetHeapStartAddr(int heap_no);
+u32 MemGetHeapEndAddr(int heap_no);
+u32 MemCheckHeapEnd(int heap_no);
 int MemCreateHeap(int no, u32 start, u32 end);
-int MemDestroyHeap(int no);
-int MemReplaceHeap(int from, int to);
+int MemDestroyHeap(int heap_no);
+int MemReplaceHeap(int old_heap, int new_heap);
 void MemClearAllHeap();
-void Mem_free(void* p);
+void Mem_free(void* pAddr);
 void SetDebugAlloc();
 void ResetDebugAlloc();
-void* MemAlloc(u32 size, int flag);
-void MemFree(void* p);
+void* MemAlloc(u32 size, int release_flag);
+void MemFree(void* addr);
 extern "C" void MemCheckUsedHeap();  // C linkage in the DOL (debug.cpp calls `bl MemCheckUsedHeap`)
 
 #endif

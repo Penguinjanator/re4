@@ -59,19 +59,19 @@ public:
     u32 nTexObj;         // 0x540C
     const char* m_name;    // 0x5410
 
-    void Init(const char* name, u32 num);
+    void Init(const char* name, u32 max);
     void Clear();
     int GetTexObjFlag(u32 no);
-    void SetTexObjFlag(u32 no, int flag);
+    void SetTexObjFlag(u32 no, int flg);
     int DataLoad(TexData* data, u32 owner, int clamp);
     GXTexObj* PullTexObj(u32 num);
     void CalcTplAddr(TEXPalette* tpl);
     int TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp, int check);
-    int GetTplAddr(u32 id, TEXPalette** out);
-    int GetTexObj(u32 id, u32 no, GXTexObj** out);
-    int GetAnmAddr(u32 id, TexAnm** out);
+    int GetTplAddr(u32 id, TEXPalette** tpl_addr);
+    int GetTexObj(u32 id, u32 no, GXTexObj** texobj);
+    int GetAnmAddr(u32 id, TexAnm** anm);
     int GetTlutObj(u32 id, GXTlutObj** out);
-    TexWk* GetTexWk(u32 id, int quiet);
+    TexWk* GetTexWk(u32 id, int bNoDispErrMsg);
     int TexRelease(u32 owner);
 };
 

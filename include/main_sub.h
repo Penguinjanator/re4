@@ -40,28 +40,28 @@ void Render_swap();
 void UpdateNearClipDist();
 void SetNearClipDist(f32 dist);
 void Render_DrawSyncCallback(u16 token);
-void systemVISetBlack(int black);
+void systemVISetBlack(int sw);
 void SetScissorState();
 void SetNoScissor();
 void ScreenGXSet();
 void ScreenReSize(u16 w, u16 h);
 void EFBReSize(int w, int h);
-void SecToTime(u32 sec, u32* h, u32* m, u32* s);
+void SecToTime(u32 sec, u32* ret_time, u32* ret_min, u32* ret_sec);
 void InitGameTime();
-u32 GetGameTime(u32* h, u32* m, u32* s);
+u32 GetGameTime(u32* ret_time, u32* ret_min, u32* ret_sec);
 void SetGameTime();
-void ScreenShotStart(char* name, int frame, int flag);
+void ScreenShotStart(char* file_name, int start_frame, int flag336);
 void ScreenShotEnd();
 void SelfScreenShotInit();
 void StopwatchInit();
 void StopwatchStart();
-u32 StopwatchStop(const char* name);
+u32 StopwatchStop(const char* pName);
 void after_render_proc();
-void Bg_brightness_set(f32 brightness);
+void Bg_brightness_set(f32 bright);
 void DrawTpl(struct TEXPalette* tpl, int x, int y, int w, int h);
-void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h);
-void DLL_Unlink(OSModuleHeader* module);
-void DLL_Link(OSModuleHeader* module, void* bss);
+void DrawTexture(GXTexObj* texobj, s16 x, s16 y, s16 z, s16 w, s16 h);
+void DLL_Unlink(OSModuleHeader* pModule);
+void DLL_Link(OSModuleHeader* pModule, void* pBss);
 }
 // main_sub.cpp also owns flag_render_after, AutoScreenShotExec, ScreenShotExec,
 // ScreenShotTriggerType, ScreenShotFilename[11]; declare them extern locally where needed

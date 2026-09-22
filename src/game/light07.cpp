@@ -11,16 +11,16 @@ cLight07::cLight07()
 // LightFuncTbl[7]: Rno0 0 copies the colour, 1 spins the angles and sets normal = the far point
 // (100000 units) in that direction.
 // Rotating directional light: the direction is rebuilt from spinning angles every frame.
-void Light07_Move(cLight* l)
+void Light07_Move(cLight* pLi)
 {
-    Vec* n = &l->normal;
-    Vec* ang = (Vec*)l->work;
-    Vec* spd = (Vec*)(l->work + 0xC);
+    Vec* n = &pLi->normal;
+    Vec* ang = (Vec*)pLi->work;
+    Vec* spd = (Vec*)(pLi->work + 0xC);
 
-    switch (l->Rno0) {
+    switch (pLi->Rno0) {
     case 0:
-        l->DispCol = l->Col;
-        l->Rno0 = 1;
+        pLi->DispCol = pLi->Col;
+        pLi->Rno0 = 1;
     case 1:
         PSVECAdd(ang, spd, ang);
         ang->x = LIMIT_ANGLE(ang->x);

@@ -33,24 +33,24 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMITEM_WK)
     virtual void move();
 
-    void setEff(u8 eff);
+    void setEff(u8 eff_id);
     int ckStatus();
-    void setParent(cModel* parent, int partsNo, int noNormalize);
+    void setParent(cModel* pCoord, int oya_parts, int mode);
     void setRotType(u8 type);
 };
 
 extern "C" {
 cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo);
-void emItemDmCk(cEmItem* em);
-void emItem_R0_Init(cEmItem* em);
-void emItem_R0_Move(cEmItem* em);
-void emItem_R1_Set(cEmItem* em);
-void emItem_R1_MedalSet(cEmItem* em);
-void emItem_R1_Parent(cEmItem* em);
-void emItem_R1_Drop(cEmItem* em);
-void emItem_R1_Break(cEmItem* em);
-void emItemYarareInit(cEmItem* em);
-void emItemRotMove(cEmItem* em);
+void emItemDmCk(cEmItem* pEm);
+void emItem_R0_Init(cEmItem* pEm);
+void emItem_R0_Move(cEmItem* pEm);
+void emItem_R1_Set(cEmItem* pEm);
+void emItem_R1_MedalSet(cEmItem* pEm);
+void emItem_R1_Parent(cEmItem* pEm);
+void emItem_R1_Drop(cEmItem* pEm);
+void emItem_R1_Break(cEmItem* pEm);
+void emItemYarareInit(cEmItem* pEm);
+void emItemRotMove(cEmItem* pEm);
 }
 
 #endif

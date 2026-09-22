@@ -101,15 +101,15 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
 // partners: kind 1, enemies: kind 2; the player cannot cross an intact type 1 window; NPCs need a
 // ladder-style approach), and the move must cross the window plane. Returns 1 with the crossing
 // direction (window -z or +z in world), the window position, its status word and the window.
-int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out)
+int ChkWindow(cModel* pModTar, Vec* pos0, Vec* pos1, int field_id, u16* etc_flag, Vec* pNorm, Vec* pCenter, cEmWindow** o_pEm)
 {
     SceAtField* info;
     cEmWindow* win;
 
-    if (out) {
-        *out = 0;
+    if (o_pEm) {
+        *o_pEm = 0;
     }
-    if (m == 0) {
+    if (pModTar == 0) {
         pLog->err(0, 0, "SceAtCheck : param error");
         return 0;
     }
@@ -117,7 +117,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
     if (info == 0) {
         return 0;
     }
-    if (info->value != id) {
+    if (info->value != field_id) {
         return 0;
     }
     win = (cEmWindow*) info->pModel;
@@ -128,7 +128,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
     if (win->id != 0x46) {
         return 0;
     }
-    if (m->id <= 0xF) {
+    if (pModTar->id <= 0xF) {
         if (win->ChkEnableFence(1) == 0) {
             return 0;
         }
@@ -137,42 +137,42 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
             return 0;
         }
     }
-    if (m->id == 0) {
+    if (pModTar->id == 0) {
         if ((!(win->ChkStatus() & 1)) && win->type == WindowTypeEt07) {
             return 0;
         }
     }
-    if (m->id != 3 && m->id <= 0xF) {
+    if (pModTar->id != 3 && pModTar->id <= 0xF) {
         if (LadderNearCk(&win->pos) == 0) {
             return 0;
         }
     }
     if (Front_check(win, pos0, PI / 2) == 0 && Front_check(win, pos1, PI / 2) == 1) {
-        dir->x = 0.0f;
-        dir->y = 0.0f;
-        dir->z = -1.0f;
-        RotVector(dir, &win->ang, dir);
-        pos->x = win->pos.x;
-        pos->y = win->pos.y;
-        pos->z = win->pos.z;
-        if (out) {
-            *out = win;
+        pNorm->x = 0.0f;
+        pNorm->y = 0.0f;
+        pNorm->z = -1.0f;
+        RotVector(pNorm, &win->ang, pNorm);
+        pCenter->x = win->pos.x;
+        pCenter->y = win->pos.y;
+        pCenter->z = win->pos.z;
+        if (o_pEm) {
+            *o_pEm = win;
         }
-        *status = win->ChkStatus();
+        *etc_flag = win->ChkStatus();
         return 1;
     }
     if (Front_check(win, pos0, PI / 2) == 1 && Front_check(win, pos1, PI / 2) == 0) {
-        dir->x = 0.0f;
-        dir->y = 0.0f;
-        dir->z = 1.0f;
-        RotVector(dir, &win->ang, dir);
-        pos->x = win->pos.x;
-        pos->y = win->pos.y;
-        pos->z = win->pos.z;
-        if (out) {
-            *out = win;
+        pNorm->x = 0.0f;
+        pNorm->y = 0.0f;
+        pNorm->z = 1.0f;
+        RotVector(pNorm, &win->ang, pNorm);
+        pCenter->x = win->pos.x;
+        pCenter->y = win->pos.y;
+        pCenter->z = win->pos.z;
+        if (o_pEm) {
+            *o_pEm = win;
         }
-        *status = win->ChkStatus();
+        *etc_flag = win->ChkStatus();
         return 1;
     }
     return 0;
@@ -667,9 +667,9 @@ u8 cEmWindow::GetFloor()
 
 // Break direction for a body at `p`: 1 in front of the window, else 2 when there is no floor
 // behind it, else 0.
-int cEmWindow::ChkBreakDir(Vec* p)
+int cEmWindow::ChkBreakDir(Vec* pPos)
 {
-    if (Front_check(this, p, PI / 2) != 0) {
+    if (Front_check(this, pPos, PI / 2) != 0) {
         return 1;
     }
     return GetFloor() == 1 ? 2 : 0;
@@ -688,13 +688,13 @@ int cEmWindow::ChkStatus()
 }
 
 // ORs `f` into the window's etc flag word.
-void cEmWindow::SetStatus(u16 f)
+void cEmWindow::SetStatus(u16 flag)
 {
     u16* flg;
 
     flg = GetEtcFlgPtr(getEtc(), pG->room_id);
     if (flg) {
-        *flg |= f;
+        *flg |= flag;
     }
 }
 
@@ -718,7 +718,7 @@ int cEmWindow::SetShake()
 
 // Breaks the window (unless flag 3 says already broken): break SE by type, the shard est for the
 // direction of `p` / size / event style, then the broken model and collision removal.
-int cEmWindow::SetBreakAll(Vec* p, int break_size, int breakType)
+int cEmWindow::SetBreakAll(Vec* pPos, int break_size, int breakType)
 {
     if (ChkEtcFlag(3) == 0) {
         switch (type) {
@@ -732,7 +732,7 @@ int cEmWindow::SetBreakAll(Vec* p, int break_size, int breakType)
             SndCall(6, 0x3B, &pos, 0, 0, this);
             break;
         }
-        SetBreakEsp(ChkBreakDir(p), break_size, breakType);
+        SetBreakEsp(ChkBreakDir(pPos), break_size, breakType);
         SetBreakModel();
     }
     return 1;
@@ -785,7 +785,7 @@ int cEmWindow::SetAtariOff()
 
 // Spawns the shard est of `eff`: id from tblA (weapon break) or tblB (event break) by direction
 // (0..3) and size kind (0 small / 1 large), at the window origin with its rotation.
-int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
+int cEmWindow::SetBreakEsp(int dir_type, int break_size, int breakType)
 {
     Vec p;
     Vec r;
@@ -795,22 +795,22 @@ int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
     int id;
 
     eff = getEff();
-    if (kind > 1) {
-        kind = 1;
+    if (break_size > 1) {
+        break_size = 1;
         pLog->err(0, 0, "EmWindow : break_size limit over");
     }
-    if (flag == 0) {
-        if (dir > 3) {
-            dir = 0;
+    if (breakType == 0) {
+        if (dir_type > 3) {
+            dir_type = 0;
             pLog->err(0, 0, "EmWindow : espid faild!");
         }
-        id = tblA[dir][kind];
+        id = tblA[dir_type][break_size];
     } else {
-        if (dir > 2) {
-            dir = 0;
+        if (dir_type > 2) {
+            dir_type = 0;
             pLog->err(0, 0, "EmWindow : espid faild!");
         }
-        id = tblB[dir][kind];
+        id = tblB[dir_type][break_size];
     }
     p.x = 0.0f;
     p.y = 0.0f;
@@ -826,11 +826,11 @@ int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
 }
 
 // Enables / disables weapon damage (etc bit 0 = disabled).
-void cEmWindow::SetEnableDamage(int on)
+void cEmWindow::SetEnableDamage(int flag)
 {
     int v = 1;
 
-    if (on == 1) {
+    if (flag == 1) {
         v = 0;
     }
     SetEtcFlag(0, v);
@@ -847,40 +847,40 @@ int cEmWindow::ChkEnableDamage()
 
 // Sets / clears bit `no` of the window's own flag table (0 damage off, 1 / 2 fence kinds off, 3
 // broken).
-void cEmWindow::SetEtcFlag(u32 no, int on)
+void cEmWindow::SetEtcFlag(u32 flag, int boolType)
 {
-    if (on == 1) {
-        FlagOnVar(EMWINDOW_WK(this)->etcFlag, no);
+    if (boolType == 1) {
+        FlagOnVar(EMWINDOW_WK(this)->etcFlag, flag);
     } else {
-        FlagOffVar(EMWINDOW_WK(this)->etcFlag, no);
+        FlagOffVar(EMWINDOW_WK(this)->etcFlag, flag);
     }
 }
 
 // Bit `no` of the window's own flag table.
-int cEmWindow::ChkEtcFlag(u32 no)
+int cEmWindow::ChkEtcFlag(u32 flag)
 {
     u32* flg = EMWINDOW_WK(this)->etcFlag;
 
-    if (flg[no >> 5] & (0x80000000 >> (no & 0x1F))) {
+    if (flg[flag >> 5] & (0x80000000 >> (flag & 0x1F))) {
         return 1;
     }
     return 0;
 }
 
 // Allows / forbids crossing for fence users of `kind` (1 player side, 2 enemy side, 0 both).
-int cEmWindow::SetEnableFence(int on, int kind)
+int cEmWindow::SetEnableFence(int flag, int enableFlag)
 {
     EmWindowWork* w = EMWINDOW_WK(this);
 
-    if (kind == 0 || kind == 1) {
-        if (on == 1) {
+    if (enableFlag == 0 || enableFlag == 1) {
+        if (flag == 1) {
             EMWINDOW_WK(this)->etcFlag[0] &= ~0x40000000;
         } else {
             EMWINDOW_WK(this)->etcFlag[0] |= 0x40000000;
         }
     }
-    if (kind == 0 || kind == 2) {
-        if (on == 1) {
+    if (enableFlag == 0 || enableFlag == 2) {
+        if (flag == 1) {
             w->etcFlag[0] &= ~0x20000000;
         } else {
             w->etcFlag[0] |= 0x20000000;
@@ -890,15 +890,15 @@ int cEmWindow::SetEnableFence(int on, int kind)
 }
 
 // 1 when fence users of `kind` (1 / 2) may cross this window.
-int cEmWindow::ChkEnableFence(int kind)
+int cEmWindow::ChkEnableFence(int enableFlag)
 {
     u32 t;
 
-    if (kind == 1) {
+    if (enableFlag == 1) {
         t = EMWINDOW_WK(this)->etcFlag[0] & 0x40000000;
         return t == 0;
     }
-    if (kind == 2) {
+    if (enableFlag == 2) {
         t = EMWINDOW_WK(this)->etcFlag[0] & 0x20000000;
         return t == 0;
     }

@@ -59,27 +59,27 @@ struct AreaData {
 
 struct GeoCone;
 
-int AreaHitCheck(void* area, Vec* pos);
+int AreaHitCheck(void* pAre, Vec* pPos);
 
 extern "C" {
-int areaHitCheck_xz4(AreaXZ4* pXz4, Vec* pos);
-int areaHitCheck_Cylinder(AreaCylinder* pCld, Vec* pos);
-int AreaViewCheck(AreaData* area, GeoCone* cone);
-void AreaGetCenterPos(Vec* out, AreaData* area);
-void AreaGetInsidePos(Vec* out, AreaData* area);
+int areaHitCheck_xz4(AreaXZ4* pXz4, Vec* pPos);
+int areaHitCheck_Cylinder(AreaCylinder* pCld, Vec* pPos);
+int AreaViewCheck(AreaData* pAre, GeoCone* pCrev);
+void AreaGetCenterPos(Vec* pos, AreaData* area);
+void AreaGetInsidePos(Vec* pos, AreaData* area);
 void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height);
-void area_Draw_sphere(Vec pos, f32 r, u32 color, Mtx mtx);
-void area_Draw_line(Vec pos1, Vec pos2, u32 color, Mtx mtx);
-void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate);
-void area_xz4_Edit(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
+void area_Draw_sphere(Vec pos, f32 r, u32 rgb, Mtx pMat);
+void area_Draw_line(Vec pos1, Vec pos2, u32 rgb, Mtx pMat);
+void AreaDataEdit(AreaData* area, u32 col, int flg, Mtx pMat, f32 move_scale);
+void area_xz4_Edit(AreaXZ4* pXz4, u32 col, int flg, Mtx pMat, u32 state, Vec vec1, Vec vec2, f32 move_x, f32 move_y, f32 move_scale);
 void area_cylinder_Edit(AreaCylinder* pCld, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
 void area_eye_trigger_Edit(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
-void AreaDataDisp(AreaData* area, u32 color, int flag, Mtx mtx);
+void AreaDataDisp(AreaData* pAre, u32 col, int flg, Mtx pMat);
 void area_xz4_Disp(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx);
 void area_cylinder_Disp(AreaCylinder* pCld, u32 color, int flag, Mtx mtx);
-void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx);
-void AreaDataInfoDisp(AreaData* area, int x, s16 y);
-void AreaDataHelpDisp(AreaData* area, int x, s16 y);
+void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 col, int flg, Mtx pMat);
+void AreaDataInfoDisp(AreaData* pArea, int x, s16 y);
+void AreaDataHelpDisp(AreaData* pArea, int x, s16 y);
 }
 
 #endif

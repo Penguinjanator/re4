@@ -64,7 +64,7 @@ void cEsp40::move()
 
 // A parent with Release_time 0 is dropped to world space at once. Attached effects record Ofs_y,
 // Base_Pos and the y speeds; world-space effects are simply placed at water height + Pos.y.
-int cEsp40::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp40::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     f32 h;
 
@@ -74,12 +74,12 @@ int cEsp40::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     if (parent != pEffParentWorld && (m_Release_time == 0xff || m_Release_time <= m_Life_time)) {
         Esp40Work* w = &m_Free;
-        w->Ofs_y = gen->Pos.y;
+        w->Ofs_y = pSeq->Pos.y;
         w->Base_Pos = m_Pos;
         w->Speed_y = m_Speed.y;
         w->Speed_plus_y = m_Speed_plus.y;
     } else if (GetWaterHeight(&m_Pos, &h)) {
-        m_Pos.y = h + gen->Pos.y;
+        m_Pos.y = h + pSeq->Pos.y;
     }
     return 1;
 }

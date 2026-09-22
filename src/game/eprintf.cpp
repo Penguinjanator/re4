@@ -64,13 +64,13 @@ void EprintfInit();
 
 // Spreads the 8 bits of `bits` into the 8 hex digits of the result (for printing a byte as
 // "01010101" with %08X).
-int BtoX(int bits)
+int BtoX(int b)
 {
     int i;
     int x = 0;
     for (i = 7; i >= 0; i--) {
         x <<= 4;
-        x += (bits >> i) & 1;
+        x += (b >> i) & 1;
     }
     return x;
 }
@@ -83,25 +83,25 @@ int EprintfSetCurrentNo()
 
 // Buffers a formatted line at screen pixel (x, y) in palette colour `color` (color_data) for
 // debug page `p` (0 = every page), 8 x 16 font.
-void eprintf(int x, int y, int color, int p, const char* fmt, ...)
+void eprintf(int x, int y, int c, int p, const char* s, ...)
 {
     va_list ap;
     if (eprintf_init) {
-        va_start(ap, fmt);
-        EprintfSetEnv(x, y, color, p, 0);
-        eprintf_main(8, 14, fmt, ap);
+        va_start(ap, s);
+        EprintfSetEnv(x, y, c, p, 0);
+        eprintf_main(8, 14, s, ap);
         va_end(ap);
     }
 }
 
 // Same with an explicit character cell size w x h.
-void eprintf2(int w, int h, int x, int y, int color, int p, const char* fmt, ...)
+void eprintf2(int dx, int dy, int x, int y, int c, int p, const char* s, ...)
 {
     va_list ap;
     if (eprintf_init) {
-        va_start(ap, fmt);
-        EprintfSetEnv(x, y, color, p, 0);
-        eprintf_main(w, h, fmt, ap);
+        va_start(ap, s);
+        EprintfSetEnv(x, y, c, p, 0);
+        eprintf_main(dx, dy, s, ap);
         va_end(ap);
     }
 }

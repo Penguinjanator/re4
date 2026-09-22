@@ -280,7 +280,7 @@ void SceSetRoomExitFunc(TaskFunc pFunc, void* param)
 }
 
 // Room script scratch word `no` (0..63) in the save data (pG->save_free_work).
-void SetFree(int no, u32 v)
+void SetFree(int no, u32 val)
 {
     u32* tbl;
 
@@ -288,7 +288,7 @@ void SetFree(int no, u32 v)
         return;
     }
     tbl = pG->save_free_work;
-    tbl[no] = v;
+    tbl[no] = val;
 }
 
 // Reads a save scratch word (0 when out of range).
@@ -341,31 +341,31 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
 }
 
 // Message `no` with an optional camera cut and SE (block 6), then waits for it.
-void SceMesCamSndSet(int no, int cut, int se, int flags)
+void SceMesCamSndSet(int mes_no, int cam_no, int se_no, int attr)
 {
-    if (cut != -1) {
-        CamCtrl.CutCall((s8) cut);
+    if (cam_no != -1) {
+        CamCtrl.CutCall((s8) cam_no);
     }
-    if (se != -1) {
-        SndCall(6, se, 0, 0, 0, 0);
+    if (se_no != -1) {
+        SndCall(6, se_no, 0, 0, 0, 0);
     }
-    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+    SceMesSet(mes_no, cam_no == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 // Up-cut message through SceAtSetMes: message `a` (flags bit0 = type 1), camera cut `b`, SE `c`
 // (block 0 when flags bit1); waits for the message.
-void SceUpCut(int a, int b, int c, int flags)
+void SceUpCut(int a, int b, int c, int attr)
 {
     SceAtMesData m;
 
     // Both flag bytes stored in each arm (jump2 cross-jumps the else arm's store into the
     // then arm's): the byte stays in r0 and `sth a` precedes the `&m` argument.
-    if (flags & 1) {
+    if (attr & 1) {
         m.type = 1;
     } else {
         m.type = 0;
     }
-    if (flags & 2) {
+    if (attr & 2) {
         m.seBlk = 1;
     } else {
         m.seBlk = 0;
@@ -373,7 +373,7 @@ void SceUpCut(int a, int b, int c, int flags)
     m.no = a;
     m.camCut = b + 1;
     m.se = c + 1;
-    m.flag = flags;
+    m.flag = attr;
     SceAtSetMes(&m);
     SceMesWait();
 }
@@ -406,32 +406,32 @@ void SceSndCallThunder()
 }
 
 // 1 when `em` exists, is alive and active.
-int SceCheckEmAlive(cEm* em)
+int SceCheckEmAlive(cEm* pEm)
 {
-    if (em == 0) {
+    if (pEm == 0) {
         return 0;
     }
-    if (!em->isAlive()) {
+    if (!pEm->isAlive()) {
         return 0;
     }
-    if (em->checkStatus(EM_STATUS_ACTIVE) == 0) {
+    if (pEm->checkStatus(EM_STATUS_ACTIVE) == 0) {
         return 0;
     }
     return 1;
 }
 
 // Number of living, active enemies with id in lo..hi (hi -1 = just lo).
-int SceCountEmAlive(int lo, int hi)
+int SceCountEmAlive(int em_id, int em_id_end)
 {
     int cnt = 0;
     u32 i;
 
     for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
-        if (hi == -1) {
-            hi = lo;
+        if (em_id_end == -1) {
+            em_id_end = em_id;
         }
-        if (em->id >= lo && em->id <= hi) {
+        if (em->id >= em_id && em->id <= em_id_end) {
             if (SceCheckEmAlive(em) == 1) {
                 cnt++;
             }
@@ -441,16 +441,16 @@ int SceCountEmAlive(int lo, int hi)
 }
 
 // Destroys every living enemy with id in lo..hi (hi -1 = just lo) and clears its list entry.
-void SceDestroyEm(int lo, int hi)
+void SceDestroyEm(int em_id, int em_id_end)
 {
     u32 i;
 
     for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
-        if (hi == -1) {
-            hi = lo;
+        if (em_id_end == -1) {
+            em_id_end = em_id;
         }
-        if (em->id >= lo && em->id <= hi) {
+        if (em->id >= em_id && em->id <= em_id_end) {
             if (em->isAlive()) {
                 EmListData* l = GetListPtrFromEm(em);
                 if (l) {
@@ -634,88 +634,88 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
 }
 
 // Chapter counter (0..) -> displayed "chapter-section" numbers (1-1 .. 5-4 plus the extra ones).
-void getChapterSection(int chapter, int* chap, int* sec)
+void getChapterSection(int no, int* chap, int* sect)
 {
-    switch (chapter) {
+    switch (no) {
     case 0:
         *chap = 1;
-        *sec = 1;
+        *sect = 1;
         break;
     case 1:
         *chap = 1;
-        *sec = 2;
+        *sect = 2;
         break;
     case 2:
         *chap = 1;
-        *sec = 3;
+        *sect = 3;
         break;
     case 3:
         *chap = 2;
-        *sec = 1;
+        *sect = 1;
         break;
     case 4:
         *chap = 2;
-        *sec = 2;
+        *sect = 2;
         break;
     case 5:
         *chap = 2;
-        *sec = 3;
+        *sect = 3;
         break;
     case 6:
         *chap = 3;
-        *sec = 1;
+        *sect = 1;
         break;
     case 7:
         *chap = 3;
-        *sec = 2;
+        *sect = 2;
         break;
     case 8:
         *chap = 3;
-        *sec = 3;
+        *sect = 3;
         break;
     case 9:
         *chap = 3;
-        *sec = 4;
+        *sect = 4;
         break;
     case 0xA:
         *chap = 4;
-        *sec = 1;
+        *sect = 1;
         break;
     case 0xB:
         *chap = 4;
-        *sec = 2;
+        *sect = 2;
         break;
     case 0xC:
         *chap = 4;
-        *sec = 3;
+        *sect = 3;
         break;
     case 0xD:
         *chap = 4;
-        *sec = 4;
+        *sect = 4;
         break;
     case 0xE:
         *chap = 5;
-        *sec = 1;
+        *sect = 1;
         break;
     case 0xF:
         *chap = 5;
-        *sec = 2;
+        *sect = 2;
         break;
     case 0x10:
         *chap = 5;
-        *sec = 3;
+        *sect = 3;
         break;
     case 0x11:
         *chap = 5;
-        *sec = 4;
+        *sect = 4;
         break;
     case 0x12:
         *chap = 6;
-        *sec = 1;
+        *sect = 1;
         break;
     default:
         *chap = 1;
-        *sec = 1;
+        *sect = 1;
         break;
     }
 }
@@ -864,7 +864,7 @@ void SceChapterEnd()
 
 // Room: end of chapter `chapter` — fades to black, stops the music, and runs SceChapterEnd as an
 // event (door area `doorAt` is taken afterwards, -1 = none).
-void SceSetChapterEnd(int chapter, int doorAt)
+void SceSetChapterEnd(int ChapterNo, int door_at_no)
 {
     GXColor c0;
     GXColor c1;
@@ -879,8 +879,8 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SceEventStart(0);
     SpfFlagOff(pG, SPF_SCE);
     SceSys.pause = 1;
-    SceSys.m_chapter_no = chapter;
-    SceSys.m_chapter_door = doorAt;
+    SceSys.m_chapter_no = ChapterNo;
+    SceSys.m_chapter_door = door_at_no;
     SetGameTime();
     SceExec(5, (TaskFunc) SceChapterEnd, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(1);
@@ -889,10 +889,10 @@ void SceSetChapterEnd(int chapter, int doorAt)
 
 // Puts the scenario camera (SceCam) at pos looking at `at` with `fovy` and makes it the extra
 // camera (CamCtrl.m_pExtraCamera).
-void SceCamMove(Vec* pos, Vec* at, f32 fovy)
+void SceCamMove(Vec* pCamPos, Vec* pTarget, f32 fovy)
 {
-    SceCam.param.pos = *pos;
-    SceCam.param.at = *at;
+    SceCam.param.pos = *pCamPos;
+    SceCam.param.at = *pTarget;
     SceCam.param.fovy = fovy;
     SceCam.Up.x = 0.0f;
     SceCam.Up.y = 1.0f;
@@ -1427,13 +1427,13 @@ void SceElevator(SceElevatorData* d)
 }
 
 // Prints a debug line of the scenario (stacked 15 pixels apart each call; the y resets per frame).
-void SceDebugDisp(const char* fmt, ...)
+void SceDebugDisp(const char* mes, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
+    va_start(ap, mes);
     char buf[0x100];  // declared after va_start: the register save area and ap get their slots first
-    vsprintf(buf, fmt, ap);
+    vsprintf(buf, mes, ap);
     eprintf(0x14, (s16) SceSys.m_debug_disp_y, 0, 1, "%s", buf);
     SceSys.m_debug_disp_y += 0xF;
 }

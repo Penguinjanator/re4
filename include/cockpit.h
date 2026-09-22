@@ -25,7 +25,7 @@ public:
 
     void roomInit();
     void move();
-    void fix(int sw);
+    void fix(int flag);
     void disp(int sw);
     void frameOut();
     void frameIn();
@@ -75,7 +75,7 @@ public:
     u32 getFrame();
     void saveDisp();
     void loadDisp();
-    int checkState(u32 bit);  // game/mercenaries.cpp: (flags & bit) ? 1 : 0
+    int checkState(u32 state);  // game/mercenaries.cpp: (flags & bit) ? 1 : 0
 };
 
 class ActionButton {
@@ -98,7 +98,7 @@ public:
     void gameInit();
     void roomInit();
     void move();
-    void msgWindow(int mode);
+    void msgWindow(int sw);
     void lifeMeterDisp(int sw);
     // sscrn reaches the count-down through this: `&Cckpt` is computed first, then + 0xB0
     CountDown* getCountDown() { return &m_CountDown; }

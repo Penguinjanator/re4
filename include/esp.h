@@ -575,29 +575,29 @@ public:
     cEsp();
     virtual ~cEsp();
     virtual void move();
-    virtual int SetFreeWork(EspGenWork* gen, u32* seed);
+    virtual int SetFreeWork(EspGenWork* pSeq, u32* pRand_seed);
     virtual void Destruct();
 
     int CommonMove();
     int AnmMove();
     int ColorUpdate();
-    void ApplyMatrix(Mtx m);
+    void ApplyMatrix(Mtx pMat);
     void CommonStateSet();
     int ChannelSet();   // col.a != 0 (esp18 tests it)
 };
 
 // game/esp3f.cpp: vector buffer owned by an effect (see esp3f.cpp for the class)
 class cEsp3f;
-int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info);
-Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no);
+int Esp3f_Alloc(u32 WorkSize, u32 Num, cEsp3f** ppEsp, EspInfo* pEff_core);
+Vec* Esp3f_GetVecPtr(cEsp3f* pEsp, u32 idx);
 
 // game/esp.cpp
 typedef cEsp* (*EspCreateFunc)();
 typedef void (*EspTransFunc)(cEsp*);
-void PushEsp(cEsp* esp);
+void PushEsp(cEsp* pEsp);
 extern "C" {
 void EspFuncTblSet(int id, EspCreateFunc create, EspTransFunc trans);
-int PullEsp(cEsp** out, int id);
+int PullEsp(cEsp** ppEsp, int id);
 cEsp* EspGetDmyPtr();
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*));
 void EspArrayClear();
@@ -606,12 +606,12 @@ void EffSetId();
 void EspFreeSizeCheckAll();
 void EffCrearRoomSeFunc();
 void EffAreaUpdate();
-void EffEm2d_setTexRender(cModel* m);
+void EffEm2d_setTexRender(cModel* pMod);
 void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a);
 void EspSetGatling(Vec pos, Vec dir);   // Vec by value (obj15)
 void setPlWaterOtType();
 // game/eff_sys.cpp
-void EffSetAreaState(int no, int on);
+void EffSetAreaState(int no, int flg);
 // game/esp_efm.cpp
 void EfmDelete(int a, int b, void* c);
 void EfmDeleteEvent();
@@ -623,22 +623,22 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag);
 // game/trans_ot.cpp: AddOtWorldPos & co. are declared in trans_ot.h (void* data / u16 kind).
 // game/esp_sub.cpp
 void EspCommonTrans(cEsp* esp);
-int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
+int EspEstSetSelect(int owner, int id, int no, cEsp** ppEsp, int bNoSuspend);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
 // game/esp_app.cpp: laser sight line (objWep drawLaserSight), Vec by value
-void EspDrawLaserLine(Vec from, Vec to, f32 width);
+void EspDrawLaserLine(Vec lpos, Vec lcross, f32 rate);
 // game/eff_sys.cpp
-int EspGetAnmAddr(int no, EspAnmData** out);
+int EspGetAnmAddr(int no, EspAnmData** ppAnm);
 void EspTexSet(int anmNo, int ptn);
 void* EspGetPathAddr(u32 owner, int id);
 struct EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet);
 void EspGenSetMoveLoop(int loop);
 void EspGenLoopMove();
 // game/path.cpp
-int PathHasWeight(void* path);
-f32 PathGetLength(void* path);
-int PathGetPos(void* path, f32 dist, u16* seg, Vec* out);  // f32 second: callee copies f1 right after r3
-int PathGetPosEm(void* path, cModel* model, f32 dist, u16* seg, Vec* out);
-int EspGetTplAddr(int no, void** out);
+int PathHasWeight(void* pPdat);
+f32 PathGetLength(void* pPdat);
+int PathGetPos(void* pPdat, f32 dist, u16* pPntNo, Vec* pPos);  // f32 second: callee copies f1 right after r3
+int PathGetPosEm(void* pPdat, cModel* pMod, f32 dist, u16* pPntNo, Vec* pPos);
+int EspGetTplAddr(int no, void** pTpl_addr);
 // game/est.cpp. void: no caller reads r3 after the call, and with an `int` result the call's
 // set of r3 changes the haifa depend counts, moving `li r3,0` to the end of the arg setup
 // (obj01/obj10 move00, obj10AddSpeed).
@@ -652,34 +652,34 @@ extern cCoord* pEffParentWorld;
 extern char* owner_name_tbl[0xD1];   // effect owner names 0..0xD0 (debug display; eff_sys.cpp)
 // game/esp_app.cpp
 extern "C" void EspCallSeType(int type, Vec* pos);
-void EffCallRoomSeFunc(int no, Vec* pos);
+void EffCallRoomSeFunc(int no, Vec* pPos);
 int EffAreaCheckNo(Vec* pos, u8 areaNo);
-void EspFootCall(int type, int no, Vec* pos);
-int EspPlWaterCall(int type, Vec* pos);
+void EspFootCall(int type, int no, Vec* pPos);
+int EspPlWaterCall(int type, Vec* pPos);
 // game/Espgen42.cpp
-int GetWaterHeight(Vec* pos, f32* height);
+int GetWaterHeight(Vec* pos, f32* Ret);
 extern "C" void AddWaterPower(Vec& pos, f32 power);
 extern "C" {
 void EspWaterInit();
-void Espgen42SetNoWater(int on);
-int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);
+void Espgen42SetNoWater(int flg);
+int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* Ret);
 }
 // game/Espgen43.cpp
 extern "C" {
-int GetSandHeight(Vec* pos, f32* height);
+int GetSandHeight(Vec* pos, f32* Ret);
 void AddSandPower(Vec& pos, f32 power);
 // game/eff_sys.cpp
 int EspChkTexId(int no);   // 1 when texture `no` has an object
 GXTexObj* EspGetTexObj(int no, int ptn_no);
 GXTlutObj* EspGetTlutObj(int no);
 struct EspTexWk* EspGetTexWk(int id, int quiet);   // NULL (and an error unless quiet) when the id has no texture
-int EspGetTexOwner(int id, u32* out);
-int EspGetEfmAddr(int id, void** model, void** tpl);
-int EspGetEfmMotAddr(int id, u32 no, void** out);
+int EspGetTexOwner(int id, u32* pOwner);
+int EspGetEfmAddr(int id, void** ppBin, void** ppTpl);
+int EspGetEfmMotAddr(int id, u32 no, void** ppMot);
 u8 EspPullCoreKind();
 int EffAreaDataLoad(struct SstArea* area);
 int EffIsSetFinalCol();
-void EffGetFinalCol(GXColor* col);
+void EffGetFinalCol(GXColor* Ret_col);
 void EffSetFinalCol(u8 r, u8 g, u8 b, u8 a);
 int EffGetAreaState(int no);
 void EffSetToolState(int state);
@@ -688,10 +688,10 @@ void EffClearToolState();
 void EffSetToolStateCallBack(int no, void (*on)(), void (*off)());
 void EffCallToolStateCallBack();
 // Loads the effect data at `addr` under `owner` (the rooms load their EFF sub-files)
-int EspDataLoad(u32 addr, u32 owner, int flag);
+int EspDataLoad(u32 eff_addr, u32 owner, int MultipleOK);
 }
 // game/eff_sys.cpp (C++ linkage): the TPL of effect model `id`; 0 when not registered
-int EspGetEfmTplAddr(int id, void** tpl);
+int EspGetEfmTplAddr(int id, void** ppTpl);
 // game/eff_sys.cpp: quad display list shared by the sprite effects (esp_sub)
 extern u8 g_EspCommonDisplayList[0x60];
 // game/trans.cpp: fallback texture used when an effect texture id has no object
@@ -732,10 +732,10 @@ extern GXTexObj Specular;
     }
 
 // game/emdata.cpp: swap enemy module `id`'s effect data in / out around a room event.
-void EspEmDataSwapPush(int id);
-void EspEmDataSwapPop(int id);
+void EspEmDataSwapPush(int em_id);
+void EspEmDataSwapPop(int em_id);
 // game/eff_sys.cpp: registers a scroll model's texture palette for the room's effect models.
-void RoomEfmRegist(cModel* m, u8 no);
+void RoomEfmRegist(cModel* pMod, u8 no);
 // Same for a model / texture palette pair that is not a scroll model yet (raw addresses).
 void RoomEfmRegist(void* model, void* tpl, u8 id);
 // game/eff_sys.cpp: releases the effect data of owner `id` (C linkage).
@@ -750,7 +750,7 @@ extern "C" {
 void EspFuncTblInit();
 int EspMove();
 int EspTrans();
-int EspArrayAlloc(u32 n);
+int EspArrayAlloc(u32 workNum);
 int EspDispInfo();
 // Camera pan angles the billboard effects face (esp_sub.cpp, esp08.cpp).
 f32 EspGetCameraPan();

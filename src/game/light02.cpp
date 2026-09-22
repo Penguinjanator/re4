@@ -12,9 +12,9 @@ struct Light02Work {
 
 // LightFuncTbl[2]: pulsing light; DispCol = Col * rate clamped to 0..255.
 // Pulsing light: brightness rate = base + amp * sin(phase), clamped to [0, 255] per channel.
-void Light02_Move(cLight* l)
+void Light02_Move(cLight* pLi)
 {
-    Light02Work* w = (Light02Work*)l->work;
+    Light02Work* w = (Light02Work*)pLi->work;
     f32 rate;
     f32 r;
     f32 g;
@@ -27,26 +27,26 @@ void Light02_Move(cLight* l)
     w->phase = LIMIT_ANGLE(w->phase);
     rate = w->base + w->amp * sinf(w->phase);
 
-    r = rate * l->Col.r;
+    r = rate * pLi->Col.r;
     if (r < 0.0f) {
         r = 0.0f;
     } else if (r > 255.0f) {
         r = 255.0f;
     }
-    l->DispCol.r = (u8)r;
-    g = rate * l->Col.g;
+    pLi->DispCol.r = (u8)r;
+    g = rate * pLi->Col.g;
     if (g < 0.0f) {
         g = 0.0f;
     } else if (g > 255.0f) {
         g = 255.0f;
     }
-    l->DispCol.g = (u8)g;
-    b = rate * l->Col.b;
+    pLi->DispCol.g = (u8)g;
+    b = rate * pLi->Col.b;
     if (b < 0.0f) {
         b = 0.0f;
     } else if (b > 255.0f) {
         b = 255.0f;
     }
-    l->DispCol.b = (u8)b;
-    l->DispCol.a = l->Col.a;
+    pLi->DispCol.b = (u8)b;
+    pLi->DispCol.a = pLi->Col.a;
 }

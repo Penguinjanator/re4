@@ -15,7 +15,7 @@ cMapMgr::cMapMgr() : cManager<cMap>(sizeof(cMap), 0)
 }
 
 // Unit construction: placement-news the cMap with `id` and index = number of alive maps sharing that id.
-int cMapMgr::construct(cMap* p, u32 id)
+int cMapMgr::construct(cMap* pMap, u32 room_no)
 {
     u8 n = 0;
     u32 i;
@@ -24,14 +24,14 @@ int cMapMgr::construct(cMap* p, u32 id)
     if (i < nArray) {
         do {
             cMap* q = getWork(i);
-            if ((q->be_flag & 0x201) == 1 && (int)id == q->id) {
+            if ((q->be_flag & 0x201) == 1 && (int)room_no == q->id) {
                 n++;
             }
         } while (++i < nArray);
     }
-    p = new (p) cMap;
-    p->id = id;
-    p->part = n;
+    pMap = new (pMap) cMap;
+    pMap->id = room_no;
+    pMap->part = n;
     return 1;
 }
 

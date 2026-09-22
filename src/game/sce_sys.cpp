@@ -146,14 +146,14 @@ u32* scenarioSetOtStart()
 }
 
 // Next ScePrim in the task ordering table after `p`; 0 at the end.
-u32* scenarioGetOtAddr(u32* p)
+u32* scenarioGetOtAddr(u32* pSceOt)
 {
     u32 v;
 
-    while ((v = *p) != 0xFFFFFFFF) {
-        p = (u32*) (v | 0x80000000);
+    while ((v = *pSceOt) != 0xFFFFFFFF) {
+        pSceOt = (u32*) (v | 0x80000000);
         if ((s32) v < 0) {
-            return p;
+            return pSceOt;
         }
     }
     return 0;
@@ -315,10 +315,10 @@ ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* mo
 }
 
 // TaskSleep, only from inside a scenario task.
-void SceSleep(int frames)
+void SceSleep(int ctr)
 {
     if (SceSys.checkCTaskRange() != 0) {
-        TaskSleep(frames);
+        TaskSleep(ctr);
     }
 }
 
@@ -488,21 +488,21 @@ void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, void* arg, u8 flag)
 }
 
 // 1 when `em` is alive, shown, active (be_flag 1 / 2 / 0x20), has hp and is not the player.
-int EmMoveActiveCheck(cEm* em)
+int EmMoveActiveCheck(cEm* pEm)
 {
-    if (!(em->be_flag & 1)) {
+    if (!(pEm->be_flag & 1)) {
         return 0;
     }
-    if (!(em->be_flag & 0x20)) {
+    if (!(pEm->be_flag & 0x20)) {
         return 0;
     }
-    if (!(em->be_flag & 2)) {
+    if (!(pEm->be_flag & 2)) {
         return 0;
     }
-    if (em->hp <= 0) {
+    if (pEm->hp <= 0) {
         return 0;
     }
-    if (em == pPL) {
+    if (pEm == pPL) {
         return 0;
     }
     return 1;

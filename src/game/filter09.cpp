@@ -185,10 +185,10 @@ void Filter09GetEFB_801D19E0()
 }
 
 // Turns the stop filter on/off and selects the spreading variant.
-void Filter09SetbUse(int use, int spred)
+void Filter09SetbUse(int use, int bSpred)
 {
     g_bUse = use;
-    g_bSpred = spred;
+    g_bSpred = bSpred;
 }
 
 // 1 while the stop filter is in use (FilterTrans then skips the other filters).

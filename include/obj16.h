@@ -19,7 +19,7 @@ public:
     void setDieEff();
     void setCritical();
     int ckAtkHit();
-    void setScale(Vec* s);
+    void setScale(Vec* mag);
 };
 
 extern "C" {

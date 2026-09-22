@@ -257,7 +257,7 @@ void InitModule(ReadModule* m)
 
 // Loads enemy module `id` into a free slot (all display flags forced on during the load): reads
 // the data / REL and links it. Returns the archive or NULL.
-static void* readEm(int id, void* addr, u32 size)
+static void* readEm(int id, void* data_addr, u32 malloc_size)
 {
     u32 flags = pG->Disp_flg;
     ReadModule* m;
@@ -268,7 +268,7 @@ static void* readEm(int id, void* addr, u32 size)
     if (m == NULL) {
         return NULL;
     }
-    if (readEmData(m, id, addr, size) == 0) {
+    if (readEmData(m, id, data_addr, malloc_size) == 0) {
         pG->Disp_flg = flags;
         return NULL;
     }
@@ -539,7 +539,7 @@ static int checkAshleyId(int id)
 
 // The archive of enemy module `id`: the loaded slot (its init function becomes EmInitFunc), or
 // loads it (readEm).
-void* EmReadSearch(int id, void* addr, u32 size)
+void* EmReadSearch(int id, void* data_addr, u32 malloc_size)
 {
     ReadModule* m;
 
@@ -549,7 +549,7 @@ void* EmReadSearch(int id, void* addr, u32 size)
         EmInitFunc = m->pInitFunc;
         return m->pArc;
     }
-    return readEm(id, addr, size);
+    return readEm(id, data_addr, malloc_size);
 }
 
 // The loaded slot for enemy module `id`, or NULL.
@@ -994,28 +994,28 @@ void ContinueWepData()
 
 // The `no`-th sub-file with the three-letter `tag` ("RTP", "MDT", ...) in a tagged archive
 // (offset table + tag table); NULL when missing.
-void* GetDataExt(void* arc, const char* tag, int no)
+void* GetDataExt(void* pData, const char* pName, int no)
 {
-    DataExtHeader* h = (DataExtHeader*) arc;
+    DataExtHeader* h = (DataExtHeader*) pData;
     u32 num;
     u32 i;
     int cnt;
     u8* p;
 
-    if (arc == NULL || tag == NULL) {
-        pLog->err(0, 0, "GetDataExt() NULL POINTER %08x %08x", arc, tag);
+    if (pData == NULL || pName == NULL) {
+        pLog->err(0, 0, "GetDataExt() NULL POINTER %08x %08x", pData, pName);
         return NULL;
     }
     num = h->num;
     cnt = 0;
     // tag table follows the offsets; p starts one entry early, the loop pre-increments (lbzu)
-    p = (u8*) arc + num * 4;
+    p = (u8*) pData + num * 4;
     p += 0xC;
     for (i = 0; i < num; i++) {
         p += 4;
-        if (p[0] == tag[0] && p[1] == tag[1] && p[2] == tag[2]) {
+        if (p[0] == pName[0] && p[1] == pName[1] && p[2] == pName[2]) {
             if (cnt == no) {
-                return (void*) (*(u32*) (i * 4 + (u32) arc + 0x10) + (u32) arc);
+                return (void*) (*(u32*) (i * 4 + (u32) pData + 0x10) + (u32) pData);
             }
             cnt++;
         }

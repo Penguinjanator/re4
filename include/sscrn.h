@@ -161,16 +161,16 @@ extern SubScreenWork SubScreenWk;
 extern "C" {
 int SscrnDataSize();
 void SscrnDataSave(u32* dst);
-void SscrnDataLoad(u32* src);
+void SscrnDataLoad(u32* pData);
 void SubScreenAramRead();
-void sscrnSetLanguage(SubScreenWork* wk, int lang);
-void sscrnDataFilename(SubScreenWork* wk, const char* name);
+void sscrnSetLanguage(SubScreenWork* pSscrn, int language);
+void sscrnDataFilename(SubScreenWork* pSscrn, const char* name);
 void SubScreenGameInit();
 void SubScreenRoomInit();
-void SubScreenWait(int frames);
+void SubScreenWait(int frame);
 void SubScreenCall();
 int sscrnStageNo();
-u16 sscrnRoomNo(u16 room);
+u16 sscrnRoomNo(u16 room_no);
 enum SS_OPEN_FLAG {
     SS_OPEN_NULL = 0,
     SS_OPEN_NORMAL = 1,
@@ -193,12 +193,12 @@ enum SS_ATTR_FLAG {
 int SubScreenOpen(int type, int flags);
 void SubScreenMiss();
 void SubScreenExec();
-void SubScreenExitCore(SubScreenWork* wk);
+void SubScreenExitCore(SubScreenWork* pSscrn);
 void SubScreenExit();
 int OpeGetMdtNo();
-void OpeSetMdtNo(u32 no);
+void OpeSetMdtNo(u32 mdtNo);
 int OpeMdtSetInit();
-void OpeOwTypeSet(u8 type);
+void OpeOwTypeSet(u8 owType);
 void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang);
 void OpeSetOpenTermCancel();
 void OpeSetOpenTermEnd();

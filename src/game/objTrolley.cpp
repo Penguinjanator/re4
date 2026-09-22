@@ -170,26 +170,26 @@ void cObjTrolley::move()
 
 // r_no_0 == 0: waits at the start on the first frame of the run motion; when the scenario calls
 // setStart (Be_flg bit0) the player rides (Ride_pl, Status_flg[0] 0x20) and the run begins.
-void objTrolley_R0_Set(cObjTrolley* obj)
+void objTrolley_R0_Set(cObjTrolley* pObj)
 {
-    TrolleyWork* w = &obj->trolley;
+    TrolleyWork* w = &pObj->trolley;
 
     if (w->Mot_tbl[0]) {
-        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
-        MotionMove(obj, 0);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
+        MotionMove(pObj, 0);
     } else {
-        obj->matUpdate();
+        pObj->matUpdate();
     }
-    obj->partsWorldCalc();
-    objTrolleyPushMtx(obj);
-    objTrolleySatSet(obj);
+    pObj->partsWorldCalc();
+    objTrolleyPushMtx(pObj);
+    objTrolleySatSet(pObj);
     if (w->Be_flg & 1) {
         StaFlagOn(pG, STA_RIDE_GONDOLA);
         w->Ride_pl = 1;
-        obj->r_no_0 = 1;
-        obj->r_no_1 = 0;
-        obj->r_no_2 = 0;
-        obj->r_no_3 = 0;
+        pObj->r_no_0 = 1;
+        pObj->r_no_1 = 0;
+        pObj->r_no_2 = 0;
+        pObj->r_no_3 = 0;
     }
 }
 
@@ -198,112 +198,112 @@ void objTrolley_R0_Set(cObjTrolley* obj)
 // Status_flg[2] 0x08000000, 2300 the crash effect, 2865 the jump-off action button (random type
 // 3 / 4 -> objTrolleyEscapeAction); the motion ending with the player aboard is death
 // (plobjTrolleyDie). Every frame the riders are carried along and the front of the car hits enemies.
-void objTrolley_R0_Move(cObjTrolley* obj)
+void objTrolley_R0_Move(cObjTrolley* pObj)
 {
-    TrolleyWork* w = &obj->trolley;
+    TrolleyWork* w = &pObj->trolley;
 
-    objTrolleyPushMtx(obj);
-    switch (obj->r_no_2) {
+    objTrolleyPushMtx(pObj);
+    switch (pObj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        if (MotionMove(obj, 0)) {
+        if (MotionMove(pObj, 0)) {
             SndCall(6, 2, 0, 0, 0, 0);
             SndCall(6, 3, 0, 0, 0, 0);
             w->Be_flg |= 4;
-            obj->r_no_2++;
+            pObj->r_no_2++;
         }
         break;
     case 2:
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 3:
-        MotionMove(obj, 0);
+        MotionMove(pObj, 0);
         if (w->Be_flg & 2) {
-            obj->r_no_2++;
+            pObj->r_no_2++;
         }
         break;
     case 4:
-        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[1], 0, 0, 0x8001, 0);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_tbl[1], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
         w->Timer = 20;
-        obj->r_no_3 = Rnd() & 1;
-        obj->r_no_2++;
+        pObj->r_no_3 = Rnd() & 1;
+        pObj->r_no_2++;
     case 5:
-        if (MotionMove(obj, 0) && w->Ride_pl) {
+        if (MotionMove(pObj, 0) && w->Ride_pl) {
             w->Ride_pl = 0;
-            SetPlDamage((cEm*) obj, plobjTrolleyDie);
-            obj->r_no_0 = 2;
-            obj->r_no_1 = 0;
-            obj->r_no_2 = 0;
-            obj->r_no_3 = 0;
+            SetPlDamage((cEm*) pObj, plobjTrolleyDie);
+            pObj->r_no_0 = 2;
+            pObj->r_no_1 = 0;
+            pObj->r_no_2 = 0;
+            pObj->r_no_3 = 0;
         } else {
-            if (obj->Motion.Seq_frame > 2250.0f) {
+            if (pObj->Motion.Seq_frame > 2250.0f) {
                 StaFlagOn(pG, STA_NO_FENCE);
             }
-            if (obj->Motion.Seq_frame > 2300.0f) {
-                EstSet(obj, -1, 0, 0, EFF_ROOM, 0x13, 0, ESP_CORE_KIND_NONE, obj, 0);
+            if (pObj->Motion.Seq_frame > 2300.0f) {
+                EstSet(pObj, -1, 0, 0, EFF_ROOM, 0x13, 0, ESP_CORE_KIND_NONE, pObj, 0);
             }
-            if (obj->Motion.Seq_frame > 2865.0f) {
-                if (obj->r_no_3) {
-                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
+            if (pObj->Motion.Seq_frame > 2865.0f) {
+                if (pObj->r_no_3) {
+                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, pObj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
                 } else {
-                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
+                    ActBtn.set(ACT_JUMP_DOWN, 0xB, (void*) objTrolleyEscapeAction, pObj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 }
             }
         }
         break;
     }
-    obj->partsWorldCalc();
-    objTrolleyGetAdjust(obj);
+    pObj->partsWorldCalc();
+    objTrolleyGetAdjust(pObj);
     if (w->Ride_pl) {
-        objTrolleyMoveAdjustPL(obj);
+        objTrolleyMoveAdjustPL(pObj);
     }
-    objTrolleyMoveAdjustEM(obj);
-    objTrolleySatSet(obj);
-    objTrolleyHitCk(obj);
+    objTrolleyMoveAdjustEM(pObj);
+    objTrolleySatSet(pObj);
+    objTrolleyHitCk(pObj);
 }
 
 // r_no_0 == 2, the crash: the cars are put at the crash point and play the break motion (mot[2]
 // when the player escaped, mot[3] when he died), the enemies aboard fall and, when the motion
 // ends, are told setTrolleyLost and the cars vanish.
-void objTrolley_R0_Break(cObjTrolley* obj)
+void objTrolley_R0_Break(cObjTrolley* pObj)
 {
-    TrolleyWork* w = &obj->trolley;
+    TrolleyWork* w = &pObj->trolley;
 
-    objTrolleyPushMtx(obj);
-    switch (obj->r_no_2) {
+    objTrolleyPushMtx(pObj);
+    switch (pObj->r_no_2) {
     case 0:
-        obj->pos.x = -201000.0f;
-        obj->pos.y = -52400.0f;
-        obj->pos.z = 78000.0f;
-        obj->ang.y = 0.0f;
-        if (obj->r_no_3) {
-            MotionSetCore(obj, &obj->Motion, w->Mot_tbl[2], 0, 0, 0x8001, 0);
+        pObj->pos.x = -201000.0f;
+        pObj->pos.y = -52400.0f;
+        pObj->pos.z = 78000.0f;
+        pObj->ang.y = 0.0f;
+        if (pObj->r_no_3) {
+            MotionSetCore(pObj, &pObj->Motion, w->Mot_tbl[2], 0, 0, 0x8001, 0);
         } else {
-            MotionSetCore(obj, &obj->Motion, w->Mot_tbl[3], 0, 0, 0x8001, 0);
+            MotionSetCore(pObj, &pObj->Motion, w->Mot_tbl[3], 0, 0, 0x8001, 0);
         }
         SndCall(6, 2, 0, 0, 0, 0);
         SndCall(6, 3, 0, 0, 0, 0);
-        objTrolleyFallEM(obj);
-        obj->r_no_2++;
+        objTrolleyFallEM(pObj);
+        pObj->r_no_2++;
     case 1:
-        if (MotionMove(obj, 0)) {
-            objTrolleyLostEM(obj);
-            obj->be_flag &= ~2;
+        if (MotionMove(pObj, 0)) {
+            objTrolleyLostEM(pObj);
+            pObj->be_flag &= ~2;
         }
         break;
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Marks all scenario / effect pieces inactive (m_Flag bit2) until objTrolleySatSet re-places them.
-static void objTrolleySatClear(cObjTrolley* obj)
+static void objTrolleySatClear(cObjTrolley* pObj)
 {
-    TrolleyWork* w = &obj->trolley;
+    TrolleyWork* w = &pObj->trolley;
     int i;
 
     for (i = 0; i < 5; i++) {
@@ -318,9 +318,9 @@ static void objTrolleySatClear(cObjTrolley* obj)
 
 // Places (or on the first call creates from room archive file 5, shapes 3/2/1 scenario and 6/5/4
 // effect) one collision piece per car at the car's parts position + 500, following its yaw.
-void objTrolleySatSet(cObjTrolley* obj)
+void objTrolleySatSet(cObjTrolley* pObj)
 {
-    TrolleyWork* w = &obj->trolley;
+    TrolleyWork* w = &pObj->trolley;
     Vec pos;
     Vec rot;
     Vec v;
@@ -329,7 +329,7 @@ void objTrolleySatSet(cObjTrolley* obj)
     u32 i;
 
     for (i = 0; i < 3; i++) {
-        parts = obj->getPartsPtr(Trolley_parts_tbl[i]);
+        parts = pObj->getPartsPtr(Trolley_parts_tbl[i]);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 1.0f;
@@ -378,22 +378,22 @@ void objTrolleySatSet(cObjTrolley* obj)
 }
 
 // Action button callback: the player jumps off (plobjTrolleyEscape) and the trolley crashes.
-void objTrolleyEscapeAction(cObjTrolley* obj)
+void objTrolleyEscapeAction(cObjTrolley* ptr)
 {
-    obj->trolley.Ride_pl = 0;
-    SetPlDamage((cEm*) obj, plobjTrolleyEscape);
-    obj->r_no_0 = 2;
-    obj->r_no_1 = 0;
-    obj->r_no_2 = 0;
-    obj->r_no_3 = 1;
+    ptr->trolley.Ride_pl = 0;
+    SetPlDamage((cEm*) ptr, plobjTrolleyEscape);
+    ptr->r_no_0 = 2;
+    ptr->r_no_1 = 0;
+    ptr->r_no_2 = 0;
+    ptr->r_no_3 = 1;
 }
 
 // Player damage routine of the jump-off: r_no_2 0/1 the jump motion (mot[4]) with its SEs, 2/3 the
 // hang-on motion (mot[6]) with a 90-frame button mash (m_Work1 presses needed: 5 / 10 / 15 by
 // Game_level), 4/5 climbs up (mot[7]) and returns control, 6/7 falls (mot[8]) and dies.
-void plobjTrolleyEscape(cPlayer* pl)
+void plobjTrolleyEscape(cPlayer* pEm)
 {
-    cEm* em = (cEm*) pl;
+    cEm* em = (cEm*) pEm;
     cObjTrolley* obj = (cObjTrolley*) em->pEmCatch;
     TrolleyWork* w = &obj->trolley;
     cModel* parts = em->getPartsPtr(4);
@@ -497,9 +497,9 @@ void plobjTrolleyEscape(cPlayer* pl)
 }
 
 // Player damage routine when he was still aboard at the crash: the death motion (mot[5]), life 0.
-void plobjTrolleyDie(cPlayer* pl)
+void plobjTrolleyDie(cPlayer* pEm)
 {
-    cEm* em = (cEm*) pl;
+    cEm* em = (cEm*) pEm;
     cObjTrolley* obj = (cObjTrolley*) em->pEmCatch;
     TrolleyWork* w = &obj->trolley;
     u8 step;
@@ -526,13 +526,13 @@ void plobjTrolleyDie(cPlayer* pl)
 }
 
 // Copies the 9 motions from the room and starts the first run motion (frame 0).
-void cObjTrolley::setMotion(void** tbl)
+void cObjTrolley::setMotion(void** mot_tbl)
 {
     TrolleyWork* w = &trolley;
     int i;
 
     for (i = 0; i < 9; i++) {
-        w->Mot_tbl[i] = tbl[i];
+        w->Mot_tbl[i] = mot_tbl[i];
     }
     if (w->Mot_tbl[0]) {
         MotionSetCore(this, &Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
@@ -540,17 +540,17 @@ void cObjTrolley::setMotion(void** tbl)
 }
 
 // Saves the three cars' matrices as Trolley_MatOld before the motion moves them.
-void objTrolleyPushMtx(cObjTrolley* obj)
+void objTrolleyPushMtx(cObjTrolley* pObj)
 {
     u32 i;
 
     for (i = 0; i < 3; i++) {
-        PSMTXCopy(obj->getPartsPtr(Trolley_parts_tbl[i])->mat, Trolley_MatOld[i]);
+        PSMTXCopy(pObj->getPartsPtr(Trolley_parts_tbl[i])->mat, Trolley_MatOld[i]);
     }
 }
 
 // Which car (0-2) `pos` stands in, using last frame's matrices (1800 x 1000 x 3900 box); -1 none.
-int objTrolleyGetTrolleyNo(cObjTrolley* obj, Vec* pos)
+int objTrolleyGetTrolleyNo(cObjTrolley* pObj, Vec* pPos)
 {
     Mtx inv;
     Vec v;
@@ -558,7 +558,7 @@ int objTrolleyGetTrolleyNo(cObjTrolley* obj, Vec* pos)
 
     for (i = 0; i < 3; i++) {
         PSMTXInverse(Trolley_MatOld[i], inv);
-        PSMTXMultVec(inv, pos, &v);
+        PSMTXMultVec(inv, pPos, &v);
         if (v.x > -900.0f && v.x < 900.0f && v.y > 0.0f && v.y < 1000.0f && v.z > -1950.0f && v.z < 1950.0f) {
             return i;
         }
@@ -567,15 +567,15 @@ int objTrolleyGetTrolleyNo(cObjTrolley* obj, Vec* pos)
 }
 
 // Same as objTrolleyGetTrolleyNo with this frame's matrices.
-int objTrolleyGetTrolleyNo2(cObjTrolley* obj, Vec* pos)
+int objTrolleyGetTrolleyNo2(cObjTrolley* pObj, Vec* pPos)
 {
     Mtx inv;
     Vec v;
     int i;
 
     for (i = 0; i < 3; i++) {
-        PSMTXInverse(obj->getPartsPtr(Trolley_parts_tbl[i])->mat, inv);
-        PSMTXMultVec(inv, pos, &v);
+        PSMTXInverse(pObj->getPartsPtr(Trolley_parts_tbl[i])->mat, inv);
+        PSMTXMultVec(inv, pPos, &v);
         if (v.x > -900.0f && v.x < 900.0f && v.y > 0.0f && v.y < 1000.0f && v.z > -1950.0f && v.z < 1950.0f) {
             return i;
         }
@@ -584,7 +584,7 @@ int objTrolleyGetTrolleyNo2(cObjTrolley* obj, Vec* pos)
 }
 
 // Per car: movement (Trolley_vec) and yaw change (Trolley_dir) between last and this frame.
-void objTrolleyGetAdjust(cObjTrolley* obj)
+void objTrolleyGetAdjust(cObjTrolley* pObj)
 {
     Vec p1;
     Vec p0;
@@ -604,7 +604,7 @@ void objTrolleyGetAdjust(cObjTrolley* obj)
         d.z = 1.0f;
         PSMTXMultVecSR(Trolley_MatOld[i], &d, &d);
         a0 = atan2f(d.x, d.z);
-        parts = obj->getPartsPtr(Trolley_parts_tbl[i]);
+        parts = pObj->getPartsPtr(Trolley_parts_tbl[i]);
         p1.x = 0.0f;
         p1.y = 500.0f;
         p1.z = 0.0f;
@@ -622,7 +622,7 @@ void objTrolleyGetAdjust(cObjTrolley* obj)
 // Carries `em` with the car it stands on: re-expresses its position in the car's new matrix,
 // adds the same yaw, flags be_flag 0x20000000; for the player also shifts the extra camera and
 // quake_ofs.
-void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
+void objTrolleySetAdjust(cObjTrolley* pObj, cEm* em)
 {
     Mtx inv;
     Vec v;
@@ -630,12 +630,12 @@ void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
     cModel* parts;
     int no;
 
-    no = objTrolleyGetTrolleyNo(obj, &em->pos);
+    no = objTrolleyGetTrolleyNo(pObj, &em->pos);
     if (no == -1) {
         return;
     }
     em->be_flag |= 0x20000000;
-    parts = obj->getPartsPtr(Trolley_parts_tbl[no]);
+    parts = pObj->getPartsPtr(Trolley_parts_tbl[no]);
     PSMTXInverse(Trolley_MatOld[no], inv);
     PSMTXMultVec(inv, &em->pos, &v);
     PSMTXMultVec(parts->mat, &v, &v);
@@ -654,13 +654,13 @@ void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
 }
 
 // The player rides along.
-void objTrolleyMoveAdjustPL(cObjTrolley* obj)
+void objTrolleyMoveAdjustPL(cObjTrolley* pObj)
 {
-    objTrolleySetAdjust(obj, pPL);
+    objTrolleySetAdjust(pObj, pPL);
 }
 
 // Live room enemies (id 0x10..0x40) ride along; the enemy weapon (0x42) recalculates its parent.
-void objTrolleyMoveAdjustEM(cObjTrolley* obj)
+void objTrolleyMoveAdjustEM(cObjTrolley* pObj)
 {
     u32 i;
 
@@ -672,7 +672,7 @@ void objTrolleyMoveAdjustEM(cObjTrolley* obj)
                 ((cEmWep*) em)->setParentMatCalc(1);
             } else if (em->id > 0xF) {
                 if (em->id <= 0x40) {
-                    objTrolleySetAdjust(obj, em);
+                    objTrolleySetAdjust(pObj, em);
                 }
             }
         }
@@ -681,40 +681,40 @@ void objTrolleyMoveAdjustEM(cObjTrolley* obj)
 
 // Is `pos` on a car? Returns 1 with the car's parts number and the position in car space (last
 // frame's matrix) — used by the room to attach enemies.
-int cObjTrolley::ckTrolleyRide(Vec* pos, u8* partsNo, Vec* out)
+int cObjTrolley::ckTrolleyRide(Vec* pPos, u8* pParts_no, Vec* pOffset)
 {
     Mtx inv;
     cModel* parts;
     int no;
 
-    no = objTrolleyGetTrolleyNo2(this, pos);
+    no = objTrolleyGetTrolleyNo2(this, pPos);
     if (no == -1) {
         return 0;
     }
     parts = getPartsPtr(Trolley_parts_tbl[no]);
     PSMTXInverse(Trolley_MatOld[no], inv);
-    PSMTXMultVec(inv, pos, out);
-    *partsNo = Trolley_parts_tbl[no];
+    PSMTXMultVec(inv, pPos, pOffset);
+    *pParts_no = Trolley_parts_tbl[no];
     return 1;
 }
 
 // Moves `pos` with the car it stands on into `out` (out = pos when not on a car); returns 1 if on.
-int cObjTrolley::ckTrolleyRideAdjust(Vec* pos, Vec* out)
+int cObjTrolley::ckTrolleyRideAdjust(Vec* pPos, Vec* pPos2)
 {
     Mtx inv;
     Vec v;
     cModel* parts;
     int no;
 
-    *out = *pos;
-    no = objTrolleyGetTrolleyNo(this, pos);
+    *pPos2 = *pPos;
+    no = objTrolleyGetTrolleyNo(this, pPos);
     if (no == -1) {
         return 0;
     }
     parts = getPartsPtr(Trolley_parts_tbl[no]);
     PSMTXInverse(Trolley_MatOld[no], inv);
-    PSMTXMultVec(inv, pos, &v);
-    PSMTXMultVec(parts->mat, &v, out);
+    PSMTXMultVec(inv, pPos, &v);
+    PSMTXMultVec(parts->mat, &v, pPos2);
     return 1;
 }
 
@@ -742,12 +742,12 @@ int cObjTrolley::ckStop()
 
 // While the front car moves (> 50 units / frame) three 400-radius 0x12 hit spheres 2700 ahead of
 // it run down enemies in the way.
-void objTrolleyHitCk(cObjTrolley* obj)
+void objTrolleyHitCk(cObjTrolley* pObj)
 {
     Vec v;
     cModel* parts;
 
-    parts = obj->getPartsPtr(0);
+    parts = pObj->getPartsPtr(0);
     if ((parts->world.x - parts->world_old2.x) * (parts->world.x - parts->world_old2.x) +
         (parts->world.y - parts->world_old2.y) * (parts->world.y - parts->world_old2.y) +
         (parts->world.z - parts->world_old2.z) * (parts->world.z - parts->world_old2.z) < 2500.0f) {
@@ -772,7 +772,7 @@ void objTrolleyHitCk(cObjTrolley* obj)
 
 // At the crash every living room enemy (id 0x10..0x20) gets hp 0 and is forced into its fall
 // routine (r_no_0 2 / r_no_1 7), remembering its yaw in x9BC.
-void objTrolleyFallEM(cObjTrolley* obj)
+void objTrolleyFallEM(cObjTrolley* pObj)
 {
     u32 i;
 
@@ -792,7 +792,7 @@ void objTrolleyFallEM(cObjTrolley* obj)
 }
 
 // After the break motion the hidden room enemies are told setTrolleyLost (they vanish).
-void objTrolleyLostEM(cObjTrolley* obj)
+void objTrolleyLostEM(cObjTrolley* pObj)
 {
     u32 i;
 

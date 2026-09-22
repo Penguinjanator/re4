@@ -63,8 +63,8 @@ public:
     virtual void memFree(void* p) = 0;
     virtual void memClear(T* p, u32 size) = 0;
     virtual void log(const char* fmt, ...);
-    virtual void destroy(T* p);
-    virtual int construct(T* p, u32 id) = 0;  // the id switch trees compare unsigned (cLightMgr, cCtrlMgr)
+    virtual void destroy(T* pEm);
+    virtual int construct(T* pSat, u32 room_no) = 0;  // the id switch trees compare unsigned (cLightMgr, cCtrlMgr)
 
     void setName(const char* n);
     int roomInit();
@@ -77,14 +77,14 @@ public:
     void destroyNow(T* p);   // objRocket.cpp instantiates it (pl_wep weaponRelease)
     T* getPrevWork(T* p);
     int dieCheck();
-    int arrayAlloc(u32 n);   // memFree + memAlloc(size * n) + memClear (em.cpp, game.cpp instantiate them)
+    int arrayAlloc(u32 workNum);   // memFree + memAlloc(size * n) + memClear (em.cpp, game.cpp instantiate them)
     int arrayFree();         // 1 when there was an array
     // Debug print "alive/peak/total" (each minus `sub`) at (x, y) in colour `col`; returns the alive
     // count, 0 with an invalid array (game.cpp gameMainLoop's manager table).
     int dispWorkNum(int x, int y, int col, int sub);
     // Event brackets of every alive work (defined in sce_com.cpp, the only unit instantiating them).
-    void beginEvent(int mode);
-    void endEvent(int mode);
+    void beginEvent(int flag);
+    void endEvent(int flag);
     // destroy() every alive work (debug tools: db_light LitLoadWork, Sscrn ss_main)
     void destroyAll();
     // Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): park the room's array in pArrayPush/pAlivePush/nArrayPush and work

@@ -9,8 +9,8 @@ extern "C" {
 u8 Rnd();
 f32 fRand0_1();
 f32 fRand1_1();
-f32 fRandSeed0_1(u32* seed);
-f32 fRandSeed1_1(u32* seed);
+f32 fRandSeed0_1(u32* pSeed);
+f32 fRandSeed1_1(u32* pSeed);
 }
 
 #endif

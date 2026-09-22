@@ -64,9 +64,9 @@ static inline void Pos2s16(s16 x, s16 y)
 }
 
 // OT callback of Draw_tile: draws the filled screen rectangle (ortho 512 x 448, no blending).
-void Render_tile(void* data)
+void Render_tile(void* pTile)
 {
-    TileWork* t = (TileWork*) data;
+    TileWork* t = (TileWork*) pTile;
     Mtx44 proj;
     Mtx m;
     u32 color;
@@ -110,7 +110,7 @@ void Render_tile(void* data)
 }
 
 // Queues a filled screen-space rectangle (pixels) in OT 13 for this frame.
-void Draw_tile(int x, int y, int w, int h, GXColor* color)
+void Draw_tile(int x, int y, int w, int h, GXColor* col)
 {
     TileWork* t = (TileWork*) GetPrimBuff(sizeof(TileWork));
     if (t) {
@@ -118,13 +118,13 @@ void Draw_tile(int x, int y, int w, int h, GXColor* color)
         t->y = y;
         t->w = w;
         t->h = h;
-        t->color = *(u32*) color;
+        t->color = *(u32*) col;
         AddOtDirect(13, t, (void (*)()) Render_tile, 0, 0x1000, NULL, 0.0f);
     }
 }
 
 // Immediate 2D line between two screen points (ortho projection, ARGB colour).
-void Draw_line(Vec* p0, Vec* b, u32 color)
+void Draw_line(Vec* p0, Vec* b, u32 col)
 {
     Mtx44 proj;
     Mtx m;
@@ -132,10 +132,10 @@ void Draw_line(Vec* p0, Vec* b, u32 color)
     u8 cr, cg, cb, ca;
 
     GXSetBlendMode(1, 1, 0, 0);
-    cg = color >> 16;
-    cb = color >> 8;
-    ca = color;
-    cr = color >> 24;
+    cg = col >> 16;
+    cb = col >> 8;
+    ca = col;
+    cr = col >> 24;
     C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
     GXSetProjection(proj, 1);
     PSMTXIdentity(m);
@@ -168,7 +168,7 @@ void Draw_line(Vec* p0, Vec* b, u32 color)
 }
 
 // Immediate 2D filled quad at `pos` of `size` (screen pixels).
-void Draw_quad(Vec* pos, Vec* size, u32 color)
+void Draw_quad(Vec* pPos, Vec* pSize, u32 col)
 {
     Mtx44 proj;
     Mtx m;
@@ -176,10 +176,10 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
     u8 cr, cg, cb, ca;
 
     GXSetBlendMode(1, 1, 0, 0);
-    cg = color >> 16;
-    cb = color >> 8;
-    ca = color;
-    cr = color >> 24;
+    cg = col >> 16;
+    cb = col >> 8;
+    ca = col;
+    cr = col >> 24;
     C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
     GXSetProjection(proj, 1);
     PSMTXIdentity(m);
@@ -200,10 +200,10 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
     GXSetVtxAttrFmt(0, 9, 1, 3, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
 
-    x0 = (s16) pos->x;
-    y1 = (s16) pos->y + (s16) size->y;
-    y0 = (s16) pos->y;
-    x1 = (s16) pos->x + (s16) size->x;
+    x0 = (s16) pPos->x;
+    y1 = (s16) pPos->y + (s16) pSize->y;
+    y0 = (s16) pPos->y;
+    x1 = (s16) pPos->x + (s16) pSize->x;
     GXBegin(0x80, 0, 4);
     GXPosition3s16(x0, y1, 1);
     GXColor4u8(cg, cb, ca, cr);
@@ -216,14 +216,14 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
 }
 
 // Immediate world-space line (current camera view matrix); blend 1 = additive.
-void Draw_line3d(Vec* p0, Vec* b, u32 color, int blend)
+void Draw_line3d(Vec* p0, Vec* b, u32 col, int blend)
 {
-    Draw_line3d_local(p0, b, pG->Camera.v_mat, color, blend);
+    Draw_line3d_local(p0, b, pG->Camera.v_mat, col, blend);
 }
 
 // Immediate line in the space of matrix `mtx` (view * local): sets the line GX state, draws the
 // 2 vertices and restores the state. Alpha 0xFE in the colour skips the Z test.
-void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
+void Draw_line3d_local(Vec* p0, Vec* b, Mtx mat, u32 col, int blend)
 {
     u8 cr, cg, cb;
 
@@ -234,14 +234,14 @@ void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
     }
     CameraCurrentProjection();
     GXSetCullMode(0);
-    if ((color >> 24) == 0xFE) {
+    if ((col >> 24) == 0xFE) {
         GXSetZMode(0, 3, 1);
     } else {
         GXSetZMode(1, 3, 1);
     }
-    cr = color >> 16;
-    cg = color >> 8;
-    cb = color;
+    cr = col >> 16;
+    cg = col >> 8;
+    cb = col;
     GXSetNumChans(1);
     GXSetChanCtrl(4, 0, 0, 1, 0, 0, 2);
     GXSetNumTexGens(0);
@@ -253,7 +253,7 @@ void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    GXLoadPosMtxImm(mtx, 0);
+    GXLoadPosMtxImm(mat, 0);
     GXSetCurrentMtx(0);
     GXBegin(0xB0, 0, 2);
     GXPosition3f32(p0->x, p0->y, p0->z);
@@ -299,27 +299,27 @@ void Draw_line3d_end()
 }
 
 // Immediate world-space filled triangle p[0..2]; zupd 0 leaves the Z buffer alone.
-void Draw_poly(Vec* p, u32 color, int zupd)
+void Draw_poly(Vec* p, u32 col, int zmode)
 {
-    Draw_poly_local(p, pG->Camera.v_mat, color, zupd);
+    Draw_poly_local(p, pG->Camera.v_mat, col, zmode);
 }
 
 // Immediate filled triangle in matrix `mtx` space with alpha blending.
-void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
+void Draw_poly_local(Vec* p, Mtx mat, u32 col, int zmode)
 {
     u8 cr, cg, cb, ca;
 
     CameraCurrentProjection();
     GXSetCullMode(0);
-    if (zupd) {
+    if (zmode) {
         GXSetZMode(1, 3, 1);
     } else {
         GXSetZMode(1, 3, 0);
     }
-    cg = color >> 16;
-    cb = color >> 8;
-    ca = color;
-    cr = color >> 24;
+    cg = col >> 16;
+    cb = col >> 8;
+    ca = col;
+    cr = col >> 24;
     GXSetNumChans(1);
     GXSetChanCtrl(4, 0, 1, 1, 0, 0, 2);
     GXSetNumTexGens(0);
@@ -332,7 +332,7 @@ void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    GXLoadPosMtxImm(mtx, 0);
+    GXLoadPosMtxImm(mat, 0);
     GXSetBlendMode(1, 4, 5, 0);
     GXBegin(0x90, 0, 3);
     GXMatrixIndex1u8(0);
@@ -349,26 +349,26 @@ void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
 }
 
 // Wire sphere (16 x 16 display list) of radius r at `pos`; zcmp / zupd select the Z test / write.
-void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
+void Draw_sphere(Vec* pos, f32 r, u32 rgb, int zmode, int zcheck)
 {
     Mtx m;
     GXColor c;
 
     CameraCurrentProjection();
-    if (zupd) {
-        if (zcmp) {
+    if (zcheck) {
+        if (zmode) {
             GXSetZMode(1, 3, 1);
         } else {
             GXSetZMode(1, 3, 0);
         }
     } else {
-        if (zcmp) {
+        if (zmode) {
             GXSetZMode(0, 3, 1);
         } else {
             GXSetZMode(0, 3, 0);
         }
     }
-    *(u32*) &c = color;
+    *(u32*) &c = rgb;
     GXSetChanMatColor(0, c);
     GXSetNumChans(1);
     GXSetChanCtrl(0, 0, 0, 0, 0, 0, 2);
@@ -389,14 +389,14 @@ void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
 }
 
 // Wire cylinder of radius r and height h standing on `pos` (world space).
-void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 color)
+void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 rgba)
 {
     Mtx m;
     GXColor c;
 
     CameraCurrentProjection();
     GXSetZMode(1, 3, 1);
-    *(u32*) &c = color;
+    *(u32*) &c = rgba;
     GXSetChanMatColor(0, c);
     GXSetNumChans(1);
     GXSetChanCtrl(0, 0, 0, 0, 0, 0, 2);
@@ -449,7 +449,7 @@ void Draw_cylinderMtx(Mtx mtx, Vec* pos, f32 r, f32 h, u32 color)
 }
 
 // Wire cone from `pos` along `dir` (its length) with base radius r.
-void Draw_corn3(Vec* pos, Vec* dir, f32 r, u32 color)
+void Draw_corn3(Vec* pos, Vec* norm, f32 cutoff, u32 rgb)
 {
     Vec rot;
     Vec v;
@@ -457,18 +457,18 @@ void Draw_corn3(Vec* pos, Vec* dir, f32 r, u32 color)
     f32 len;
 
     rot.x = 0.0f;
-    rot.y = -atan2f(dir->x, dir->z);
+    rot.y = -atan2f(norm->x, norm->z);
     rot.z = 0.0f;
     low_RotMatrix(m, &rot);
-    PSMTXMultVec(m, dir, &v);
+    PSMTXMultVec(m, norm, &v);
     rot.x = atan2f(-v.y, v.z);
     rot.y = -rot.y;
-    len = PSVECMag(dir);
-    Draw_corn(pos, &rot, len, r, color);
+    len = PSVECMag(norm);
+    Draw_corn(pos, &rot, len, cutoff, rgb);
 }
 
 // Wire cone (display list) of length len / radius r at `pos` rotated by `rot`.
-void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
+void Draw_corn(Vec* pos, Vec* ang, f32 l, f32 r, u32 rgb)
 {
     Mtx m;
     Mtx s;
@@ -477,7 +477,7 @@ void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
 
     CameraCurrentProjection();
     GXSetZMode(1, 3, 1);
-    *(u32*) &c = color;
+    *(u32*) &c = rgb;
     GXSetChanMatColor(0, c);
     GXSetNumChans(1);
     GXSetChanCtrl(0, 0, 0, 0, 0, 0, 2);
@@ -489,9 +489,9 @@ void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
     GXSetVtxDesc(9, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetBlendMode(0, 4, 5, 0);
-    low_RotMatrix(m, rot);
-    w = len * r / 90.0f;
-    PSMTXScale(s, w, w, len);
+    low_RotMatrix(m, ang);
+    w = l * r / 90.0f;
+    PSMTXScale(s, w, w, l);
     PSMTXConcat(m, s, m);
     TransMatrix(m, pos);
     PSMTXConcat(pG->Camera.v_mat, m, m);
@@ -502,7 +502,7 @@ void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
 
 // Wire view cone: apex `pos`, axis `dir`, length len, half angle `ang` in degrees (16 rim
 // lines and the rim circle); used for the eye trigger / enemy sight displays.
-void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
+void Draw_corn2(Vec* pPos, Vec* pVec, f32 size, f32 r, u32 col)
 {
     Vec axis;
     Vec t;
@@ -516,12 +516,12 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
     f32 h;
     u32 i;
 
-    ang = ang * DEG2RAD;
+    r = r * DEG2RAD;
     PSMTXIdentity(m);
     axis.x = 1.0f;
     axis.y = 0.0f;
     axis.z = 0.0f;
-    d = *dir;
+    d = *pVec;
     PSVECCrossProduct(&axis, &d, &s);
     if (s.x != 0.0f || s.y != 0.0f || s.z != 0.0f) {
 #line 1023 "D:/Bio4/Prog/dbmodule.cpp"
@@ -546,21 +546,21 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
         th = (f32) i / 12.0f * 2.0f * PI;
         v.x = SINF(th);
         v.z = COSF(th);
-        v.y = len;
-        if (ang > 3.141592f) {
-            v.y = -len;
+        v.y = size;
+        if (r > 3.141592f) {
+            v.y = -size;
         }
-        h = ang * 0.5f;
-        v.x *= len * tanf(h);
-        v.z *= len * tanf(h);
+        h = r * 0.5f;
+        v.x *= size * tanf(h);
+        v.z *= size * tanf(h);
         if (v.x != 0.0f || v.y != 0.0f || v.z != 0.0f) {
 #line 1040
             VECNormalize(&v, &v);
         }
-        PSVECScale(&v, &v, len);
+        PSVECScale(&v, &v, size);
         PSMTXMultVec(m, &v, &v);
-        PSVECAdd(pos, &v, &v);
-        Draw_line3d(pos, &v, 0xB0B0B0B0, 0);
+        PSVECAdd(pPos, &v, &v);
+        Draw_line3d(pPos, &v, 0xB0B0B0B0, 0);
         if (i == 0) {
             first = v;
         } else {
@@ -571,13 +571,13 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
         }
         prev = v;
     }
-    PSVECScale(dir, &axis, len);
-    PSVECAdd(pos, &axis, &axis);
-    Draw_line3d(pos, &axis, 0xB0B000B0, 0);
+    PSVECScale(pVec, &axis, size);
+    PSVECAdd(pPos, &axis, &axis);
+    Draw_line3d(pPos, &axis, 0xB0B000B0, 0);
 }
 
 // Box from its 8 corners: flag 0 filled faces (12 triangles), else the 12 edges.
-void Draw_box(Vec* v, u32 color, int flag)
+void Draw_box(Vec* pBoxVec, u32 col, int flg)
 {
     static u8 ptbl[36] = {
         0, 2, 1,  2, 3, 1,  4, 5, 6,  5, 7, 6,
@@ -588,24 +588,24 @@ void Draw_box(Vec* v, u32 color, int flag)
     int i;
 
     for (i = 0; i < 12; i++) {
-        p[0] = v[ptbl[i * 3]];
-        p[1] = v[ptbl[i * 3 + 1]];
-        p[2] = v[ptbl[i * 3 + 2]];
-        Draw_poly(p, color, 0);
+        p[0] = pBoxVec[ptbl[i * 3]];
+        p[1] = pBoxVec[ptbl[i * 3 + 1]];
+        p[2] = pBoxVec[ptbl[i * 3 + 2]];
+        Draw_poly(p, col, 0);
     }
-    if (flag & 1) {
-        Draw_line3d(&v[0], &v[1], color, 0);
-        Draw_line3d(&v[1], &v[3], color, 0);
-        Draw_line3d(&v[3], &v[2], color, 0);
-        Draw_line3d(&v[2], &v[0], color, 0);
-        Draw_line3d(&v[4], &v[5], color, 0);
-        Draw_line3d(&v[5], &v[7], color, 0);
-        Draw_line3d(&v[7], &v[6], color, 0);
-        Draw_line3d(&v[6], &v[4], color, 0);
-        Draw_line3d(&v[0], &v[4], color, 0);
-        Draw_line3d(&v[1], &v[5], color, 0);
-        Draw_line3d(&v[2], &v[6], color, 0);
-        Draw_line3d(&v[3], &v[7], color, 0);
+    if (flg & 1) {
+        Draw_line3d(&pBoxVec[0], &pBoxVec[1], col, 0);
+        Draw_line3d(&pBoxVec[1], &pBoxVec[3], col, 0);
+        Draw_line3d(&pBoxVec[3], &pBoxVec[2], col, 0);
+        Draw_line3d(&pBoxVec[2], &pBoxVec[0], col, 0);
+        Draw_line3d(&pBoxVec[4], &pBoxVec[5], col, 0);
+        Draw_line3d(&pBoxVec[5], &pBoxVec[7], col, 0);
+        Draw_line3d(&pBoxVec[7], &pBoxVec[6], col, 0);
+        Draw_line3d(&pBoxVec[6], &pBoxVec[4], col, 0);
+        Draw_line3d(&pBoxVec[0], &pBoxVec[4], col, 0);
+        Draw_line3d(&pBoxVec[1], &pBoxVec[5], col, 0);
+        Draw_line3d(&pBoxVec[2], &pBoxVec[6], col, 0);
+        Draw_line3d(&pBoxVec[3], &pBoxVec[7], col, 0);
     }
 }
 
@@ -616,7 +616,7 @@ void Draw_pos(Vec* pos, int size)
 }
 
 // Position marker in matrix `mtx` space.
-void Draw_local_pos(Vec* pos, int size, Mtx mtx)
+void Draw_local_pos(Vec* pos, int size, Mtx mat)
 {
     Vec p;
     f32 s;
@@ -628,14 +628,14 @@ void Draw_local_pos(Vec* pos, int size, Mtx mtx)
         a.y = pos->y;
         a.z = pos->z;
         p = a;
-        Draw_line3d_local(pos, &p, mtx, 0x00FF0000, 0);
+        Draw_line3d_local(pos, &p, mat, 0x00FF0000, 0);
         {
             Vec b = {0.0f, 0.0f, 0.0f};
             b.x = pos->x - s;
             b.y = pos->y;
             b.z = pos->z;
             p = b;
-            Draw_line3d_local(pos, &p, mtx, 0x00FFFFFF, 0);
+            Draw_line3d_local(pos, &p, mat, 0x00FFFFFF, 0);
         }
     }
     {
@@ -644,7 +644,7 @@ void Draw_local_pos(Vec* pos, int size, Mtx mtx)
         a.y = pos->y + s;
         a.z = pos->z;
         p = a;
-        Draw_line3d_local(pos, &p, mtx, 0x0000FF00, 0);
+        Draw_line3d_local(pos, &p, mat, 0x0000FF00, 0);
     }
     {
         Vec a = {0.0f, 0.0f, 0.0f};
@@ -652,7 +652,7 @@ void Draw_local_pos(Vec* pos, int size, Mtx mtx)
         a.y = pos->y - s;
         a.z = pos->z;
         p = a;
-        Draw_line3d_local(pos, &p, mtx, 0x00FFFFFF, 0);
+        Draw_line3d_local(pos, &p, mat, 0x00FFFFFF, 0);
     }
     {
         Vec a = {0.0f, 0.0f, 0.0f};
@@ -660,7 +660,7 @@ void Draw_local_pos(Vec* pos, int size, Mtx mtx)
         a.y = pos->y;
         a.z = pos->z + s;
         p = a;
-        Draw_line3d_local(pos, &p, mtx, 0x000000FF, 0);
+        Draw_line3d_local(pos, &p, mat, 0x000000FF, 0);
     }
     {
         Vec a = {0.0f, 0.0f, 0.0f};
@@ -668,32 +668,32 @@ void Draw_local_pos(Vec* pos, int size, Mtx mtx)
         a.y = pos->y;
         a.z = pos->z - s;
         p = a;
-        Draw_line3d_local(pos, &p, mtx, 0x00FFFFFF, 0);
+        Draw_line3d_local(pos, &p, mat, 0x00FFFFFF, 0);
     }
 }
 
 // Ground grid of (2n + 1) lines each way, `step` units apart, on the y = 0 plane.
-void Draw_floor(int step, int n, u32 color)
+void Draw_floor(int size, int num, u32 col)
 {
     Vec a;
     Vec b;
     int i;
 
-    for (i = -n; i <= n; i++) {
-        a.x = (f32) (-step * n);
+    for (i = -num; i <= num; i++) {
+        a.x = (f32) (-size * num);
         a.y = 0.0f;
-        a.z = (f32) (i * step);
-        b.x = (f32) (step * n);
+        a.z = (f32) (i * size);
+        b.x = (f32) (size * num);
         b.y = 0.0f;
-        b.z = (f32) (i * step);
-        Draw_line3d(&a, &b, color, 0);
-        a.x = (f32) (i * step);
+        b.z = (f32) (i * size);
+        Draw_line3d(&a, &b, col, 0);
+        a.x = (f32) (i * size);
         a.y = 0.0f;
-        a.z = (f32) (-step * n);
-        b.x = (f32) (i * step);
+        a.z = (f32) (-size * num);
+        b.x = (f32) (i * size);
         b.y = 0.0f;
-        b.z = (f32) (step * n);
-        Draw_line3d(&a, &b, color, 0);
+        b.z = (f32) (size * num);
+        Draw_line3d(&a, &b, col, 0);
     }
 }
 
@@ -844,7 +844,7 @@ void init_corn()
 // 2-vertex strip emit loop has its own `u32 m2` counter (caller-saved r11; `m` crosses calls).
 // `vtx_size` is an unused non-static local (8-byte .rodata template between init_corn's pool and
 // this function's pool; a `static const` lands in .sdata2).
-void DrawObjWireframe(cObj* obj, int color)
+void DrawObjWireframe(cObj* pObj, int col)
 {
     const u8 vtx_size[8] = {8, 8, 10, 12, 10, 8, 8, 0};
     cModelData* md;
@@ -862,14 +862,14 @@ void DrawObjWireframe(cObj* obj, int color)
     u8 op;
     u8 cr, cg, cb, ca;
 
-    if (obj == NULL) {
+    if (pObj == NULL) {
         return;
     }
-    if ((obj->be_flag & 0x201) != 1) {
+    if ((pObj->be_flag & 0x201) != 1) {
         return;
     }
     Draw_line3d_init();
-    md = obj->pModelInfo->model_addr;
+    md = pObj->pModelInfo->model_addr;
     scale = 1.0f / (f32) (1 << md->shift);
     vtx = (s16*) md->vtxOrig;
     part = md->pParts;
@@ -914,7 +914,7 @@ void DrawObjWireframe(cObj* obj, int color)
                         pv->x *= scale;
                         pv->y *= scale;
                         pv->z *= scale;
-                        PSMTXMultVec(obj->mat, pv, pv);
+                        PSMTXMultVec(pObj->mat, pv, pv);
                         pv++;
                     }
                     GXBegin(0xB0, 0, 6);
@@ -962,7 +962,7 @@ void DrawObjWireframe(cObj* obj, int color)
                         pv->x *= scale;
                         pv->y *= scale;
                         pv->z *= scale;
-                        PSMTXMultVec(obj->mat, pv, pv);
+                        PSMTXMultVec(pObj->mat, pv, pv);
                         pv++;
                     }
                     GXBegin(0xB0, 0, 4);
@@ -1003,7 +1003,7 @@ void DrawObjWireframe(cObj* obj, int color)
                     pv->x *= scale;
                     pv->y *= scale;
                     pv->z *= scale;
-                    PSMTXMultVec(obj->mat, pv, pv);
+                    PSMTXMultVec(pObj->mat, pv, pv);
                     pv++;
                 }
                 cnt = n - 2;
@@ -1029,7 +1029,7 @@ void DrawObjWireframe(cObj* obj, int color)
                     pv->x *= scale;
                     pv->y *= scale;
                     pv->z *= scale;
-                    PSMTXMultVec(obj->mat, pv, pv);
+                    PSMTXMultVec(pObj->mat, pv, pv);
                     pv = p;
                     GXBegin(0xB0, 0, 3);
                     for (m = 0; m < 3; m++) {
@@ -1075,7 +1075,7 @@ void DrawRoomWireframe()
 
 // Prints `time` (frames, 30 / s) as hh:mm:ss:ff; flag bits 8 / 4 / 2 / 1 select hours /
 // minutes / seconds / frames.
-void DispTime(s16 x, int y, int color, int time, int flag)
+void DispTime(s16 x, int y, int col, int time, int flag)
 {
     int frame, sec, min, hour;
     int s, m;
@@ -1093,34 +1093,34 @@ void DispTime(s16 x, int y, int color, int time, int flag)
     frame *= 3;
 
     if (flag & 8) {
-        eprintf(x, y, color, 0, "%02d", hour);
+        eprintf(x, y, col, 0, "%02d", hour);
         x += 16;
         first = 0;
     }
     if (flag & 4) {
         if (!first) {
-            eprintf(x, y, color, 0, ":");
+            eprintf(x, y, col, 0, ":");
             x += 8;
         }
-        eprintf(x, y, color, 0, "%02d", min);
+        eprintf(x, y, col, 0, "%02d", min);
         x += 16;
         first = 0;
     }
     if (flag & 2) {
         if (!first) {
-            eprintf(x, y, color, 0, ":");
+            eprintf(x, y, col, 0, ":");
             x += 8;
         }
-        eprintf(x, y, color, 0, "%02d", sec);
+        eprintf(x, y, col, 0, "%02d", sec);
         x += 16;
         first = 0;
     }
     if (flag & 1) {
         if (!first) {
-            eprintf(x, y, color, 0, ":");
+            eprintf(x, y, col, 0, ":");
             x += 8;
         }
-        eprintf(x, y, color, 0, "%02d", frame);
+        eprintf(x, y, col, 0, "%02d", frame);
     }
 }
 

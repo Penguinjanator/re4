@@ -100,7 +100,7 @@ u32 Ctrl11StopAndSetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx)
 }
 
 // The em38 voice slot: stops the previous voice and plays `no` at parts 0.
-u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* m, u16 no)
+u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* pEm, u16 se)
 {
     Ctrl11Work* w;
 
@@ -112,6 +112,6 @@ u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* m, u16 no)
     }
     w = (Ctrl11Work*) pCtrl->work;
     SndStop(w->Se_id_em38, 0);
-    w->Se_id_em38 = SndCall(8, no, &m->getPartsPtr(0)->world, m->id, 0, m);
+    w->Se_id_em38 = SndCall(8, se, &pEm->getPartsPtr(0)->world, pEm->id, 0, pEm);
     return w->Se_id_em38;
 }

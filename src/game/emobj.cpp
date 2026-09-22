@@ -205,9 +205,9 @@ static void emObjPosClear(Vec* p)
 }
 
 // Sets the object's effect id byte (per class: effect / est number used on break).
-void cEmObj::setEff(u8 v)
+void cEmObj::setEff(u8 eff_id)
 {
-    EMOBJ_WK(this)->eff = v;
+    EMOBJ_WK(this)->eff = eff_id;
 }
 
 // The object's effect id byte.
@@ -217,9 +217,9 @@ u8 cEmObj::getEff()
 }
 
 // Sets the object's extra parameter byte (per class meaning).
-void cEmObj::setEtc(u8 v)
+void cEmObj::setEtc(u8 etc_no)
 {
-    EMOBJ_WK(this)->etc = v;
+    EMOBJ_WK(this)->etc = etc_no;
 }
 
 // The object's extra parameter byte.

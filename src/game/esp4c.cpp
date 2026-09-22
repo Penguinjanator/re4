@@ -91,31 +91,31 @@ void Esp4c_Trans()
 // Fills Esp4cWork from the record: Type Work8[0] (2 = spread/damp from Work8[1..2]), specular
 // texture Tex_id, shimmer powers prm 0xCE/0xD2, reflection type Work8[3], angles (degrees ->
 // radians), mask texture when Tool_flg 0x4000; then applies the first frame at once.
-int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp4c::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp4cWork* w = &m_Free;
 
-    w->wave_ratio_base = gen->WorkSp8[2];
-    w->Type = gen->Work8[0];
+    w->wave_ratio_base = pSeq->WorkSp8[2];
+    w->Type = pSeq->Work8[0];
     if (w->Type == 2) {
-        w->Prm_a = 0.5f - (f32)(s8)gen->Work8[1] * 0.005f;
+        w->Prm_a = 0.5f - (f32)(s8)pSeq->Work8[1] * 0.005f;
         if (w->Prm_a > 0.5f) {
             w->Prm_a = 0.5f;
         }
         if (w->Prm_a < 0.0f) {
             w->Prm_a = 0.0f;
         }
-        w->Prm_dmp = 0.99f - gen->Work8[2] * 0.001f;
+        w->Prm_dmp = 0.99f - pSeq->Work8[2] * 0.001f;
     }
-    w->Spec_Tex = gen->Tex_id;
-    w->Shimmer_pow1 = gen->prm.h.xCE;
-    w->Shimmer_pow2 = gen->prm.h.xD2;
-    w->Refrect_type = gen->Work8[3];
-    w->ang = gen->Ang;
+    w->Spec_Tex = pSeq->Tex_id;
+    w->Shimmer_pow1 = pSeq->prm.h.xCE;
+    w->Shimmer_pow2 = pSeq->prm.h.xD2;
+    w->Refrect_type = pSeq->Work8[3];
+    w->ang = pSeq->Ang;
     PSVECScale(&w->ang, &w->ang, 3.14 / 180);
-    if (gen->Tool_flg & 0x4000) {
+    if (pSeq->Tool_flg & 0x4000) {
         w->flag |= 2;
-        w->MaskTex_id = gen->MaskTex_id;
+        w->MaskTex_id = pSeq->MaskTex_id;
         w->flag |= 1;
     }
     move();

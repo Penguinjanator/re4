@@ -73,8 +73,8 @@ struct Pl0fWork {
 // game/obj1b.cpp `cObjSpear` (SetSpear in obj1c.cpp): the thrown harpoon.
 class cObjSpear : public cObj {
 public:
-    void setParent(cModel* parent, int partsNo, int noNormalize);
-    void setThrow(Vec* dir);
+    void setParent(cModel* pCoord, int oya_parts, int mode);
+    void setThrow(Vec* pSpd);
     void setLost();
 };
 

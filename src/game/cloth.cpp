@@ -195,7 +195,7 @@ int ClothTexSetUp(void* tpl, GXTexObj* tex, int no, GXTlutObj* tlut)
 
 // One simulation step of the speeds: spring forces (K_PARAM) toward each neighbour's rest
 // distance (Wgap / Hgap), gravity G_PARAM, then the speed scaled by `damping`.
-void Cloth::calcSpeed(f32 damping)
+void Cloth::calcSpeed(f32 mul)
 {
     Vec v;
     Vec* p = pVer;
@@ -246,21 +246,21 @@ void Cloth::calcSpeed(f32 damping)
                 }
             }
             s[k].y -= G_PARAM;
-            PSVECScale(&s[k], &s[k], damping);
+            PSVECScale(&s[k], &s[k], mul);
         }
     }
 }
 
 // A free cloth work in *out; 0 when all 8 are used.
-int PullCloth(Cloth** out)
+int PullCloth(Cloth** ppCl)
 {
     Cloth* c = ClothWk;
     int i;
 
-    *out = 0;
+    *ppCl = 0;
     for (i = 0; i < 8; i++) {
         if ((c->be_flag & 1) == 0) {
-            *out = c;
+            *ppCl = c;
             return 1;
         }
         c++;
@@ -322,12 +322,12 @@ void Cloth::calcNormal()
 }
 
 // Pushes grid point (x, y): adds `power` to its z speed and half to y (bullets / wind).
-void Cloth::disturbance(u32 x, u32 y, f32 power)
+void Cloth::disturbance(u32 w, u32 h, f32 pow)
 {
-    u32 idx = x + divH * y;
+    u32 idx = w + divH * h;
 
-    pSpd[idx].z += power;
-    pSpd[idx].y += power * 0.5f;
+    pSpd[idx].z += pow;
+    pSpd[idx].y += pow * 0.5f;
 }
 
 // Draw registration: queues clothTrans in OT 13 for every cloth flagged drawn (be_flag 0x20).

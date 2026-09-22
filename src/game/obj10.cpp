@@ -193,9 +193,9 @@ void cWepItem::move01()
 }
 
 // Explosion damage volumes: 2/8 fire (3000 / 15000), 1 flash (1500, 180 frames).
-void cWepItem::dmgSet(int kind)
+void cWepItem::dmgSet(int dmtype)
 {
-    switch (kind) {
+    switch (dmtype) {
     case 8:
         DmgMgr.set(DMG_TYPE_GRENADE_BLAST, 2, &pos, 3000.0f, 3000.0f);
         DmgMgr.set(DMG_TYPE_GRENADE, 2, &pos, 15000.0f, 3000.0f);
@@ -215,38 +215,38 @@ void cWepItem::hitCkPl()
 }
 
 // Event start: the thrown item is removed.
-void cWepItem::beginEvent(u32 mode)
+void cWepItem::beginEvent(u32 flag)
 {
     ObjMgr.destroy(this);
 }
 
 // Physics step as obj01AddSpeed, with the water landing skipped for weapons 0xB/0xC and the
 // player's landing sounds; returns 1 when the object should be destroyed.
-int obj10AddSpeed(cWepItem* obj)
+int obj10AddSpeed(cWepItem* pObj)
 {
-    WepItemWork* w = &obj->wepItem;
+    WepItemWork* w = &pObj->wepItem;
     f32 wh;
     Vec ref;
     Vec nrm;
     f32 len;
 
     w->spd.y -= w->gravity;
-    PSVECAdd(&obj->pos, &w->spd, &obj->pos);
+    PSVECAdd(&pObj->pos, &w->spd, &pObj->pos);
     if (!(w->be_flag & 4)) {
         return 0;
     }
-    if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh && !(pG->weapon_no == 0xB || pG->weapon_no == 0xC)) {
-        obj->pos.y = wh;
+    if (GetWaterHeight(&pObj->pos, &wh) && pObj->pos.y <= wh && !(pG->weapon_no == 0xB || pG->weapon_no == 0xC)) {
+        pObj->pos.y = wh;
         if (!(w->flag & 8)) {
-            EstSet(0, -1, &obj->pos, 0, w->eff3, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &pObj->pos, 0, w->eff3, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
             w->flag |= 8;
-            AddWaterPower(obj->pos, 0.5f);
-            switch (obj->type) {
+            AddWaterPower(pObj->pos, 0.5f);
+            switch (pObj->type) {
             default:
-                SndCall(6, 0x64, &obj->pos, 0, 0, 0);
+                SndCall(6, 0x64, &pObj->pos, 0, 0, 0);
                 break;
             case 1:
-                SndCall(2, 0xA, &obj->pos, 0, 0, 0);
+                SndCall(2, 0xA, &pObj->pos, 0, 0, 0);
                 break;
             case 0x63:
                 break;
@@ -258,8 +258,8 @@ int obj10AddSpeed(cWepItem* obj)
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    if (!((obj->type == 1 || obj->type == 0x63) && (pG->weapon_no == 0xB || pG->weapon_no == 0xC))) {
-        EatMgr.adjust(&nrm, &obj->pos_old, &obj->pos, w->r * 0.5f, 0x2001, 0);
+    if (!((pObj->type == 1 || pObj->type == 0x63) && (pG->weapon_no == 0xB || pG->weapon_no == 0xC))) {
+        EatMgr.adjust(&nrm, &pObj->pos_old, &pObj->pos, w->r * 0.5f, 0x2001, 0);
     }
     if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
         return 0;
@@ -274,39 +274,39 @@ int obj10AddSpeed(cWepItem* obj)
             if (w->spd.y > 50.0f) {
                 if (w->Bound_se_ck) {
                     w->Bound_se_ck--;
-                    SndCall(5, 6, &obj->pos, 0, 0, 0);
+                    SndCall(5, 6, &pObj->pos, 0, 0, 0);
                 }
             }
             break;
         case 2:
-            obj->dmgSet(1);
-            EstSet(0, -1, &obj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
-            EstSet(0, -1, &obj->pos, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
-            SndCall(1, 0x15, &obj->pos, 0, 0, 0);
-            SndCall(1, 0x16, &obj->pos, 0, 0, 0);
-            obj->r_no_0 = 1;
-            obj->be_flag &= ~2;
+            pObj->dmgSet(1);
+            EstSet(0, -1, &pObj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &pObj->pos, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
+            SndCall(1, 0x15, &pObj->pos, 0, 0, 0);
+            SndCall(1, 0x16, &pObj->pos, 0, 0, 0);
+            pObj->r_no_0 = 1;
+            pObj->be_flag &= ~2;
             return 0;
         case 0:
         default:
             break;
         }
     }
-    switch (obj->type) {
+    switch (pObj->type) {
     case 1:
-        if (effWaterCheck(obj)) {
-            SndCall(2, 0xA, &obj->pos, 0, 0, 0);
+        if (effWaterCheck(pObj)) {
+            SndCall(2, 0xA, &pObj->pos, 0, 0, 0);
             return 1;
         }
         w->se_count++;
         if (w->se_count <= 3) {
-            SndCall(2, 0xF, &obj->pos, 0, 0, 0);
+            SndCall(2, 0xF, &pObj->pos, 0, 0, 0);
         }
         break;
     case 2:
         w->se_count++;
         if (w->se_count <= 2) {
-            SndCall(2, 8, &obj->pos, 0, 0, 0);
+            SndCall(2, 8, &pObj->pos, 0, 0, 0);
         }
         break;
     case 0x63:
@@ -316,14 +316,14 @@ int obj10AddSpeed(cWepItem* obj)
 }
 
 // 1 when the floor 500 units below the object is a water-type eat surface (effect type 2).
-int effWaterCheck(cModel* obj)
+int effWaterCheck(cModel* pObj)
 {
     static const Vec spd = { 0.0f, -500.0f, 0.0f };
     Vec hit;
     u32 attr;
 
-    PSVECAdd(&spd, &obj->pos, &hit);
-    attr = EatMgr.hitCheck(&obj->pos, &hit, 0, 0, 0, 0);
+    PSVECAdd(&spd, &pObj->pos, &hit);
+    attr = EatMgr.hitCheck(&pObj->pos, &hit, 0, 0, 0, 0);
     if (attr & 0x1000000) {
         return EatGetEffectType(attr) == 2;
     }

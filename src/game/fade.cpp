@@ -68,14 +68,14 @@ void FadeInit()
 // Per-frame update + draw of the normal (late == 0) or late group: advances the colour
 // interpolation by one frame, and when finished either keeps the end colour (flag bit 1) or clears
 // the slot; every active slot is drawn with fadeDraw.
-void FadeControl(int late)
+void FadeControl(int flag)
 {
     int i;
     FadeWork* f;
 
     for (i = 0; i < 4; i++) {
         f = &Fade[i];
-        if (late == 0) {
+        if (flag == 0) {
             if (f->flags & 4) {
                 continue;
             }
@@ -110,7 +110,7 @@ void FadeControl(int late)
 
 // Draws the fade quad (screen-wide, between y 56 and height-56) in the slot's current colour at its
 // z with alpha blending.
-void fadeDraw(FadeWork* f)
+void fadeDraw(FadeWork* pF)
 {
     GXRenderModeObj* rmode = &Rmode;
     Mtx44 proj;
@@ -137,12 +137,12 @@ void fadeDraw(FadeWork* f)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 11, 1, 5, 0);
     GXBegin(0x80, 0, 4);
-    GXPosition3f32(0.0f, 56.0f, f->z);
-    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
-    GXPosition3f32((f32) rmode->fbWidth, 56.0f, f->z);
-    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
-    GXPosition3f32((f32) rmode->fbWidth, rmode->xfbHeight - 56.0f + 1.0f, f->z);
-    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
-    GXPosition3f32(0.0f, rmode->xfbHeight - 56.0f + 1.0f, f->z);
-    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
+    GXPosition3f32(0.0f, 56.0f, pF->z);
+    GXColor4u8(pF->col.r, pF->col.g, pF->col.b, pF->col.a);
+    GXPosition3f32((f32) rmode->fbWidth, 56.0f, pF->z);
+    GXColor4u8(pF->col.r, pF->col.g, pF->col.b, pF->col.a);
+    GXPosition3f32((f32) rmode->fbWidth, rmode->xfbHeight - 56.0f + 1.0f, pF->z);
+    GXColor4u8(pF->col.r, pF->col.g, pF->col.b, pF->col.a);
+    GXPosition3f32(0.0f, rmode->xfbHeight - 56.0f + 1.0f, pF->z);
+    GXColor4u8(pF->col.r, pF->col.g, pF->col.b, pF->col.a);
 }

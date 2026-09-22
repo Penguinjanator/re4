@@ -151,10 +151,10 @@ void cCtrl14::move()
 }
 
 // Matrix of piece `idx` (0 base, 1 head, ...).
-void cCtrl14::getBaseMtx(Mtx m, int idx)
+void cCtrl14::getBaseMtx(Mtx m, int type)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
-    cModel* o = w->obj[idx];
+    cModel* o = w->obj[type];
 
     if (o) {
         PSMTXCopy(o->mat, m);
@@ -162,13 +162,13 @@ void cCtrl14::getBaseMtx(Mtx m, int idx)
 }
 
 // The head's position.
-void cCtrl14::getPos(Vec* out)
+void cCtrl14::getPos(Vec* pPos)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
     cModel* o = w->obj[1];
 
     if (o) {
-        *out = o->pos;
+        *pPos = o->pos;
     }
 }
 
@@ -200,7 +200,7 @@ f32 cCtrl14::getDir2()
 
 // Slides the whole dragon by `x` along the base's local x, clamped to the rail limits of its
 // type (type 2 does not slide); marks it moving.
-void cCtrl14::addWidth(f32 x)
+void cCtrl14::addWidth(f32 add)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
     cModel* o = w->obj[0];
@@ -208,7 +208,7 @@ void cCtrl14::addWidth(f32 x)
     Vec p;
 
     if (o) {
-        v.x = x;
+        v.x = add;
         v.y = 0.0f;
         v.z = 0.0f;
         PSMTXMultVecSR(o->mat, &v, &v);
@@ -251,33 +251,33 @@ void cCtrl14::addWidth(f32 x)
 }
 
 // Raises / lowers the whole dragon by `y` (upper limits per type); marks it moving.
-void cCtrl14::addHeight(f32 y)
+void cCtrl14::addHeight(f32 add)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
 
     if (w->type == 2) {
-        if (w->obj[0]->pos.y > 30000.0f && y > 0.0f) {
+        if (w->obj[0]->pos.y > 30000.0f && add > 0.0f) {
             return;
         }
     } else {
-        if (w->obj[0]->pos.y > 5000.0f && y > 0.0f) {
+        if (w->obj[0]->pos.y > 5000.0f && add > 0.0f) {
             return;
         }
     }
     if (w->obj[0]) {
-        w->obj[0]->pos.y += y;
+        w->obj[0]->pos.y += add;
     }
     if (w->obj[1]) {
-        w->obj[1]->pos.y += y;
+        w->obj[1]->pos.y += add;
     }
     if (w->obj[3]) {
-        w->obj[3]->pos.y += y;
+        w->obj[3]->pos.y += add;
     }
     if (w->obj[4]) {
-        w->obj[4]->pos.y += y;
+        w->obj[4]->pos.y += add;
     }
-    y = fabsf(y);
-    if (y > 1.0f) {
+    add = fabsf(add);
+    if (add > 1.0f) {
         w->flags |= 2;
     }
 }
@@ -339,7 +339,7 @@ void cCtrl14::setFire()
 
 // 1 when the jet is burning and `p` lies in the flame box in head space (5000..15000 ahead,
 // +-1500 wide, +-5000 high).
-int cCtrl14::ckHitFire(Vec* p)
+int cCtrl14::ckHitFire(Vec* pPos)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
     cModel* o = w->obj[1];
@@ -353,7 +353,7 @@ int cCtrl14::ckHitFire(Vec* p)
         return 0;
     }
     PSMTXInverse(o->mat, inv);
-    PSMTXMultVec(inv, p, &v);
+    PSMTXMultVec(inv, pPos, &v);
     if (v.z < 5000.0f) {
         return 0;
     }

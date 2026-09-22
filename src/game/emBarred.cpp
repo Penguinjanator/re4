@@ -252,9 +252,9 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
 // Weapon hit reaction: on the type 6 gate a hit on the bar hit box (hitInfo) knocks the bar out
 // (est 3 of Eff_id facing the shooter, parts 1 hidden, SE, etc flag bit1); otherwise plays the
 // spark est (1 near / 0 far) by weapon class.
-void emBarredDmCk(cEmBarred* em)
+void emBarredDmCk(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     YARARE_INFO* part;
     cModel* parts;
     u16* flg;
@@ -263,16 +263,16 @@ void emBarredDmCk(cEmBarred* em)
     int near;
     u8 wep;
 
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    part = em->dmg.m_pDamageYarare;
-    em->dmg.m_Flag = 0;
+    part = pEm->dmg.m_pDamageYarare;
+    pEm->dmg.m_Flag = 0;
     near = 0;
     if (part->len < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmg.m_Wep;
+    wep = pEm->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -288,33 +288,33 @@ void emBarredDmCk(cEmBarred* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmg.m_Timer = 1;
+    pEm->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmg.m_Timer = 0x11;
+        pEm->dmg.m_Timer = 0x11;
     }
-    if (em->type == 6 && part == &em->hitInfo && w->Eff_id != 0xFF) {
-        ang = Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
+    if (pEm->type == 6 && part == &pEm->hitInfo && w->Eff_id != 0xFF) {
+        ang = Muku(&pEm->pos, &pEm->dmg.m_PosFrom, pEm->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
-            ang = em->ang.y;
+            ang = pEm->ang.y;
         } else {
-            ang = em->ang.y + PI;
+            ang = pEm->ang.y + PI;
         }
         v.y = LIMIT_ANGLE(ang);
         v.x = 0.0f;
         v.z = 0.0f;
-        parts = em->getPartsPtr(1);
-        EstSet(0, -1, &em->pos, &v, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
+        parts = pEm->getPartsPtr(1);
+        EstSet(0, -1, &pEm->pos, &v, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
         part->flag &= ~1;
         parts->scale.x = 0.0f;
         parts->scale.y = 0.0f;
         parts->scale.z = 0.0f;
-        SndCall(6, 0x3B, &em->pos, 0, 0, em);
+        SndCall(6, 0x3B, &pEm->pos, 0, 0, pEm);
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 2;
         }
     } else {
-        switch (em->dmg.m_Wep) {
+        switch (pEm->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -330,7 +330,7 @@ void emBarredDmCk(cEmBarred* em)
         case 0x27:
         case 0x2B:
             if (w->Eff_id != 0xFF) {
-                EmDmBloodSet2(em, w->Eff_id, 0, 0, 0, 0);
+                EmDmBloodSet2(pEm, w->Eff_id, 0, 0, 0, 0);
             }
             break;
         case 7:
@@ -338,9 +338,9 @@ void emBarredDmCk(cEmBarred* em)
         case 0x21:
             if (w->Eff_id != 0xFF) {
                 if (near) {
-                    EmDmBloodSet2(em, w->Eff_id, 1, 0, 0, 0);
+                    EmDmBloodSet2(pEm, w->Eff_id, 1, 0, 0, 0);
                 } else {
-                    EmDmBloodSet2(em, w->Eff_id, 0, 0, 0, 0);
+                    EmDmBloodSet2(pEm, w->Eff_id, 0, 0, 0, 0);
                 }
             }
             break;
@@ -358,7 +358,7 @@ void emBarredDmCk(cEmBarred* em)
         case 0x2C:
         case 0x2D:
             if (w->Eff_id != 0xFF) {
-                EmDmBloodSet2(em, w->Eff_id, 0, 0, 0, 0);
+                EmDmBloodSet2(pEm, w->Eff_id, 0, 0, 0, 0);
             }
             break;
         case 0x14:
@@ -483,25 +483,25 @@ int cEmBarred::ckOpen()
 // Rno1 == 0: resting gate. The proximity types (5 / 6 / 8 / 9) open when the player or a live
 // character comes near (emBarredNearCk) and close again 30 frames after everyone left, unless
 // locked or setNoClose; a setDouble partner is driven along.
-void emBarred_R1_Set(cEmBarred* em)
+void emBarred_R1_Set(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
 
-    em->matUpdate();
-    if (em->r_no_2 == 0) {
+    pEm->matUpdate();
+    if (pEm->r_no_2 == 0) {
         w->Timer = 0;
-        em->r_no_2++;
+        pEm->r_no_2++;
     }
-    if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
-        if (emBarredNearCk(em)) {
+    if (pEm->type == 5 || pEm->type == 6 || pEm->type == 8 || pEm->type == 9) {
+        if (emBarredNearCk(pEm)) {
             w->Timer = 0;
             if (w->Status != 1 && w->Lock_mode == 0) {
                 w->Open_flag = 1;
                 w->Status = 0;
-                em->r_no_0 = 1;
-                em->r_no_1 = 1;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 1;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
                 if (w->pBarred) {
                     w->pBarred->setOpen(1);
                 }
@@ -511,10 +511,10 @@ void emBarred_R1_Set(cEmBarred* em)
             if (w->Status == 1 && w->Timer > 30 && w->Lock_mode == 0) {
                 w->Status = 0;
                 w->Open_flag = 0;
-                em->r_no_0 = 1;
-                em->r_no_1 = 2;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 2;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
                 if (w->pBarred) {
                     w->pBarred->setClose(1);
                 }
@@ -525,43 +525,43 @@ void emBarred_R1_Set(cEmBarred* em)
 
 // Rno1 == 1: raises the gate: chain SE (unless Rno3 1), then pos.y climbs 100 / frame (50 for
 // type 4; types 5 / 6 slide sideways instead) to pos0.y + Height, a 5 frame rattle, then Status 1.
-void emBarred_R1_Open(cEmBarred* em)
+void emBarred_R1_Open(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     Vec v;
     f32 d;
 
     w->Status = 0;
     w->Open_flag = 1;
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         SndStop(w->Seid, 0);
-        if (em->r_no_3 == 0) {
-            switch (em->type) {
+        if (pEm->r_no_3 == 0) {
+            switch (pEm->type) {
             case 5:
             case 6:
             case 8:
             case 9:
-                w->Seid = SndCall(6, 0xF, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0xF, &pEm->pos, 0, 0, pEm);
                 break;
             default:
-                w->Seid = SndCall(6, 0x24, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0x24, &pEm->pos, 0, 0, pEm);
                 break;
             }
         }
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        switch (em->type) {
+        switch (pEm->type) {
         case 0xA:
         default:
-            if (em->type == 4) {
-                em->pos.y += 50.0f;
+            if (pEm->type == 4) {
+                pEm->pos.y += 50.0f;
             } else {
-                em->pos.y += 100.0f;
+                pEm->pos.y += 100.0f;
             }
-            if (em->pos.y > w->pos0.y + w->Height) {
-                em->pos.y = w->pos0.y + w->Height;
-                em->r_no_2++;
+            if (pEm->pos.y > w->pos0.y + w->Height) {
+                pEm->pos.y = w->pos0.y + w->Height;
+                pEm->r_no_2++;
             }
             break;
         case 5:
@@ -569,165 +569,165 @@ void emBarred_R1_Open(cEmBarred* em)
             v.x = 100.0f;
             v.y = 0.0f;
             v.z = 0.0f;
-            PSMTXMultVecSR(em->mat, &v, &v);
-            PSVECAdd(&em->pos, &v, &em->pos);
-            d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
+            PSMTXMultVecSR(pEm->mat, &v, &v);
+            PSVECAdd(&pEm->pos, &v, &pEm->pos);
+            d = (pEm->pos.x - w->pos0.x) * (pEm->pos.x - w->pos0.x) + (pEm->pos.y - w->pos0.y) * (pEm->pos.y - w->pos0.y) + (pEm->pos.z - w->pos0.z) * (pEm->pos.z - w->pos0.z);
             if (d > 1690000.0f) {
                 w->Status = 1;
-                em->r_no_0 = 1;
-                em->r_no_1 = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             }
             break;
         case 8:
             v.x = 100.0f;
             v.y = 0.0f;
             v.z = 0.0f;
-            PSMTXMultVecSR(em->mat, &v, &v);
-            PSVECAdd(&em->pos, &v, &em->pos);
-            d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
+            PSMTXMultVecSR(pEm->mat, &v, &v);
+            PSVECAdd(&pEm->pos, &v, &pEm->pos);
+            d = (pEm->pos.x - w->pos0.x) * (pEm->pos.x - w->pos0.x) + (pEm->pos.y - w->pos0.y) * (pEm->pos.y - w->pos0.y) + (pEm->pos.z - w->pos0.z) * (pEm->pos.z - w->pos0.z);
             if (d > 2890000.0f) {
                 w->Status = 1;
-                em->r_no_0 = 1;
-                em->r_no_1 = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             }
             break;
         case 9:
             v.x = 100.0f;
             v.y = 0.0f;
             v.z = 0.0f;
-            PSMTXMultVecSR(em->mat, &v, &v);
-            PSVECAdd(&em->pos, &v, &em->pos);
-            d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
+            PSMTXMultVecSR(pEm->mat, &v, &v);
+            PSVECAdd(&pEm->pos, &v, &pEm->pos);
+            d = (pEm->pos.x - w->pos0.x) * (pEm->pos.x - w->pos0.x) + (pEm->pos.y - w->pos0.y) * (pEm->pos.y - w->pos0.y) + (pEm->pos.z - w->pos0.z) * (pEm->pos.z - w->pos0.z);
             if (d > 2890000.0f) {
                 w->Status = 1;
-                em->r_no_0 = 1;
-                em->r_no_1 = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             }
             break;
         }
         break;
     case 2:
-        if (em->r_no_3 == 0) {
+        if (pEm->r_no_3 == 0) {
             SndStop(w->Seid, 0);
-            w->Seid = SndCall(6, 0x25, &em->pos, 0, 0, em);
+            w->Seid = SndCall(6, 0x25, &pEm->pos, 0, 0, pEm);
         }
         w->Timer = 5;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 3:
-        em->pos.x = fRand1_1() * 20.0f + w->pos0.x;
-        em->pos.y = fRand0_1() * 20.0f + (w->pos0.y + w->Height);
-        em->pos.z = fRand1_1() * 20.0f + w->pos0.z;
+        pEm->pos.x = fRand1_1() * 20.0f + w->pos0.x;
+        pEm->pos.y = fRand0_1() * 20.0f + (w->pos0.y + w->Height);
+        pEm->pos.z = fRand1_1() * 20.0f + w->pos0.z;
         if (w->Timer != 0) {
             w->Timer--;
         } else {
-            em->pos = w->pos0;
-            em->pos.y = w->pos0.y + w->Height;
+            pEm->pos = w->pos0;
+            pEm->pos.y = w->pos0.y + w->Height;
             w->Status = 1;
-            em->r_no_0 = 1;
-            em->r_no_1 = 0;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 0;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
         }
         break;
     }
-    em->matUpdate();
+    pEm->matUpdate();
 }
 
 // Rno1 == 2: drops the gate with gravity (spd -10 / -15 per frame) to pos0.y; anyone under it
 // (emBarredUnderCk) is hit; slam SE, a short rattle, then Status 2.
-void emBarred_R1_Close(cEmBarred* em)
+void emBarred_R1_Close(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     Vec d;
 
     w->Status = 0;
     w->Open_flag = 0;
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        if (em->type == 4) {
+        if (pEm->type == 4) {
             w->TmpF = -10.0f;
         } else {
             w->TmpF = -50.0f;
         }
         SndStop(w->Seid, 0);
-        if (em->r_no_3 == 0) {
-            switch (em->type) {
+        if (pEm->r_no_3 == 0) {
+            switch (pEm->type) {
             case 5:
             case 6:
             case 8:
             case 9:
-                w->Seid = SndCall(6, 0xF, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0xF, &pEm->pos, 0, 0, pEm);
                 break;
             default:
-                w->Seid = SndCall(6, 0x24, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0x24, &pEm->pos, 0, 0, pEm);
                 break;
             }
         }
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        switch (em->type) {
+        switch (pEm->type) {
         default:
-            em->pos.y += w->TmpF;
-            em->pos.y += w->TmpF;
-            if (em->type == 4) {
+            pEm->pos.y += w->TmpF;
+            pEm->pos.y += w->TmpF;
+            if (pEm->type == 4) {
                 w->TmpF -= 10.0f;
             } else {
                 w->TmpF -= 15.0f;
             }
-            if (em->pos.y < w->pos0.y) {
-                em->pos.y = w->pos0.y;
-                em->r_no_2++;
+            if (pEm->pos.y < w->pos0.y) {
+                pEm->pos.y = w->pos0.y;
+                pEm->r_no_2++;
             }
             break;
         case 5:
         case 6:
         case 8:
         case 9:
-            PSVECSubtract(&w->pos0, &em->pos, &d);
+            PSVECSubtract(&w->pos0, &pEm->pos, &d);
             if (d.x * d.x + d.y * d.y + d.z * d.z <= 10000.0f) {
-                em->pos = w->pos0;
-                em->r_no_2++;
+                pEm->pos = w->pos0;
+                pEm->r_no_2++;
             } else {
 #line 996 "D:/Bio4/Prog/emBarred.cpp"
                 VECNormalize(&d, &d);
                 PSVECScale(&d, &d, 100.0f);
-                PSVECAdd(&em->pos, &d, &em->pos);
+                PSVECAdd(&pEm->pos, &d, &pEm->pos);
             }
             break;
         }
-        if (emBarredUnderCk(em)) {
+        if (emBarredUnderCk(pEm)) {
             w->Status = 0;
             w->Open_flag = 1;
-            em->r_no_0 = 1;
-            em->r_no_1 = 1;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 1;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
             if (w->pBarred) {
                 w->pBarred->setOpen(1);
             }
         }
         break;
     case 2:
-        switch (em->type) {
+        switch (pEm->type) {
         case 5:
         case 6:
         case 8:
         case 9:
             break;
         default:
-            if (em->r_no_3 == 0) {
+            if (pEm->r_no_3 == 0) {
                 SndStop(w->Seid, 0);
-                w->Seid = SndCall(6, 0x27, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0x27, &pEm->pos, 0, 0, pEm);
             }
             break;
         }
-        switch (em->type) {
+        switch (pEm->type) {
         case 5:
         case 6:
         case 8:
@@ -735,39 +735,39 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         default:
             if (w->Eff_id != 0xFF) {
-                EstSet(em, -1, 0, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, em, 0);
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, pEm, 0);
             }
             break;
         }
         w->Timer = 5;
-        em->r_no_2++;
+        pEm->r_no_2++;
     case 3:
-        em->pos.x = fRand1_1() * 20.0f + w->pos0.x;
-        em->pos.y = fRand0_1() * 20.0f + w->pos0.y;
-        em->pos.z = fRand1_1() * 20.0f + w->pos0.z;
+        pEm->pos.x = fRand1_1() * 20.0f + w->pos0.x;
+        pEm->pos.y = fRand0_1() * 20.0f + w->pos0.y;
+        pEm->pos.z = fRand1_1() * 20.0f + w->pos0.z;
         if (w->Timer != 0) {
             w->Timer--;
         } else {
-            em->pos = w->pos0;
+            pEm->pos = w->pos0;
             w->Status = 2;
-            em->r_no_0 = 1;
-            em->r_no_1 = 0;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 0;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
         }
         break;
     }
-    em->matUpdate();
+    pEm->matUpdate();
     if (w->Lock_mode == 0) {
-        if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
-            if (emBarredNearCk(em)) {
+        if (pEm->type == 5 || pEm->type == 6 || pEm->type == 8 || pEm->type == 9) {
+            if (emBarredNearCk(pEm)) {
                 if (w->Status != 1) {
                     w->Status = 0;
                     w->Open_flag = 1;
-                    em->r_no_0 = 1;
-                    em->r_no_1 = 1;
-                    em->r_no_2 = 0;
-                    em->r_no_3 = 0;
+                    pEm->r_no_0 = 1;
+                    pEm->r_no_1 = 1;
+                    pEm->r_no_2 = 0;
+                    pEm->r_no_3 = 0;
                     if (w->pBarred) {
                         w->pBarred->setOpen(1);
                     }
@@ -779,30 +779,30 @@ void emBarred_R1_Close(cEmBarred* em)
 
 // Rno1 == 3: destroyed (setBreak): hides the gate, clears ACTIVE, lets everyone through and sets
 // bit0 of the etc flag.
-void emBarred_R1_Break(cEmBarred* em)
+void emBarred_R1_Break(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     u16* flg;
 
-    if (em->r_no_2 == 0) {
-        em->hp = 0;
-        em->be_flag &= ~2;
-        em->clearStatus(EM_STATUS_ACTIVE);
-        em->atari.throughOn();
+    if (pEm->r_no_2 == 0) {
+        pEm->hp = 0;
+        pEm->be_flag &= ~2;
+        pEm->clearStatus(EM_STATUS_ACTIVE);
+        pEm->atari.throughOn();
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
-        em->r_no_2++;
+        pEm->r_no_2++;
     }
 }
 
 // Keeps the gate's effect collision in place: a quad for the bars (pEat, follows the lifting
 // position) and four for the fixed frame posts / lintel (pEatFrame), sized by type; a broken
 // gate only deactivates them and lets the player through.
-void emBarredEatSet(cEmBarred* em)
+void emBarredEatSet(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     Vec poly[4];
     u16* flg;
     f32 hx;
@@ -812,8 +812,8 @@ void emBarredEatSet(cEmBarred* em)
     f32 y;
     int attr;
 
-    if (em->hp <= 0) {
-        em->atari.throughOn();
+    if (pEm->hp <= 0) {
+        pEm->atari.throughOn();
         if (w->pEat) {
             w->pEat->m_Flag &= ~4;
         }
@@ -831,7 +831,7 @@ void emBarredEatSet(cEmBarred* em)
         }
     }
     attr = 0;
-    switch (em->type) {
+    switch (pEm->type) {
     case 1:
     case 5:
     default:
@@ -885,7 +885,7 @@ void emBarredEatSet(cEmBarred* em)
     if (w->pEat == 0) {
         y = 0.0f;
         h = hz;
-        if (em->type == 6) {
+        if (pEm->type == 6) {
             y = 260.0f;
             h = hz - y;
         }
@@ -901,16 +901,16 @@ void emBarredEatSet(cEmBarred* em)
         poly[3].x = -hx;
         poly[3].y = y;
         poly[3].z = hy;
-        w->pEat = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
+        w->pEat = EatMgr.create(&pEm->pos, &pEm->ang, poly, h, attr, 0);
     } else {
         w->pEat->m_Flag |= 4;
-        w->pEat->setCoord(&em->pos, &em->ang);
+        w->pEat->setCoord(&pEm->pos, &pEm->ang);
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg && (*flg & 2)) {
             w->pEat->m_Flag &= ~4;
         }
     }
-    if (em->type == 6) {
+    if (pEm->type == 6) {
         h = hz;
         if (w->pEatFrame[0] == 0) {
             poly[0].x = -hx;
@@ -925,10 +925,10 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->pEatFrame[0] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
+            w->pEatFrame[0] = EatMgr.create(&pEm->pos, &pEm->ang, poly, h, attr, 0);
         } else {
             w->pEatFrame[0]->m_Flag |= 4;
-            w->pEatFrame[0]->setCoord(&em->pos, &em->ang);
+            w->pEatFrame[0]->setCoord(&pEm->pos, &pEm->ang);
         }
         if (w->pEatFrame[1] == 0) {
             poly[0].x = hx - 160.0f;
@@ -943,10 +943,10 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = hx - 160.0f;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->pEatFrame[1] = EatMgr.create(&em->pos, &em->ang, poly, h, attr, 0);
+            w->pEatFrame[1] = EatMgr.create(&pEm->pos, &pEm->ang, poly, h, attr, 0);
         } else {
             w->pEatFrame[1]->m_Flag |= 4;
-            w->pEatFrame[1]->setCoord(&em->pos, &em->ang);
+            w->pEatFrame[1]->setCoord(&pEm->pos, &pEm->ang);
         }
         if (w->pEatFrame[2] == 0) {
             poly[0].x = -hx;
@@ -961,10 +961,10 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->pEatFrame[2] = EatMgr.create(&em->pos, &em->ang, poly, 260.0f, attr, 0);
+            w->pEatFrame[2] = EatMgr.create(&pEm->pos, &pEm->ang, poly, 260.0f, attr, 0);
         } else {
             w->pEatFrame[2]->m_Flag |= 4;
-            w->pEatFrame[2]->setCoord(&em->pos, &em->ang);
+            w->pEatFrame[2]->setCoord(&pEm->pos, &pEm->ang);
         }
         if (w->pEatFrame[3] == 0) {
             poly[0].x = -hx;
@@ -979,24 +979,24 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = hz - 260.0f;
             poly[3].z = hy;
-            w->pEatFrame[3] = EatMgr.create(&em->pos, &em->ang, poly, 260.0f, attr, 0);
+            w->pEatFrame[3] = EatMgr.create(&pEm->pos, &pEm->ang, poly, 260.0f, attr, 0);
         } else {
             w->pEatFrame[3]->m_Flag |= 4;
-            w->pEatFrame[3]->setCoord(&em->pos, &em->ang);
+            w->pEatFrame[3]->setCoord(&pEm->pos, &pEm->ang);
         }
     }
 }
 
 // Proximity test of the automatic gates: 1 when the player or any live character (id <= 0x3F) is
 // within 2500 units of pos0 (3500 while open, hysteresis); 0 for other types or when locked.
-int emBarredNearCk(cEmBarred* em)
+int emBarredNearCk(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     f32 r2;
     f32 d;
     u32 i;
 
-    switch (em->type) {
+    switch (pEm->type) {
     case 5:
     case 6:
     case 8:
@@ -1029,7 +1029,7 @@ int emBarredNearCk(cEmBarred* em)
         if (e->hp <= 0) {
             continue;
         }
-        if (e == em) {
+        if (e == pEm) {
             continue;
         }
         d = (w->pos0.x - e->pos.x) * (w->pos0.x - e->pos.x) + (w->pos0.y - e->pos.y) * (w->pos0.y - e->pos.y) + (w->pos0.z - e->pos.z) * (w->pos0.z - e->pos.z);
@@ -1041,20 +1041,20 @@ int emBarredNearCk(cEmBarred* em)
 }
 
 // Est id used for the spark / bar-break effects.
-void cEmBarred::setEff(u8 eff)
+void cEmBarred::setEff(u8 eff_id)
 {
-    EMBARRED_WK(this)->Eff_id = eff;
+    EMBARRED_WK(this)->Eff_id = eff_id;
 }
 
 // Script / explosion entry: blows the gate out toward `target` (est 3 of Eff_id) and goes to Break.
-void cEmBarred::setBreak(Vec* target)
+void cEmBarred::setBreak(Vec* pPos)
 {
     EmBarredWork* w = EMBARRED_WK(this);
     Vec v;
     f32 ang;
 
     if (hp > 0) {
-        ang = Muku(&pos, target, this->ang.y, PI);
+        ang = Muku(&pos, pPos, this->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
             ang = this->ang.y;
         } else {
@@ -1099,9 +1099,9 @@ void cEmBarred::setUnderCk()
 // 1 when the player, the partner or a live visible character stands in the gate's slot (within
 // Width x 200 of pos0 at floor level) while the gate is less than 2200 up; only with setUnderCk
 // and not for the proximity types.
-int emBarredUnderCk(cEmBarred* em)
+int emBarredUnderCk(cEmBarred* pEm)
 {
-    EmBarredWork* w = EMBARRED_WK(em);
+    EmBarredWork* w = EMBARRED_WK(pEm);
     Mtx m;
     Vec v;
     u32 i;
@@ -1109,17 +1109,17 @@ int emBarredUnderCk(cEmBarred* em)
     if (!(w->be_flag & 2)) {
         return 0;
     }
-    switch (em->type) {
+    switch (pEm->type) {
     case 5:
     case 6:
     case 8:
     case 9:
         return 0;
     }
-    if (em->pos.y - w->pos0.y > 2200.0f) {
+    if (pEm->pos.y - w->pos0.y > 2200.0f) {
         return 0;
     }
-    PSMTXRotRad(m, 'y', em->ang.y);
+    PSMTXRotRad(m, 'y', pEm->ang.y);
     TransMatrix(m, &w->pos0);
     PSMTXInverse(m, m);
     PSMTXMultVec(m, &pPL->pos, &v);
@@ -1144,7 +1144,7 @@ int emBarredUnderCk(cEmBarred* em)
         if (e->hp <= 0) {
             continue;
         }
-        if (e == em) {
+        if (e == pEm) {
             continue;
         }
         if (!(e->be_flag & 2)) {

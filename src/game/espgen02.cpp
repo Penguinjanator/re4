@@ -60,14 +60,14 @@ struct Espgen02Work {
 
 // Rebuilds the emitter matrix from parts Null_parts_no of pMod (same rules as espgen00): 0xFE = free
 // position, invalid parts numbers kill the controller.
-void espgen02_UpdateMatrix(EspgenWork* w)
+void espgen02_UpdateMatrix(EspgenWork* pEspgen)
 {
-    Espgen02Work* p = (Espgen02Work*) w->work;
+    Espgen02Work* p = (Espgen02Work*) pEspgen->work;
     cModel* model = p->pMod;
 
     if ((p->Null_parts_no >= 0xF8 && p->Null_parts_no <= 0xFD) || p->Null_parts_no == 0xFF) {
         pLog->err(0, 0, "ESP_CTRL : NULL_PARTS_NO[%x] invalid.", p->Null_parts_no);
-        PushEspgen(w);
+        PushEspgen(pEspgen);
         return;
     }
     if (p->Null_parts_no == 0xFE) {
@@ -96,7 +96,7 @@ void espgen02_UpdateMatrix(EspgenWork* w)
             }
         } else {
             pLog->err(0, 0, "ESP_CTRL : PARTS_NO[%d] is invalid(MAX:%d).", p->Null_parts_no, model->nParts);
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             return;
         }
     }
@@ -129,9 +129,9 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate)
 // colR f24 / spdR f23 is a global-alloc live-length knife edge (all three have 6 weighted refs):
 // with the copies between the `bScale` and `bSpd` zero stores (the original's sched order) colR
 // loses to spdR (f23/f24 swapped); colR is therefore pinned (see the tag below).
-void espgen02_Update(EspgenWork* w)
+void espgen02_Update(EspgenWork* pEspgen)
 {
-    Espgen02Work* p = (Espgen02Work*) w->work;
+    Espgen02Work* p = (Espgen02Work*) pEspgen->work;
     f32 scaleR;
     f32 spdR = 0.0f;
     // COMPILER-DIFF: #17. colR pinned to f24 (global-alloc order of the three 0.0f copies); no
@@ -149,11 +149,11 @@ void espgen02_Update(EspgenWork* w)
 
     if (model != NULL) {
         if ((model->be_flag & 0x201) != 1 || model->guid != p->Guid_pMod) {
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             return;
         }
     }
-    espgen02_UpdateMatrix(w);
+    espgen02_UpdateMatrix(pEspgen);
     if (p->Life_max != 0) {
         f32 rate = (f32) p->Time_cnt / (f32) (int) p->Life_max;
 
@@ -362,10 +362,10 @@ void espgen02_Update(EspgenWork* w)
                     pp = &p->Offset;
                 }
                 if (p->Espgen_flg & 1) {
-                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &mtx, 1, ang, &esp, p->pOpt, pp);
+                    ret = EspSeqSet(rec, &pEspgen->info, &p->Rand_seed, p->pMod, &mtx, 1, ang, &esp, p->pOpt, pp);
                     ang += step;
                 } else {
-                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &mtx, 0, 0.0f, &esp, p->pOpt, pp);
+                    ret = EspSeqSet(rec, &pEspgen->info, &p->Rand_seed, p->pMod, &mtx, 0, 0.0f, &esp, p->pOpt, pp);
                 }
                 if (ret) {
                     esp->ApplyMatrix(m3);
@@ -388,7 +388,7 @@ void espgen02_Update(EspgenWork* w)
     }
     p->Time_cnt++;
     if (p->Life_max != 0 && p->Life_max <= p->Time_cnt) {
-        PushEspgen(w);
+        PushEspgen(pEspgen);
     }
 }
 
@@ -406,11 +406,11 @@ void espgen02_Move01(EspgenWork* w)
 }
 
 // EspgenMoveTbl entry for controller type 2: dispatches on w->step.
-void Espgen02_Move(EspgenWork* w)
+void Espgen02_Move(EspgenWork* pEspgen)
 {
     static void (*Espgen02MoveTbl[])(EspgenWork*) = {espgen02_Move00, espgen02_Move01};
 
-    Espgen02MoveTbl[w->step](w);
+    Espgen02MoveTbl[pEspgen->step](pEspgen);
 }
 
 // Fills the path emitter from the record: the espgen00 fields plus path group/id

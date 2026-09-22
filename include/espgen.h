@@ -129,7 +129,7 @@ struct cEspSystem {
     void (*pFuncOff[8])();  // 0xC5C8 (state bits 0/1 clear)
 
     int GetTexObjFlag(u32 no);
-    void SetTexObjFlag(u32 no, int flag);
+    void SetTexObjFlag(u32 no, int flg);
 };
 extern cEspSystem* g_pEspSys;
 
@@ -210,9 +210,9 @@ typedef void (*EspgenDestructFunc)(EspgenWork* w);
 extern "C" {
 // game/espgen.cpp
 u32 GetEspgenIdMax();
-int PullEspgen(EspgenWork** out);
-int PullEspgenFront(EspgenWork** out);
-void PushEspgen(EspgenWork* w);
+int PullEspgen(EspgenWork** ppEspgen);
+int PullEspgenFront(EspgenWork** ppEspgen);
+void PushEspgen(EspgenWork* pEspgen);
 int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                       Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 parts, Mtx* mtx, Vec* pos, Vec* rot,
@@ -233,64 +233,64 @@ extern cModel* EspEvModList[0x80];
 // game/espgen10.cpp
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
                   Vec* rot, EspSeqOpt* pSct, int flag);
-void SetEspCore(EspgenWork* w, int Core_flg, u32 Call_no, u8 Core_kind, void* Core_pEm, int owner);
-int PullEspEspgen(EspgenWork** out, int Core_flg, int Core_kind, u32 Call_no, void* Core_pEm, int owner, int front);
-void Espgen10_Move(EspgenWork* w);
+void SetEspCore(EspgenWork* pCore, int Core_flg, u32 Call_no, u8 Core_kind, void* Core_pEm, int owner);
+int PullEspEspgen(EspgenWork** ppEspgen, int Core_flg, int Core_kind, u32 Call_no, void* Core_pEm, int owner, int type);
+void Espgen10_Move(EspgenWork* pEspgen);
 
 // game/espgen00.cpp
-void Espgen00_Move(EspgenWork* w);
+void Espgen00_Move(EspgenWork* pEspgen);
 int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 
 // game/espgen01.cpp
-void Espgen01_Move(EspgenWork* w);
-void Espgen01_Trans(EspgenWork* w);
+void Espgen01_Move(EspgenWork* pEspgen);
+void Espgen01_Trans(EspgenWork* pEspgen);
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 
 // game/espgen02.cpp
-void Espgen02_Move(EspgenWork* w);
+void Espgen02_Move(EspgenWork* pEspgen);
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 
 // game/espgen44.cpp
-void Espgen44_Move(EspgenWork* w);
-void Espgen44_Trans(EspgenWork* w);
-void Espgen44_Destruct(EspgenWork* w);
+void Espgen44_Move(EspgenWork* pGen);
+void Espgen44_Trans(EspgenWork* pGen);
+void Espgen44_Destruct(EspgenWork* pGen);
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct);
 
 // game/Espgen42.cpp
-void Espgen42_Move(EspgenWork* w);
-void Espgen42_Trans(EspgenWork* w);
-void Espgen42_Destruct(EspgenWork* w);
+void Espgen42_Move(EspgenWork* pGen);
+void Espgen42_Trans(EspgenWork* pGen);
+void Espgen42_Destruct(EspgenWork* pGen);
 int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct);
 
 // game/Espgen43.cpp
-void Espgen43_Move(EspgenWork* w);
-void Espgen43_Trans(EspgenWork* w);
-void Espgen43_Destruct(EspgenWork* w);
+void Espgen43_Move(EspgenWork* pGen);
+void Espgen43_Trans(EspgenWork* pGen);
+void Espgen43_Destruct(EspgenWork* pGen);
 int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct);
 
 // game/espgen45.cpp
 void Espgen45_static_init();
-void Estgen45SetTargetCamera(int on);
-void Estgen45SetTargetHeight(int on);
-void Estgen45SetSizeOverWrite(int on);
-void Estgen45SetColorOverWrite(int on);
-void Estgen45SetColorMul(int on);
-void Estgen45SetParamOverWrite(int on);
+void Estgen45SetTargetCamera(int bTc);
+void Estgen45SetTargetHeight(int bTc);
+void Estgen45SetSizeOverWrite(int bTc);
+void Estgen45SetColorOverWrite(int bTc);
+void Estgen45SetColorMul(int bTc);
+void Estgen45SetParamOverWrite(int bTc);
 void Estgen45SetTargetPos(f32 x, f32 z);
-void Estgen45SetHeight(f32 h);
+void Estgen45SetHeight(f32 y);
 void Estgen45SetSize(f32 size);
-void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as);
+void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 sr, f32 sg, f32 sb, f32 sa);
 struct Esp4cWork;
-void Estgen45SetParam(Esp4cWork* w);
-void Espgen45_Move(EspgenWork* w);
-void Espgen45_Trans(EspgenWork* w);
-void Espgen45_Destruct(EspgenWork* w);
+void Estgen45SetParam(Esp4cWork* pFree);
+void Espgen45_Move(EspgenWork* pGen);
+void Espgen45_Trans(EspgenWork* pGen);
+void Espgen45_Destruct(EspgenWork* pGen);
 int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct);
 }
@@ -303,7 +303,7 @@ extern "C" int EspgenArrayPop();
 extern "C" {
 int EspgenInit();
 int EspgenRoomInit();
-int EspgenArrayAlloc(int n);
+int EspgenArrayAlloc(int workNum);
 int EspgenMove();
 int EspgenTrans();
 int EspgenDispInfo();

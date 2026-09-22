@@ -6,7 +6,7 @@
 // Debug text output (game/eprintf.cpp).
 void eprintf(int x, int y, int color, int p, const char* fmt, ...);
 // binary-coded nibble -> hex digit helper used by the flag editor
-int BtoX(int bits);
+int BtoX(int b);
 void eprintf2(int x, int y, int a, int b, int c, int p, const char* fmt, ...);
 
 // Init and the per-frame flush of the queued text (main.cpp, dvd.cpp, exception.cpp). C linkage.

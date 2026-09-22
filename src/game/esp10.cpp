@@ -62,7 +62,7 @@ f32 getFloor_attr(Vec* pos, u32* attr, int x, f32 up, f32 down)
 
 // Moves the effect into world space, sets m_Pos.y to floor + 65 + Vec0.y (0 in the effect tool),
 // then applies the Work8[3] rule (0 none, 1 in-room check, 2 water clamp); other values fail.
-int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp10::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     u32 attr;
     f32 h;
@@ -71,11 +71,11 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    m_Pos.y = getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->Vec0.y;
+    m_Pos.y = getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + pSeq->Vec0.y;
     if (DbgFlagChk(pG, DBG_IN_ESP_TOOL) && !DbgFlagChk(pG, DBG_ESPTOOL_ONSCR)) {
         m_Pos.y = 0.0f;
     }
-    switch ((s8)gen->Work8[3]) {
+    switch ((s8)pSeq->Work8[3]) {
     case 0:
         break;
     case 1:
@@ -85,13 +85,13 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         break;
     case 2:
         if (GetWaterHeight(&m_Pos, &h)) {
-            if (m_Pos.y < h + gen->Vec0.y) {
-                m_Pos.y = h + gen->Vec0.y;
+            if (m_Pos.y < h + pSeq->Vec0.y) {
+                m_Pos.y = h + pSeq->Vec0.y;
             }
         }
         break;
     default:
-        pLog->err(0, 0, "ESP10 : Type[%d] Invalid Trans.", (s8)gen->Work8[3]);
+        pLog->err(0, 0, "ESP10 : Type[%d] Invalid Trans.", (s8)pSeq->Work8[3]);
         return 0;
     }
     return 1;

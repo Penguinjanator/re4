@@ -541,7 +541,7 @@ void Esp08_Trans(cEsp08* esp)
 
 // Heat-shimmer variant: the frame is copied into a texture and warped through an indirect
 // texture (esp->m_Shimmer_type selects the warp mode, type scales the distortion), tiled like Esp08_Trans.
-void Esp08_TransShimmer(cEsp08* esp, int type)
+void Esp08_TransShimmer(cEsp08* esp, int u_pow)
 {
     static Mtx Matrix1 = {
         {0.001953125f, 0.0f, 0.0f, 0.0f},
@@ -598,7 +598,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     int ind = 0;
     void* buf;
 
-    scale = (f32) type * (1.0f / 32.0f) + 1.0f;
+    scale = (f32) u_pow * (1.0f / 32.0f) + 1.0f;
     if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
         pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
@@ -777,26 +777,26 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
 
 // Repeat counts from Work8[0..1] (min 1), scroll speeds from prm 0xCC / 0xD0, indoor fade frames
 // Work8[3], mask type Work8[2] (0/1, else fails); remembers the initial alpha.
-int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp08::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp08Work* w = &m_Free;
     u32 type;
 
-    w->Div_x = (f32) (int) gen->Work8[0] * 0.1f + 1.0f;
-    w->Div_y = (f32) (int) gen->Work8[1] * 0.1f + 1.0f;
+    w->Div_x = (f32) (int) pSeq->Work8[0] * 0.1f + 1.0f;
+    w->Div_y = (f32) (int) pSeq->Work8[1] * 0.1f + 1.0f;
     if (w->Div_x < 1.0f) {
         w->Div_x = 1.0f;
     }
     if (w->Div_y < 1.0f) {
         w->Div_y = 1.0f;
     }
-    w->Spd_x = (f32) (s32) gen->prm.w.xCC * 0.001f;
-    w->Spd_y = (f32) (s32) gen->prm.w.xD0 * 0.001f;
+    w->Spd_x = (f32) (s32) pSeq->prm.w.xCC * 0.001f;
+    w->Spd_y = (f32) (s32) pSeq->prm.w.xD0 * 0.001f;
     w->Scr_x = 0.0f;
     w->Scr_y = 0.0f;
-    w->Room_del_frame = gen->Work8[3];
+    w->Room_del_frame = pSeq->Work8[3];
     w->Base_alpha = m_Col_a;
-    w->Mask_type = gen->Work8[2];
+    w->Mask_type = pSeq->Work8[2];
     type = w->Mask_type;
     if (type > 1) {
         pLog->err(0, 0, "ESP08 : MaskType[%x] invalid", type);

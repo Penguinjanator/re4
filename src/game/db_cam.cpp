@@ -56,7 +56,7 @@ static inline void Dec(int& v) { v--; }
 // type (EM / OBJ / PL / ORG) with A snaps the look-at to the selected work (Left / Right pick it,
 // R + A steps its motion), the layout's control routine runs, and the camera info / target cross
 // are drawn.
-void debugCamera::move(Camera* cam, JOY* joy, int flag)
+void debugCamera::move(Camera* pCam, JOY* pJoy, int attr)
 {
     static void (debugCamera::*camera_type_tbl[4])(Camera*, JOY*) = {
         &debugCamera::camera_type_00,
@@ -70,7 +70,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     m_timer--;
     if (m_timer & 0x80) {
         m_timer = 0;
-        if (joy->trg & JOY_Z) {
+        if (pJoy->trg & JOY_Z) {
             if (m_menu_sw == 0) {
                 m_timer = 5;
                 m_menu_sw = 1;
@@ -88,10 +88,10 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     case 0:
         break;
     case 1:
-        menu(cam, joy);
+        menu(pCam, pJoy);
         return;
     }
-    if (joy->on & ~0x1A00) {
+    if (pJoy->on & ~0x1A00) {
         if (DbgFlagChk(pG, DBG_TEST_MODE)) {
             m_draw_timer = 5;
         } else {
@@ -100,24 +100,24 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     }
     if (m_draw_timer) {
         m_draw_timer--;
-        CameraDrawTarget(cam, 0);
+        CameraDrawTarget(pCam, 0);
     }
     if (!DbgFlagChk(pG, DBG_DBG_CAM)) {
-        if (joy->on & ~0x1A00) {
+        if (pJoy->on & ~0x1A00) {
             DbgFlagOn(pG, DBG_DBG_CAM);
         }
     } else {
         if (!DbgFlagChk(pG, DBG_TEST_MODE) && (pG->Frame_cnt & 0x10)) {
             eprintf(160, 406, 4, 0, "DEBUG CAMERA --- [%s]", key_str[m_key_type]);
         }
-        if (m_menu_sw == 0 && !(flag & 1) && (joy->on & JOY_B)) {
+        if (m_menu_sw == 0 && !(attr & 1) && (pJoy->on & JOY_B)) {
             DbgFlagOff(pG, DBG_DBG_CAM);
         }
     }
     switch (m_target_type) {
     case 0: {
         cEm* em;
-        if (joy->trg & JOY_A) {
+        if (pJoy->trg & JOY_A) {
             int i;
             cEm* e;
             int num = EmMgr.getArrayNum();
@@ -137,20 +137,20 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 }
             }
         }
-        if (joy->on & JOY_A) {
+        if (pJoy->on & JOY_A) {
             if (EmMgr.at(numEm)->be_flag & 1) {
                 cModel* parts = EmMgr.at(numEm)->getPartsPtr(0);
                 if (parts == NULL) {
-                    cam->param.at = EmMgr.at(numEm)->pos;
+                    pCam->param.at = EmMgr.at(numEm)->pos;
                 } else {
-                    cam->param.at = parts->world;
+                    pCam->param.at = parts->world;
                 }
             } else {
-                cam->param.at.x = 0.0f;
-                cam->param.at.y = 0.0f;
-                cam->param.at.z = 0.0f;
+                pCam->param.at.x = 0.0f;
+                pCam->param.at.y = 0.0f;
+                pCam->param.at.z = 0.0f;
             }
-            CameraSetOrientationZeroRoll(cam);
+            CameraSetOrientationZeroRoll(pCam);
         }
         em = EmMgr.at(numEm);
         if (em != NULL) {
@@ -178,7 +178,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
         break;
     }
     case 1: {
-        if (joy->trg & JOY_A) {
+        if (pJoy->trg & JOY_A) {
             int i;
             int num = ObjMgr.getArrayNum();
             cObj* obj;
@@ -202,56 +202,56 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 }
             }
         }
-        if (joy->on & JOY_A) {
+        if (pJoy->on & JOY_A) {
             if (ObjMgrWork(numObj)->be_flag & 1) {
                 cModel* parts = ObjMgrWork(numObj)->getPartsPtr(0);
                 if (parts == NULL) {
-                    cam->param.at = ObjMgrWork(numObj)->pos;
+                    pCam->param.at = ObjMgrWork(numObj)->pos;
                 } else {
-                    cam->param.at = parts->world;
+                    pCam->param.at = parts->world;
                 }
             } else {
-                cam->param.at.x = 0.0f;
-                cam->param.at.y = 0.0f;
-                cam->param.at.z = 0.0f;
+                pCam->param.at.x = 0.0f;
+                pCam->param.at.y = 0.0f;
+                pCam->param.at.z = 0.0f;
             }
-            CameraSetOrientationZeroRoll(cam);
+            CameraSetOrientationZeroRoll(pCam);
         }
         break;
     }
     case 2:
-        if (joy->on & JOY_A) {
+        if (pJoy->on & JOY_A) {
             if (pPL->be_flag & 1) {
                 cModel* parts = pPL->getPartsPtr(0);
                 if (parts == NULL) {
-                    cam->param.at = pPL->pos;
+                    pCam->param.at = pPL->pos;
                 } else {
-                    cam->param.at = parts->world;
+                    pCam->param.at = parts->world;
                 }
             } else {
-                cam->param.at.x = 0.0f;
-                cam->param.at.y = 0.0f;
-                cam->param.at.z = 0.0f;
+                pCam->param.at.x = 0.0f;
+                pCam->param.at.y = 0.0f;
+                pCam->param.at.z = 0.0f;
             }
-            CameraSetOrientationZeroRoll(cam);
+            CameraSetOrientationZeroRoll(pCam);
         }
         break;
     case 3:
-        if (joy->on & JOY_A) {
-            cam->param.at.x = 0.0f;
-            cam->param.at.y = 0.0f;
-            cam->param.at.z = 0.0f;
-            CameraSetOrientationZeroRoll(cam);
+        if (pJoy->on & JOY_A) {
+            pCam->param.at.x = 0.0f;
+            pCam->param.at.y = 0.0f;
+            pCam->param.at.z = 0.0f;
+            CameraSetOrientationZeroRoll(pCam);
         }
         break;
     case 4:
         break;
     }
     if (m_cam_mode == 5) {
-        (this->*camera_type_tbl[1])(cam, joy);
+        (this->*camera_type_tbl[1])(pCam, pJoy);
     } else {
-        cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
-        (this->*camera_type_tbl[m_key_type])(cam, joy);
+        pCam->Distance = PSVECDistance(&pCam->param.pos, &pCam->param.at);
+        (this->*camera_type_tbl[m_key_type])(pCam, pJoy);
     }
     if (DbgFlagChk(pG, DBG_DBG_CAM) && info_disp) {
         Mtx inv;
@@ -268,30 +268,30 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
 // Layout 0: L / R zoom (distance, or the ortho extents), main stick orbits the target, D-pad
 // (+X) dollies forward / back / up / down along the camera or world axes, C-stick turns the
 // camera in place. All scaled by m_move_gain.
-void debugCamera::camera_type_00(Camera* cam, JOY* joy)
+void debugCamera::camera_type_00(Camera* pCam, JOY* pJoy)
 {
     Vec mv = {0.0f, 0.0f, 0.0f};
     f32 spd = 100.0f;
-    f32 d = cam->Distance / 1000.0f;
+    f32 d = pCam->Distance / 1000.0f;
 
-    if (joy->on & (JOY_R | JOY_L)) {
+    if (pJoy->on & (JOY_R | JOY_L)) {
         f32 t;
-        if (joy->on & JOY_R) {
-            f32 r = joy->triggerRight / 150.0f;
+        if (pJoy->on & JOY_R) {
+            f32 r = pJoy->triggerRight / 150.0f;
             t = r * -1000.0f * r * r;
         } else {
-            f32 r = joy->triggerLeft / 150.0f;
+            f32 r = pJoy->triggerLeft / 150.0f;
             t = r * 1000.0f * r * r;
         }
         t *= (d / 10.0f + 1.0f) * 0.5f;
         t *= m_move_gain;
         switch (ProjType) {
         case 1: {
-            f32 dist = cam->Distance + t;
+            f32 dist = pCam->Distance + t;
             if (dist < 100.0f) {
                 mv.z = 0.0f;
             }
-            CameraCamposDistance(cam, dist);
+            CameraCamposDistance(pCam, dist);
             break;
         }
         case 2:
@@ -301,29 +301,29 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
             break;
         }
     }
-    if (joy->stickX) {
+    if (pJoy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, m_move_gain * (f32) joy->stickX * 0.05f * DEG2RAD);
+        CameraRotAxisPosRad(pCam, &axis, &pCam->param.at, m_move_gain * (f32) pJoy->stickX * 0.05f * DEG2RAD);
     }
-    if (joy->stickY) {
-        CameraCamposRot(cam, 'x', m_move_gain * (f32) joy->stickY * -0.05f * DEG2RAD);
+    if (pJoy->stickY) {
+        CameraCamposRot(pCam, 'x', m_move_gain * (f32) pJoy->stickY * -0.05f * DEG2RAD);
     }
-    if (joy->on & JOY_LEFT) {
+    if (pJoy->on & JOY_LEFT) {
         mv.x = -100.0f;
     }
-    if (joy->on & JOY_RIGHT) {
+    if (pJoy->on & JOY_RIGHT) {
         mv.x = 100.0f;
     }
-    if ((joy->on & (JOY_X | JOY_UP)) == (JOY_X | JOY_UP)) {
+    if ((pJoy->on & (JOY_X | JOY_UP)) == (JOY_X | JOY_UP)) {
         mv.y = 100.0f;
     }
-    if ((joy->on & (JOY_X | JOY_DOWN)) == (JOY_X | JOY_DOWN)) {
+    if ((pJoy->on & (JOY_X | JOY_DOWN)) == (JOY_X | JOY_DOWN)) {
         mv.y = -100.0f;
     }
-    if ((joy->on & (JOY_X | JOY_UP)) == JOY_UP) {
+    if ((pJoy->on & (JOY_X | JOY_UP)) == JOY_UP) {
         mv.z = -100.0f;
     }
-    if ((joy->on & (JOY_X | JOY_DOWN)) == JOY_DOWN) {
+    if ((pJoy->on & (JOY_X | JOY_DOWN)) == JOY_DOWN) {
         mv.z = 100.0f;
     }
     PSVECScale(&mv, &mv, (d / 10.0f + 1.0f) * 2.0f);
@@ -335,13 +335,13 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
         Vec dir;
         Vec trans;
         if (!along_xyz) {
-            dir.x = cam->mat[0][2];
-            dir.y = cam->mat[1][2];
-            dir.z = cam->mat[2][2];
+            dir.x = pCam->mat[0][2];
+            dir.y = pCam->mat[1][2];
+            dir.z = pCam->mat[2][2];
             if (dir.x == 0.0f && dir.z == 0.0f) {
-                dir.x = cam->mat[0][1];
-                dir.y = cam->mat[1][1];
-                dir.z = cam->mat[2][1];
+                dir.x = pCam->mat[0][1];
+                dir.y = pCam->mat[1][1];
+                dir.z = pCam->mat[2][1];
             }
             dir.y = 0.0f;
 #line 452 "D:/Bio4/Prog/db_cam.cpp"
@@ -352,45 +352,45 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
             PSMTXIdentity(m);
         }
         PSMTXMultVecSR(m, &mv, &mv);
-        CameraDolly(cam, &mv);
+        CameraDolly(pCam, &mv);
     }
-    if (joy->substickX) {
+    if (pJoy->substickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, m_move_gain * (f32) -joy->substickX * 0.05f * DEG2RAD);
+        CameraRotAxisPosRad(pCam, &axis, &pCam->param.pos, m_move_gain * (f32) -pJoy->substickX * 0.05f * DEG2RAD);
     }
-    if (joy->substickY) {
-        CameraTargetRot(cam, 'x', m_move_gain * (f32) -joy->substickY * -0.05f * DEG2RAD);
+    if (pJoy->substickY) {
+        CameraTargetRot(pCam, 'x', m_move_gain * (f32) -pJoy->substickY * -0.05f * DEG2RAD);
     }
 }
 
 // Layout 1: L / R zoom, C-stick dollies sideways / up, main stick orbits the target.
-void debugCamera::camera_type_01(Camera* cam, JOY* joy)
+void debugCamera::camera_type_01(Camera* pCam, JOY* pJoy)
 {
     Vec mv = {0.0f, 0.0f, 0.0f};
     f32 dist_min = 1500.0f;
-    f32 d = cam->Distance / 1000.0f;
+    f32 d = pCam->Distance / 1000.0f;
 
-    if (joy->on & (JOY_R | JOY_L)) {
+    if (pJoy->on & (JOY_R | JOY_L)) {
         f32 t;
-        if (joy->on & JOY_R) {
-            f32 r = joy->triggerRight / 150.0f;
+        if (pJoy->on & JOY_R) {
+            f32 r = pJoy->triggerRight / 150.0f;
             t = r * -1000.0f * r * r;
         } else {
-            f32 r = joy->triggerLeft / 150.0f;
+            f32 r = pJoy->triggerLeft / 150.0f;
             t = r * 1000.0f * r * r;
         }
         t *= (d / 10.0f + 1.0f) * 0.5f;
         t *= m_move_gain;
         switch (ProjType) {
         case 1: {
-            f32 dist = cam->Distance + t;
+            f32 dist = pCam->Distance + t;
             if (dist < 1500.0f) {
-                if (!(joy->on & JOY_A)) {
+                if (!(pJoy->on & JOY_A)) {
                     mv.z = dist - 1500.0f;
                 }
                 dist = 1500.0f;
             }
-            CameraCamposDistance(cam, dist);
+            CameraCamposDistance(pCam, dist);
             break;
         }
         case 2:
@@ -400,31 +400,31 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
             break;
         }
     }
-    if (joy->substickX) {
-        mv.x = (f32) joy->substickX * 2.0f;
+    if (pJoy->substickX) {
+        mv.x = (f32) pJoy->substickX * 2.0f;
     }
-    if (joy->substickY) {
-        mv.y = (f32) joy->substickY * 2.0f;
+    if (pJoy->substickY) {
+        mv.y = (f32) pJoy->substickY * 2.0f;
     }
     PSVECScale(&mv, &mv, (d / 10.0f + 1.0f) * 2.0f);
     PSVECScale(&mv, &mv, m_move_gain);
     if (mv.x != 0.0f || mv.y != 0.0f || mv.z != 0.0f) {
-        PSMTXMultVecSR(cam->mat, &mv, &mv);
-        CameraDolly(cam, &mv);
+        PSMTXMultVecSR(pCam->mat, &mv, &mv);
+        CameraDolly(pCam, &mv);
     }
-    if (joy->stickX) {
+    if (pJoy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->stickX * 0.05f * m_move_gain * DEG2RAD);
+        CameraRotAxisPosRad(pCam, &axis, &pCam->param.at, (f32) pJoy->stickX * 0.05f * m_move_gain * DEG2RAD);
     }
-    if (joy->stickY) {
-        CameraCamposRot(cam, 'x', -(f32) joy->stickY * 0.05f * m_move_gain * DEG2RAD);
+    if (pJoy->stickY) {
+        CameraCamposRot(pCam, 'x', -(f32) pJoy->stickY * 0.05f * m_move_gain * DEG2RAD);
     }
 }
 
 // The Z menu: runs the current page (0 flags, 1 camera cuts, 2 hit display, 3 shoulder adjust),
 // L / R change pages, and applies the CAMERA MODE selection (0 area cameras .. 5 bird's eye) to
 // the camera controller when it changes.
-void debugCamera::menu(Camera* cam, JOY* joy)
+void debugCamera::menu(Camera* pCam, JOY* pJoy)
 {
     static int (debugCamera::*sel0_menu_tbl[4])(JOY*) = {
         &debugCamera::menuFlag,
@@ -443,12 +443,12 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     if (m_menu_sw == 0) {
         return;
     }
-    ret = (this->*sel0_menu_tbl[m_sel0])(joy);
+    ret = (this->*sel0_menu_tbl[m_sel0])(pJoy);
     if (ret == 0) {
-        if (joy->trg & JOY_L) {
+        if (pJoy->trg & JOY_L) {
             m_sel0--;
         }
-        if (joy->trg & JOY_R) {
+        if (pJoy->trg & JOY_R) {
             m_sel0++;
         }
         if (m_sel0 < 0) {
@@ -539,21 +539,21 @@ void debugCamera::menu(Camera* cam, JOY* joy)
 
 // Page 1: pick a camera cut number and area with the D-pad, A plays it (CutCall), X toggles
 // its area on / off; prints the current area / camera numbers. -1 closes the menu (B).
-int debugCamera::menuCamera(JOY* joy)
+int debugCamera::menuCamera(JOY* pJoy)
 {
     static const char* str[4] = {"Roll", "FOVy", "Gain", "Play"};
     static int pos[2] = {240, 294};
-    Camera* cam = &pG->Camera;
+    Camera* pCam = &pG->Camera;
     int d;
     int i;
 
-    if (joy->trg & JOY_B) {
+    if (pJoy->trg & JOY_B) {
         return -1;
     }
-    if (joy->rep & 0x80008) {
+    if (pJoy->rep & 0x80008) {
         m_sel1--;
     }
-    if (joy->rep & 0x40004) {
+    if (pJoy->rep & 0x40004) {
         m_sel1++;
     }
     if (m_sel1 < 0) {
@@ -562,39 +562,39 @@ int debugCamera::menuCamera(JOY* joy)
         m_sel1 = 0;
     }
     d = 0;
-    if (joy->rep & 0x1) {
+    if (pJoy->rep & 0x1) {
         d = -1;
     }
-    if (joy->rep & 0x10000) {
+    if (pJoy->rep & 0x10000) {
         d = -10;
     }
-    if (joy->rep & 0x2) {
+    if (pJoy->rep & 0x2) {
         d = 1;
     }
-    if (joy->rep & 0x20000) {
+    if (pJoy->rep & 0x20000) {
         d = 10;
     }
     if (d) {
         switch (m_sel1) {
         case 0:
-            cam->param.roll += (f32) d * DEG2RAD;
-            if (cam->param.roll < -PI) {
-                cam->param.roll = -PI;
+            pCam->param.roll += (f32) d * DEG2RAD;
+            if (pCam->param.roll < -PI) {
+                pCam->param.roll = -PI;
             }
-            if (cam->param.roll > PI) {
-                cam->param.roll = PI;
+            if (pCam->param.roll > PI) {
+                pCam->param.roll = PI;
             }
-            CameraSetOrientationRoll(cam);
+            CameraSetOrientationRoll(pCam);
             break;
         case 1:
-            cam->param.fovy += (f32) d * 0.5f;
-            if (cam->param.fovy < 1.0f) {
-                cam->param.fovy = 1.0f;
+            pCam->param.fovy += (f32) d * 0.5f;
+            if (pCam->param.fovy < 1.0f) {
+                pCam->param.fovy = 1.0f;
             }
-            if (cam->param.fovy > 179.0f) {
-                cam->param.fovy = 179.0f;
+            if (pCam->param.fovy > 179.0f) {
+                pCam->param.fovy = 179.0f;
             }
-            CamCtrl.camera.param.fovy = cam->param.fovy;
+            CamCtrl.camera.param.fovy = pCam->param.fovy;
             break;
         case 2:
             m_move_gain += (f32) d * 0.1f;
@@ -621,7 +621,7 @@ int debugCamera::menuCamera(JOY* joy)
     if (m_sel1 == 3) {
         switch (m_cam_play) {
         case 0:
-            if (joy->trg & JOY_A) {
+            if (pJoy->trg & JOY_A) {
                 if (CamCtrl.DataSearch(m_cam_no)->type == 6) {
                     CamCtrl.CutCall(m_cam_no);
                     pG->debug_mode = m_printNo_bak;
@@ -647,10 +647,10 @@ int debugCamera::menuCamera(JOY* joy)
         eprintf(pos[0], pos[1] + i * 14, col, 0, "%s", str[i]);
         switch (i) {
         case 0:
-            eprintf(pos[0] + 40, pos[1], col, 0, "%f", cam->param.roll);
+            eprintf(pos[0] + 40, pos[1], col, 0, "%f", pCam->param.roll);
             break;
         case 1:
-            eprintf(pos[0] + 40, pos[1] + 14, col, 0, "%f", cam->param.fovy);
+            eprintf(pos[0] + 40, pos[1] + 14, col, 0, "%f", pCam->param.fovy);
             break;
         case 2:
             eprintf(pos[0] + 40, pos[1] + 28, col, 0, "%f", m_move_gain);
@@ -665,7 +665,7 @@ int debugCamera::menuCamera(JOY* joy)
 
 // Page 0: a list of debug switches (camera lock, target type, info display, axis mode, rail
 // display, camera mode...) toggled with Left / Right on the selected line.
-int debugCamera::menuFlag(JOY* joy)
+int debugCamera::menuFlag(JOY* pJoy)
 {
     static const char* menu_str[7] = {"DBG_DBG_CAM", "KEY TYPE", "TARGET SEARCH", "INFO_DISP",
                                       "ALONG W_XYZ", "DBG_BACK_CLIP", "CAMERA MODE"};
@@ -679,13 +679,13 @@ int debugCamera::menuFlag(JOY* joy)
     int x;
     int y;
 
-    if (joy->trg & JOY_B) {
+    if (pJoy->trg & JOY_B) {
         return -1;
     }
-    if (joy->rep & 0x80008) {
+    if (pJoy->rep & 0x80008) {
         m_sel1--;
     }
-    if (joy->rep & 0x40004) {
+    if (pJoy->rep & 0x40004) {
         m_sel1++;
     }
     if (m_sel1 < 0) {
@@ -694,10 +694,10 @@ int debugCamera::menuFlag(JOY* joy)
         m_sel1 = 0;
     }
     old = m_sel2;
-    if (joy->trg & 0x10001) {
+    if (pJoy->trg & 0x10001) {
         m_sel2--;
     }
-    if (joy->trg & 0x20002) {
+    if (pJoy->trg & 0x20002) {
         m_sel2++;
     }
     d = m_sel2 - old;
@@ -831,7 +831,7 @@ int debugCamera::menuFlag(JOY* joy)
 
 // Page 2: the collision display switches (Debug_flg[0] bits: scenery polygons, hit boxes,
 // bodies, effect collision) toggled per line.
-int debugCamera::menuHitDisp(JOY* joy)
+int debugCamera::menuHitDisp(JOY* pJoy)
 {
     static int view_mode = 0;
     static int old_view_mode = -1;
@@ -840,13 +840,13 @@ int debugCamera::menuHitDisp(JOY* joy)
     const char* str[9] = {"Game screen", "Scroll atari + BG", "Scroll atari", "Sprite atari + BG", "Sprite atari",
                           "Shadow + BG", "Shadow", "Mirror + BG", "Mirror"};
 
-    if (joy->trg & JOY_B) {
+    if (pJoy->trg & JOY_B) {
         return -1;
     }
-    if (joy->trg & 0x10001) {
+    if (pJoy->trg & 0x10001) {
         Dec(view_mode);
     }
-    if (joy->trg & 0x20002) {
+    if (pJoy->trg & 0x20002) {
         view_mode++;
     }
     if (view_mode < 0) {
@@ -908,7 +908,7 @@ int debugCamera::menuHitDisp(JOY* joy)
 }
 
 // Page 3: the shoulder camera offset editor (adjust_qFPS at 240 / 294).
-int debugCamera::menuAdjust(JOY* joy)
+int debugCamera::menuAdjust(JOY* pJoy)
 {
     static void (debugCamera::*camera_type_tbl[4])(Camera*, JOY*) = {
         &debugCamera::camera_type_00,
@@ -921,7 +921,7 @@ int debugCamera::menuAdjust(JOY* joy)
     Camera* cam = &CamCtrl.camera;
     int ret;
 
-    ret = adjust_qFPS(joy, 240, 294, 0, NULL);
+    ret = adjust_qFPS(pJoy, 240, 294, 0, NULL);
     if (ret == 6) {
         if (old_ret != 6) {
             CamCtrl.r1 = 0;
@@ -950,7 +950,7 @@ int debugCamera::menuAdjust(JOY* joy)
 
 // Draws the target cross at the camera's look-at point (red, green up) while the draw timer
 // runs.
-void CameraDrawTarget(Camera* cam, int flag)
+void CameraDrawTarget(Camera* pCam, int attr)
 {
     Vec v[2];
 #define a v[0]
@@ -960,14 +960,14 @@ void CameraDrawTarget(Camera* cam, int flag)
         return;
     }
     if (DbgFlagChk(pG, DBG_TEST_MODE)) {
-        if (flag & 1) {
-            flag |= 1;
+        if (attr & 1) {
+            attr |= 1;
         } else {
-            flag &= ~1;
+            attr &= ~1;
         }
     }
-    a = cam->param.at;
-    b = cam->param.at;
+    a = pCam->param.at;
+    b = pCam->param.at;
     a.x += 300.0f;
     b.x -= 300.0f;
     Draw_line3d(&a, &b, 0xFFFF0000, 0);
@@ -980,8 +980,8 @@ void CameraDrawTarget(Camera* cam, int flag)
     b.z -= 60.0f;
     Draw_line3d(&a, &b, 0xFFFF0000, 0);
 
-    a = cam->param.at;
-    b = cam->param.at;
+    a = pCam->param.at;
+    b = pCam->param.at;
     a.y += 300.0f;
     b.y -= 300.0f;
     Draw_line3d(&a, &b, 0xFF00FF00, 0);
@@ -994,8 +994,8 @@ void CameraDrawTarget(Camera* cam, int flag)
     b.x -= 60.0f;
     Draw_line3d(&a, &b, 0xFF00FF00, 0);
 
-    a = cam->param.at;
-    b = cam->param.at;
+    a = pCam->param.at;
+    b = pCam->param.at;
     a.z += 300.0f;
     b.z -= 300.0f;
     Draw_line3d(&a, &b, 0xFF2020FF, 0);
@@ -1008,21 +1008,21 @@ void CameraDrawTarget(Camera* cam, int flag)
     b.x -= 60.0f;
     Draw_line3d(&a, &b, 0xFF2020FF, 0);
 
-    if (flag & 1) {
-        a = cam->param.at;
-        b = cam->param.at;
+    if (attr & 1) {
+        a = pCam->param.at;
+        b = pCam->param.at;
         a.y = 50.0f;
         b.y -= 300.0f;
         Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
-        a = cam->param.at;
-        b = cam->param.at;
+        a = pCam->param.at;
+        b = pCam->param.at;
         b.y = 50.0f;
         a.y = 50.0f;
         a.x += 300.0f;
         b.x -= 300.0f;
         Draw_line3d(&a, &b, 0xFFFF8080, 0);
-        a = cam->param.at;
-        b = cam->param.at;
+        a = pCam->param.at;
+        b = pCam->param.at;
         b.y = 50.0f;
         a.y = 50.0f;
         a.z += 300.0f;
@@ -1054,15 +1054,15 @@ void CameraDebugInformation()
 
 // Maps a stick / dolly vector given in camera axes onto the world XZ plane (camera right and the
 // horizontal part of forward) with the y kept.
-void moveOnPlaneXZ(Vec* in, Vec* out)
+void moveOnPlaneXZ(Vec* src, Vec* dst)
 {
     Camera* cam = &pG->Camera;
     Vec vx;
     Vec vy;
     Vec vz;
 
-    if (in->x == 0.0f && in->y == 0.0f && in->z == 0.0f) {
-        memclr_asm(out, sizeof(Vec));
+    if (src->x == 0.0f && src->y == 0.0f && src->z == 0.0f) {
+        memclr_asm(dst, sizeof(Vec));
         return;
     }
     getColumn(cam->mat, 0, &vx);
@@ -1094,21 +1094,21 @@ void moveOnPlaneXZ(Vec* in, Vec* out)
 #line 1434 "D:/Bio4/Prog/db_cam.cpp"
         VECNormalize(&dz, &dz);
         MTX_SET_COLUMNS(m, &dx, &dz, &zero0, &zero1);
-        PSMTXMultVecSR(m, in, out);
+        PSMTXMultVecSR(m, src, dst);
     } else {
         Vec v;
-        v.x = in->x;
+        v.x = src->x;
         v.y = 0.0f;
-        v.z = in->y;
-        PSMTXMultVecSR(cam->mat, &v, out);
+        v.z = src->y;
+        PSMTXMultVecSR(cam->mat, &v, dst);
     }
 }
 
 // Draws a reference grid on the ground plane (1000 or 10000 unit cells) with the axes in white.
-void drawGround(int big)
+void drawGround(int flag)
 {
     const f32 unit = 1000.0f;
-    int n = big ? 60 : 30;
+    int n = flag ? 60 : 30;
     Vec a;
     Vec b;
     int i;
@@ -1165,7 +1165,7 @@ void drawGround(int big)
 // other side with Symmetry), edits go into the area override tables through
 // CameraQuasiFPS::setAreaData. flag bit0 resets the editor state. Returns 1 while a value was
 // changed, -1 on exit.
-int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
+int adjust_qFPS(JOY* pJoy, int x, int y, int flag, int* out)
 {
     static const char* menu_str[5] = {"Select Site", "Symmetry", "Follow Grnd", "Fovy", "Reset"};
     static u8* p_offset;   // byte pointers: the original copies the records with memcpy
@@ -1216,16 +1216,16 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     }
     switch (menu_level) {
     case 0:
-        if (joy->trg & JOY_B) {
+        if (pJoy->trg & JOY_B) {
             menu_no = 0;
             menu_level = 0;
             ret = -1;
             break;
         }
-        if (joy->rep & JOY_UP) {
+        if (pJoy->rep & JOY_UP) {
             Dec(menu_no);
         }
-        if (joy->rep & JOY_DOWN) {
+        if (pJoy->rep & JOY_DOWN) {
             menu_no++;
         }
         if (flag & 2) {
@@ -1236,7 +1236,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         }
         switch (menu_no) {
         case 0:
-            if (joy->trg & JOY_A) {
+            if (pJoy->trg & JOY_A) {
                 menu_level = 1;
                 DbgFlagOn(pG, DBG_ADJUST_CAM);
                 if (!DbgFlagChk(pG, DBG_TEST_MODE)) {
@@ -1246,28 +1246,28 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             break;
         case 1:
-            if (joy->rep & (JOY_LEFT | JOY_RIGHT)) {
+            if (pJoy->rep & (JOY_LEFT | JOY_RIGHT)) {
                 symmetry_flag = !symmetry_flag;
             }
             break;
         case 2: {
-            f32 step = (joy->on & JOY_X) ? 0.01f : 0.1f;
-            if (joy->rep & JOY_LEFT) {
+            f32 step = (pJoy->on & JOY_X) ? 0.01f : 0.1f;
+            if (pJoy->rep & JOY_LEFT) {
                 g_local_floor_ratio = g_local_floor_ratio - step;
             }
-            if (joy->rep & JOY_RIGHT) {
+            if (pJoy->rep & JOY_RIGHT) {
                 g_local_floor_ratio = g_local_floor_ratio + step;
             }
             g_local_floor_ratio =
                  g_local_floor_ratio < 0.0f ? 0.0f : (g_local_floor_ratio > 2.0f ? 2.0f : g_local_floor_ratio);
-            if (joy->trg & JOY_A) {
+            if (pJoy->trg & JOY_A) {
                 ret = 5;
                 q->setFloorRatio(g_local_floor_ratio);
             }
             break;
         }
         case 3:
-            if (joy->trg & JOY_A) {
+            if (pJoy->trg & JOY_A) {
                 q->getAreaData(g_local_ready, g_local_trans);
                 g_local_fovy[0] = g_local_ready[0][1].Fovy;
                 g_local_fovy[1] = g_local_trans[0][1].Fovy;
@@ -1275,7 +1275,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             break;
         case 4:
-            if (joy->trg & JOY_A) {
+            if (pJoy->trg & JOY_A) {
                 menu_level = 4;
                 yes_no = 0;
             }
@@ -1283,34 +1283,34 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         }
         break;
     case 1:
-        if (joy->trg & JOY_B) {
+        if (pJoy->trg & JOY_B) {
             DbgFlagOff(pG, DBG_ADJUST_CAM);
             SpfFlagOff(pG, SPF_PL);
             if (CamDbg.m_cam_mode != 2) {
                 CamDbg.m_cam_mode = 0;
             }
             menu_level = 0;
-        } else if (joy->trg & JOY_A) {
+        } else if (pJoy->trg & JOY_A) {
             q->getAreaData(g_local_ready, g_local_trans);
             SpfFlagOn(pG, SPF_CAMERA);
             menu_level = 2;
         } else {
             int old_umd = site_UMD;
             int old_nf = site_NF;
-            if (joy->rep & JOY_LEFT) {
+            if (pJoy->rep & JOY_LEFT) {
                 Dec(site_col);
             }
-            if (joy->rep & JOY_RIGHT) {
+            if (pJoy->rep & JOY_RIGHT) {
                 site_col++;
             }
             site_col = site_col < 0 ? 0 : (site_col > 1 ? 1 : site_col);
             if (symmetry_flag) {
                 site_col = 1;
             }
-            if (joy->rep & JOY_UP) {
+            if (pJoy->rep & JOY_UP) {
                 Dec(site_row);
             }
-            if (joy->rep & JOY_DOWN) {
+            if (pJoy->rep & JOY_DOWN) {
                 site_row++;
             }
             site_row = site_row < 0 ? 0 : (site_row > 5 ? 5 : site_row);
@@ -1393,10 +1393,10 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         break;
     case 2:
         MotionMove(pPL, 0);
-        if (joy->trg & JOY_B) {
+        if (pJoy->trg & JOY_B) {
             SpfFlagOff(pG, SPF_CAMERA);
             menu_level = 1;
-        } else if (joy->trg & JOY_A) {
+        } else if (pJoy->trg & JOY_A) {
             PSMTXMultVec(inv, &g->Camera.param.pos, &QOFS(p_offset)->Campos);
             PSMTXMultVec(inv, &g->Camera.param.at, &QOFS(p_offset)->Target);
             if (symmetry_flag) {
@@ -1415,11 +1415,11 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         break;
     case 3:
         MotionMove(pPL, 0);
-        if (joy->trg & JOY_B) {
+        if (pJoy->trg & JOY_B) {
             PSMTXMultVec(pPL->mat, &QOFS(p_offset)->Campos, &CamCtrl.camera.param.pos);
             CameraSetOrientationRoll(&CamCtrl.camera);
             menu_level = 2;
-        } else if (joy->trg & JOY_A) {
+        } else if (pJoy->trg & JOY_A) {
             PSMTXMultVec(inv, &g->Camera.param.pos, &QOFS(p_offset)->campos2);
             if (symmetry_flag) {
                 memcpy(p_counter + QOFS_CAMPOS2, p_offset + QOFS_CAMPOS2, sizeof(Vec));
@@ -1434,17 +1434,17 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         }
         break;
     case 4:
-        if (joy->trg & JOY_B) {
+        if (pJoy->trg & JOY_B) {
             menu_level = 0;
             break;
         }
-        if (joy->rep & JOY_LEFT) {
+        if (pJoy->rep & JOY_LEFT) {
             yes_no = 1;
         }
-        if (joy->rep & JOY_RIGHT) {
+        if (pJoy->rep & JOY_RIGHT) {
             yes_no = 0;
         }
-        if (joy->trg & JOY_A) {
+        if (pJoy->trg & JOY_A) {
             if (yes_no) {
                 for (i = 0; i < 2; i++) {
                     for (j = 0; j < 3; j++) {
@@ -1459,32 +1459,32 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         }
         break;
     case 5:
-        if (joy->trg & JOY_B) {
+        if (pJoy->trg & JOY_B) {
             menu_level = 0;
             break;
         }
-        if (joy->trg & JOY_UP) {
+        if (pJoy->trg & JOY_UP) {
             near_far = 0;
         }
-        if (joy->trg & JOY_DOWN) {
+        if (pJoy->trg & JOY_DOWN) {
             near_far = 1;
         }
         {
             f32 step = 1.0f;
-            if (joy->on & JOY_X) {
+            if (pJoy->on & JOY_X) {
                 step = 10.0f;
             }
-            if (joy->rep & JOY_LEFT) {
+            if (pJoy->rep & JOY_LEFT) {
                 g_local_fovy[near_far] = g_local_fovy[near_far] - step;
             }
-            if (joy->rep & JOY_RIGHT) {
+            if (pJoy->rep & JOY_RIGHT) {
                 g_local_fovy[near_far] = g_local_fovy[near_far] + step;
             }
             g_local_fovy[near_far] = g_local_fovy[near_far] < 1.0f
                                          ? 1.0f
                                          : (g_local_fovy[near_far] > 90.0f ? 90.0f : g_local_fovy[near_far]);
         }
-        if (joy->trg & JOY_A) {
+        if (pJoy->trg & JOY_A) {
             ret = 3;
             menu_level = 0;
         }

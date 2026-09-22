@@ -61,7 +61,7 @@ public:
     void setCondition(int c);
     int getCondition();
     void checkMallocRelease();
-    void setMallocInfo(int on, void* p);
+    void setMallocInfo(int set, void* malloc_addr);
     void fixMramAddr(u32 a);
     int isUseOk();
     int waitUseOk();
@@ -108,11 +108,11 @@ public:
     void deleteAll();
     cDataUnit* setData(char* name);
     cDataUnit* getNewUnit();
-    void setAramSort(int on);
+    void setAramSort(int flag);
     int checkAramSort();
     void dispDebug();
     void initDummyId();
-    void setDummyId(int id);
+    void setDummyId(int dummy_id);
     void checkDummyId();
     void check();
 };

@@ -213,34 +213,34 @@ void emBarDmCk(cEmBar* em)
 
 // Breaks the bar: spawns est Eff_id with parameter `type` (0 shot, 1 blast, 2 melee / explosion
 // with a different SE), hides the model and moves to Rno1 1 Break.
-void emBarSetBreak(cEmBar* em, u32 type)
+void emBarSetBreak(cEmBar* pEm, u32 type)
 {
-    EmBarWork* w = EMBAR_WK(em);
+    EmBarWork* w = EMBAR_WK(pEm);
     u8 eff = w->Eff_id;
 
-    em->hp = 0;
+    pEm->hp = 0;
     if (eff != 0xFF) {
         switch (type) {
         case 0:
         default:
-            EstSet(0, -1, &em->pos, &em->ang, eff, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
-            SndCall(6, 8, &em->pos, 0, 0, em);
+            EstSet(0, -1, &pEm->pos, &pEm->ang, eff, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
+            SndCall(6, 8, &pEm->pos, 0, 0, pEm);
             break;
         case 1:
-            EstSet(0, -1, &em->pos, &em->ang, eff, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
-            SndCall(6, 8, &em->pos, 0, 0, em);
+            EstSet(0, -1, &pEm->pos, &pEm->ang, eff, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
+            SndCall(6, 8, &pEm->pos, 0, 0, pEm);
             break;
         case 2:
-            EstSet(0, -1, &em->pos, &em->ang, eff, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
-            SndCall(6, 7, &em->pos, 0, 0, em);
+            EstSet(0, -1, &pEm->pos, &pEm->ang, eff, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
+            SndCall(6, 7, &pEm->pos, 0, 0, pEm);
             break;
         }
     }
-    em->be_flag &= ~2;
-    em->r_no_0 = 1;
-    em->r_no_1 = 1;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->be_flag &= ~2;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 1;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Per-frame: weapon hit check, clear the hit-box-only flag, run the Rno0 routine.
@@ -252,64 +252,64 @@ void cEmBar::move()
 }
 
 // Rno0 == 0: resets to the Set state.
-void emBar_R0_Init(cEmBar* em)
+void emBar_R0_Init(cEmBar* pEm)
 {
-    em->r_no_0 = 1;
-    em->r_no_1 = 0;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 0;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 Break).
-void emBar_R0_Move(cEmBar* em)
+void emBar_R0_Move(cEmBar* pEm)
 {
-    EmBar_R1_move_tbl[em->r_no_1](em);
+    EmBar_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: the intact bar; builds the matrices once, then every frame offers the action button
 // 0x25 (climb / squeeze through) when the player is within 5000 units in front of it and has not
 // used it yet (Act_ck), and runs the melee / explosion hit check.
-void emBar_R1_Set(cEmBar* em)
+void emBar_R1_Set(cEmBar* pEm)
 {
-    EmBarWork* w = EMBAR_WK(em);
-    u8 step = em->r_no_2;
+    EmBarWork* w = EMBAR_WK(pEm);
+    u8 step = pEm->r_no_2;
 
     if (step == 0) {
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
-        em->partsWorldCalc();
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
         w->Act_ck = step;
         w->Timer = 30;
-        em->r_no_2++;
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
-    if (em->plDist2 < 25000000.0f) {
+    pEm->be_flag |= 0x4000;
+    if (pEm->plDist2 < 25000000.0f) {
         u8 esc = w->Act_ck;
 
         if (esc == 0) {
-            if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f)) < 1.5707964f) {
-                ActBtn.set(ACT_GUARD, 5, (void*) emBarActEscape, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, esc);
+            if (fabsf(Muku(&pEm->pos, &pPL->pos, pEm->ang.y, 3.1415927f)) < 1.5707964f) {
+                ActBtn.set(ACT_GUARD, 5, (void*) emBarActEscape, pEm, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, esc);
             }
         }
     }
-    emBarHitCk(em);
+    emBarHitCk(pEm);
 }
 
 // Action button callback: marks the bar used and starts the player damage-style motion
 // plemEscape that plays the bar's escape motion.
-void emBarActEscape(cEmBar* em)
+void emBarActEscape(cEmBar* ptr)
 {
-    EMBAR_WK(em)->Act_ck = 1;
-    SetPlDamage(em, plemEscape);
+    EMBAR_WK(ptr)->Act_ck = 1;
+    SetPlDamage(ptr, plemEscape);
 }
 
 // Player damage routine while passing the bar: plays the bar's `motion` on the player (with the
 // bar's read table entry) and ends the damage state when it finishes.
-void plemEscape(cPlayer* pl)
+void plemEscape(cPlayer* pEm)
 {
-    cEm* em = (cEm*) pl;
+    cEm* em = (cEm*) pEm;
     cEmBar* bar = (cEmBar*) em->pEmCatch;
     EmBarWork* w = EMBAR_WK(bar);
 
@@ -330,10 +330,10 @@ void plemEscape(cPlayer* pl)
 
 // Rno1 == 1: broken; on entry sets bit0 of the etc flag (stays broken on re-entry), hp 0, hides the
 // model; then hit-box-only.
-void emBar_R1_Break(cEmBar* em)
+void emBar_R1_Break(cEmBar* pEm)
 {
-    EmBarWork* w = EMBAR_WK(em);
-    u8 step = em->r_no_2;
+    EmBarWork* w = EMBAR_WK(pEm);
+    u8 step = pEm->r_no_2;
 
     if (step == 0) {
         u16* flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
@@ -341,25 +341,25 @@ void emBar_R1_Break(cEmBar* em)
         if (flg) {
             *flg |= 1;
         }
-        em->hp = step;
-        em->be_flag &= ~2;
-        em->r_no_2++;
+        pEm->hp = step;
+        pEm->be_flag &= ~2;
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
+    pEm->be_flag |= 0x4000;
 }
 
 // Hit box: a cube of the bar's size centred half its height below the origin.
-void emBarYarareInit(cEmBar* em)
+void emBarYarareInit(cEmBar* pEm)
 {
-    EmBarWork* w = EMBAR_WK(em);
+    EmBarWork* w = EMBAR_WK(pEm);
 
-    YarareInitCube((cEmHit*) em, 0.0f, -w->size.y * 0.5f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+    YarareInitCube((cEmHit*) pEm, 0.0f, -w->size.y * 0.5f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
 }
 
 // Est id spawned when the bar breaks (0xFF = none).
-void cEmBar::setEff(u8 no)
+void cEmBar::setEff(u8 eff_id)
 {
-    EMBAR_WK(this)->Eff_id = no;
+    EMBAR_WK(this)->Eff_id = eff_id;
 }
 
 // The player motion used to pass through the bar.
@@ -373,16 +373,16 @@ void cEmBar::setMotion(void* mot)
 // em / p (= &parts->mat): global.c priority is floor_log2(refs)*refs/live_length, ours em 6 refs /
 // 83 insns (1445) vs p 4 / 53 (1509) would give p r31. The `do {} while (0)` around emBarSetBreak
 // doubles that em ref's weight (7 refs -> 1686) and em takes r31 like the original; no code changes.
-int emBarHitCk(cEmBar* em)
+int emBarHitCk(cEmBar* pEm)
 {
     Vec v;
     cModel* p;
 
-    if (em->hp <= 0) {
+    if (pEm->hp <= 0) {
         return 0;
     }
-    p = em->getPartsPtr(0);
-    em->dmg.m_Timer = 1;
+    p = pEm->getPartsPtr(0);
+    pEm->dmg.m_Timer = 1;
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 0.0f;
@@ -398,11 +398,11 @@ int emBarHitCk(cEmBar* em)
             v.z = 0.0f;
             PSMTXMultVec(p->mat, &v, &v);
             if (PlBombHitCk(&v, 500.0f) == 0 && PlWepHitCheck2(0, &v, &v, 0x12, 3, 500.0f) == 0) {
-                em->dmg.m_Timer = 0;
+                pEm->dmg.m_Timer = 0;
                 return 0;
             }
         }
     }
-    do { emBarSetBreak(em, 2); } while (0);  // COMPILER-DIFF: tie (see above)
+    do { emBarSetBreak(pEm, 2); } while (0);  // COMPILER-DIFF: tie (see above)
     return 1;
 }

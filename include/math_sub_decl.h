@@ -17,7 +17,7 @@
 #define CLAMP(x, lo, hi) ((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))
 
 // game/math_sub.cpp
-void RotMatrix(Mtx m, Vec* rot);
+void RotMatrix(Mtx m, Vec* vec);
 void TransMatrix(Mtx m, Vec* pos);
 void ScaleMatrix(Mtx m, Vec* scale);
 
@@ -25,24 +25,24 @@ extern "C" {
 // game/math_sub.cpp (C linkage)
 void SetOrientationZX(Vec* z, Vec* x, Mtx m);
 void SetOrientationZY(Vec* z, Vec* y, Mtx m);
-void low_RotMatrix(Mtx m, Vec* rot);
-void RotMatrixZXY(Mtx m, Vec* rot);
-void Matrix2AxisAngle(Mtx m, Vec* rot);
+void low_RotMatrix(Mtx m, Vec* vec);
+void RotMatrixZXY(Mtx m, Vec* vec);
+void Matrix2AxisAngle(Mtx m, Vec* ang);
 void VecRadLimit(Vec* v);
 f32 VecElevation(Vec* v);
 void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad);
-void VecLinearCombination(Vec* a, f32 s, Vec* b, f32 t, Vec* out);
-void VecInternalDivisionAngle(Vec* a, f32 s, Vec* b, f32 t, Vec* out);
-void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t);
-f32 hermite(f32* p, f32* v, f32 t);
+void VecLinearCombination(Vec* a, f32 c0, Vec* b, f32 c1, Vec* vec);
+void VecInternalDivisionAngle(Vec* a, f32 m, Vec* b, f32 n, Vec* vec);
+void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* alpha1, f32* alpha2);
+f32 hermite(f32* x, f32* v, f32 t);
 f32** malloc_2dim_array_f32(int n, int m);
-void free_2dim_array_f32(int n, int m, f32** p);
-int de_Boor_Cox(int n, f32* knot, f32 t, int k, f32* out);
+void free_2dim_array_f32(int n, int m, f32** A);
+int de_Boor_Cox(int n, f32* p, f32 t, int order, f32* B);
 f32 MtxNNLUDecomposition(int n, f32* A, int* ip);
-f32 MtxNNInverse(int n, f32* m, f32* inv);
-void MtxNNMultVecSR(int n, int m, f32* mtx, f32* v, f32* out);
-void OrthographicProjection(Vec* p, Vec* out, Vec* dir, Vec* plane_p, Vec* plane_n);
-f32 IPOW(f32 x, int n);
+f32 MtxNNInverse(int n, f32* m, f32* m_inv);
+void MtxNNMultVecSR(int n, int m, f32* mat, f32* v, f32* v_dst);
+void OrthographicProjection(Vec* src_pos, Vec* dst_pos, Vec* projection_dir, Vec* plane_pos, Vec* plane_norm);
+f32 IPOW(f32 x, int y);
 f32 SQRTF(f32 x);
 // Distance between the points a and b (pointers): x, y, z, or x, z on the ground plane. Macros: an inline here
 // would renumber the declarations of every unit that includes this header.
@@ -58,36 +58,36 @@ int GetScreenPos(Vec* pos, Vec* scr);
 f32 GetDistance(Vec* v0, Vec* v1);      // squared distance
 f32 GetDistance3(Vec* v0, Vec* v1);     // distance
 f32 GetDistanceXZ(Vec* v0, Vec* v1);    // squared distance in the XZ plane
-void RotVector(Vec* src, Vec* rot, Vec* dst);
+void RotVector(Vec* vec0, Vec* ang, Vec* vec_ans);
 // Angle step from `ang` towards `target` seen from `pos`, clamped to +-limit.
-f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit);
+f32 Muku(Vec* v0, Vec* v1, f32 dir, f32 dy);
 // Step from `ang` towards `target`, at most +-limit.
-f32 Muku2(f32 ang, f32 target, f32 limit);
+f32 Muku2(f32 src_dir, f32 dst_dir, f32 add);
 // Muku2 towards the XZ direction of `dir`.
-f32 Muku3(f32 ang, Vec* dir, f32 limit);
+f32 Muku3(f32 src_dir, Vec* v0, f32 dy);
 // out = a + (b - a) * t
-void PosToPos(Vec* pos1, Vec* pos2, Vec* out, f32 t);
-f32 GetXZAngle(Vec* from, Vec* to);   // atan2 of to - from in the XZ plane, limited to +-PI
-f32 GetXYAngle(Vec* from, Vec* to);
-f32 GetXZAngleLocal(Vec* from, Vec* to, f32 ang);   // GetXZAngle relative to `ang`
+void PosToPos(Vec* pos1, Vec* pos2, Vec* pos3, f32 per);
+f32 GetXZAngle(Vec* v0, Vec* v1);   // atan2 of to - from in the XZ plane, limited to +-PI
+f32 GetXYAngle(Vec* v0, Vec* v1);
+f32 GetXZAngleLocal(Vec* v0, Vec* v1, f32 v0_dir);   // GetXZAngle relative to `ang`
 // Point `p` inside the XZ quad `quad[4]` (0-1-2-3 order)?
-int HitCheckPoint4(Vec* p, Vec* quad);
+int HitCheckPoint4(Vec* pos, Vec* xz);
 // pos += speed rotated by the model's rot
-void AddSpeed(struct cModel* m, const Vec* speed);
+void AddSpeed(struct cModel* pEm, const Vec* speed);
 // dst[8] = rotate(src[8], rot) + pos
-void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot);
+void BoxWorldCalc(Vec* BoxSrc, Vec* BoxDst, Vec* pos, Vec* ang);
 // World point under screen position (sx, sy): the floor hit when y == 1e8f, else at height y.
-void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y);
+void Get3DPosFrom2D(Vec* pPos3d, f32 sx, f32 sy, f32 h);
 // Rotate `v` (x, -y on the ground plane) into the camera's heading.
-void VecToCamVec(Vec* v, Vec* out);
+void VecToCamVec(Vec* v1, Vec* v2);
 // Segment a-b against the sphere (c, r): 1 with the entry point in `out` (a itself when a is inside).
-int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, f32 r, Vec* out);
-int SphereHitCk(Vec* pPos1, Vec* pPos2, f32 ra, f32 rb);
+int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, f32 r, Vec* pCross);
+int SphereHitCk(Vec* pPos1, Vec* pPos2, f32 radius1, f32 radius2);
 // Launch vector for a parabola from `from` to `to` peaking `h` above the higher end (gravity 20).
-void CalcParabolaVector(Vec* out, Vec* from, Vec* to, f32 h);
-f32 CalcStopDist(f32 speed, f32 decel);
+void CalcParabolaVector(Vec* spd, Vec* src, Vec* dst, f32 height);
+f32 CalcStopDist(f32 v0, f32 a);
 // Move `pos` `dist` towards `target`; 1 when it arrived.
-int CalcMovePosDist(Vec* pos, Vec* target, f32 dist);
+int CalcMovePosDist(Vec* pPos, Vec* pTar, f32 dist);
 }
 
 // game/sub2.cpp (C++ linkage)

@@ -218,9 +218,9 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
 }
 
 // Brightness scale Pow from Work8[0] (0..2, else fails).
-int cEsp0f::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp0f::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
-    m_Free.Pow = gen->Work8[0];
+    m_Free.Pow = pSeq->Work8[0];
     if (m_Free.Pow > 2) {
         pLog->err(0, 0, "ESP_0F : Power[%d] invalid", m_Free.Pow);
         return 0;

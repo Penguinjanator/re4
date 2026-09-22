@@ -66,20 +66,20 @@ struct EmRockWork {
 class cEmRock : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMROCK_WK)
-    virtual void beginEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
     virtual void move();
 
-    void setParent(cEm* parent, int partsNo, int flag);
+    void setParent(cEm* pCoord, int oya_parts, int flag);
     void setFall(EmAtkInfo* atk);
     void setThrow(Vec* spd, EmAtkInfo* atk);
     void setThrow2(Vec* spd, EmAtkInfo* atk);
-    void setSeFall(u8 blk, u8 no, u8 vol);
-    void setEffFall(u8 id, u8 type);
-    void setEffAlways(u8 id, u8 type);
-    void setYarareCube(f32 x, f32 y, f32 z, Vec* size);
-    void setTransMode(int on);
-    void setPlMotion(void** mot);
-    void setScale(f32 s);
+    void setSeFall(u8 se_id, u8 se_no, u8 em_id);
+    void setEffFall(u8 eff_id, u8 est_id);
+    void setEffAlways(u8 eff_id, u8 est_id);
+    void setYarareCube(f32 w, f32 h, f32 d, Vec* pOfs);
+    void setTransMode(int mode);
+    void setPlMotion(void** pTbl);
+    void setScale(f32 mag);
     void setDropMot(void* a, void* b, void* c, void* d);
     void setDropMot2(void* a, void* b, void* c, void* d, void* e, void* f, void* g);
     void setBreakR11E();
@@ -88,44 +88,44 @@ public:
 cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type);
 
 extern "C" {
-void emRockDmCk(cEmRock* em);
-void emRock_R0_Init(cEmRock* em);
-void emRock_R1_Set(cEmRock* em);
-void emRock_R1_Parent(cEmRock* em);
-void emRock_R1_Fall(cEmRock* em);
-void emRock_R1_Throw(cEmRock* em);
-void emRock_R1_Throw2(cEmRock* em);
-void emRock_R1_Roll(cEmRock* em);
-void emRock_R1_Drop(cEmRock* em);
-void emRock_R1_Drop2(cEmRock* em);
-void plemDropEscAction(cEmRock* em);
-void plemDropFind(cPlayer* pl);
-void plemDropEscape(cPlayer* pl);
-int emRockRollHitCk(cEmRock* em);
-void emRockAtkScrCk(cEmRock* em);
-int emRockSetRollRoute(cEmRock* em);
-int emRockSetRollSpd(cEmRock* em);
-int emRockRollStartCk(cEmRock* em);
-void plemRockEscape(cPlayer* pl);
+void emRockDmCk(cEmRock* pEm);
+void emRock_R0_Init(cEmRock* pEm);
+void emRock_R1_Set(cEmRock* pEm);
+void emRock_R1_Parent(cEmRock* pEm);
+void emRock_R1_Fall(cEmRock* pEm);
+void emRock_R1_Throw(cEmRock* pEm);
+void emRock_R1_Throw2(cEmRock* pEm);
+void emRock_R1_Roll(cEmRock* pEm);
+void emRock_R1_Drop(cEmRock* pEm);
+void emRock_R1_Drop2(cEmRock* pEm);
+void plemDropEscAction(cEmRock* ptr);
+void plemDropFind(cPlayer* pEm);
+void plemDropEscape(cPlayer* pEm);
+int emRockRollHitCk(cEmRock* pEm);
+void emRockAtkScrCk(cEmRock* pEm);
+int emRockSetRollRoute(cEmRock* pEm);
+int emRockSetRollSpd(cEmRock* pEm);
+int emRockRollStartCk(cEmRock* pEm);
+void plemRockEscape(cPlayer* pEm);
 int plemRockSetEscapeRoute();
-int plemRockEscapeCk(cPlayer* pl);
-void plemRockEscAction(cEmRock* em);
-void plemRockEscapeCamMove(cPlayer* pl, f32 rate);
-void plemRockEscapeCamMove2(cPlayer* pl, int side);
-void plemRockDropDieCamMove(cEmRock* em);
-void emRockPushCamMove(cEmRock* em);
-void emRockPushCamMove2(cEmRock* em);
+int plemRockEscapeCk(cPlayer* pEm);
+void plemRockEscAction(cEmRock* ptr);
+void plemRockEscapeCamMove(cPlayer* pEm, f32 rate);
+void plemRockEscapeCamMove2(cPlayer* pEm, int mode);
+void plemRockDropDieCamMove(cEmRock* pEm);
+void emRockPushCamMove(cEmRock* pEm);
+void emRockPushCamMove2(cEmRock* pEm);
 void emRockDropCamMove(cEmRock* em);
-void emRockRunDownCk(cEmRock* em);
+void emRockRunDownCk(cEmRock* pEm);
 int emRockAtkCk(cEmRock* em, struct EmAtkInfo* atk, int type, f32 r);
-void emRockPushCk(cEmRock* em, int frame);
-int emRockDropHitCk(cEmRock* em);
-int emRockDropHitCkSub(cEmRock* em);
-int emRockDropHitCkEm2b(cEmRock* em);
-void plemDropDie(cPlayer* pl);
+void emRockPushCk(cEmRock* pEm, int frame);
+int emRockDropHitCk(cEmRock* pEm);
+int emRockDropHitCkSub(cEmRock* pEm);
+int emRockDropHitCkEm2b(cEmRock* pEm);
+void plemDropDie(cPlayer* pEm);
 void subemDropDie();
-void emRockSatClear(cEmRock* em);
-void emRockSatSet(cEmRock* em);
+void emRockSatClear(cEmRock* pEm);
+void emRockSatSet(cEmRock* pEm);
 }
 
 #endif

@@ -98,17 +98,17 @@ void cDataUnit::checkMallocRelease()
 }
 
 // Records (on) or forgets the unit-owned allocation `p` and its heap.
-void cDataUnit::setMallocInfo(int on, void* p)
+void cDataUnit::setMallocInfo(int set, void* malloc_addr)
 {
     if (chk(2) == 1) {
         checkMallocRelease();
     }
-    if (on == 1) {
+    if (set == 1) {
         m_be_flag |= 2;
     } else {
         m_be_flag &= ~2;
     }
-    m_malloc_addr = p;
+    m_malloc_addr = malloc_addr;
     if (DC.dbgHeap == 1) {
         m_malloc_heap = MemGetCurrentDbgHeap();
     } else {
@@ -774,9 +774,9 @@ cDataUnit* cDataCtrl::getNewUnit()
 }
 
 // Requests a repack of the ARAM units (after deletions left gaps).
-void cDataCtrl::setAramSort(int on)
+void cDataCtrl::setAramSort(int flag)
 {
-    aramSort = on;
+    aramSort = flag;
 }
 
 // Per-frame repack: when requested and no transfer is running, moves the resident ARAM units
@@ -954,14 +954,14 @@ void cDataCtrl::initDummyId()
 }
 
 // Records a dummy.dat request id to be waited on.
-void cDataCtrl::setDummyId(int id)
+void cDataCtrl::setDummyId(int dummy_id)
 {
     int i;
 
-    if (pG->IsDevConsole != 0 && id >= 0) {
+    if (pG->IsDevConsole != 0 && dummy_id >= 0) {
         for (i = 0; i < 32; i++) {
             if (m_id_dummy[i] == -1) {
-                m_id_dummy[i] = id;
+                m_id_dummy[i] = dummy_id;
                 return;
             }
         }

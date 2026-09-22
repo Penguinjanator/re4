@@ -175,145 +175,145 @@ cObjMgr::cObjMgr() : cManager<cObj>(sizeof(cObj), 2)
 }
 
 // Manager warnings to the log.
-void cObjMgr::log(const char* fmt, ...)
+void cObjMgr::log(const char* pStr, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
-    pLog->vwarn(6, 0, fmt, ap);
+    va_start(ap, pStr);
+    pLog->vwarn(6, 0, pStr, ap);
 }
 
 // Unit construction: placement-news the per-id class (0 cObj00 ... 0x3F) into the work.
 #line 130 "D:/Bio4/Prog/obj.cpp"
-int cObjMgr::construct(cObj* p, int id)
+int cObjMgr::construct(cObj* pObj, int id)
 {
     switch (id) {
     case ID_NORMAL:
-        p = new (p) cObj00();
+        pObj = new (pObj) cObj00();
         break;
     case ID_MAGAZINE:
-        p = new (p) cObj01();
+        pObj = new (pObj) cObj01();
         break;
     case ID_SCROLL:
-        p = new (p) cObjScr();
+        pObj = new (pObj) cObjScr();
         break;
     case ID_03:
-        p = new (p) cObj03();
+        pObj = new (pObj) cObj03();
         break;
     case ID_ESP:
-        p = new (p) cObj04();
+        pObj = new (pObj) cObj04();
         break;
     case ID_KABOOM:
-        p = new (p) cObj05();
+        pObj = new (pObj) cObj05();
         break;
     case ID_BOX:
-        p = new (p) cObjBox();
+        pObj = new (pObj) cObjBox();
         break;
     case ID_MISSILE:
-        p = new (p) cObj08();
+        pObj = new (pObj) cObj08();
         break;
     case ID_ESP2:
-        p = new (p) cObj09();
+        pObj = new (pObj) cObj09();
         break;
     case ID_WEP_ITEM:
-        p = new (p) cWepItem();
+        pObj = new (pObj) cWepItem();
         break;
     case ID_PL_WEAPON:
-        p = new (p) cObjWep();
+        pObj = new (pObj) cObjWep();
         break;
     case ID_EM12_WEAPON:
-        p = new (p) cObj12();
+        pObj = new (pObj) cObj12();
         break;
     case ID_LADDER:
-        p = new (p) cObjLadder();
+        pObj = new (pObj) cObjLadder();
         break;
     case ID_BELL:
-        p = new (p) cObjBell();
+        pObj = new (pObj) cObjBell();
         break;
     case ID_GATLING:
-        p = new (p) cObjGatling();
+        pObj = new (pObj) cObjGatling();
         break;
     case ID_EM10_PARASITE:
-        p = new (p) cObj16();
+        pObj = new (pObj) cObj16();
         break;
     case ID_EVENT:
-        p = new (p) cObj18();
+        pObj = new (pObj) cObj18();
         break;
     case ID_ITEM:
-        p = new (p) cItemObj();
+        pObj = new (pObj) cItemObj();
         break;
     case ID_WEP_GRENADE:
-        p = new (p) cObjGrenade();
+        pObj = new (pObj) cObjGrenade();
         break;
     case ID_SPEAR:
-        p = new (p) cObjSpear();
+        pObj = new (pObj) cObjSpear();
         break;
     case ID_FLOATISLAND:
-        p = new (p) cObj1c();
+        pObj = new (pObj) cObj1c();
         break;
     case ID_CHAIN:
-        p = new (p) cObjChain();
+        pObj = new (pObj) cObjChain();
         break;
     case ID_OBAMODEL:
-        p = new (p) cObjObaModel();
+        pObj = new (pObj) cObjObaModel();
         break;
     case ID_WEP_ROCKET:
-        p = new (p) cObjRocket();
+        pObj = new (pObj) cObjRocket();
         break;
     case ID_WEP_LAUNCHER:
-        p = new (p) cObjLauncher();
+        pObj = new (pObj) cObjLauncher();
         break;
     case ID_EM2B_PARASITE:
-        p = new (p) cObj26();
+        pObj = new (pObj) cObj26();
         break;
     case ID_WEP_GRE_FIRE:
-        p = new (p) cObjGreFire();
+        pObj = new (pObj) cObjGreFire();
         break;
     case ID_WEP_GRE_LIGHT:
-        p = new (p) cObjGreLight();
+        pObj = new (pObj) cObjGreLight();
         break;
     case ID_GONDOLA:
-        p = new (p) cObjGondola();
+        pObj = new (pObj) cObjGondola();
         break;
     case ID_ROBO:
-        p = new (p) cObjRobo();
+        pObj = new (pObj) cObjRobo();
         break;
     case ID_HELI_MISSILE:
-        p = new (p) cObjMissile();
+        pObj = new (pObj) cObjMissile();
         break;
     case ID_YAGURA:
-        p = new (p) cObjYagura();
+        pObj = new (pObj) cObjYagura();
         break;
     case ID_WEP_EGG:
-        p = new (p) cObjEgg();
+        pObj = new (pObj) cObjEgg();
         break;
     case ID_TROLLEY:
-        p = new (p) cObjTrolley();
+        pObj = new (pObj) cObjTrolley();
         break;
     case ID_BULL:
-        p = new (p) cObjBull();
+        pObj = new (pObj) cObjBull();
         break;
     case ID_PILLAR:
-        p = new (p) cObjPillar();
+        pObj = new (pObj) cObjPillar();
         break;
     default:
         if (id > 0x3F) {
 #line 175 "D:/Bio4/Prog/obj.cpp"
             HALT();
         }
-        ObjInitFunc[id](p);
+        ObjInitFunc[id](pObj);
         break;
     }
-    p->guid = Guid;
+    pObj->guid = Guid;
     Guid++;
-    p->id = id;
+    pObj->id = id;
     return 1;
 }
 
 // cManager entry point: forwards to the int version.
-int cObjMgr::construct(cObj* p, u32 id)
+int cObjMgr::construct(cObj* pObj, u32 id)
 {
-    return construct(p, (int) id);
+    return construct(pObj, (int) id);
 }
 
 // Per-frame: die check, then objMove on every alive object.
@@ -336,36 +336,36 @@ void cObjMgr::move()
 // One object's frame: skips inactive objects (be_flag 0x20 clear) and, during an event
 // (Status_flg[1] 0x10000000), objects without the no-suspend flag; runs move(), the shape
 // animation, the position history; debug: obstacle / skeleton / bounding box displays.
-void objMove(cObj* p)
+void objMove(cObj* pObj)
 {
-    if (!(p->be_flag & 0x20)) {
+    if (!(pObj->be_flag & 0x20)) {
         return;
     }
-    if (StaFlagChk(pG, STA_SUSPEND) && !(p->be_flag & 0x800)) {
+    if (StaFlagChk(pG, STA_SUSPEND) && !(pObj->be_flag & 0x800)) {
         return;
     }
-    p->move();
-    ShapeMove(p->pModelInfo);
-    p->updateOldPos();
+    pObj->move();
+    ShapeMove(pObj->pModelInfo);
+    pObj->updateOldPos();
     if (DbgFlagChk(pG, DBG_OBA_VIEW)) {
-        DrawOba(p);
+        DrawOba(pObj);
     }
     if (DbgFlagChk(pG, DBG_OBJ_SKELETON)) {
-        p->debugSkeletonDisp();
+        pObj->debugSkeletonDisp();
     }
-    if (p->be_flag & 0x80000000) {
-        p->drawAllBoundingBox(p->pModelInfo);
+    if (pObj->be_flag & 0x80000000) {
+        pObj->drawAllBoundingBox(pObj->pModelInfo);
     }
 }
 
 // Destroys an object: releases its model/parts (push) when it was alive, then the manager slot.
-void cObjMgr::destroy(cObj* p)
+void cObjMgr::destroy(cObj* pObj)
 {
-    if ((p->be_flag & 0x201) != 1) {
+    if ((pObj->be_flag & 0x201) != 1) {
         return;
     }
-    p->push();
-    cManager<cObj>::destroy(p);
+    pObj->push();
+    cManager<cObj>::destroy(pObj);
 }
 
 // New object: active + alive flags, kindid 1.

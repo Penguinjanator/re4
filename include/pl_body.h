@@ -62,10 +62,10 @@ public:
 
     cPlBody(cModel* model);
     void move();
-    void waistSet(f32 angle);
+    void waistSet(f32 y);
     void waistMove();
     void makeSpaeData();
-    void initWepHand(u32 hand);
+    void initWepHand(u32 addr);
 };
 
 #endif

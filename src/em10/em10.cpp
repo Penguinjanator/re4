@@ -23813,35 +23813,35 @@ static void subem10DmGondolaShake(cSubChar* sub)
 
 // Player damage routine of the flail (attack 2) and claw (0xD) hits: the heavy stagger motion 0x17A,
 // mirrored by the hit side, then EndPlDamage.
-static void plemDmMStar(cPlayer* pl)
+static void plemDmMStar(cPlayer* pEm)
 {
-    cEm* em = pl->pEmCatch;
+    cEm* em = pEm->pEmCatch;
     int flag;
 
-    pl->subArc = em->subArc;
-    if (pl->r_no_3 == 0) {
-        pl->dmg.set(0, 2);
+    pEm->subArc = em->subArc;
+    if (pEm->r_no_3 == 0) {
+        pEm->dmg.set(0, 2);
     }
-    switch (pl->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        flag = pl->r_no_3 ? 0x41 : 1;
-        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x17A), 0, 3, flag, 0);
+        flag = pEm->r_no_3 ? 0x41 : 1;
+        MotionSetCore(pEm, MOTION(pEm), PL_ARC_PTR(pEm->subArc, 0x17A), 0, 3, flag, 0);
         PlSetFace(1);
         PlSetDamageSe(0);
-        if (pl->r_no_3) {
-            pl->dmg.set(0, 0xF);
+        if (pEm->r_no_3) {
+            pEm->dmg.set(0, 0xF);
         }
-        pl->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        if (MotionMove(pl, 0)) {
+        if (MotionMove(pEm, 0)) {
             EndPlDamage();
-            if (!pl->r_no_3) {
-                pl->dmg.set(0, 0xF);
+            if (!pEm->r_no_3) {
+                pEm->dmg.set(0, 0xF);
             }
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Player damage routine of the stun rod (attack 3): the electrocuted motion 0x1A7; a player killed

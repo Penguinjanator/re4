@@ -161,7 +161,7 @@ void cPlLeon::setWound()
 
 // Right hand model: 0 empty (archive 0x12), 1 the weapon grip hand (Body->pWepHand), anything else
 // is taken as model data itself. Texture 0x11. A create failure HALTs.
-void cPlLeon::setRightHand(int no)
+void cPlLeon::setRightHand(int type)
 {
     void* data;
     cModelInfo* info;
@@ -171,7 +171,7 @@ void cPlLeon::setRightHand(int no)
         Body->m_pHandR = 0;
         Body->pRightData = 0;
     }
-    switch (no) {
+    switch (type) {
     case 0:
         data = PL_ARC_PTR(pG->pPlayer, 0x12);
         break;
@@ -179,7 +179,7 @@ void cPlLeon::setRightHand(int no)
         data = Body->pWepHand;
         break;
     default:
-        data = (void*) no;
+        data = (void*) type;
         break;
     }
     if ((info = ModInfoMgr.create((void*) data, PL_ARC_PTR(pG->pPlayer, 0x11))) != 0) {
@@ -195,7 +195,7 @@ void cPlLeon::setRightHand(int no)
 
 // Left hand model 0-5 (archive 0x14..0x19: open, closed, the weapon grips); 0x63 = the previous
 // hand again (oldLhandNo).
-void cPlLeon::setLeftHand(u32 no)
+void cPlLeon::setLeftHand(u32 type)
 {
     cModelInfo* info;
     void* data;
@@ -205,10 +205,10 @@ void cPlLeon::setLeftHand(u32 no)
         Body->m_pHandL = 0;
         Body->pLeftData = 0;
     }
-    if (no == 0x63) {
-        no = Body->oldLhandNo;
+    if (type == 0x63) {
+        type = Body->oldLhandNo;
     }
-    switch (no) {
+    switch (type) {
     case 0:
         data = PL_ARC_PTR(pG->pPlayer, 0x14);
         break;
@@ -228,11 +228,11 @@ void cPlLeon::setLeftHand(u32 no)
         data = PL_ARC_PTR(pG->pPlayer, 0x19);
         break;
     default:
-        data = (void*) no;
+        data = (void*) type;
         break;
     }
     Body->oldLhandNo = Body->nowLhandNo;
-    Body->nowLhandNo = no;
+    Body->nowLhandNo = type;
     info = ModInfoMgr.create(data, PL_ARC_PTR(pG->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
@@ -244,7 +244,7 @@ void cPlLeon::setLeftHand(u32 no)
 }
 
 // Face morph on the head shape: 0 ends the morph (neutral), 1 pain (archive 0x62), 2 (0x63).
-void cPlLeon::setFace(int no)
+void cPlLeon::setFace(int type)
 {
     void* data = 0;
     void* shape = Body->m_pFace;
@@ -252,7 +252,7 @@ void cPlLeon::setFace(int no)
     if (shape == 0) {
         return;
     }
-    switch (no) {
+    switch (type) {
     case 0:
     default:
         ShapeEnd(shape);
@@ -264,18 +264,18 @@ void cPlLeon::setFace(int no)
         data = PL_ARC_PTR(pG->pPlayer, 0x63);
         break;
     }
-    if (no != 0) {
+    if (type != 0) {
         ShapeSet(Body->m_pFace, 0, data, 2);
     }
 }
 
 // no == 0: replaces the morphable head + hair + eyes with the plain head model (archive 0xB/7) —
 // used when the head is swapped for an event.
-void cPlLeon::setHead(int no)
+void cPlLeon::setHead(int type)
 {
     cModelInfo* info;
 
-    if (no != 0) {
+    if (type != 0) {
         return;
     }
     if (Body->m_pFace == 0) {

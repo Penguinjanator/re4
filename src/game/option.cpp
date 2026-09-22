@@ -103,10 +103,10 @@ int OptionOpenCheck()
 // cockpit ids, loads the option id archive (pOption) with the background (IDC_OPTION_BG, fully faded in
 // when from the title) and the top menu (IDC_OPTION); the cursor starts on "controller" when the
 // retry entry is disabled (Status_flg[2] 0x8000).
-void OptionScreen::init(int title)
+void OptionScreen::init(int type)
 {
-    _type = title;
-    if (title != 0) {
+    _type = type;
+    if (type != 0) {
         _msg_attr = 0x94;
     } else {
         _msg_attr = 0x91;
@@ -186,11 +186,11 @@ static inline void setColor(IdUnit* u, IdUnit* base)
 // Status_flg[2] 0x8000), A loads the chosen sub menu's id layout (OPT_PTR 0x2C..0x38) and copies
 // the current pSys settings into the screen (m_reverse / m_vibration / m_knife_key / sound), B
 // jumps to "back" or (on it) closes. Returns 1 to close (START or back).
-int top_menu(OptionScreen* o)
+int top_menu(OptionScreen* pOpt)
 {
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->_rno1;
+    s8 old = pOpt->_rno1;
     IdUnit* base;
     IdUnit* u;
     int i;
@@ -200,12 +200,12 @@ int top_menu(OptionScreen* o)
     }
     if (Key.trg & KEY_B) {
         if (old == 4) {
-            o->_rno0 = 1;
-            o->_rno2 = 0;
-            o->_rno3 = 0;
+            pOpt->_rno0 = 1;
+            pOpt->_rno2 = 0;
+            pOpt->_rno3 = 0;
             return 0;
         }
-        o->_rno1 = 4;
+        pOpt->_rno1 = 4;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         void* data = 0;
@@ -224,72 +224,72 @@ int top_menu(OptionScreen* o)
             data = OPT_PTR(0x38);
             break;
         }
-        if (o->_rno1 != 4) {
+        if (pOpt->_rno1 != 4) {
             IdSys.kill(0xFF, IDC_OPTION);
             IdSys.set(data, 0xFF, IDC_OPTION, 0x13, 3, 0);
             SndCall(0, 0x36, 0, 0, 0, 0);
         }
-        if (o->_rno1 == 2) {
+        if (pOpt->_rno1 == 2) {
             IdSys.unitPtr(0, IDC_OPTION_BG)->rev_flag |= 0xF;
         }
         if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
-            o->m_reverse = 1;
+            pOpt->m_reverse = 1;
         } else {
-            o->m_reverse = 0;
+            pOpt->m_reverse = 0;
         }
         if (CfgFlagChk(pSys, CFG_VIBRATION)) {
-            o->m_vibration = 1;
+            pOpt->m_vibration = 1;
         } else {
-            o->m_vibration = 0;
+            pOpt->m_vibration = 0;
         }
         if (CfgFlagChk(pSys, CFG_KNIFE_MODE)) {
-            o->m_knife_key = 1;
+            pOpt->m_knife_key = 1;
         } else {
-            o->m_knife_key = 0;
+            pOpt->m_knife_key = 0;
         }
         switch (pSys->SndMode) {
         case 0:
-            o->m_snd_mode = 1;
+            pOpt->m_snd_mode = 1;
             break;
         case 1:
-            o->m_snd_mode = 0;
+            pOpt->m_snd_mode = 0;
             break;
         case 2:
-            o->m_snd_mode = 2;
+            pOpt->m_snd_mode = 2;
             break;
         default:
-            o->m_snd_mode = 0;
+            pOpt->m_snd_mode = 0;
             break;
         }
-        o->_rno0 = 1;
-        o->_rno2 = 0;
-        o->_rno3 = 0;
-        if (o->_rno1 == 3) {
-            o->_rno2 = o->m_snd_mode;
+        pOpt->_rno0 = 1;
+        pOpt->_rno2 = 0;
+        pOpt->_rno3 = 0;
+        if (pOpt->_rno1 == 3) {
+            pOpt->_rno2 = pOpt->m_snd_mode;
         }
         return 0;
     } else {
         if (Key.trg & KEY_UP) {
-            o->_rno1--;
+            pOpt->_rno1--;
         }
         if (Key.trg & KEY_DOWN) {
-            o->_rno1++;
+            pOpt->_rno1++;
         }
-        o->_rno1 = o->_rno1 < 0 ? 0 : (o->_rno1 > 4 ? 4 : o->_rno1);
-        if (StaFlagChk(pG, STA_TITLE) && o->_rno1 == 0 && (Key.trg & KEY_UP)) {
-            o->_rno1 = 1;
+        pOpt->_rno1 = pOpt->_rno1 < 0 ? 0 : (pOpt->_rno1 > 4 ? 4 : pOpt->_rno1);
+        if (StaFlagChk(pG, STA_TITLE) && pOpt->_rno1 == 0 && (Key.trg & KEY_UP)) {
+            pOpt->_rno1 = 1;
         }
-        if (old != o->_rno1) {
+        if (old != pOpt->_rno1) {
             SndCall(0, 0x34, 0, 0, 0, 0);
         }
     }
     base = IdSys.unitPtr(8, IDC_OPTION);
-    if (old != o->_rno1) {
+    if (old != pOpt->_rno1) {
         IdSys.setTime(base, 0);
     }
     for (i = 0; i < 5; i++) {
         u = IdSys.unitPtr((u8) (i + 2), IDC_OPTION);
-        if (o->_rno1 == i) {
+        if (pOpt->_rno1 == i) {
             setColor(u, base);
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
@@ -304,17 +304,17 @@ int top_menu(OptionScreen* o)
     {
         u8 mes[5] = {0x81, 0x82, 0x83, 0x84, 0x85};
 
-        cMes.MesSet(mes[o->_rno1], x0, y0, o->_msg_attr, 0, 0, 4);
+        cMes.MesSet(mes[pOpt->_rno1], x0, y0, pOpt->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
 
 // Leaves a sub menu: reloads the top menu id layout, _rno0 = 0, cancel SE.
-void back_to_top_menu(OptionScreen* o)
+void back_to_top_menu(OptionScreen* pOpt)
 {
     IdSys.kill(0xFF, IDC_OPTION);
     IdSys.set(OPT_PTR(0x28), 0xFF, IDC_OPTION, 0x13, 3, 0);
-    o->_rno0 = 0;
+    pOpt->_rno0 = 0;
     SndCall(0, 0x39, 0, 0, 0, 0);
 }
 
@@ -322,24 +322,24 @@ void back_to_top_menu(OptionScreen* o)
 // System_flg bit31 / 0x40000000: no card), 1 yes/no confirm (mes 0x98 retry, 0x8A quit), 2 loads
 // from the card (CardLoad; on failure rebuilds the menu), 3 waits for the SE then System_flg
 // 0x04000000 = return to the title. Retry calls GameContinue(1).
-int retry_load_menu(OptionScreen* o)
+int retry_load_menu(OptionScreen* pOpt)
 {
     static int yes = 0;
     static u32 snd_id = 0;
-    int old = o->_rno2;
+    int old = pOpt->_rno2;
     int confirm = 0;
     IdUnit* base;
     IdUnit* u;
     int i;
 
-    switch (o->_rno3) {
+    switch (pOpt->_rno3) {
     case 0:
         if (Key.trg & KEY_B) {
             if (old == 3) {
-                back_to_top_menu(o);
+                back_to_top_menu(pOpt);
                 return 0;
             }
-            o->_rno2 = 3;
+            pOpt->_rno2 = 3;
             SndCall(0, 0x39, 0, 0, 0, 0);
         } else if (Key.trg & KEY_A) {
             switch (old) {
@@ -349,56 +349,56 @@ int retry_load_menu(OptionScreen* o)
                 static int y0 = 245;
                 int no;
 
-                if (o->_rno2 == 0) {
+                if (pOpt->_rno2 == 0) {
                     no = 0x98;
                 } else {
                     no = 0x8A;
                 }
-                cMes.MesSet(no, x0, y0, (o->_msg_attr | 0x40) & ~0x80, 0, 0, 4);
+                cMes.MesSet(no, x0, y0, (pOpt->_msg_attr | 0x40) & ~0x80, 0, 0, 4);
                 cMes.getWork()->m_cur = 1;
-                o->_rno3 = 1;
+                pOpt->_rno3 = 1;
                 confirm = 1;
                 yes = 1;
                 SndCall(0, 0x37, 0, 0, 0, 0);
                 break;
             }
             case 1:
-                o->_rno3 = 2;
+                pOpt->_rno3 = 2;
                 SndCall(0, 0x36, 0, 0, 0, 0);
                 break;
             case 3:
-                back_to_top_menu(o);
+                back_to_top_menu(pOpt);
                 return 0;
             }
         } else {
             if (Key.trg & KEY_UP) {
-                o->_rno2--;
+                pOpt->_rno2--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->_rno2++;
+                pOpt->_rno2++;
             }
-            o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
+            pOpt->_rno2 = pOpt->_rno2 < 0 ? 0 : (pOpt->_rno2 > 3 ? 3 : pOpt->_rno2);
             if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
-                if (o->_rno2 == 1) {
+                if (pOpt->_rno2 == 1) {
                     if (Key.trg & KEY_UP) {
-                        o->_rno2 = 0;
+                        pOpt->_rno2 = 0;
                     }
                     if (Key.trg & KEY_DOWN) {
-                        o->_rno2 = 2;
+                        pOpt->_rno2 = 2;
                     }
                 }
             }
-            if (old != o->_rno2) {
+            if (old != pOpt->_rno2) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
         }
         base = IdSys.unitPtr(8, IDC_OPTION);
-        if (old != o->_rno2) {
+        if (old != pOpt->_rno2) {
             IdSys.setTime(base, 0);
         }
         for (i = 0; i < 4; i++) {
             u = IdSys.unitPtr((u8) (i + 2), IDC_OPTION);
-            if (o->_rno2 == i) {
+            if (pOpt->_rno2 == i) {
                 setColor(u, base);
             } else {
                 u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
@@ -415,12 +415,12 @@ int retry_load_menu(OptionScreen* o)
             static int y0 = 245;
             u8 mes[4] = {0x87, 0x88, 0x89, 0x86};
 
-            cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
+            cMes.MesSet(mes[pOpt->_rno2], x0, y0, pOpt->_msg_attr, 0, 0, 4);
         }
         break;
     case 1:
         if (Key.trg & KEY_B) {
-            o->_rno3 = 0;
+            pOpt->_rno3 = 0;
             cMes.Delete(0);
             SndCall(0, 0x39, 0, 0, 0, 0);
         } else {
@@ -429,18 +429,18 @@ int retry_load_menu(OptionScreen* o)
             if (res != 0) {
                 cMes.Delete(0);
                 if (res == 1) {
-                    switch (o->_rno2) {
+                    switch (pOpt->_rno2) {
                     case 0:
                         GameContinue(1);
                         SndCall(0, 0x38, 0, 0, 0, 0);
                         break;
                     case 2:
                         snd_id = SndCall(0, 0x38, 0, 0, 0, 0);
-                        o->_rno3 = 3;
+                        pOpt->_rno3 = 3;
                         break;
                     }
                 } else {
-                    o->_rno3 = 0;
+                    pOpt->_rno3 = 0;
                     SndCall(0, 0x39, 0, 0, 0, 0);
                 }
             } else {
@@ -462,7 +462,7 @@ int retry_load_menu(OptionScreen* o)
             GameLoad();
         } else {
             ScreenReSize(0x200, 0x1C0);
-            if (o->_type != 1) {
+            if (pOpt->_type != 1) {
                 Cckpt.roomInit();
                 Cckpt.move();
                 Cockpit* ck = &Cckpt;
@@ -478,7 +478,7 @@ int retry_load_menu(OptionScreen* o)
             }
             IdSys.kill(0xFF, IDC_OPTION);
             IdSys.set(OPT_PTR(0x2C), 0xFF, IDC_OPTION, 0x13, 3, 0);
-            o->_rno3 = 0;
+            pOpt->_rno3 = 0;
         }
         break;
     case 3:
@@ -492,13 +492,13 @@ int retry_load_menu(OptionScreen* o)
 
 // Controller sub menu: entries reverse camera (pSys->Config_flg bit31), vibration (0x08000000, with a
 // test rumble), knife key (0x04000000), back; left/right toggle, A applies to pSys->Config_flg.
-int controller_menu(OptionScreen* o)
+int controller_menu(OptionScreen* pOpt)
 {
     static int vib_time = 10;
     static int vib_level = 0xFF;
     static int x0 = 100;
     static int y0 = 245;
-    int old = o->_rno2;
+    int old = pOpt->_rno2;
     IdUnit* base;
     IdUnit* u;
     IdUnit* off;
@@ -507,22 +507,22 @@ int controller_menu(OptionScreen* o)
 
     if (Key.trg & KEY_B) {
         if (old == 3) {
-            back_to_top_menu(o);
+            back_to_top_menu(pOpt);
             return 0;
         }
-        o->_rno2 = 3;
+        pOpt->_rno2 = 3;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         switch (old) {
         case 0:
-            if (o->m_reverse) {
+            if (pOpt->m_reverse) {
                 CfgFlagOn(pSys, CFG_AIM_REVERSE);
             } else {
                 CfgFlagOff(pSys, CFG_AIM_REVERSE);
             }
             break;
         case 1:
-            if (o->m_vibration) {
+            if (pOpt->m_vibration) {
                 CfgFlagOn(pSys, CFG_VIBRATION);
                 VibSet(vib_time, vib_level, 0, 4);
             } else {
@@ -530,14 +530,14 @@ int controller_menu(OptionScreen* o)
             }
             break;
         case 2:
-            if (o->m_knife_key) {
+            if (pOpt->m_knife_key) {
                 CfgFlagOn(pSys, CFG_KNIFE_MODE);
             } else {
                 CfgFlagOff(pSys, CFG_KNIFE_MODE);
             }
             break;
         case 3:
-            back_to_top_menu(o);
+            back_to_top_menu(pOpt);
             return 0;
         }
         SndCall(0, 0x3A, 0, 0, 0, 0);
@@ -547,34 +547,34 @@ int controller_menu(OptionScreen* o)
 
         switch (no) {
         case 0:
-            old = o->m_reverse;
+            old = pOpt->m_reverse;
             if (Key.trg & KEY_LEFT) {
-                o->m_reverse = 1;
+                pOpt->m_reverse = 1;
             }
             if (Key.trg & KEY_RIGHT) {
-                o->m_reverse = 0;
+                pOpt->m_reverse = 0;
             }
-            now = o->m_reverse;
+            now = pOpt->m_reverse;
             break;
         case 1:
-            old = o->m_vibration;
+            old = pOpt->m_vibration;
             if (Key.trg & KEY_LEFT) {
-                o->m_vibration = 1;
+                pOpt->m_vibration = 1;
             }
             if (Key.trg & KEY_RIGHT) {
-                o->m_vibration = 0;
+                pOpt->m_vibration = 0;
             }
-            now = o->m_vibration;
+            now = pOpt->m_vibration;
             break;
         case 2:
-            old = o->m_knife_key;
+            old = pOpt->m_knife_key;
             if (Key.trg & KEY_LEFT) {
-                o->m_knife_key = 0;
+                pOpt->m_knife_key = 0;
             }
             if (Key.trg & KEY_RIGHT) {
-                o->m_knife_key = 1;
+                pOpt->m_knife_key = 1;
             }
-            now = o->m_knife_key;
+            now = pOpt->m_knife_key;
             break;
         default:
             goto updown;
@@ -583,23 +583,23 @@ int controller_menu(OptionScreen* o)
             SndCall(0, 0x35, 0, 0, 0, 0);
         } else {
         updown:
-            old = o->_rno2;
+            old = pOpt->_rno2;
             if (Key.trg & KEY_UP) {
-                o->_rno2--;
+                pOpt->_rno2--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->_rno2++;
+                pOpt->_rno2++;
             }
-            if (pG->pl_type != 0 && pG->pl_type != 4 && o->_rno2 == 2) {
+            if (pG->pl_type != 0 && pG->pl_type != 4 && pOpt->_rno2 == 2) {
                 if (Key.trg & KEY_UP) {
-                    o->_rno2 = 1;
+                    pOpt->_rno2 = 1;
                 }
                 if (Key.trg & KEY_DOWN) {
-                    o->_rno2 = 3;
+                    pOpt->_rno2 = 3;
                 }
             }
-            o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
-            if (old != o->_rno2) {
+            pOpt->_rno2 = pOpt->_rno2 < 0 ? 0 : (pOpt->_rno2 > 3 ? 3 : pOpt->_rno2);
+            if (old != pOpt->_rno2) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
         }
@@ -607,7 +607,7 @@ int controller_menu(OptionScreen* o)
     base = IdSys.unitPtr(8, IDC_OPTION);
     IdUnit* sel = 0;
     IdUnit* uns = 0;
-    if (old != o->_rno2) {
+    if (old != pOpt->_rno2) {
         IdSys.setTime(base, 0);
     }
     for (i = 0; i < 4; i++) {
@@ -628,7 +628,7 @@ int controller_menu(OptionScreen* o)
             break;
         }
         u = IdSys.unitPtr(id, IDC_OPTION);
-        if (o->_rno2 == i) {
+        if (pOpt->_rno2 == i) {
             setColor(u, base);
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
@@ -644,7 +644,7 @@ int controller_menu(OptionScreen* o)
     for (j = 0; j < 3; j++) {
         switch (j) {
         case 0:
-            if (o->m_reverse) {
+            if (pOpt->m_reverse) {
                 sel = IdSys.unitPtr(3, IDC_OPTION);
                 uns = IdSys.unitPtr(4, IDC_OPTION);
             } else {
@@ -653,7 +653,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         case 1:
-            if (o->m_vibration) {
+            if (pOpt->m_vibration) {
                 sel = IdSys.unitPtr(6, IDC_OPTION);
                 uns = IdSys.unitPtr(7, IDC_OPTION);
             } else {
@@ -662,7 +662,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         case 2:
-            if (o->m_knife_key) {
+            if (pOpt->m_knife_key) {
                 uns = IdSys.unitPtr(0x12, IDC_OPTION);
                 sel = IdSys.unitPtr(0x13, IDC_OPTION);
             } else {
@@ -671,7 +671,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         }
-        if (j == o->_rno2) {
+        if (j == pOpt->_rno2) {
             setColor(sel, base);
         } else {
             sel->col0[3] = sel->col0[2] = sel->col0[1] = sel->col0[0] = 0xFF;
@@ -706,21 +706,21 @@ int controller_menu(OptionScreen* o)
     {
         u8 mes[4] = {0x8B, 0x8C, 0x92, 0x86};
 
-        cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
+        cMes.MesSet(mes[pOpt->_rno2], x0, y0, pOpt->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
 
 // Brightness sub menu: left/right change pSys->brightness (and pRK->base_brightness) around DEFAULT
 // within MIN_OFS..MAX_OFS, shows the signed level as digits and slides the marker; cursor 1 = back.
-int brightness_menu(OptionScreen* o)
+int brightness_menu(OptionScreen* pOpt)
 {
     static int DEFAULT = 0x40;
     static int MIN_OFS = -30;
     static int MAX_OFS = 50;
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->_rno2;
+    s8 old = pOpt->_rno2;
     IdUnit* base;
     IdUnit* u;
     int level;
@@ -734,18 +734,18 @@ int brightness_menu(OptionScreen* o)
 
     if (Key.trg & KEY_B) {
         if (old == 1) {
-            back_to_top_menu(o);
+            back_to_top_menu(pOpt);
             IdSys.unitPtr(0, IDC_OPTION_BG)->rev_flag &= ~0xF;
             return 0;
         }
-        o->_rno2 = 1;
+        pOpt->_rno2 = 1;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         switch (old) {
         case 0:
             break;
         case 1:
-            back_to_top_menu(o);
+            back_to_top_menu(pOpt);
             IdSys.unitPtr(0, IDC_OPTION_BG)->rev_flag &= ~0xF;
             return 0;
         }
@@ -784,22 +784,22 @@ int brightness_menu(OptionScreen* o)
             }
         }
         {
-            old = o->_rno2;
+            old = pOpt->_rno2;
             if (Key.trg & KEY_UP) {
-                o->_rno2--;
+                pOpt->_rno2--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->_rno2++;
+                pOpt->_rno2++;
             }
-            o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 1 ? 1 : o->_rno2);
-            if (old != o->_rno2) {
+            pOpt->_rno2 = pOpt->_rno2 < 0 ? 0 : (pOpt->_rno2 > 1 ? 1 : pOpt->_rno2);
+            if (old != pOpt->_rno2) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
         }
     }
     level = pSys->brightness - DEFAULT;
     base = IdSys.unitPtr(8, IDC_OPTION);
-    if (old != o->_rno2) {
+    if (old != pOpt->_rno2) {
         IdSys.setTime(base, 0);
     }
     digits = (int) fabsf((f32) level);
@@ -815,7 +815,7 @@ int brightness_menu(OptionScreen* o)
     }
     for (i = 0; i < 2; i++) {
         u = IdSys.unitPtr((u8) (i + 4), IDC_OPTION);
-        if (o->_rno2 == 0) {
+        if (pOpt->_rno2 == 0) {
             setColor(u, base);
         } else {
             u->col0[0] = 0xFF;
@@ -831,7 +831,7 @@ int brightness_menu(OptionScreen* o)
         u = IdSys.unitPtr((u8) (3 - j), IDC_OPTION);
         u->texNo = d;
         u->tex_flag |= 2;
-        if (o->_rno2 == 0) {
+        if (pOpt->_rno2 == 0) {
             setColor(u, base);
         } else {
             u->col0[0] = 0xFF;
@@ -847,7 +847,7 @@ int brightness_menu(OptionScreen* o)
     PSVECScale(&c, &c, rate);
     PSVECAdd(&a, &c, &IdSys.unitPtr(1, IDC_OPTION)->pos0);
     u = IdSys.unitPtr(6, IDC_OPTION);
-    if (o->_rno2 == 1) {
+    if (pOpt->_rno2 == 1) {
         setColor(u, base);
     } else {
         u->col0[0] = 0xFF;
@@ -858,18 +858,18 @@ int brightness_menu(OptionScreen* o)
     {
         u8 mes[2] = {0x8D, 0x86};
 
-        cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
+        cMes.MesSet(mes[pOpt->_rno2], x0, y0, pOpt->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
 
 // Audio sub menu: mono / stereo / surround, A applies SndSetOutputMode (pSys->SndMode) and
 // keeps `sound` as the checked entry; cursor 3 = back.
-int audio_menu(OptionScreen* o)
+int audio_menu(OptionScreen* pOpt)
 {
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->_rno2;
+    s8 old = pOpt->_rno2;
     IdUnit* base;
     IdUnit* cur;
     IdUnit* u;
@@ -877,10 +877,10 @@ int audio_menu(OptionScreen* o)
 
     if (Key.trg & KEY_B) {
         if (old == 3) {
-            back_to_top_menu(o);
+            back_to_top_menu(pOpt);
             return 0;
         }
-        o->_rno2 = 3;
+        pOpt->_rno2 = 3;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         switch (old) {
@@ -894,36 +894,36 @@ int audio_menu(OptionScreen* o)
             SndSetOutputMode(2, 0);
             break;
         case 3:
-            back_to_top_menu(o);
+            back_to_top_menu(pOpt);
             return 0;
         }
-        if (o->_rno2 != 3) {
-            o->m_snd_mode = o->_rno2;
+        if (pOpt->_rno2 != 3) {
+            pOpt->m_snd_mode = pOpt->_rno2;
         }
         SndCall(0, 0x3A, 0, 0, 0, 0);
     } else {
-        old = o->_rno2;
+        old = pOpt->_rno2;
         if (Key.trg & KEY_UP) {
-            o->_rno2--;
+            pOpt->_rno2--;
         }
         if (Key.trg & KEY_DOWN) {
-            o->_rno2++;
+            pOpt->_rno2++;
         }
-        o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
-        if (old != o->_rno2) {
+        pOpt->_rno2 = pOpt->_rno2 < 0 ? 0 : (pOpt->_rno2 > 3 ? 3 : pOpt->_rno2);
+        if (old != pOpt->_rno2) {
             SndCall(0, 0x34, 0, 0, 0, 0);
         }
     }
     base = IdSys.unitPtr(8, IDC_OPTION);
     cur = IdSys.unitPtr(0xE, IDC_OPTION);
-    if (old != o->_rno2) {
+    if (old != pOpt->_rno2) {
         IdSys.setTime(base, 0);
     }
     for (i = 0; i < 4; i++) {
         u = IdSys.unitPtr((u8) (i + 2), IDC_OPTION);
-        if (o->_rno2 == i) {
+        if (pOpt->_rno2 == i) {
             setColor(u, base);
-        } else if (i == 3 || i == o->m_snd_mode) {
+        } else if (i == 3 || i == pOpt->m_snd_mode) {
             u->col0[0] = 0xFF;
             u->col0[1] = 0xFF;
             u->col0[2] = 0xFF;
@@ -956,34 +956,34 @@ int audio_menu(OptionScreen* o)
     {
         u8 mes[4] = {0x8E, 0x8E, 0x8E, 0x86};
 
-        cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
+        cMes.MesSet(mes[pOpt->_rno2], x0, y0, pOpt->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
 
 // Shows `val` as `n` decimal digits on the id units base.. (reverse: base - i); mode 1 hides
 // leading zeros.
-void num(int val, int n, int mode, int base, u8 type, int reverse)
+void num(int no, int digit_num, int flag, int mark_bottom, u8 id_class, int reverse)
 {
     u8 d[8];
     int show;
     int i;
 
-    for (int j = 0; j < n; j++) {
-        d[j] = val % 10;
-        val /= 10;
+    for (int j = 0; j < digit_num; j++) {
+        d[j] = no % 10;
+        no /= 10;
     }
     show = 1;
-    if (mode == 1) {
+    if (flag == 1) {
         show = 0;
     }
-    for (i = n - 1; i >= 0; i--) {
+    for (i = digit_num - 1; i >= 0; i--) {
         IdUnit* u;
 
         if (reverse == 0) {
-            u = IdSys.unitPtr((u8) (base + i), type);
+            u = IdSys.unitPtr((u8) (mark_bottom + i), id_class);
         } else {
-            u = IdSys.unitPtr((u8) (base - i), type);
+            u = IdSys.unitPtr((u8) (mark_bottom - i), id_class);
         }
         if (show == 0 && d[i] == 0 && i != 0) {
             u->be_flag &= ~8;
@@ -1075,14 +1075,14 @@ int GameResult::omake_move()
 }
 
 // Chapter end screen for chapter `ch` (SceChapterEnd): the chapter result id layout of archive `d`.
-void ChapterEnd::init(void* d, u8 ch)
+void ChapterEnd::init(void* d, u8 no)
 {
     _addr = d;
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
     IdTexDataLoad(DATA_PTR(_addr, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(_addr, 0x14), 0xFF, IDC_TITLE, 0x13, 6, 0);
-    _chapter = ch;
+    _chapter = no;
 }
 
 // Fills the chapter result: this chapter / next chapter numbers ("chap-sec"), chapter and total hit

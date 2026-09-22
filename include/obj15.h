@@ -12,13 +12,13 @@ public:
     virtual void move();
     virtual ~cObjGatling() {}
 
-    void setRide(cEm* em);
+    void setRide(cEm* pEm);
     void setFire();
     void stopFire();
     int ckReload();
     void setReload();
     void setEat(void* data, int type);
-    void setMaxRot(f32 r);
+    void setMaxRot(f32 rot_max);
     int ckBreak();
     void setBreakMode(u8 mode);
     void setBreak();

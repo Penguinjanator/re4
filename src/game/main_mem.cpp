@@ -147,52 +147,52 @@ void memInitHeapTbl()
 }
 
 // Suspends heap no: saves its OSAlloc descriptor and empties the live one (allocations from it fail).
-void MemSuspendHeap(int no)
+void MemSuspendHeap(int heap_no)
 {
-    int h = Heap[no].handle;
+    int h = Heap[heap_no].handle;
 
-    if (memGetHeapSattus(no) == 0 && h >= 0) {
+    if (memGetHeapSattus(heap_no) == 0 && h >= 0) {
         OSHeapDescriptor* hh = HeapHead;
 
         heap_backup[h] = hh[h];
         hh[h].free = NULL;
         hh[h].allocated = NULL;
-        Heap[no].status = 1;
+        Heap[heap_no].status = 1;
     }
 }
 
 // Resumes a suspended heap from its backup.
-void MemSignalHeap(int no)
+void MemSignalHeap(int heap_no)
 {
-    int h = Heap[no].handle;
+    int h = Heap[heap_no].handle;
 
-    if (memGetHeapSattus(no) == 1 && h >= 0) {
+    if (memGetHeapSattus(heap_no) == 1 && h >= 0) {
         OSHeapDescriptor* hh = HeapHead;
         OSHeapDescriptor* bk = heap_backup;
 
         *(OSHeapDescriptor*) (h * sizeof(OSHeapDescriptor) + (u32) hh) =
             *(OSHeapDescriptor*) (h * sizeof(OSHeapDescriptor) + (u32) bk);
-        Heap[no].status = 0;
+        Heap[heap_no].status = 0;
     }
 }
 
 // 1 when the heap is suspended.
-int memGetHeapSattus(int no)
+int memGetHeapSattus(int heap_no)
 {
-    return Heap[no].status;
+    return Heap[heap_no].status;
 }
 
 // 1 when the heap is not suspended.
-int memCheckHeapActive(int no)
+int memCheckHeapActive(int heap_no)
 {
-    return memGetHeapSattus(no) == 0;
+    return memGetHeapSattus(heap_no) == 0;
 }
 
 // Makes heap no the current allocation heap (and the debug heap); 0 when it is missing/suspended.
-int MemSetCurrentHeap(int no)
+int MemSetCurrentHeap(int heap_no)
 {
-    if (memCheckHeapActive(no) && Heap[no].handle >= 0) {
-        CurrentHeap = no;
+    if (memCheckHeapActive(heap_no) && Heap[heap_no].handle >= 0) {
+        CurrentHeap = heap_no;
         OSSetCurrentHeap(Heap[CurrentHeap].handle);
         CurrentDbgHeap = CurrentHeap;
         return 1;
@@ -201,9 +201,9 @@ int MemSetCurrentHeap(int no)
 }
 
 // Points the debug heap at the current heap (no must be active).
-int MemSetCurrentDbgHeap(int no)
+int MemSetCurrentDbgHeap(int heap_no)
 {
-    if (memCheckHeapActive(no) && Heap[no].handle >= 0) {
+    if (memCheckHeapActive(heap_no) && Heap[heap_no].handle >= 0) {
         CurrentDbgHeap = CurrentHeap;
         return 1;
     }
@@ -223,15 +223,15 @@ u8 MemGetCurrentDbgHeap()
 }
 
 // Start address of heap no.
-u32 MemGetHeapStartAddr(int no)
+u32 MemGetHeapStartAddr(int heap_no)
 {
-    return Heap[no].start;
+    return Heap[heap_no].start;
 }
 
 // End address of heap no.
-u32 MemGetHeapEndAddr(int no)
+u32 MemGetHeapEndAddr(int heap_no)
 {
-    return Heap[no].end;
+    return Heap[heap_no].end;
 }
 
 // Highest address in use by heap no (end of its last allocated cell, or the free list start when
@@ -239,14 +239,14 @@ u32 MemGetHeapEndAddr(int no)
 // OPEN (-4): the original places `li r3,0` between the compare and the branch and reloads
 // d->allocated for the loop init after the if/else join (ours forwards it); if/else, ternary,
 // `end = 0` first and HeapHead[h] index forms tried.
-u32 MemCheckHeapEnd(int no)
+u32 MemCheckHeapEnd(int heap_no)
 {
-    int h = Heap[no].handle;
+    int h = Heap[heap_no].handle;
     OSHeapDescriptor* d;
     OSHeapCell* cell;
     u32 end;
 
-    if (!memCheckHeapActive(no) || h < 0) {
+    if (!memCheckHeapActive(heap_no) || h < 0) {
         return 0;
     }
     d = HeapHead;
@@ -292,15 +292,15 @@ int MemCreateHeap(int no, u32 start, u32 end)
 }
 
 // Destroys heap no (resuming it first if suspended).
-int MemDestroyHeap(int no)
+int MemDestroyHeap(int heap_no)
 {
-    if (!memCheckHeapActive(no)) {
-        MemSignalHeap(no);
+    if (!memCheckHeapActive(heap_no)) {
+        MemSignalHeap(heap_no);
     }
-    OSReport("-- MemDestroyHeap %d  ", no);
-    if (Heap[no].handle >= 0) {
-        OSDestroyHeap(Heap[no].handle);
-        Heap[no].handle = -1;
+    OSReport("-- MemDestroyHeap %d  ", heap_no);
+    if (Heap[heap_no].handle >= 0) {
+        OSDestroyHeap(Heap[heap_no].handle);
+        Heap[heap_no].handle = -1;
         OSReport("succeed!!\n");
         return 1;
     }
@@ -311,7 +311,7 @@ int MemDestroyHeap(int no)
 // Shrinks heap `from` to what it has in use and creates heap `to` over the freed tail (or over
 // `to`'s previous range when `from` does not exist); records the current heap's allocation list
 // head in cell_main/game/stage/dll for the checker. 0 on failure.
-int MemReplaceHeap(int from, int to)
+int MemReplaceHeap(int old_heap, int new_heap)
 {
     u32 start;
     u32 end;
@@ -333,24 +333,24 @@ int MemReplaceHeap(int from, int to)
         hd = HeapHead + Heap[CurrentHeap].handle;
         cell_dll = hd->allocated;
     }
-    if (!memCheckHeapActive(from)) {
+    if (!memCheckHeapActive(old_heap)) {
         return 0;
     }
-    if (!memCheckHeapActive(to)) {
+    if (!memCheckHeapActive(new_heap)) {
         return 0;
     }
-    if (Heap[from].handle >= 0) {
-        start = MemCheckHeapEnd(from);
-        end = Heap[from].end;
-        MemDestroyHeap(from);
+    if (Heap[old_heap].handle >= 0) {
+        start = MemCheckHeapEnd(old_heap);
+        end = Heap[old_heap].end;
+        MemDestroyHeap(old_heap);
     } else {
-        start = Heap[to].start;
-        end = Heap[to].end;
+        start = Heap[new_heap].start;
+        end = Heap[new_heap].end;
     }
     if (start == 0) {
         return 0;
     }
-    return MemCreateHeap(to, start, end);
+    return MemCreateHeap(new_heap, start, end);
 }
 
 // Destroys every heap (soft reset).
@@ -424,19 +424,19 @@ void* mem_calloc(u32 size, const char* file, int line, int flag, int heap)
 }
 
 // Frees a block to the current heap.
-void Mem_free(void* p)
+void Mem_free(void* pAddr)
 {
-    Mem_free_h(p, CurrentHeap);
+    Mem_free_h(pAddr, CurrentHeap);
 }
 
 // Frees a block (to the OS current heap) when heap `heap` is active.
-void Mem_free_h(void* p, int heap)
+void Mem_free_h(void* pAddr, int heap_no)
 {
-    if (heap == MEM_HEAP_CURRENT) {
-        heap = CurrentHeap;
+    if (heap_no == MEM_HEAP_CURRENT) {
+        heap_no = CurrentHeap;
     }
-    if (memCheckHeapActive(heap)) {
-        OSFreeToHeap(__OSCurrHeap, p);
+    if (memCheckHeapActive(heap_no)) {
+        OSFreeToHeap(__OSCurrHeap, pAddr);
     }
 }
 
@@ -474,7 +474,7 @@ void ResetDebugAlloc()
 }
 
 // Zeroed allocation from the debug heap (flag 1 in tool mode adds the "toolmem" tag).
-void* Debug_alloc(u32 size, int flag)
+void* Debug_alloc(u32 size, int release_flag)
 {
     u8* p;
 
@@ -484,14 +484,14 @@ void* Debug_alloc(u32 size, int flag)
     if (!memCheckHeapActive(CurrentDbgHeap)) {
         return NULL;
     }
-    if (Dalloc_flg == 1 && flag == 1) {
+    if (Dalloc_flg == 1 && release_flag == 1) {
         size += 8;
     }
     size = (size + 0x1F) & ~0x1F;
     p = (u8*) OSAllocFromHeap(Heap[CurrentDbgHeap].handle, size);
     if (p != NULL) {
         memclr_asm(p, size);
-        if (Dalloc_flg == 1 && flag == 1) {
+        if (Dalloc_flg == 1 && release_flag == 1) {
             strcpy((char*) p + size - 8, "toolmem");
         }
     }
@@ -499,25 +499,25 @@ void* Debug_alloc(u32 size, int flag)
 }
 
 // Frees a debug heap block.
-void Debug_free(void* p)
+void Debug_free(void* addr)
 {
-    Debug_free_h(p, CurrentDbgHeap);
+    Debug_free_h(addr, CurrentDbgHeap);
 }
 
 // Frees a debug block after wiping it (poison for stale pointers).
-void Debug_free_h(void* p, int heap)
+void Debug_free_h(void* addr, int heap_no)
 {
-    if (heap == MEM_HEAP_CURRENT) {
-        heap = CurrentDbgHeap;
+    if (heap_no == MEM_HEAP_CURRENT) {
+        heap_no = CurrentDbgHeap;
     }
-    if (memCheckHeapActive(heap)) {
-        memclr_asm(p, ((OSHeapCell*) ((u8*) p - 0x20))->size - 0x20);
-        OSFreeToHeap(Heap[CurrentDbgHeap].handle, p);
+    if (memCheckHeapActive(heap_no)) {
+        memclr_asm(addr, ((OSHeapCell*) ((u8*) addr - 0x20))->size - 0x20);
+        OSFreeToHeap(Heap[CurrentDbgHeap].handle, addr);
     }
 }
 
 // Game allocation, or a debug-heap allocation when Debug_flg[3] 0x200000 (tool memory mode).
-void* MemAlloc(u32 size, int flag)
+void* MemAlloc(u32 size, int release_flag)
 {
     void* p;
 
@@ -525,18 +525,18 @@ void* MemAlloc(u32 size, int flag)
 #line 646
         p = MEM_ALLOC(size, 1, MEM_HEAP_CURRENT);
     } else {
-        p = Debug_alloc(size, flag);
+        p = Debug_alloc(size, release_flag);
     }
     return p;
 }
 
 // Counterpart of MemAlloc.
-void MemFree(void* p)
+void MemFree(void* addr)
 {
     if (DbgFlagChk(pG, DBG_APP_USE_DBMEM)) {
-        Debug_free(p);
+        Debug_free(addr);
     } else {
-        Mem_free(p);
+        Mem_free(addr);
     }
 }
 

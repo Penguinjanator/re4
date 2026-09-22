@@ -21,28 +21,28 @@ cAtariInfo::cAtariInfo()
 // Full setup: offset x / y / z, size rx (x radius) / rz (z radius) / w (radius3) / hh (half
 // height), the parts it follows (0 = the model), interpolation frames and flags | 0x300 (scenery
 // and character collision on).
-void cAtariInfo::init0(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh, int parts, int hokan, int flag)
+void cAtariInfo::init0(f32 ox, f32 oy, f32 oz, f32 rs, f32 ro, f32 ra, f32 h, int pno, int hokan, int f)
 {
-    m_offset.x = x;
-    m_offset.y = y;
-    m_offset.z = z;
-    m_radius_n = rx;
-    m_radius2_n = rz;
-    m_radius = rx;
-    m_radius2 = rz;
-    m_radius3 = w;
-    m_height = hh;
-    m_parts_no = parts;
+    m_offset.x = ox;
+    m_offset.y = oy;
+    m_offset.z = oz;
+    m_radius_n = rs;
+    m_radius2_n = ro;
+    m_radius = rs;
+    m_radius2 = ro;
+    m_radius3 = ra;
+    m_height = h;
+    m_parts_no = pno;
     this->m_hokan = hokan;
-    m_flag = flag | 0x300;
+    m_flag = f | 0x300;
     x48 = 0;
     m_stat = 1;
 }
 
 // init0 with the argument order most callers use, plus m_flag bit0.
-void cAtariInfo::init(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh, int parts, int flag, int hokan)
+void cAtariInfo::init(f32 ox, f32 oy, f32 oz, f32 rs, f32 ro, f32 ra, f32 h, int pno, int f, int hokan)
 {
-    init0(x, y, z, rx, rz, w, hh, parts, hokan, flag);
+    init0(ox, oy, oz, rs, ro, ra, h, pno, hokan, f);
     m_flag |= 1;
 }
 
@@ -128,10 +128,10 @@ void cAtariInfo::getPos(cModel* m, Vec* out)
 
 // Push priority 0..3 (m_flag bits 3-4): the lower priority body gets pushed when two characters
 // overlap (PRI_LV3 objects never move).
-void cAtariInfo::setPriority(int prio)
+void cAtariInfo::setPriority(int pri)
 {
     m_flag &= ~0x18;
-    switch (prio) {
+    switch (pri) {
     case 0:
         break;
     case 1:
@@ -147,20 +147,20 @@ void cAtariInfo::setPriority(int prio)
 }
 
 // Debug draw: the cylinder or the box.
-void cAtariInfo::disp(cModel* m)
+void cAtariInfo::disp(cModel* pMod)
 {
     if (m_flag & 2) {
-        dispRect(m);
+        dispRect(pMod);
     } else {
         Vec p;
-        getPos(m, &p);
+        getPos(pMod, &p);
         p.y -= m_height;
         Draw_cylinder(&p, m_radius2, m_height * 2.0f, 0xFFFFFFFF);
     }
 }
 
 // Debug draw of the box form: 12 triangles of the offset box in the parts / model yaw frame.
-void cAtariInfo::dispRect(cModel* m)
+void cAtariInfo::dispRect(cModel* pMod)
 {
     static u8 ptbl[36] = {
         0, 2, 1, 2, 3, 1, 4, 5, 6, 5, 7, 6, 2, 6, 3, 6, 7, 3,
@@ -203,13 +203,13 @@ void cAtariInfo::dispRect(cModel* m)
         PSVECAdd(&v[i], &m_offset, &v[i]);
     }
     if (m_parts_no != 0) {
-        cModel* p = m->getPartsPtr(m_parts_no - 1);
+        cModel* p = pMod->getPartsPtr(m_parts_no - 1);
         PSMTXRotRad(mat, 'y', p->ang.y);
         TransMatrix(mat, &p->world);
         PSMTXConcat(pG->Camera.v_mat, mat, mat);
     } else {
-        PSMTXRotRad(mat, 'y', m->ang.y);
-        TransMatrix(mat, &m->pos);
+        PSMTXRotRad(mat, 'y', pMod->ang.y);
+        TransMatrix(mat, &pMod->pos);
         PSMTXConcat(pG->Camera.v_mat, mat, mat);
     }
     for (i = 0; i < 12; i++) {

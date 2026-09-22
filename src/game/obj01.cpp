@@ -208,9 +208,9 @@ void cObj01::move01()
 }
 
 // Registers the explosion damage volume: 2/8 fire (radius 3000 / 15000), 4/5 flash (1500).
-void cObj01::dmgSet(int kind)
+void cObj01::dmgSet(int type)
 {
-    switch ((u32) kind) {
+    switch ((u32) type) {
     case 8:
         DmgMgr.set(DMG_TYPE_GRENADE_BLAST, 2, &pos, 3000.0f, 3000.0f);
         DmgMgr.set(DMG_TYPE_GRENADE, 2, &pos, 15000.0f, 3000.0f);
@@ -228,29 +228,29 @@ void cObj01::dmgSet(int kind)
 // returns 1 to destroy for non-exploding types) and the scenario (reflect the speed at 20%, damp
 // the spin; on a floor hit slower than 50 stop with the landing sound / effect). Returns 1 when
 // the object should be destroyed.
-int obj01AddSpeed(cObj01* obj)
+int obj01AddSpeed(cObj01* pObj)
 {
-    Obj01Work* w = &obj->o1;
+    Obj01Work* w = &pObj->o1;
     f32 wh;
     Vec ref;
     Vec nrm;
     f32 len;
 
     w->spd.y -= w->gravity;
-    PSVECAdd(&obj->pos, &w->spd, &obj->pos);
+    PSVECAdd(&pObj->pos, &w->spd, &pObj->pos);
     if (!(w->be_flag & 4)) {
         return 0;
     }
-    if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh) {
-        obj->pos.y = wh;
+    if (GetWaterHeight(&pObj->pos, &wh) && pObj->pos.y <= wh) {
+        pObj->pos.y = wh;
         if (!(w->flag & 8)) {
-            EstSet(0, -1, &obj->pos, 0, w->eff3, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &pObj->pos, 0, w->eff3, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
             w->flag |= 8;
-            AddWaterPower(obj->pos, 0.5f);
-            if (obj->type != 1) {
-                SndCall(6, 0x64, &obj->pos, 0, 0, 0);
+            AddWaterPower(pObj->pos, 0.5f);
+            if (pObj->type != 1) {
+                SndCall(6, 0x64, &pObj->pos, 0, 0, 0);
             } else {
-                SndCall(2, 4, &obj->pos, 0, 0, 0);
+                SndCall(2, 4, &pObj->pos, 0, 0, 0);
             }
         }
         w->timer = 0;
@@ -266,7 +266,7 @@ int obj01AddSpeed(cObj01* obj)
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &obj->pos_old, &obj->pos, w->r * 0.5f, 0x2001, 0);
+    EatMgr.adjust(&nrm, &pObj->pos_old, &pObj->pos, w->r * 0.5f, 0x2001, 0);
     if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
         return 0;
     }
@@ -282,40 +282,40 @@ int obj01AddSpeed(cObj01* obj)
             if (w->spd.y > 50.0f) {
                 if (w->Bound_se_ck == 0) {
                     w->Bound_se_ck = 3;
-                    SndCall(5, 6, &obj->pos, 0, 0, 0);
+                    SndCall(5, 6, &pObj->pos, 0, 0, 0);
                 }
             }
             break;
         case 2:
-            obj->dmgSet(4);
-            EstSet(0, -1, &obj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
-            EstSet(0, -1, &obj->pos, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
+            pObj->dmgSet(4);
+            EstSet(0, -1, &pObj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &pObj->pos, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
             if (w->eff_action == 3) {
-                SndCall(6, 0, &obj->pos, 0, 0, 0);
+                SndCall(6, 0, &pObj->pos, 0, 0, 0);
             } else {
-                SndCall(1, 0x15, &obj->pos, 0, 0, 0);
-                SndCall(1, 0x16, &obj->pos, 0, 0, 0);
+                SndCall(1, 0x15, &pObj->pos, 0, 0, 0);
+                SndCall(1, 0x16, &pObj->pos, 0, 0, 0);
             }
-            obj->r_no_0 = 1;
-            obj->be_flag &= ~2;
+            pObj->r_no_0 = 1;
+            pObj->be_flag &= ~2;
             return 0;
         case 3:
-            obj->dmgSet(4);
-            EstSet(0, -1, &obj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
-            EstSet(obj, -1, 0, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, obj, 0);
+            pObj->dmgSet(4);
+            EstSet(0, -1, &pObj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(pObj, -1, 0, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, pObj, 0);
             if (w->eff_action == 3) {
-                SndCall(6, 0, &obj->pos, 0, 0, 0);
+                SndCall(6, 0, &pObj->pos, 0, 0, 0);
             } else {
-                SndCall(1, 0x15, &obj->pos, 0, 0, 0);
-                SndCall(1, 0x16, &obj->pos, 0, 0, 0);
+                SndCall(1, 0x15, &pObj->pos, 0, 0, 0);
+                SndCall(1, 0x16, &pObj->pos, 0, 0, 0);
             }
-            obj->r_no_0 = 1;
-            obj->be_flag &= ~2;
+            pObj->r_no_0 = 1;
+            pObj->be_flag &= ~2;
             return 0;
         case 4:
             if (w->Bound_se_ck == 0) {
                 w->Bound_se_ck = 1;
-                SndCall(5, 5, &obj->pos, 0, 0, 0);
+                SndCall(5, 5, &pObj->pos, 0, 0, 0);
             }
             break;
         }

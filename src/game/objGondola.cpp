@@ -139,57 +139,57 @@ void cObjGondola::move()
 }
 
 // Rno0 == 0: parked: matrices only.
-void objGondola_R0_Set(cObjGondola* obj)
+void objGondola_R0_Set(cObjGondola* pObj)
 {
-    obj->matUpdate();
-    obj->partsWorldCalc();
+    pObj->matUpdate();
+    pObj->partsWorldCalc();
 }
 
 // Rno0 == 1: moving without the player: advances the motion and carries the riding enemies by the
 // floor point's displacement.
-void objGondola_R0_Move(cObjGondola* obj)
+void objGondola_R0_Move(cObjGondola* pObj)
 {
     Vec b;
     Vec a;
     Vec d;
     cModel* parts;
 
-    obj->gondola.Ride_pl = 0;
-    parts = obj->getPartsPtr(1);
+    pObj->gondola.Ride_pl = 0;
+    parts = pObj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
     a.z = 0.0f;
     PSMTXMultVec(parts->mat, &a, &a);
-    MotionMove(obj, 0);
-    obj->partsWorldCalc();
-    parts = obj->getPartsPtr(1);
+    MotionMove(pObj, 0);
+    pObj->partsWorldCalc();
+    parts = pObj->getPartsPtr(1);
     b.x = 0.0f;
     b.y = -4828.03f;
     b.z = 0.0f;
     PSMTXMultVec(parts->mat, &b, &b);
     PSVECSubtract(&b, &a, &d);
-    objGondolaRideEmAdjust(obj, &d);
+    objGondolaRideEmAdjust(pObj, &d);
 }
 
 // Rno0 == 2: descending with the player (and partner) aboard: motion, riders moved by the floor
 // displacement (also fed to the camera quake offset), floor collision re-placed.
-void objGondola_R0_Down(cObjGondola* obj)
+void objGondola_R0_Down(cObjGondola* pObj)
 {
-    GondolaWork* w = &obj->gondola;
+    GondolaWork* w = &pObj->gondola;
     Vec b;
     Vec a;
     Vec d;
     cModel* parts;
 
     w->Ride_pl = 1;
-    parts = obj->getPartsPtr(1);
+    parts = pObj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
     a.z = 0.0f;
     PSMTXMultVec(parts->mat, &a, &a);
-    MotionMove(obj, 0);
-    obj->partsWorldCalc();
-    parts = obj->getPartsPtr(1);
+    MotionMove(pObj, 0);
+    pObj->partsWorldCalc();
+    parts = pObj->getPartsPtr(1);
     b.x = 0.0f;
     b.y = -4828.03f;
     b.z = 0.0f;
@@ -202,28 +202,28 @@ void objGondola_R0_Down(cObjGondola* obj)
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
     }
-    objGondolaSatSet(obj);
+    objGondolaSatSet(pObj);
 }
 
 // Rno0 == 3: ascending with the player: as Down; at motion frame 4105 (arrival) the player and
 // partner are put on the platform and the ride flag cleared.
-void objGondola_R0_Up(cObjGondola* obj)
+void objGondola_R0_Up(cObjGondola* pObj)
 {
-    GondolaWork* w = &obj->gondola;
+    GondolaWork* w = &pObj->gondola;
     Vec b;
     Vec a;
     Vec d;
     cModel* parts;
 
     w->Ride_pl = 1;
-    parts = obj->getPartsPtr(1);
+    parts = pObj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
     a.z = 0.0f;
     PSMTXMultVec(parts->mat, &a, &a);
-    MotionMove(obj, 0);
-    obj->partsWorldCalc();
-    parts = obj->getPartsPtr(1);
+    MotionMove(pObj, 0);
+    pObj->partsWorldCalc();
+    parts = pObj->getPartsPtr(1);
     b.x = 0.0f;
     b.y = -4828.03f;
     b.z = 0.0f;
@@ -236,8 +236,8 @@ void objGondola_R0_Up(cObjGondola* obj)
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
     }
-    objGondolaSatSet(obj);
-    if (obj->Motion.Seq_frame >= 4105.0f && obj->Motion.Seq_frame <= 4105.0f) {
+    objGondolaSatSet(pObj);
+    if (pObj->Motion.Seq_frame >= 4105.0f && pObj->Motion.Seq_frame <= 4105.0f) {
         b.x = 21722.0f;
         b.y = 10274.0f;
         b.z = -35327.0f;
@@ -252,19 +252,19 @@ void objGondola_R0_Up(cObjGondola* obj)
         }
         StaFlagOff(pG, STA_RIDE_GONDOLA);
         w->Ride_pl = 0;
-        obj->r_no_0 = 1;
-        obj->r_no_1 = 0;
-        obj->r_no_2 = 0;
-        obj->r_no_3 = 0;
+        pObj->r_no_0 = 1;
+        pObj->r_no_1 = 0;
+        pObj->r_no_2 = 0;
+        pObj->r_no_3 = 0;
     }
 }
 
 // Rno0 == 4: the car breaks: kills the player if aboard (death demo after 60 frames), 42 frames
 // later blends in the break motion, then keeps carrying the riders; drives an extra camera looking
 // at the car from the side.
-void objGondola_R0_Break(cObjGondola* obj)
+void objGondola_R0_Break(cObjGondola* pObj)
 {
-    GondolaWork* w = &obj->gondola;
+    GondolaWork* w = &pObj->gondola;
     Vec b;
     Vec a;
     Vec v;
@@ -274,7 +274,7 @@ void objGondola_R0_Break(cObjGondola* obj)
     Vec* ca;
     static Camera ObjGondolaCam;
 
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
         w->Spd.x = 0.0f;
         w->Spd.y = 0.0f;
@@ -284,15 +284,15 @@ void objGondola_R0_Break(cObjGondola* obj)
             DiedemoExec(0x3C, 0);
         }
         w->Timer = 42;
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        parts = obj->getPartsPtr(0);
+        parts = pObj->getPartsPtr(0);
         v.x = -2000.0f;
         v.y = 0.0f;
         v.z = -1115.0f;
         PSMTXMultVec(parts->mat, &v, &v);
         ObjGondolaCam.param.pos = v;
-        parts = obj->getPartsPtr(1);
+        parts = pObj->getPartsPtr(1);
         v.x = 0.0f;
         v.y = -2757.0f;
         v.z = 0.0f;
@@ -313,24 +313,24 @@ void objGondola_R0_Break(cObjGondola* obj)
             if (w->Timer == 0) {
                 if (w->subWork && w->Sub_mot2) {
                     ((GondolaMotWork*) w->subWork)->flags2 |= 0x10000000;
-                    MotionSetCore(obj, w->subWork, w->Sub_mot2, 0, 0, 0, 0);
+                    MotionSetCore(pObj, w->subWork, w->Sub_mot2, 0, 0, 0, 0);
                     ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
-                    obj->Motion.blend = w->subWork;
-                    ((GondolaMotWork*) obj->Motion.blend)->blendRate = 1.0f;
-                    ((GondolaMotWork*) obj->Motion.blend)->flags2 |= 0x80000000;
+                    pObj->Motion.blend = w->subWork;
+                    ((GondolaMotWork*) pObj->Motion.blend)->blendRate = 1.0f;
+                    ((GondolaMotWork*) pObj->Motion.blend)->flags2 |= 0x80000000;
                 }
             }
         }
         break;
     }
-    parts = obj->getPartsPtr(1);
+    parts = pObj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
     a.z = 0.0f;
     PSMTXMultVec(parts->mat, &a, &a);
-    MotionMove(obj, 0);
-    obj->partsWorldCalc();
-    parts = obj->getPartsPtr(1);
+    MotionMove(pObj, 0);
+    pObj->partsWorldCalc();
+    parts = pObj->getPartsPtr(1);
     b.x = 0.0f;
     b.y = -4828.03f;
     b.z = 0.0f;
@@ -344,14 +344,14 @@ void objGondola_R0_Break(cObjGondola* obj)
             PSVECAdd(&pSUB->pos, &v, &b);
             pSUB->setPos(&b);
         }
-        objGondolaSatSet(obj);
+        objGondolaSatSet(pObj);
     }
 }
 
 // Disables the car's collision quads (flag 4 off) for this frame.
-void objGondolaSatClear(cObjGondola* obj)
+void objGondolaSatClear(cObjGondola* pObj)
 {
-    GondolaWork* w = &obj->gondola;
+    GondolaWork* w = &pObj->gondola;
     int i;
 
     for (i = 0; i < 5; i++) {
@@ -366,9 +366,9 @@ void objGondolaSatClear(cObjGondola* obj)
 
 // Places the floor collision quad (2000 x 3000 at 4828 below parts 0, yaw from the car) at the car's
 // position, creating it on first use; the four wall quads are compiled out (loop bound 1).
-void objGondolaSatSet(cObjGondola* obj)
+void objGondolaSatSet(cObjGondola* pObj)
 {
-    GondolaWork* w = &obj->gondola;
+    GondolaWork* w = &pObj->gondola;
     Vec pos;
     Vec rot;
     Vec v;
@@ -382,7 +382,7 @@ void objGondolaSatSet(cObjGondola* obj)
     f32 h;
     f32 r;
 
-    parts = obj->getPartsPtr(0);
+    parts = pObj->getPartsPtr(0);
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 1.0f;
@@ -587,10 +587,10 @@ void cObjGondola::setBreak()
 
 // Moves every riding enemy by the floor displacement; an enemy more than 4000 units from the floor
 // centre has left the car.
-void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec)
+void objGondolaRideEmAdjust(cObjGondola* pObj, Vec* pVec)
 {
-    GondolaWork* w = &obj->gondola;
-    cModel* parts = obj->getPartsPtr(1);
+    GondolaWork* w = &pObj->gondola;
+    cModel* parts = pObj->getPartsPtr(1);
     Vec c;
     u32 i;
 

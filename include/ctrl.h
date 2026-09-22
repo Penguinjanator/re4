@@ -28,7 +28,7 @@ public:
     virtual void* memAlloc(u32 size) { return MEM_ALLOC(size, 1, 13); }
     virtual void memFree(void* p) { Mem_free(p); }
     virtual void memClear(cCtrl* p, u32 size) { memclr_asm(p, size); }
-    virtual int construct(cCtrl* p, u32 id);
+    virtual int construct(cCtrl* pSat, u32 room_no);
 
     void move();
     int trans();
@@ -88,7 +88,7 @@ enum CTRL12_ID {
 };
 
 void Ctrl12Set(cCtrl* pCtrl, int idx, s16 val);
-int Ctrl12Ck(cCtrl* pCtrl, int idx);
+int Ctrl12Ck(cCtrl* pCtrl, int id);
 enum CTRL12_ID_CNT {
     CTRL12_ID_CNT_EM1A_DIE = 0,
     CTRL12_ID_CNT_EM27_DIE = 1,
@@ -99,8 +99,8 @@ enum CTRL12_ID_CNT {
     CTRL12_ID_CNT_NUM = 6
 };
 
-void Ctrl12CntAdd(cCtrl* pCtrl, int idx, int add);
-int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val);
+void Ctrl12CntAdd(cCtrl* pCtrl, int id, int add);
+int Ctrl12CntCk(cCtrl* pCtrl, int id, u16 over);
 struct TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm32(cCtrl* c);
@@ -120,17 +120,17 @@ struct Ctrl14Work {
 class cCtrl14 : public cCtrl {
 public:
     virtual void move();
-    virtual void getPos(Vec* out);
-    virtual void getBaseMtx(Mtx m, int idx);
+    virtual void getPos(Vec* pPos);
+    virtual void getBaseMtx(Mtx m, int type);
     virtual f32 getDir();
     virtual f32 getDir2();
-    virtual void addWidth(f32 x);
-    virtual void addHeight(f32 y);
+    virtual void addWidth(f32 add);
+    virtual void addHeight(f32 add);
     virtual void addDir(f32 add);
     virtual void setDir(f32 dir);
     virtual void resetDir();
     virtual void setFire();
-    virtual int ckHitFire(Vec* p);
+    virtual int ckHitFire(Vec* pPos);
     virtual int ckHitFireBlocked();
 };
 
@@ -140,7 +140,7 @@ cCtrl* GetCtrlCtrl11();
 u32 Ctrl11SetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx);
 u32 Ctrl11SetSe2(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx, u16 blk);
 u32 Ctrl11StopAndSetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx);
-u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* m, u16 no);
+u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* pEm, u16 se);
 
 #line 8 "D:/Bio4/Prog/ctrl.h"
 

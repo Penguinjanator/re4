@@ -146,24 +146,24 @@ void cEsp15::move()
 // Delete distances from Work8[0..1] (x 10), fade ratio Work8[2] (%), indoor fade frames Work8[3],
 // box size R_pos.z (position randomised inside it), floor Vec0.x. Starts fully faded when the
 // player is already indoors.
-int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp15::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp15Work* w = &m_Free;
 
-    m_Del_far = (s8)gen->Work8[0] * 10;
-    m_Del_near = (s8)gen->Work8[1] * 10;
-    w->Del_ratio = (f32)(s8)gen->Work8[2] / 100.0f;
+    m_Del_far = (s8)pSeq->Work8[0] * 10;
+    m_Del_near = (s8)pSeq->Work8[1] * 10;
+    w->Del_ratio = (f32)(s8)pSeq->Work8[2] / 100.0f;
     if (w->Del_ratio > 1.0f) {
         w->Del_ratio = 1.0f;
     }
     w->Del_ratio = 1.0f - w->Del_ratio;
-    w->Room_del_frame = gen->Work8[3];
-    w->Range = gen->R_pos.z;
-    m_Pos.x += w->Range * fRandSeed1_1(seed);
-    m_Pos.y += w->Range * fRandSeed1_1(seed);
-    m_Pos.z += w->Range * fRandSeed1_1(seed);
+    w->Room_del_frame = pSeq->Work8[3];
+    w->Range = pSeq->R_pos.z;
+    m_Pos.x += w->Range * fRandSeed1_1(pRand_seed);
+    m_Pos.y += w->Range * fRandSeed1_1(pRand_seed);
+    m_Pos.z += w->Range * fRandSeed1_1(pRand_seed);
     w->Base_alpha = m_Col_a;
-    w->Min_y = gen->Vec0.x;
+    w->Min_y = pSeq->Vec0.x;
     if (StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
         m_Col_a = 0.0f;
         w->Room_del_cnt = w->Room_del_frame;

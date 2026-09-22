@@ -2172,60 +2172,60 @@ static void em32BackjumpAction(cEm32* em)
 }
 
 // Player jumps back out of the tunnel attack, facing away from the enemy.
-static void plemBackjump(cPlayer* pl)
+static void plemBackjump(cPlayer* pEm)
 {
     int fe;
     f32 ry;
     f32 d;
 
-    pl->subArc = pl->pEmCatch->subArc;
-    fe = pl->r_no_2;
-    pl->dmg.m_Timer = 0x1E;
+    pEm->subArc = pEm->pEmCatch->subArc;
+    fe = pEm->r_no_2;
+    pEm->dmg.m_Timer = 0x1E;
     switch (fe) {
     case 0:
-        ry = LIMIT_ANGLE(pl->pEmCatch->ang.y + 1.57079637f);
-        d = fabsf(Muku2(pl->ang.y, ry, 3.14159274f));
+        ry = LIMIT_ANGLE(pEm->pEmCatch->ang.y + 1.57079637f);
+        d = fabsf(Muku2(pEm->ang.y, ry, 3.14159274f));
         if (d < 0.785398185f) {
-            pl->ang.y = ry;
+            pEm->ang.y = ry;
         }
         if (d > 2.35619450f) {
-            pl->ang.y = ry + 3.14159274f;
-            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
+            pEm->ang.y = ry + 3.14159274f;
+            pEm->ang.y = LIMIT_ANGLE(pEm->ang.y);
         }
-        MotionSetCore(pl, &pl->Motion, EM_ARC(pl, 0x94), 0, 3, 1, 0);
-        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, (void*) fe);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        MotionSetCore(pEm, &pEm->Motion, EM_ARC(pEm, 0x94), 0, 3, 1, 0);
+        EstSet(pEm, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pEm, (void*) fe);
+        SndCall(1, 0x43, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+        SndCall(1, 0x44, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
         GameAddPoint(LVADD_ESCAPEATTACK);
-        pl->m_Work0 = 45;
-        pl->m_Work1 = fe;
-        pl->r_no_2++;
+        pEm->m_Work0 = 45;
+        pEm->m_Work1 = fe;
+        pEm->r_no_2++;
     case 1:
-        if (pl->m_Work0) {
-            pl->m_Work0--;
+        if (pEm->m_Work0) {
+            pEm->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->m_Work1 = 1;
+            pEm->m_Work1 = 1;
         }
-        if (pl->Motion.Seq_frame > 10.6999998f && pl->Motion.Seq_frame < 11.3000002f) {
-            SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
+        if (pEm->Motion.Seq_frame > 10.6999998f && pEm->Motion.Seq_frame < 11.3000002f) {
+            SndCall(1, 0x4F, &pEm->pos, 0, 0, pEm);
         }
-        if (pl->Motion.Seq_frame > 21.7000008f && pl->Motion.Seq_frame < 22.2999992f) {
-            SndCall(5, 0x14, &pl->pos, 0, 0, pl);
+        if (pEm->Motion.Seq_frame > 21.7000008f && pEm->Motion.Seq_frame < 22.2999992f) {
+            SndCall(5, 0x14, &pEm->pos, 0, 0, pEm);
         }
-        if ((pl->Motion.Seq_frame > 36.7000008f && pl->Motion.Seq_frame < 37.2999992f) ||
-            (pl->Motion.Seq_frame > 49.7000008f && pl->Motion.Seq_frame < 50.2999992f)) {
-            SndCall(5, 2, &pl->pos, 0, 0, pl);
+        if ((pEm->Motion.Seq_frame > 36.7000008f && pEm->Motion.Seq_frame < 37.2999992f) ||
+            (pEm->Motion.Seq_frame > 49.7000008f && pEm->Motion.Seq_frame < 50.2999992f)) {
+            SndCall(5, 2, &pEm->pos, 0, 0, pEm);
         }
-        if ((pl->Motion.Seq_frame > 37.7000008f && pl->Motion.Seq_frame < 38.2999992f) ||
-            (pl->Motion.Seq_frame > 50.7000008f && pl->Motion.Seq_frame < 51.2999992f)) {
-            SndCall(5, 3, &pl->pos, 0, 0, pl);
+        if ((pEm->Motion.Seq_frame > 37.7000008f && pEm->Motion.Seq_frame < 38.2999992f) ||
+            (pEm->Motion.Seq_frame > 50.7000008f && pEm->Motion.Seq_frame < 51.2999992f)) {
+            SndCall(5, 3, &pEm->pos, 0, 0, pEm);
         }
-        if (MotionMove(pl, 0) || pl->m_Work1) {
+        if (MotionMove(pEm, 0) || pEm->m_Work1) {
             EndPlDamage();
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Action button of the long lunge: the player rolls aside (plemEscape) and gets a critical-hit

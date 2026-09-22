@@ -266,14 +266,14 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
 }
 
 // Destroys the body's child object (ribbon / rope) before the body itself is destroyed.
-int DelObj18(cObj* obj)
+int DelObj18(cObj* pObj)
 {
-    if (obj == 0) {
+    if (pObj == 0) {
         pLog->err(0, 0, "Evt_SetElgiganteRope : pointer failed");
         return 0;
     }
-    if (obj->o18.child) {
-        ObjMgr.destroy(obj->o18.child);
+    if (pObj->o18.child) {
+        ObjMgr.destroy(pObj->o18.child);
     }
     return 1;
 }
@@ -393,24 +393,24 @@ void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
 }
 
 // Parent model of an obj18 (1 when it has one with parts).
-int obj18GetOya(cModel** out, cObj* obj)
+int obj18GetOya(cModel** pOya, cObj* pObj)
 {
-    *out = 0;
-    if (obj->o18.pEm_oya == 0) {
+    *pOya = 0;
+    if (pObj->o18.pEm_oya == 0) {
         return 0;
     }
-    if (obj->o18.pEm_oya->pParts == 0) {
+    if (pObj->o18.pEm_oya->pParts == 0) {
         return 0;
     }
-    *out = obj->o18.pEm_oya;
+    *pOya = pObj->o18.pEm_oya;
     return 1;
 }
 
 // Parent follow: parent parts matrix * own matrix, axes normalised, with the oya_hokan slerp catch-up
 // (be_flag bit 3) from the saved matrix; copies the parent's light class 2.
-void obj18SetOya(cObj18* obj)
+void obj18SetOya(cObj18* pObj)
 {
-    Obj18Work* w = &obj->o18;
+    Obj18Work* w = &pObj->o18;
     Mtx m;
     Vec v0;
     Vec v1;
@@ -426,7 +426,7 @@ void obj18SetOya(cObj18* obj)
     if (w->pEm_oya->pParts == 0) {
         return;
     }
-    PSMTXConcat(w->pEm_oya->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
+    PSMTXConcat(w->pEm_oya->getPartsPtr(w->oya_parts)->mat, pObj->mat, m);
     v0.x = m[0][0];
     v0.y = m[1][0];
     v0.z = m[2][0];
@@ -466,55 +466,55 @@ void obj18SetOya(cObj18* obj)
         C_QUATMtx(&q0, m);
         C_QUATMtx(&q1, w->hokan_mat);
         C_QUATSlerp(&q0, &q1, &q, w->oya_hokan);
-        PSMTXQuat(obj->mat, &q);
-        TransMatrix(obj->mat, &p);
-        PSMTXCopy(obj->mat, w->hokan_mat);
+        PSMTXQuat(pObj->mat, &q);
+        TransMatrix(pObj->mat, &p);
+        PSMTXCopy(pObj->mat, w->hokan_mat);
     } else {
-        PSMTXCopy(m, obj->mat);
+        PSMTXCopy(m, pObj->mat);
     }
     if (w->pEm_oya) {
         if (w->pEm_oya->LightInfo.EnableMask & 2) {
-            obj->LightInfo.EnableMask &= ~0x10;
-            obj->LightInfo.EnableMask |= 2;
+            pObj->LightInfo.EnableMask &= ~0x10;
+            pObj->LightInfo.EnableMask |= 2;
         }
     }
 }
 
 // Sets the event control flags (SetOm packet flag word).
-void Obj18CmfSet(cObj* obj, u32 cmf)
+void Obj18CmfSet(cObj* pObj, u32 commonFlag)
 {
-    if (obj == 0) {
+    if (pObj == 0) {
         return;
     }
-    if (obj->kindid != 1) {
+    if (pObj->kindid != 1) {
         return;
     }
-    if (obj->id != 0x18) {
+    if (pObj->id != 0x18) {
         return;
     }
-    obj->o18.CommonFlag = cmf;
+    pObj->o18.CommonFlag = commonFlag;
 }
 
 // Event control flags of an obj18 (0 for other objects).
-u32 Obj18CmfGet(cObj* obj)
+u32 Obj18CmfGet(cObj* pObj)
 {
-    if (obj == 0) {
+    if (pObj == 0) {
         return 0;
     }
-    if (obj->kindid != 1 || obj->id != 0x18) {
+    if (pObj->kindid != 1 || pObj->id != 0x18) {
         return 0;
     }
-    return obj->o18.CommonFlag;
+    return pObj->o18.CommonFlag;
 }
 
 // Sets one event control flag bit.
-void Obj18CmfOn(cObj* obj, u32 no)
+void Obj18CmfOn(cObj* pMod, u32 flag)
 {
     u32 cmf[1];
     u32* p;
 
-    cmf[0] = Obj18CmfGet(obj);
+    cmf[0] = Obj18CmfGet(pMod);
     p = cmf;
-    FlagOn(p, no);
-    Obj18CmfSet(obj, cmf[0]);
+    FlagOn(p, flag);
+    Obj18CmfSet(pMod, cmf[0]);
 }

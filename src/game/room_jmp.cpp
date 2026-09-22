@@ -125,19 +125,19 @@ s8 cRoomJmp::getPointNum(s8 stage, s8 room)
 }
 
 // Record `idx` of `stage`, or 0 when out of range.
-CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
+CRoomInfo* cRoomJmp::getRoomInfo(u8 st, u8 idx)
 {
     u32* p = tbl;
     u32 ofs;
     u32 n;
     u32 base;
 
-    if (stage >= p[0]) {
+    if (st >= p[0]) {
         return 0;
     }
     // COMPILER-DIFF: tie. The loop notes double the weight of this `ofs` set, so local-alloc
     // allocates ofs before n (ofs r0, n r11) and global-alloc can give base the freed r0.
-    do { ofs = (p + 1)[stage]; } while (0);
+    do { ofs = (p + 1)[st]; } while (0);
     n = *(u32*) ((u8*) p + ofs);
     base = (u32) p + ofs;
     if (idx >= n) {
@@ -150,14 +150,14 @@ CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
 }
 
 // Index of the first record of `room` in `stage` (0 when not found).
-u8 cRoomJmp::getRoomIdx(u8 stage, u8 room)
+u8 cRoomJmp::getRoomIdx(u8 st, u8 room)
 {
     int i;
     u8 idx;
 
-    for (i = 0; i < getIndexNum(stage); i++) {
+    for (i = 0; i < getIndexNum(st); i++) {
         idx = i;
-        if (getRoomInfo(stage, idx)->room == room) {
+        if (getRoomInfo(st, idx)->room == room) {
             return idx;
         }
     }
@@ -165,38 +165,38 @@ u8 cRoomJmp::getRoomIdx(u8 stage, u8 room)
 }
 
 // Next room entry = the first jump point of stage / room.
-void cRoomJmp::setNextPos(u8 stage, u8 room)
+void cRoomJmp::setNextPos(u8 Stage, u8 Room)
 {
-    getRoomInfo(stage, getRoomIdx(stage, room))->setNextPos();
+    getRoomInfo(Stage, getRoomIdx(Stage, Room))->setNextPos();
 }
 
 // Next (dir +1) / previous (-1) stage that has a table, wrapping.
-s8 cRoomJmp::getNextStageNo(s8 stage, int dir)
+s8 cRoomJmp::getNextStageNo(s8 stage, int add)
 {
     u32* p = tbl;
     u32 n = p[0];
 
     do {
-        stage = (n + stage + dir) % n;
+        stage = (n + stage + add) % n;
     } while (ofsTbl(p)[stage] == 0);
     return stage;
 }
 
 // Index of the first record of the next / previous room after the one at `idx`, wrapping.
-s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
+s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int add)
 {
     u32 n;
     CRoomInfo* cur;
     CRoomInfo* info;
     s8 next;
 
-    if (dir == 0) {
+    if (add == 0) {
         return idx;
     }
     n = getIndexNum(stage);
     cur = getRoomInfo(stage, idx);
     for (;;) {
-        idx = (n + idx + dir) % n;
+        idx = (n + idx + add) % n;
         info = getRoomInfo(stage, idx);
         if (cur == info) {
             return idx;
@@ -205,7 +205,7 @@ s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
             break;
         }
     }
-    if (dir >= 0) {
+    if (add >= 0) {
         return idx;
     }
     cur = info;
@@ -223,14 +223,14 @@ s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
 }
 
 // Next / previous jump point of `room` (stays when the neighbour belongs to another room).
-s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, s8 dir)
+s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, s8 add)
 {
     u32 n = getIndexNum(stage);
     s8 idx = getRoomIdx(stage, room) + point;
     u16 room_id = (stage << 8) | room;
     s8 next;
 
-    next = (n + idx + dir) % n;
+    next = (n + idx + add) % n;
     if (getRoomInfo(stage, next)->roomNo == room_id) {
         idx = next;
     }
@@ -262,16 +262,16 @@ void RoomJump()
 
 // Freezes the game (Stop_flg), builds the cRoomJmp on the room info table and starts the cursor at
 // the current stage / room / jump point.
-void roomJumpInit(test* w)
+void roomJumpInit(test* pTest)
 {
-    w->state++;
-    w->stop_bak = pG->Stop_flg;
+    pTest->state++;
+    pTest->stop_bak = pG->Stop_flg;
     BitOn(pG->Stop_flg, 0xFFFFBFFF);
     pRj = new cRoomJmp(roomInfoAddr);
-    w->stage = pG->stage_no;
-    w->room[w->stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
-    w->point = pG->JumpPoint;
-    w->flag = 0;
+    pTest->stage = pG->stage_no;
+    pTest->room[pTest->stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
+    pTest->point = pG->JumpPoint;
+    pTest->flag = 0;
 }
 
 // Menu frame: up/down pick the line (stage / room / point), left/right change it (repeat keys);
@@ -355,15 +355,15 @@ void roomJumpMove(test* w)
 
 // Performs the jump: everything stopped, Debug_flg[2] bit31 (debug jump), the chosen point becomes
 // the next room entry, messages cleared, life refilled.
-void roomJumpExec(test* w)
+void roomJumpExec(test* pTest)
 {
     int i;
 
-    w->state++;
+    pTest->state++;
     pG->Stop_flg = 0xFFFFFFFF;
     DbgFlagOn(pG, DBG_ROOMJMP);
-    pRj->getRoomInfo(w->stage, w->room[w->stage] + w->point)->setNextPos();
-    pG->JumpPoint = w->point;
+    pRj->getRoomInfo(pTest->stage, pTest->room[pTest->stage] + pTest->point)->setNextPos();
+    pG->JumpPoint = pTest->point;
     cMes.roomInit();
     {
         // A pointer local for the loop keeps &cMes in one register (lis in a callee-saved one).
@@ -374,30 +374,30 @@ void roomJumpExec(test* w)
     }
     pG->pl_life = pG->pl_life_max;
     pG->r_continue_cnt = 0;
-    w->flag = 1;
+    pTest->flag = 1;
 }
 
 // Leaves the menu: restores Stop_flg; after a jump sets the game routine to 4 (room change) and
 // clears System_flg 0x40.
-void roomJumpExit(test* w)
+void roomJumpExit(test* pTest)
 {
     delete pRj;
-    if (w->flag == 1) {
+    if (pTest->flag == 1) {
         pG->Rno0 = 4;
         pG->Rno1 = 0;
         pG->Rno2 = 0;
         pG->Rno3 = 0;
         SysFlagOff(pG, SYS_START_EVT_SKIP);
     }
-    pG->Stop_flg = w->stop_bak;
+    pG->Stop_flg = pTest->stop_bak;
     DbgFlagOff(pG, DBG_TEST_MODE);
     TaskExit();
 }
 
 // One-shot: sets the next room entry to the first jump point of stage / room (used by the scenario).
-void GetNextPos(u8 stage, u8 room)
+void GetNextPos(u8 Stage, u8 Room)
 {
     pRj = new cRoomJmp(roomInfoAddr);
-    pRj->setNextPos(stage, room);
+    pRj->setNextPos(Stage, Room);
     delete pRj;
 }

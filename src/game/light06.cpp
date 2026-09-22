@@ -10,14 +10,14 @@ struct Light06Work {
 
 // LightFuncTbl[6]: Rno0 0 loads the start rate, 1 fades and writes DispCol = Col * rate.
 // Fade light: brightness rate moves from `start` by `speed` and is clamped to [0, 1].
-void Light06_Move(cLight* l)
+void Light06_Move(cLight* pLi)
 {
-    Light06Work* w = (Light06Work*)l->work;
+    Light06Work* w = (Light06Work*)pLi->work;
 
-    switch (l->Rno0) {
+    switch (pLi->Rno0) {
     case 0:
         w->rate = w->start;
-        l->Rno0 = 1;
+        pLi->Rno0 = 1;
     case 1:
         w->rate += w->speed;
         if (w->speed > 0.0f) {
@@ -29,9 +29,9 @@ void Light06_Move(cLight* l)
                 w->rate = 0.0f;
             }
         }
-        l->DispCol.r = (u8)(w->rate * l->Col.r);
-        l->DispCol.g = (u8)(w->rate * l->Col.g);
-        l->DispCol.b = (u8)(w->rate * l->Col.b);
+        pLi->DispCol.r = (u8)(w->rate * pLi->Col.r);
+        pLi->DispCol.g = (u8)(w->rate * pLi->Col.g);
+        pLi->DispCol.b = (u8)(w->rate * pLi->Col.b);
         break;
     }
 }

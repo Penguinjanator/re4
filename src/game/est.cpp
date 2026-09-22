@@ -144,7 +144,7 @@ int GetSstDispFlag(u32 id)
 
 // Turns room effect display flag `id` on/off; turning it on from off also starts the matching area
 // effects for the player's current areas (AreaSstSet).
-void SetSstDispFlag(u32 id, int on)
+void SetSstDispFlag(u32 id, int flg)
 {
     cEspSystem* sys = g_pEspSys;
 
@@ -152,12 +152,12 @@ void SetSstDispFlag(u32 id, int on)
         pLog->err(0, 0, "GetSstDispFlag() : id[%02x] invalid .", id);
         return;
     }
-    if (on == 1) {
+    if (flg == 1) {
         if (GetSstDispFlag(id) == 0) {
-            sys->SstSetFlag |= on << id;
+            sys->SstSetFlag |= flg << id;
             AreaSstSet(id);
         } else {
-            sys->SstSetFlag |= on << id;
+            sys->SstSetFlag |= flg << id;
         }
     } else {
         sys->SstSetFlag &= ~(1 << id);
@@ -165,16 +165,16 @@ void SetSstDispFlag(u32 id, int on)
 }
 
 // Sets the extra effect-area bits that EffAreaUpdate ORs into the area state every frame.
-void SetSstAddAreaFlag(u32 flag)
+void SetSstAddAreaFlag(u32 flg)
 {
-    g_pEspSys->Add_area_bit = flag;
+    g_pEspSys->Add_area_bit = flg;
 }
 
 // Starts every SST entry of `owner` (0xD2 = none) whose key is in [lo, hi], whose type matches and
 // whose display flag is on, as a permanent effect (Core_flg 0x4001, kind no, owner 0xD0). move != 0
 // pre-runs the generators 200 frames so steady-state effects (smoke, dust) are already full.
 // Starts every effect of owner `owner` whose room key lies in [lo, hi] and whose type is `type`.
-void SstSet(u32 owner, int type, ESP_CORE_KIND kind, int lo, int hi, int move)
+void SstSet(u32 owner, int blk_no, ESP_CORE_KIND kind, int start_id, int end_id, int bTimeLoop)
 {
     cEspSystem* sys = g_pEspSys;
     SstTbl* tbl;
@@ -192,10 +192,10 @@ void SstSet(u32 owner, int type, ESP_CORE_KIND kind, int lo, int hi, int move)
     }
     list = tbl->list;
     for (i = 0; i < list->num; i++) {
-        if (list->ent[i].no < (u16) lo || list->ent[i].no > (u16) hi) {
+        if (list->ent[i].no < (u16) start_id || list->ent[i].no > (u16) end_id) {
             continue;
         }
-        if (list->ent[i].type != type) {
+        if (list->ent[i].type != blk_no) {
             continue;
         }
         if (!GetSstDispFlag(list->ent[i].b.id)) {
@@ -205,16 +205,16 @@ void SstSet(u32 owner, int type, ESP_CORE_KIND kind, int lo, int hi, int move)
         ofs += i;
         EstSet(NULL, -1, NULL, NULL, (EspSeqData*) ((u8*) tbl->data + *ofs), 0x4001, (u8) kind, 0, EFF_SST, NULL);
     }
-    if (move) {
+    if (bTimeLoop) {
         EspGenSetMoveLoop(200);
         EspGenLoopMove();
     }
 }
 
 // Deletes sprites by owner info (Core_flg a, kind b, Core_pEm c, attached model).
-void EffectEspDelete(int a, int b, void* c, cModel* model)
+void EffectEspDelete(int a, int b, void* c, cModel* pMod)
 {
-    EspDelete(a, b, c, model);
+    EspDelete(a, b, c, pMod);
 }
 
 // Deletes controllers by owner info.
@@ -248,7 +248,7 @@ void EffectEventDelete()
 
 // Releases every live sprite whose owner info matches (a/b/c each skipped when 0) and, when a model is
 // given, that is attached to that model instance (pointer and serial).
-void EspDelete(int a, int b, void* c, cModel* model)
+void EspDelete(int a, int b, void* c, cModel* pMod)
 {
     cEspSystem* sys = g_pEspSys;
     u32 i;
@@ -268,11 +268,11 @@ void EspDelete(int a, int b, void* c, cModel* model)
         if (c != 0 && esp->info.Core_pEm != c) {
             continue;
         }
-        if (model != NULL) {
-            if (esp->m_pMod != model) {
+        if (pMod != NULL) {
+            if (esp->m_pMod != pMod) {
                 continue;
             }
-            if (esp->m_Guid_pMod != model->guid) {
+            if (esp->m_Guid_pMod != pMod->guid) {
                 continue;
             }
         }
@@ -342,9 +342,9 @@ static inline void EspEatEffectMessage(int type)
 }
 
 // 1 when the hit point lies on a near-horizontal floor whose FlrAt entry is marked as a puddle (se.eff_type 1).
-int EspChkInPuddle(Vec* pos, Vec* nrm)
+int EspChkInPuddle(Vec* pos, Vec* nor)
 {
-    if (nrm->y > 0.9f) {
+    if (nor->y > 0.9f) {
         FlrAt* at = FlrAtCheck(0, pos, 1);
 
         if (at != NULL && at->se.eff_type == 1) {
@@ -358,7 +358,7 @@ int EspChkInPuddle(Vec* pos, Vec* nrm)
 // / puddle, 1 spark pair, 2 and 4..7 per-weapon effects from the AtEffInfo table, 3 unused), `nrm`
 // the surface normal (rotation for the decal, flipped for flag-bit-0 infos), `wep` the weapon id.
 // Hit effect for the eat (effect collision) attribute type.
-void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
+void EspSetEatEffect(Vec* pos, Vec* nor, int type, u8 wepNo)
 {
     AtEffInfo* info = EatMgr.getEffInfo(type);
     Vec rot;
@@ -367,18 +367,18 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
     f32 len;
 
     if (info != NULL && (info->flag & 1)) {
-        rot.x = atan2f(SQRTF(nrm->x * nrm->x + nrm->z * nrm->z), nrm->y);
-        rot.y = atan2f(nrm->x, nrm->z);
+        rot.x = atan2f(SQRTF(nor->x * nor->x + nor->z * nor->z), nor->y);
+        rot.y = atan2f(nor->x, nor->z);
         rot.z = 0.0f;
     } else {
-        len = SQRTF(nrm->x * nrm->x + nrm->z * nrm->z);
-        rot.x = -atan2f(nrm->y, len);
-        rot.y = atan2f(nrm->x, nrm->z);
+        len = SQRTF(nor->x * nor->x + nor->z * nor->z);
+        rot.x = -atan2f(nor->y, len);
+        rot.y = atan2f(nor->x, nor->z);
         rot.z = 0.0f;
     }
     switch (type) {
     case 0:
-        if (EspChkInPuddle(pos, nrm) == 1) {
+        if (EspChkInPuddle(pos, nor) == 1) {
             EstSet(0, -1, pos, NULL, EFF_CORE, 0x11, 0, ESP_CORE_KIND_NONE, (void*) type, (void*) type);
             SndCall(2, 0xC, pos, 0, 0, NULL);
         } else {
@@ -397,7 +397,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
             pLog->err(0, 0, "NOT REGIST EAT EFF INFO %d", type);
             break;
         }
-        info->getWepEff(wep, &eff1, &eff2);
+        info->getWepEff(wepNo, &eff1, &eff2);
         if (eff1 != EFF_NONE && eff2 != 1) {
             EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, ESP_CORE_KIND_NONE, 0, NULL);
         }
@@ -414,7 +414,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
             pLog->err(0, 0, "NOT REGIST EAT EFF INFO %d", type);
             break;
         }
-        info->getWepEff(wep, &eff1, &eff2);
+        info->getWepEff(wepNo, &eff1, &eff2);
         if (eff1 != EFF_NONE && eff2 != 1) {
             EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, ESP_CORE_KIND_NONE, 0, NULL);
         }
@@ -427,9 +427,9 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep)
 
 // Event script: starts est `no` (decimal digits -> BCD id) of `owner` as an event-cut effect
 // (Core_flg 0x1001), if the table exists.
-void EventCutEstSet(int owner, u32 no)
+void EventCutEstSet(int owner, u32 cut_no)
 {
-    u8 id = (no / 10) * 16 + no % 10;
+    u8 id = (cut_no / 10) * 16 + cut_no % 10;
 
     if (EspGetEstAddr(owner, id, 1) != NULL) {
         EstSet(0, -1, NULL, NULL, owner, id, 0x1001, ESP_CORE_KIND_NONE, 0, NULL);
@@ -466,14 +466,14 @@ int ChkWaterEffectEnable(Vec* pos)
 
 // Ganado falling into water: est 1/0x32 when the room has it, else the generic 0x10/0x8D; the
 // position pointer doubles as the owner key.
-void EstSetEm10WaterFall(Vec* pos)
+void EstSetEm10WaterFall(Vec* pMod)
 {
     EspSeqData* head = EspGetEstAddr(EFF_ROOM, 0x32, 1);
 
     if (head != NULL) {
-        EstSet((cModel*) pos, -1, NULL, NULL, EFF_ROOM, 0x32, 0, ESP_CORE_KIND_NONE, pos, NULL);
+        EstSet((cModel*) pMod, -1, NULL, NULL, EFF_ROOM, 0x32, 0, ESP_CORE_KIND_NONE, pMod, NULL);
     } else {
-        EstSet((cModel*) pos, -1, NULL, NULL, EFF_EM10, 0x8D, 0, ESP_CORE_KIND_NONE, pos, NULL);
+        EstSet((cModel*) pMod, -1, NULL, NULL, EFF_EM10, 0x8D, 0, ESP_CORE_KIND_NONE, pMod, NULL);
     }
 }
 

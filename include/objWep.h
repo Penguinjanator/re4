@@ -7,7 +7,7 @@
 // Weapon objects (game/objWep.cpp). The debug line helper is what other units call. C linkage.
 
 extern "C" {
-void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
+void Draw_line3d_222(Vec* p0, Vec* p1, u32 col, int blend);
 }
 
 #endif

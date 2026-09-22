@@ -115,7 +115,7 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM2B_WK)
     virtual ~cEm2b();
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
     virtual void setPos(Vec* pos, f32 rot);
     virtual void setEventDie();
     virtual int ckParasite();

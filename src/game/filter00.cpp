@@ -271,15 +271,15 @@ void Filter00SetContrast(u8 level, u8 pow, u8 bias)
 }
 
 // Sets the blur feedback alpha (0 = blur off).
-void Filter00SetAlpha(u8 rate)
+void Filter00SetAlpha(u8 alpha)
 {
-    blur_rate = rate;
+    blur_rate = alpha;
 }
 
 // Sets the blur zoom amount (type 1) or tint (type 2).
-void Filter00SetPower(s8 power)
+void Filter00SetPower(s8 pow)
 {
-    blur_power = power;
+    blur_power = pow;
 }
 
 // Selects the blur type 0..2.

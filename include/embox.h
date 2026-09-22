@@ -36,7 +36,7 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EMBOX_WK)
     virtual void move();
 
-    void setEff(u8 eff);
+    void setEff(u8 eff_id);
     void setItem(int no, int num, u16 c, u16 d);
     void setBreakModel(void* bin, void* tpl);
 };

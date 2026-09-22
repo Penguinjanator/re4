@@ -197,7 +197,7 @@ void EmSetFromList()
 
 // Creates list entry `no` on demand (room event scripts): same checks as EmSetFromList, the
 // death bit only with chkDead. Returns the enemy, or errEm when nothing was created.
-cEm* EmSetFromList2(int no, int chkDead)
+cEm* EmSetFromList2(int no, int flag)
 {
     EmListData* d = &pG->Em_list[no];
     cEm* em;
@@ -217,7 +217,7 @@ cEm* EmSetFromList2(int no, int chkDead)
     if (d->id == 0) {
         return errEm;
     }
-    if (chkDead) {
+    if (flag) {
         if (EmSetDieCk(no)) {
             return errEm;
         }
@@ -306,7 +306,7 @@ u32 GetEmIdFromList(u32 no)
 
 // Sets / clears the alive bit (be_flag bit0) of list entry `no`, only for entries of the current
 // stage / room.
-void EmListSetAlive(int no, int on)
+void EmListSetAlive(int no, int on_off)
 {
     EmListData* d = &pG->Em_list[no];
 
@@ -316,7 +316,7 @@ void EmListSetAlive(int no, int on)
     if (pG->room_no != (d->room & 0xFF)) {
         return;
     }
-    if (on == 1) {
+    if (on_off == 1) {
         d->be_flag |= 1;
     } else {
         d->be_flag &= ~1;

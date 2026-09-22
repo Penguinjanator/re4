@@ -79,7 +79,7 @@ public:
     u32 m_bonus_point;                    // 0x2C  (sce_at: number shown with item 0x75; get(0x75, n): mercenaries bonus time)
 
     void clear();
-    int set_game(int no);
+    int set_game(int trial_flag);
     int set_ada(int no);
     int set_char(int no);
     int set_stage1(int no);
@@ -87,14 +87,14 @@ public:
     int set_stage3(int no);
     int set_range(int no);
     int set_debug(int no);
-    int setUp(int no);
+    int setUp(int set_no);
     void gameInit();
     void roomInit();
     int init();
-    void construct(ItemWork* out, ITEM_ID id);  // fill a slot template for item `id` (puzzle PutInCase)
-    ItemWork* at(int no);       // 0x8001DB5C: slot `no` of pItems, NULL when no >= nItems
+    void construct(ItemWork* out, ITEM_ID room_no);  // fill a slot template for item `id` (puzzle PutInCase)
+    ItemWork* at(int i);       // 0x8001DB5C: slot `no` of pItems, NULL when no >= nItems
     int searchAt(ItemWork* p);  // 0x8001DB80: slot index of `p`, -1 if not in pItems
-    int makeItemList(u8* list, int all, s8* pNum, s8* pNum2);
+    int makeItemList(u8* p_list, int flag, s8* key_cnt, s8* gld_cnt);
     ItemWork* search(u16 id);   // 0x8001DED0: the in-use slot of this->type holding `id`, NULL if none
     ItemWork* minimumSearch(ITEM_ID id);
     void ordering(ITEM_ID id);      // 0x8001DFD0: collect the in-use slots holding `id` into pOrder (qsort by order_cmp)
@@ -109,7 +109,7 @@ public:
     u16 num(int id);            // 0x8001EB54: count of item `id` of this->type
     u16 num(ItemWork* p);
     int combine(ItemWork* a, ItemWork* b, int flag);  // merge b into a (puzzle cmbPiece)
-    int partsCombine(ItemWork* wep, ItemWork* part);
+    int partsCombine(ItemWork* pWeapon, ItemWork* pParts);
     int available(ITEM_ID id);      // 0x8001F2C4
     void flagclear();           // 0x8001F2E8
     int check(ITEM_ID id);
@@ -123,15 +123,15 @@ public:
     int trigger(ItemWork* p);
     u16 weaponId(ItemWork* p);
     ItemWork* weaponParts(ItemWork* p, int no);
-    u16 bulletNumTotal(int bulletId);
+    u16 bulletNumTotal(int bllt_id);
     u16 bulletNum();            // 0x8001FC20: bulletNumCurrent() of the equipped weapon
     u16 bulletNumCurrent();     // 0x8001FC40
     u16 bulletNum(ITEM_ID id);
     u16 bulletNum(ItemWork* p);
     int saveDataSize();
-    void save(void* dst);
-    void load(void* src);
-    int offboardDump(ItemWork* keep);
+    void save(void* pData);
+    void load(void* pData);
+    int offboardDump(ItemWork* p_get_item);
     void takeOver();
     int countFiles();
     void debugNumDisp(int print_page);
@@ -141,9 +141,9 @@ public:
 extern cItemMgr ItemMgr;
 
 // weapon number/type -> item id (0xFFFF when unknown)
-u16 WeaponNo2WeaponId(u8 no, u8 type);
+u16 WeaponNo2WeaponId(u8 wep_no, u8 type);
 // life meter level of a max life `max` (cockpit: lifeLevel(20, pl_life_max, 1200))
-int lifeLevel(int levels, s16 max, int base);
+int lifeLevel(int level_up_num, s16 curr_life_max, int init_life_max);
 
 extern "C" {
 // item id -> weapon number / type (0xFF when unknown), item attributes
@@ -151,7 +151,7 @@ u8 WeaponId2WeaponNo(ITEM_ID id);
 u8 WeaponId2WeaponType(ITEM_ID id);
 void itemInfo(ITEM_ID id, ItemInfo* info);
 // weapon item id -> its bullet item id (attr: ItemWork::x8 >> 13), charge count, max tune level per type
-u16 WeaponId2BulletId(ITEM_ID id, int attr);
+u16 WeaponId2BulletId(ITEM_ID id, int bllt_type);
 u16 WeaponId2ChargeNum(ITEM_ID id, int level);
 int WeaponId2MaxLevel(ITEM_ID id, int type);
 // weapon tune ratios at tune level `level` (examine: power x10 / speed, reload x100 percent)
@@ -160,13 +160,13 @@ f32 getSpeedRatio(ITEM_ID id, int level);
 f32 getReloadRatio(ITEM_ID id, int level);
 f32 getBulletRatio(ITEM_ID id, int level);
 // heal the player (ItemMgr.x12 0) or the sub character (1) by `n`; 0 when already at max
-int healing(u16 n);
+int healing(u16 life_add);
 int addMoney(int n);
 u16 bareHand();
 int itemCombineCheck(ITEM_ID id);
-int itemCombine(ITEM_ID srcA, ITEM_ID srcB, u16* result);
-int reload_main(ItemWork* wep, ItemWork* ammo, int max);
-u8 gld_order(u8 idx);
+int itemCombine(ITEM_ID srcA, ITEM_ID srcB, u16* dst);
+int reload_main(ItemWork* pItem_A, ItemWork* pItem_B, int charge_num);
+u8 gld_order(u8 no);
 int gld_cmp(const void* a, const void* b);
 int order_cmp(const void* a, const void* b);
 }

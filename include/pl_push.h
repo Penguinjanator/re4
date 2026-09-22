@@ -21,10 +21,10 @@ public:
     void pushTargetInit(u8 flag);
     int pushTarget();
     void stopTarget();
-    void getWHY(f32* w, f32* h, f32* y);
+    void getWHY(f32* w, f32* h, f32* dy);
     int scrHitCheck();
-    int scrHitCheckSub(f32 w, f32 h, f32 y, Vec* pos, f32 side);
-    int emSandCheck(f32 w, f32 h, f32 y, Vec* pos);
+    int scrHitCheckSub(f32 w, f32 h, f32 dy, Vec* pos, f32 sign);
+    int emSandCheck(f32 w, f32 h, f32 dy, Vec* pos);
     int plAdjust();
 };
 

@@ -41,7 +41,7 @@ static inline f32 shadowRate(Vec* pos, Vec* lpos, f32 range)
 // a shadow sprite (texture 0x13) per joint plus interpolated blobs between flagged joints; alpha
 // scales with the light's red component, Shd_color and the distance rate. Disp_flg 0x02000000 or
 // Shd_color 0xFF disables it.
-void DrawFootShadow(cEm* em)
+void DrawFootShadow(cEm* pMod)
 {
     Vec dir;
     Vec lpos;
@@ -52,14 +52,14 @@ void DrawFootShadow(cEm* em)
     if (DpfFlagChk(pG, DPF_SHADOW)) {
         return;
     }
-    if (em->Shd_color == 0xFF) {
+    if (pMod->Shd_color == 0xFF) {
         return;
     }
     if (StaFlagChk(pG, STA_EVENT)) {
-        pos = em->pParts->world;
+        pos = pMod->pParts->world;
         pos.y = SatMgr.getFloor(&pos, 0, 600.0f, 100000.0f, 0);
     } else {
-        pos = em->pos;
+        pos = pMod->pos;
     }
 
     l = LightMgr.getActiveWork();
@@ -84,7 +84,7 @@ void DrawFootShadow(cEm* em)
         if (l->Type != 4) {
             continue;
         }
-        if (!(l->xF & em->LightInfo.EnableMask)) {
+        if (!(l->xF & pMod->LightInfo.EnableMask)) {
             continue;
         }
         if (StaFlagChk(pG, STA_BLACKOUT)) {
@@ -126,7 +126,7 @@ void DrawFootShadow(cEm* em)
             PSMTXConcat(m2, m1, m1);
             PSMTXMultVecSR(m1, &dir, &dir);
         } else if (l->xD == 0) {
-            PSVECSubtract(&em->pParts->world, &lpos, &dir);
+            PSVECSubtract(&pMod->pParts->world, &lpos, &dir);
 #line 152 "D:/Bio4/Prog/foot_shadow.cpp"
             VECNormalize(&dir, &dir);
         }
@@ -137,7 +137,7 @@ void DrawFootShadow(cEm* em)
             f32 ang;
             f32 d;
 
-            PSVECSubtract(&em->pParts->world, &lpos, &tmp);
+            PSVECSubtract(&pMod->pParts->world, &lpos, &tmp);
             dot = PSVECDotProduct(&dir, &tmp);
             PSVECScale(&dir, &tmp, dot);
             PSVECAdd(&lpos, &tmp, &tmp);
@@ -153,7 +153,7 @@ void DrawFootShadow(cEm* em)
             range *= dist / d;
         }
         {
-            FootShadowTbl* tbl = (FootShadowTbl*) em->pFsdTbl;
+            FootShadowTbl* tbl = (FootShadowTbl*) pMod->pFsdTbl;
             ShadowInfo prev;
             ShadowInfo info;
             GXTexObj* tex;
@@ -165,12 +165,12 @@ void DrawFootShadow(cEm* em)
                 return;
             }
             tex = EspGetTexObj(0x13, 0);
-            rate *= (f32) (255 - em->Shd_color) / 255.0f;
+            rate *= (f32) (255 - pMod->Shd_color) / 255.0f;
             prevOn = 0;
             prevCnt = 0;
             for (i = 0; i < tbl->nTbl; i++) {
                 FootShadowDat* dat = &tbl->dat[i];
-                cModel* p = em->getPartsPtr(dat->joint);
+                cModel* p = pMod->getPartsPtr(dat->joint);
                 ShadowInfo mid;
                 Vec ofs;
 

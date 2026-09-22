@@ -32,7 +32,7 @@ void CinescoMove(void)
 }
 
 // Rno0 == 0: watches the request bit and starts a 15 frame fade in / out when it changes.
-void cine_polling(CineWork* w)
+void cine_polling(CineWork* cp)
 {
     int on;
 
@@ -41,37 +41,37 @@ void cine_polling(CineWork* w)
     } else {
         on = 1;
     }
-    if (w->old_flag != on) {
-        w->old_flag = on;
+    if (cp->old_flag != on) {
+        cp->old_flag = on;
         if (on) {
-            w->rno0 = 1;
-            w->timer0 = 15.0f;
+            cp->rno0 = 1;
+            cp->timer0 = 15.0f;
         } else {
-            w->rno0 = 2;
-            w->timer0 = 15.0f;
+            cp->rno0 = 2;
+            cp->timer0 = 15.0f;
         }
     }
 }
 
 // Rno0 == 1: alpha ramps 0 -> 255 over 15 frames.
-void cine_on_move(CineWork* w)
+void cine_on_move(CineWork* cp)
 {
-    w->timer0 -= 1.0f;
-    w->alpha = (u8) ((15.0f - w->timer0) / 15.0f * 255.0f);
-    if (w->timer0 <= 0.0f) {
-        w->rno0 = 0;
-        w->alpha = 255;
+    cp->timer0 -= 1.0f;
+    cp->alpha = (u8) ((15.0f - cp->timer0) / 15.0f * 255.0f);
+    if (cp->timer0 <= 0.0f) {
+        cp->rno0 = 0;
+        cp->alpha = 255;
     }
 }
 
 // Rno0 == 2: alpha ramps 255 -> 0 over 15 frames.
-void cine_off_move(CineWork* w)
+void cine_off_move(CineWork* cp)
 {
-    w->timer0 -= 1.0f;
-    w->alpha = (u8) (w->timer0 / 15.0f * 255.0f);
-    if (w->timer0 <= 0.0f) {
-        w->rno0 = 0;
-        w->alpha = 0;
+    cp->timer0 -= 1.0f;
+    cp->alpha = (u8) (cp->timer0 / 15.0f * 255.0f);
+    if (cp->timer0 <= 0.0f) {
+        cp->rno0 = 0;
+        cp->alpha = 0;
     }
 }
 

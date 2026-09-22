@@ -56,10 +56,10 @@ void cEsp04::move()
 }
 
 // Rno0 == 0: records the spawn position as the jitter centre and moves to Rno0 1.
-void move00(cEsp04* esp)
+void move00(cEsp04* pEsp)
 {
-    esp->m_Free.base_pos = esp->m_Pos;
-    esp->m_Rno0 = 1;
+    pEsp->m_Free.base_pos = pEsp->m_Pos;
+    pEsp->m_Rno0 = 1;
 }
 
 // Rno0 == 1: wraps m_Pos back into the screen by whole tiles, applies the random x/y jitter
@@ -248,15 +248,15 @@ extern "C" void Esp04_Trans(cEsp04* esp)
 
 // Repeat flags, jitter ranges, alpha delay and rate from the record; tile sizes are clamped to
 // at least 0.1. Warns when the parent is not a screen layer.
-int cEsp04::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp04::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp04Work* w = &m_Free;
 
-    w->flag = gen->Work8[0];
-    w->rand_x = gen->Work8[1];
-    w->rand_y = gen->Work8[2];
-    w->a_wait = gen->Work8[3];
-    w->a_rate = gen->prm.b.xCF;
+    w->flag = pSeq->Work8[0];
+    w->rand_x = pSeq->Work8[1];
+    w->rand_y = pSeq->Work8[2];
+    w->a_wait = pSeq->Work8[3];
+    w->a_rate = pSeq->prm.b.xCF;
     if (m_Size_base_x < 0.1f) {
         m_Size_base_x = 0.1f;
     }

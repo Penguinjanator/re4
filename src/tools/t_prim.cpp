@@ -49,7 +49,7 @@ void TprimInitEnv2D(TprimRect* rect)
 
 // Begins 2D drawing: ortho projection over the 2D rect, identity model matrix, blend mode
 // (0 opaque, 1 alpha, 2 additive) and the flat colour vertex format.
-void TprimDraw2D(u32 blend)
+void TprimDraw2D(u32 mode)
 {
     Mtx44 proj;
     Mtx pos;
@@ -59,23 +59,23 @@ void TprimDraw2D(u32 blend)
     PSMTXIdentity(pos);
     GXSetCurrentMtx(0);
     GXLoadPosMtxImm(pos, 0);
-    TprimSetBlend(blend);
+    TprimSetBlend(mode);
     set_attr_common();
 }
 
 // Begins 3D drawing: the current camera projection, the view matrix as model matrix, blend mode
 // and the flat colour vertex format.
-void TprimDraw3D(u32 blend)
+void TprimDraw3D(u32 mode)
 {
     CameraCurrentProjection();
     GXSetCurrentMtx(0);
     GXLoadPosMtxImm(ViewMtx, 0);
-    TprimSetBlend(blend);
+    TprimSetBlend(mode);
     set_attr_common();
 }
 
 // GX blend mode for `blend` 0 none / 1 src alpha / 2 additive; other values leave it unchanged.
-void TprimSetBlend(u32 blend)
+void TprimSetBlend(u32 mode)
 {
     static u32 bl[3][4] = {
         {0, 1, 0, 0},
@@ -83,8 +83,8 @@ void TprimSetBlend(u32 blend)
         {1, 0, 2, 0},
     };
 
-    if (blend <= 2) {
-        GXSetBlendMode(bl[blend][0], bl[blend][1], bl[blend][2], bl[blend][3]);
+    if (mode <= 2) {
+        GXSetBlendMode(bl[mode][0], bl[mode][1], bl[mode][2], bl[mode][3]);
         GXSetColorUpdate(1);
     }
 }
@@ -131,38 +131,38 @@ void set_attr_s16()
 }
 
 // Line strip through `n` points in one colour.
-void TprimDrawLineFn(Vec* v, GXColor* col, u16 n)
+void TprimDrawLineFn(Vec* v, GXColor* c, u16 n)
 {
     GXBegin(0xB0, 0, n);
-    set_vtx_flat_f32(v, col, n);
+    set_vtx_flat_f32(v, c, n);
 }
 #endif
 
 // Filled polygon (quad primitive) over `n` points in one colour.
-void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n)
+void TprimDrawPolyFn(Vec* v, GXColor* c, u16 n)
 {
     GXBegin(0x80, 0, n);
-    set_vtx_flat_f32(v, col, n);
+    set_vtx_flat_f32(v, c, n);
 }
 
 #ifdef TPRIM_FULL
 // Filled 2D rectangle at depth z.
-void TprimDrawTile2D(TprimRect* rect, f32 z, GXColor* col)
+void TprimDrawTile2D(TprimRect* v, f32 z, GXColor* c)
 {
     GXBegin(0x80, 0, 4);
-    GXPosition3f32(rect->x, rect->y, z);
-    GXColor4u8(col->r, col->g, col->b, col->a);
-    GXPosition3f32(rect->x + rect->w, rect->y, z);
-    GXColor4u8(col->r, col->g, col->b, col->a);
-    GXPosition3f32(rect->x + rect->w, rect->y + rect->h, z);
-    GXColor4u8(col->r, col->g, col->b, col->a);
-    GXPosition3f32(rect->x, rect->y + rect->h, z);
-    GXColor4u8(col->r, col->g, col->b, col->a);
+    GXPosition3f32(v->x, v->y, z);
+    GXColor4u8(c->r, c->g, c->b, c->a);
+    GXPosition3f32(v->x + v->w, v->y, z);
+    GXColor4u8(c->r, c->g, c->b, c->a);
+    GXPosition3f32(v->x + v->w, v->y + v->h, z);
+    GXColor4u8(c->r, c->g, c->b, c->a);
+    GXPosition3f32(v->x, v->y + v->h, z);
+    GXColor4u8(c->r, c->g, c->b, c->a);
 }
 #endif
 
 // Cross-hair of four triangles around `pos` (the last one's tip has z 0 in the original).
-void TprimDrawCursor(Vec* pos, f32 z, GXColor* col)
+void TprimDrawCursor(Vec* pos, f32 z, GXColor* c)
 {
     Vec v[3];
 
@@ -175,7 +175,7 @@ void TprimDrawCursor(Vec* pos, f32 z, GXColor* col)
     v[2].x = pos->x + 4.0f;
     v[2].y = v[1].y;
     v[2].z = z;
-    TprimDrawPolyFn(v, col, 3);
+    TprimDrawPolyFn(v, c, 3);
 
     v[0].x = pos->x;
     v[0].y = pos->y + 2.0f;
@@ -186,7 +186,7 @@ void TprimDrawCursor(Vec* pos, f32 z, GXColor* col)
     v[2].x = pos->x - 4.0f;
     v[2].y = v[1].y;
     v[2].z = z;
-    TprimDrawPolyFn(v, col, 3);
+    TprimDrawPolyFn(v, c, 3);
 
     v[0].x = pos->x - 2.0f;
     v[0].y = pos->y;
@@ -197,7 +197,7 @@ void TprimDrawCursor(Vec* pos, f32 z, GXColor* col)
     v[2].x = v[1].x;
     v[2].y = pos->y - 4.0f;
     v[2].z = z;
-    TprimDrawPolyFn(v, col, 3);
+    TprimDrawPolyFn(v, c, 3);
 
     v[0].x = pos->x + 2.0f;
     v[0].y = pos->y;
@@ -208,7 +208,7 @@ void TprimDrawCursor(Vec* pos, f32 z, GXColor* col)
     v[2].x = v[1].x;
     v[2].y = pos->y + 4.0f;
     v[2].z = z;
-    TprimDrawPolyFn(v, col, 3);
+    TprimDrawPolyFn(v, c, 3);
 }
 
 #ifdef TPRIM_FULL
@@ -344,49 +344,49 @@ static inline void tprim_default_view(Vec* axis)
 #ifdef TPRIM_FULL
 inline
 #endif
-void TprimDrawMtxDirection(Mtx m, GXColor* fill, GXColor* line)
+void TprimDrawMtxDirection(Mtx mat, GXColor* c0, GXColor* c1)
 {
     Vec v[3] = {{0.0f, 0.0f, 900.0f}, {300.0f, 0.0f, -300.0f}, {-300.0f, 0.0f, -300.0f}};
 
-    PSMTXMultVec(m, &v[0], &v[0]);
-    PSMTXMultVec(m, &v[1], &v[1]);
-    PSMTXMultVec(m, &v[2], &v[2]);
+    PSMTXMultVec(mat, &v[0], &v[0]);
+    PSMTXMultVec(mat, &v[1], &v[1]);
+    PSMTXMultVec(mat, &v[2], &v[2]);
     GXBegin(0x80, 0, 3);
     GXPosition3f32(v[0].x, v[0].y, v[0].z);
-    GXColor4u8(fill->r, fill->g, fill->b, fill->a);
+    GXColor4u8(c0->r, c0->g, c0->b, c0->a);
     GXPosition3f32(v[1].x, v[1].y, v[1].z);
-    GXColor4u8(fill->r, fill->g, fill->b, fill->a);
+    GXColor4u8(c0->r, c0->g, c0->b, c0->a);
     GXPosition3f32(v[2].x, v[2].y, v[2].z);
-    GXColor4u8(fill->r, fill->g, fill->b, fill->a);
+    GXColor4u8(c0->r, c0->g, c0->b, c0->a);
     GXBegin(0xB0, 0, 4);
     GXPosition3f32(v[0].x, v[0].y, v[0].z);
-    GXColor4u8(line->r, line->g, line->b, line->a);
+    GXColor4u8(c1->r, c1->g, c1->b, c1->a);
     GXPosition3f32(v[1].x, v[1].y, v[1].z);
-    GXColor4u8(line->r, line->g, line->b, line->a);
+    GXColor4u8(c1->r, c1->g, c1->b, c1->a);
     GXPosition3f32(v[2].x, v[2].y, v[2].z);
-    GXColor4u8(line->r, line->g, line->b, line->a);
+    GXColor4u8(c1->r, c1->g, c1->b, c1->a);
     GXPosition3f32(v[0].x, v[0].y, v[0].z);
-    GXColor4u8(line->r, line->g, line->b, line->a);
+    GXColor4u8(c1->r, c1->g, c1->b, c1->a);
 }
 
 #ifdef TPRIM_FULL
 // Closed outline: the strip plus the first vertex again.
-void TprimDrawFrameFn_s16(S16Vec* v, GXColor* col, u16 n)
+void TprimDrawFrameFn_s16(S16Vec* v, GXColor* c, u16 n)
 {
     set_attr_s16();
     GXBegin(0xB0, 0, n + 1);
-    set_vtx_flat_s16(v, col, n);
+    set_vtx_flat_s16(v, c, n);
     GXPosition3s16(v[0].x, v[0].y, v[0].z);
-    GXColor4u8(col->r, col->g, col->b, col->a);
+    GXColor4u8(c->r, c->g, c->b, c->a);
     set_attr_f32();
 }
 
 // Filled polygon over `n` s16 points in one colour (switches the vertex format and back).
-void TprimDrawPolyFn_s16(S16Vec* v, GXColor* col, u16 n)
+void TprimDrawPolyFn_s16(S16Vec* v, GXColor* c, u16 n)
 {
     set_attr_s16();
     GXBegin(0x80, 0, n);
-    set_vtx_flat_s16(v, col, n);
+    set_vtx_flat_s16(v, c, n);
     set_attr_f32();
 }
 #endif

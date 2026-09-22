@@ -78,7 +78,7 @@ public:
     u8 pad_F;
 
     void setBlockCommand(int cmd, int a);
-    void setTrans(int on);
+    void setTrans(int on_off);
     void setBlockLoadToMram();
     void setBlockLoadToAram();
     void setBlockDelete();

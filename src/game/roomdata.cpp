@@ -131,19 +131,19 @@ void cRoomData::initRoomSet()
 }
 
 // Copies the whole room save buffer into the save game image.
-void cRoomData::save(void* dst)
+void cRoomData::save(void* p)
 {
-    RoomSaveHdr* h = (RoomSaveHdr*) dst;
+    RoomSaveHdr* h = (RoomSaveHdr*) p;
 
     memcpy(h, m_pRoomSaveHead, num * sizeof(RoomSave) + sizeof(RoomSaveHdr));
 }
 
 // Restores the room records from a save game image, matched by id (records of rooms the build no
 // longer has are dropped).
-void cRoomData::load(void* src)
+void cRoomData::load(void* p)
 {
-    RoomSaveHdr* h = (RoomSaveHdr*) src;
-    RoomSave* rec = (RoomSave*) ((u8*) src + sizeof(RoomSaveHdr));
+    RoomSaveHdr* h = (RoomSaveHdr*) p;
+    RoomSave* rec = (RoomSave*) ((u8*) p + sizeof(RoomSaveHdr));
     RoomSave* dst;
     u32 j;
     int i;
@@ -160,10 +160,10 @@ void cRoomData::load(void* src)
 }
 
 // Zeroes the records named in the image (keeping their ids) — the "new game from this data" case.
-void cRoomData::clear(void* src)
+void cRoomData::clear(void* p)
 {
-    RoomSaveHdr* h = (RoomSaveHdr*) src;
-    RoomSave* rec = (RoomSave*) ((u8*) src + sizeof(RoomSaveHdr));
+    RoomSaveHdr* h = (RoomSaveHdr*) p;
+    RoomSave* rec = (RoomSave*) ((u8*) p + sizeof(RoomSaveHdr));
     RoomSave* dst;
     u32 j;
     int i;
@@ -190,10 +190,10 @@ void cRoomData::clear(void* src)
 
 // The RoomSave record of room `room` (stage << 8 | no); 0 when the room is out of range or has no
 // record.
-u8* cRoomData::getRoomSavePtr(u16 room)
+u8* cRoomData::getRoomSavePtr(u16 room_no)
 {
-    u32 stage = room >> 8;
-    u8 no = room;
+    u32 stage = room_no >> 8;
+    u8 no = room_no;
     u32 s;
     int i;
     int k;
@@ -221,10 +221,10 @@ u8* cRoomData::getRoomSavePtr(u16 room)
 }
 
 // Runs the room's init function from its stage table entry, if any (room entry).
-void cRoomData::execInitFunc(u16 room)
+void cRoomData::execInitFunc(u16 room_no)
 {
-    u8 no = room;
-    u32 stage = room >> 8;
+    u8 no = room_no;
+    u32 stage = room_no >> 8;
     void (*func)();
 
     if (checkRoomRange(stage, no) == 1) {
@@ -236,10 +236,10 @@ void cRoomData::execInitFunc(u16 room)
 }
 
 // Runs the room's per-frame main function, if any.
-void cRoomData::execMainFunc(u16 room)
+void cRoomData::execMainFunc(u16 room_no)
 {
-    u8 no = room;
-    u32 stage = room >> 8;
+    u8 no = room_no;
+    u32 stage = room_no >> 8;
     void (*func)();
 
     if (checkRoomRange(stage, no) == 1) {
@@ -251,9 +251,9 @@ void cRoomData::execMainFunc(u16 room)
 }
 
 // 1 when stage / room index exists in the stage tables.
-int cRoomData::checkRoomRange(u8 stage, u8 no)
+int cRoomData::checkRoomRange(u8 stage, u8 room)
 {
-    if (stage <= 9 && no < Room_data_tbl[stage].num && Room_data_tbl[stage].tbl != 0) {
+    if (stage <= 9 && room < Room_data_tbl[stage].num && Room_data_tbl[stage].tbl != 0) {
         return 1;
     }
     return 0;
@@ -261,10 +261,10 @@ int cRoomData::checkRoomRange(u8 stage, u8 no)
 
 // 1 when the room uses a room REL (rel_no) other than the one currently linked (m_RelNo): the
 // stage loader must fetch it.
-int cRoomData::checkRelRead(u16 room)
+int cRoomData::checkRelRead(u16 room_no)
 {
-    u8 no = room;
-    u32 stage = room >> 8;
+    u8 no = room_no;
+    u32 stage = room_no >> 8;
     u16 rel;
 
     if (checkRoomRange(stage, no) == 1) {
@@ -278,10 +278,10 @@ int cRoomData::checkRelRead(u16 room)
 
 // Loads the room's REL (FileTbl[rel_no]) from disc, allocates its bss (plus a backup copy for
 // stop/restart), links it and runs its prolog. m_RelNo remembers which is linked.
-void cRoomData::linkRelData(u16 room)
+void cRoomData::linkRelData(u16 room_no)
 {
-    u8 no = room;
-    u32 stage = room >> 8;
+    u8 no = room_no;
+    u32 stage = room_no >> 8;
     int id;
     int ret;
 
@@ -343,22 +343,22 @@ void cRoomData::restartRelData()
 }
 
 // "Passed" bit `bit` (0..7, from the top) of the room's save record; 0 without a record.
-int cRoomData::checkPassed(u16 room, int bit)
+int cRoomData::checkPassed(u16 room_no, int part_no)
 {
-    u8* p = getRoomSavePtr(room);
+    u8* p = getRoomSavePtr(room_no);
 
     if (p == 0) {
         return 0;
     }
-    return p[2] & (0x80 >> bit);
+    return p[2] & (0x80 >> part_no);
 }
 
 // Sets "passed" bit `bit` of the room's save record.
-void cRoomData::setPassed(u16 room, int bit)
+void cRoomData::setPassed(u16 room_no, int part_no)
 {
-    u8* p = getRoomSavePtr(room);
+    u8* p = getRoomSavePtr(room_no);
 
     if (p != 0) {
-        p[2] |= 0x80 >> bit;
+        p[2] |= 0x80 >> part_no;
     }
 }

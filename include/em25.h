@@ -55,7 +55,7 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM25_WK)
     virtual void move();
     virtual int ckParent();          // 1 while no parent is set
-    virtual void setParent(cEm* parent, int parts, Vec* pos, Vec* rot);
+    virtual void setParent(cEm* pMod, int parts, Vec* pos0, Vec* ang0);
     virtual void setWait();
     virtual void setAtk();
     virtual int ckAtkHit();

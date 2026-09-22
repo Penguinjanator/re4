@@ -164,25 +164,25 @@ extern "C" void Esp03_Trans(cEsp03* esp)
 }
 
 // Point count from Work8[0] (10 = quad mode), wall flag Work8[1] (0/1), never Z-culled.
-int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp03::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp03Work* w = &m_Free;
     int n;
 
     w->pBeforePos = &w->Pos[0];
     w->nPos = 1;
-    n = (s8)gen->Work8[0];
+    n = (s8)pSeq->Work8[0];
     if (n == 10) {
         w->maxPoints = n;
     } else {
-        w->maxPoints = 4 - gen->Work8[0];
+        w->maxPoints = 4 - pSeq->Work8[0];
         if (w->maxPoints <= 1) {
             w->maxPoints = 2;
         } else if (w->maxPoints > 6) {
             w->maxPoints = 6;
         }
     }
-    w->flag = gen->Work8[1];
+    w->flag = pSeq->Work8[1];
     if (w->flag > 1) {
         pLog->err(0, 0, "ESP_03 : WK1 invalid.");
         return 0;
@@ -194,18 +194,18 @@ int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
 
 // Casts the next step (current point + speed) against the wall collision (EatMgr); on a hit the
 // life is set to expire this frame.
-void Esp03_HitWall(cEsp03* esp)
+void Esp03_HitWall(cEsp03* pEsp)
 {
-    Esp03Work* w = &esp->m_Free;
+    Esp03Work* w = &pEsp->m_Free;
     Vec hit;
     Vec next2;
     Vec nrm;
     Vec next;
 
-    PSVECAdd(w->pBeforePos, &esp->m_Pos, &next);
-    PSVECAdd(&next, &esp->m_Speed, &next2);
+    PSVECAdd(w->pBeforePos, &pEsp->m_Pos, &next);
+    PSVECAdd(&next, &pEsp->m_Speed, &next2);
     if (EatMgr.hitCheck(&next, &next2, &hit, &nrm, 0, 0)) {
-        esp->m_Life_max = 1;
-        esp->m_Life_time = 1;
+        pEsp->m_Life_max = 1;
+        pEsp->m_Life_time = 1;
     }
 }

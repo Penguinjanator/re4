@@ -15,7 +15,7 @@ public:
     int count;  // 0x10
 
     virtual void init(SUB_SCREEN* wk) { count = 0; }  // in-class: eof order dtor, init
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PiecePopDown : public Widget<SUB_SCREEN> {
@@ -23,14 +23,14 @@ public:
     int count;  // 0x10
 
     virtual void init(SUB_SCREEN* wk) { count = 0; }  // in-class: eof order dtor, init
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PzzlThinking : public Widget<SUB_SCREEN> {
 public:
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PieceSelect : public Widget<SUB_SCREEN> {
@@ -40,7 +40,7 @@ public:
 
     PieceSelect() : Widget<SUB_SCREEN>(4) {}
     virtual void init(SUB_SCREEN* wk) { state = 0; }  // in-class: eof order dtor, init
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PieceCommand : public Widget<SUB_SCREEN> {
@@ -56,9 +56,9 @@ public:
     u8 lower;         // 0x98  the piece is in the lower half (menu above it)
 
     PieceCommand() : Widget<SUB_SCREEN>(6) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PieceCombine : public Widget<SUB_SCREEN> {
@@ -66,9 +66,9 @@ public:
     int state;  // 0x10
 
     PieceCombine() : Widget<SUB_SCREEN>(2) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class CaseChange : public Widget<SUB_SCREEN> {
@@ -76,9 +76,9 @@ public:
     IdUnit* a;  // 0x10
     IdUnit* b;  // 0x14
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 extern "C" {

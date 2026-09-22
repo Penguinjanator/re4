@@ -47,14 +47,14 @@ void cEsp05::move()
 }
 
 // Amplitude / speed from Vec0.x / Vec0.y (x 0.05), each randomised by Vec0.z x 10%, random phase.
-int cEsp05::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp05::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp05Work* w = &m_Free;
 
-    w->Pow = gen->Vec0.x;
-    w->Spd = gen->Vec0.y * 0.05f;
-    w->Pow += w->Pow * fRand0_1() * (gen->Vec0.z * 0.1f);
-    w->Spd += w->Spd * fRand0_1() * (gen->Vec0.z * 0.1f);
+    w->Pow = pSeq->Vec0.x;
+    w->Spd = pSeq->Vec0.y * 0.05f;
+    w->Pow += w->Pow * fRand0_1() * (pSeq->Vec0.z * 0.1f);
+    w->Spd += w->Spd * fRand0_1() * (pSeq->Vec0.z * 0.1f);
     w->Theta = fRand0_1() * PI * 2.0f;
     return 1;
 }

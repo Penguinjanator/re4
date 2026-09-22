@@ -40,11 +40,11 @@ public:
         } grp;
     };
 
-    void slide(int ofs);
-    SmdWork* getWorkPtr(int no);
-    void* getBinPtr(int no);
-    void* getTplPtr(int no);
-    void* getMotPtr(int no);
+    void slide(int offset);
+    SmdWork* getWorkPtr(int id);
+    void* getBinPtr(int id);
+    void* getTplPtr(int id);
+    void* getMotPtr(int id);
     int getWorkNum();
 };
 
@@ -76,27 +76,27 @@ public:
 extern cSmd* pSmd;
 extern cSmd* pSmdComn;
 
-int SmdInit(cSmd* smd, cSmx* smx, cSmd* comn);
+int SmdInit(cSmd* pSh, cSmx* pSmxh, cSmd* pShCmn);
 void SmdClear(int mode);
-void workInit(cObj* obj);
-void SmdSetup(int blk);
-int setObj(int blk);
-int SmdSetParam(cObj* obj, SmdWork* w);
-void SmxSetFlag(cObj* obj, u32 flags);
-int SmxGetFlag(cObj* obj);
+void workInit(cObj* pObj);
+void SmdSetup(int blockNo);
+int setObj(int blkNo);
+int SmdSetParam(cObj* pObj, SmdWork* pSw);
+void SmxSetFlag(cObj* pObj, u32 flag);
+int SmxGetFlag(cObj* pObj);
 void smxInit(cObj* obj, u8 id);
 void smxInit(cObj* obj, SmxWork* w);
-void* SmdGetTplPtr(int no);
-cObj* SmdGetObjPtr(u32 id);
+void* SmdGetTplPtr(int idx);
+cObj* SmdGetObjPtr(u32 idx);
 int SmdGetObjNum();
-int SmdGetWorkId(cObj* obj);
-void BlockCreate(int blk, cSmd* smd);
-void BlockDestroy(int blk);
-SmdWork* SmdGetWorkPtr(int id);
-cObj* SmdGetGroupObjPtr(u32 id);
-cObj* SmdGetGroupObjPtr2(u32 id);
-cObj* SmdGetGroupNext(cObj* obj);
-void SmdSetTrans(u32 id, int on);
+int SmdGetWorkId(cObj* pObj);
+void BlockCreate(int blkNo, cSmd* pBlock);
+void BlockDestroy(int blkNo);
+SmdWork* SmdGetWorkPtr(int idx);
+cObj* SmdGetGroupObjPtr(u32 idx);
+cObj* SmdGetGroupObjPtr2(u32 idx);
+cObj* SmdGetGroupNext(cObj* pObj00);
+void SmdSetTrans(u32 idx, int onoff);
 cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int front);
 
 #endif

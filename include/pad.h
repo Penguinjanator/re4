@@ -56,12 +56,12 @@ void PADSetAnalogMode(u32 mode);
 // game/pad.cpp
 void PadInit();
 void PadRead();
-void KeyStop(u64 mask);
-void KeyClear(u64 mask);
+void KeyStop(u64 un_stop_bit);
+void KeyClear(u64 un_stop_bit);
 void VibControl();
 VibWork* PullVibWork();
-void VibSet(u32 time, u32 level, u16 wait, u16 type);
-void VibSetDataCore(VibData* pInfo, u32 type);
+void VibSet(u32 time, u32 level, u16 delay, u16 flag);
+void VibSetDataCore(VibData* pInfo, u32 flag);
 void VibSetData(VibDataTbl* t, u32 no, u32 type);
 void VibSetClearType(u32 type);
 int PadCheckStatus(JOY* joy);

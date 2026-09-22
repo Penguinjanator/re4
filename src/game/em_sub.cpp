@@ -76,16 +76,16 @@ static inline cModel* HitParts(cEm* em, YARARE_INFO* p)
 
 // Shared Rno0 routine of the object classes (emdoor / emrack tables): the "scenario" state where an
 // event script drives the object; just advances the current motion.
-void Em_R0_Scenario(cEm* em)
+void Em_R0_Scenario(cEm* pEm)
 {
-    MotionMove(em, 0);
+    MotionMove(pEm, 0);
 }
 
 // Damage position / direction of the registered hit: the hit box centre line clamped to the box
 // height along its axis, from the damage position (x328) mapped into the parts' space.
-int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
+int EmGetDmPos(cEm* pEm, Vec* pPos, Vec* pAng)
 {
-    YARARE_INFO* p = em->dmg.m_pDamageYarare;
+    YARARE_INFO* p = pEm->dmg.m_pDamageYarare;
     u32 type;
     cModel* parts;
     Mtx m;
@@ -102,10 +102,10 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         return 0;
     }
     if (p->flag & YAT_FLAG_DMPOS) {
-        *pos = p->cross;
-        dir->x = 0.0f;
-        dir->y = GetXZAngle(pos, &em->dmg.m_PosFrom);
-        dir->z = 0.0f;
+        *pPos = p->cross;
+        pAng->x = 0.0f;
+        pAng->y = GetXZAngle(pPos, &pEm->dmg.m_PosFrom);
+        pAng->z = 0.0f;
         return 1;
     }
     if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
@@ -113,7 +113,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     } else {
         type = 1;
     }
-    parts = HitParts(em, p);
+    parts = HitParts(pEm, p);
     bottom = p->offset;
     top = p->offset;
     switch (type) {
@@ -142,7 +142,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (PSMTXInverse(m, inv) == 0) {
         PSMTXIdentity(inv);
     }
-    PSMTXMultVec(inv, &em->dmg.m_PosFrom, &v);
+    PSMTXMultVec(inv, &pEm->dmg.m_PosFrom, &v);
     switch (type) {
     case 0:
         d.x = 0.0f;
@@ -161,7 +161,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         if (v.x > p->height) {
             d.x = p->height;
         }
-        PSMTXMultVec(m, &d, pos);
+        PSMTXMultVec(m, &d, pPos);
         break;
     case 1:
     default:
@@ -181,7 +181,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         if (v.y > p->height) {
             d.y = p->height;
         }
-        PSMTXMultVec(m, &d, pos);
+        PSMTXMultVec(m, &d, pPos);
         break;
     case 2:
         d.x = v.x;
@@ -200,12 +200,12 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         if (v.z > p->height) {
             d.z = p->height;
         }
-        PSMTXMultVec(m, &d, pos);
+        PSMTXMultVec(m, &d, pPos);
         break;
     }
-    dir->x = 0.0f;
-    dir->y = GetXZAngle(&c, &em->dmg.m_PosFrom);
-    dir->z = 0.0f;
+    pAng->x = 0.0f;
+    pAng->y = GetXZAngle(&c, &pEm->dmg.m_PosFrom);
+    pAng->z = 0.0f;
     return 1;
 }
 
@@ -219,16 +219,16 @@ static void emGetDmPosDead(Vec* v)
 
 // Blood burst at the damage position: the small burst for blades / the shotgun family, three
 // spread bursts for everything else.
-void EmDmBloodSet(cEm* em)
+void EmDmBloodSet(cEm* pEm)
 {
     Vec pos;
     Vec dir;
     Vec p;
 
-    if (EmGetDmPos(em, &pos, &dir) == 0) {
+    if (EmGetDmPos(pEm, &pos, &dir) == 0) {
         return;
     }
-    switch (em->dmg.m_Wep) {
+    switch (pEm->dmg.m_Wep) {
     default:
         EstSet(0, -1, &pos, &dir, EFF_CORE, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
         p.x = fRand1_1() * 200.0f + pos.x;
@@ -275,41 +275,41 @@ void EmDmBloodSet(cEm* em)
 }
 
 // Effect `no` at the damage position (scattered by 50 when `rnd` is set), owned by `em`.
-void EmDmBloodSet2(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f)
+void EmDmBloodSet2(cEm* pEm, u32 est_id, u32 est_no, u32 mode, u16 esp_core_flg, u32 core_kind)
 {
     Vec pos;
     Vec dir;
 
-    if (EmGetDmPos(em, &pos, &dir) == 0) {
+    if (EmGetDmPos(pEm, &pos, &dir) == 0) {
         return;
     }
-    if (rnd) {
+    if (mode) {
         pos.x = fRand1_1() * 50.0f + pos.x;
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSet(0, -1, &pos, &dir, no, prm, esp_core_flg, f, em, 0);
+    EstSet(0, -1, &pos, &dir, est_id, est_no, esp_core_flg, core_kind, pEm, 0);
 }
 
 // EmDmBloodSet2 with the effect aligned to the enemy's rotation instead of the damage direction.
-void EmDmBloodSet3(cEm* em, u32 no, u32 prm, u32 rnd, u16 esp_core_flg, u32 f)
+void EmDmBloodSet3(cEm* pEm, u32 est_id, u32 est_no, u32 mode, u16 esp_core_flg, u32 core_kind)
 {
     Vec pos;
     Vec dir;
 
-    if (EmGetDmPos(em, &pos, &dir) == 0) {
+    if (EmGetDmPos(pEm, &pos, &dir) == 0) {
         return;
     }
-    if (rnd) {
+    if (mode) {
         pos.x = fRand1_1() * 50.0f + pos.x;
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSet(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, em, 0);
+    EstSet(0, -1, &pos, &pEm->ang, est_id, est_no, esp_core_flg, core_kind, pEm, 0);
 }
 
 // Blood on the player at the height of `pos` (clamped to the player's hit box), facing the attacker.
-void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
+void EmPlBloodSet(cEm* pEm, Vec* pPos, u32 type, u8 eff_id, u8 est_id)
 {
     cPlayer* pl = pPL;
     YARARE_INFO* hit = &pl->hitInfo;
@@ -324,7 +324,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 
     parts = pl->getPartsPtr(0);
     p = parts->world;
-    h = pos->y - p.y;
+    h = pPos->y - p.y;
     if (h > hit->height * 0.5f) {
         h = hit->height * 0.5f;
     }
@@ -337,7 +337,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     PSMTXMultVecSR(parts->mat, &s, &s);
     mag = PSVECMag(&s);
     rot.x = 0.0f;
-    rot.y = GetXZAngle(&p, pos);
+    rot.y = GetXZAngle(&p, pPos);
     rot.z = 0.0f;
     RotMatrix(m, &rot);
     TransMatrix(m, &p);
@@ -360,7 +360,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 }
 
 // Blood at the player's registered damage position.
-void EmPlBloodSet2(cModel* m, Vec* p, u32 type, u8 eff_id, u8 est_id)
+void EmPlBloodSet2(cModel* pEm, Vec* pPos, u32 type, u8 eff_id, u8 est_id)
 {
     Vec pos;
     Vec dir;
@@ -381,7 +381,7 @@ void EmPlBloodSet2(cModel* m, Vec* p, u32 type, u8 eff_id, u8 est_id)
 }
 
 // EmPlBloodSet for the partner.
-void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
+void EmSubBloodSet(cEm* pEm, Vec* pPos, u32 type, u8 eff_id, u8 est_id)
 {
     cSubChar* sub = pSUB;
     YARARE_INFO* hit;
@@ -398,7 +398,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
     hit = &sub->hitInfo;
     parts = sub->getPartsPtr(0);
     PSMTXMultVec(parts->mat, &hit->offset, &p);
-    h = pos->y - p.y;
+    h = pPos->y - p.y;
     if (h > hit->height * 0.7f) {
         h = hit->height * 0.7f;
     }
@@ -406,7 +406,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
         h = -(hit->height * 0.7f);
     }
     rot.x = 0.0f;
-    rot.y = GetXZAngle(&p, pos);
+    rot.y = GetXZAngle(&p, pPos);
     rot.z = 0.0f;
     RotMatrix(m, &rot);
     TransMatrix(m, &p);
@@ -428,7 +428,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, u32 type, u8 eff_id, u8 est_id)
 
 // Hit boxes of `em` inside the capsule box (8 corners) of a melee weapon: the one nearest to the
 // box axis, with rad = squared distance to `pos` and dist = squared distance from the axis.
-YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
+YARARE_INFO* emBoxAtCk(cEm* pEm, Vec* pBox, Vec* pPos, int wep_no)
 {
     Mtx mat;
     Mtx rm;
@@ -447,11 +447,11 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
     f32 r;
     int mask;
 
-    PSVECAdd(&box[2], &box[3], &bc);
-    PSVECAdd(&box[6], &bc, &bc);
-    PSVECAdd(&box[7], &bc, &bc);
+    PSVECAdd(&pBox[2], &pBox[3], &bc);
+    PSVECAdd(&pBox[6], &bc, &bc);
+    PSVECAdd(&pBox[7], &bc, &bc);
     PSVECScale(&bc, &bc, 0.25f);
-    PSVECSubtract(&bc, pos, &dir);
+    PSVECSubtract(&bc, pPos, &dir);
 #line 731
     VECNormalize(&dir, &dir);
     PSMTXIdentity(mat);
@@ -469,19 +469,19 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
             PSMTXConcat(mat, rm, mat);
         }
     }
-    mat[0][3] = pos->x;
-    mat[1][3] = pos->y;
-    mat[2][3] = pos->z;
+    mat[0][3] = pPos->x;
+    mat[1][3] = pPos->y;
+    mat[2][3] = pPos->z;
     if (PSMTXInverse(rm, mat) == 0) {
         PSMTXIdentity(mat);
     }
     ret = 0;
     best = 1e16f;
-    for (p = &em->hitInfo; p != 0; p = p->pList) {
+    for (p = &pEm->hitInfo; p != 0; p = p->pList) {
         if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(wep_no)) {
             continue;
         }
         bottom = p->offset;
@@ -495,7 +495,7 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
         } else {
             top.y += p->height;
         }
-        parts = HitParts(em, p);
+        parts = HitParts(pEm, p);
         PSMTXMultVec(parts->mat, &top, &top);
         PSMTXMultVec(parts->mat, &bottom, &bottom);
         PSVECAdd(&top, &bottom, &center);
@@ -504,7 +504,7 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
         up.z = p->radius;
         PSMTXMultVecSR(parts->mat, &up, &up);
         r = PSVECMag(&up);
-        if (AtBoxCapsuleCk3(box, &top, &bottom, r) == 0) {
+        if (AtBoxCapsuleCk3(pBox, &top, &bottom, r) == 0) {
             continue;
         }
         PSMTXMultVec(mat, &center, &up);
@@ -513,13 +513,13 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
             continue;
         }
         mask = 0;
-        if (flag != 0x10) {
+        if (wep_no != 0x10) {
             mask = 0x400000;
         }
-        if (EatMgr.hitCheck(pos, &center, 0, 0, 0, mask) != 0) {
+        if (EatMgr.hitCheck(pPos, &center, 0, 0, 0, mask) != 0) {
             continue;
         }
-        PSVECSubtract(&center, pos, &up);
+        PSVECSubtract(&center, pPos, &up);
         p->len = up.x * up.x + up.y * up.y + up.z * up.z;
         p->c_dis = d2;
         best = d2;
@@ -530,7 +530,7 @@ YARARE_INFO* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
 
 // Hit boxes of `em` crossed by the line a-b (within `len` squared of `a`): the nearest one, with
 // pos = hit point, rad = squared distance a -> hit, dist = squared distance hit -> a.
-YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
+YARARE_INFO* emLineAtCk(cEm* pEm, Vec* pPos, Vec* pPos2, f32 hit_len, int wep_no)
 {
     Vec top;
     Vec bottom;
@@ -540,18 +540,18 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
     YARARE_INFO* p;
     YARARE_INFO* ret = 0;
     cModel* parts;
-    f32 best = len;
+    f32 best = hit_len;
     f32 d2;
     f32 r;
 
-    for (p = &em->hitInfo; p != 0; p = p->pList) {
+    for (p = &pEm->hitInfo; p != 0; p = p->pList) {
         if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(wep_no)) {
             continue;
         }
-        parts = HitParts(em, p);
+        parts = HitParts(pEm, p);
         if (p->flag & YAT_FLAG_CUBE) {
             if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->offset, &hit, p->radius, p->height, p->extent) == 0) {
                 continue;
@@ -597,7 +597,7 @@ YARARE_INFO* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
 }
 
 // emLineAtCk sorted by the XZ distance only, hit point returned in `out`.
-YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int flag)
+YARARE_INFO* emLineAtCk2(cEm* pEm, Vec* pPos, Vec* pPos2, f32 hit_len, Vec* pCross, int wep_no)
 {
     Vec top;
     Vec bottom;
@@ -607,18 +607,18 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
     YARARE_INFO* p;
     YARARE_INFO* ret = 0;
     cModel* parts;
-    f32 best = len;
+    f32 best = hit_len;
     f32 d2;
     f32 r;
 
-    for (p = &em->hitInfo; p != 0; p = p->pList) {
+    for (p = &pEm->hitInfo; p != 0; p = p->pList) {
         if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
-        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
+        if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(wep_no)) {
             continue;
         }
-        parts = HitParts(em, p);
+        parts = HitParts(pEm, p);
         if (p->flag & YAT_FLAG_CUBE) {
             if (emLineCubeCrossCk(pPos, pPos2, parts->mat, &p->offset, &hit, p->radius, p->height, p->extent) == 0) {
                 continue;
@@ -655,7 +655,7 @@ YARARE_INFO* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int 
         }
         best = d2;
         ret = p;
-        *out = hit;
+        *pCross = hit;
     }
     return ret;
 }
@@ -677,7 +677,7 @@ static f32 emLineAtCkDead(f32 len, f32 step)
 }
 
 // Segment a-b against the capsule top-bottom of radius r: 1 with the entry point in `hit`.
-int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r)
+int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* pTop, Vec* pBtm, Vec* pCross, f32 r)
 {
     Mtx m;
     Mtx inv;
@@ -697,7 +697,7 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r)
     f32 h;
 
     PSMTXIdentity(m);
-    PSVECSubtract(top, bottom, &d);
+    PSVECSubtract(pTop, pBtm, &d);
     len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
     if (d.x == 0.0f && d.y == 0.0f && d.z == 0.0f) {
         d.y = 1.0f;
@@ -713,42 +713,42 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r)
         PSMTXRotAxisRad(inv, &up, ang);
         PSMTXConcat(inv, m, m);
     }
-    TransMatrix(m, bottom);
+    TransMatrix(m, pBtm);
     if (PSMTXInverse(m, inv) == 0) {
         PSMTXIdentity(inv);
     }
     PSMTXMultVec(inv, a, &la);
     PSMTXMultVec(inv, b, &lb);
-    dist = (a->x - top->x) * (a->x - top->x) + (a->y - top->y) * (a->y - top->y) + (a->z - top->z) * (a->z - top->z);
+    dist = (a->x - pTop->x) * (a->x - pTop->x) + (a->y - pTop->y) * (a->y - pTop->y) + (a->z - pTop->z) * (a->z - pTop->z);
     if (dist < r * r) {
-        *hit = *a;
+        *pCross = *a;
         return 1;
     }
-    dist = (a->x - bottom->x) * (a->x - bottom->x) + (a->y - bottom->y) * (a->y - bottom->y) +
-           (a->z - bottom->z) * (a->z - bottom->z);
+    dist = (a->x - pBtm->x) * (a->x - pBtm->x) + (a->y - pBtm->y) * (a->y - pBtm->y) +
+           (a->z - pBtm->z) * (a->z - pBtm->z);
     if (dist < r * r) {
-        *hit = *a;
+        *pCross = *a;
         return 1;
     }
     dist = la.x * la.x + la.z * la.z;
     if (la.y > 0.0f && la.y < len && dist < r * r) {
-        *hit = *a;
+        *pCross = *a;
         return 1;
     }
     if ((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z) <= 0.1f) {
         return 0;
     }
-    if (LineSphereCrossCk(a, b, top, r, &c)) {
+    if (LineSphereCrossCk(a, b, pTop, r, &c)) {
         PSMTXMultVec(inv, &c, &d);
         if (d.y < 0.0f || d.y > len) {
-            *hit = c;
+            *pCross = c;
             return 1;
         }
     }
-    if (LineSphereCrossCk(a, b, bottom, r, &c)) {
+    if (LineSphereCrossCk(a, b, pBtm, r, &c)) {
         PSMTXMultVec(inv, &c, &d);
         if (d.y < 0.0f || d.y > len) {
-            *hit = c;
+            *pCross = c;
             return 1;
         }
     }
@@ -786,12 +786,12 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, Vec* hit, f32 r)
     if (PSVECDotProduct(&d, &up) < 0.0f) {
         return 0;
     }
-    *hit = la;
+    *pCross = la;
     return 1;
 }
 
 // Segment a-b against the box (sx, sy, sz) at `ofs` in the space of `m`: the six faces as quads.
-int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, Vec* ofs, Vec* hit, f32 sx, f32 sy, f32 sz)
+int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, Vec* ofs, Vec* pCross, f32 sx, f32 sy, f32 sz)
 {
     Mtx mat;
     Vec poly[4];
@@ -837,49 +837,49 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, Vec* ofs, Vec* hit, f32 sx, f32 sy,
     poly[1] = v[1];
     poly[2] = v[2];
     poly[3] = v[3];
-    if (emLinePolyCrossCk(a, b, poly, hit)) {
+    if (emLinePolyCrossCk(a, b, poly, pCross)) {
         return 1;
     }
     poly[0] = v[1];
     poly[1] = v[5];
     poly[2] = v[6];
     poly[3] = v[2];
-    if (emLinePolyCrossCk(a, b, poly, hit)) {
+    if (emLinePolyCrossCk(a, b, poly, pCross)) {
         return 1;
     }
     poly[0] = v[5];
     poly[1] = v[4];
     poly[2] = v[7];
     poly[3] = v[6];
-    if (emLinePolyCrossCk(a, b, poly, hit)) {
+    if (emLinePolyCrossCk(a, b, poly, pCross)) {
         return 1;
     }
     poly[0] = v[4];
     poly[1] = v[0];
     poly[2] = v[3];
     poly[3] = v[7];
-    if (emLinePolyCrossCk(a, b, poly, hit)) {
+    if (emLinePolyCrossCk(a, b, poly, pCross)) {
         return 1;
     }
     poly[0] = v[3];
     poly[1] = v[2];
     poly[2] = v[6];
     poly[3] = v[7];
-    if (emLinePolyCrossCk(a, b, poly, hit)) {
+    if (emLinePolyCrossCk(a, b, poly, pCross)) {
         return 1;
     }
     poly[0] = v[1];
     poly[1] = v[0];
     poly[2] = v[4];
     poly[3] = v[5];
-    if (emLinePolyCrossCk(a, b, poly, hit)) {
+    if (emLinePolyCrossCk(a, b, poly, pCross)) {
         return 1;
     }
     return 0;
 }
 
 // Segment a-b (a on the front side) against the quad poly[4]: 1 with the crossing point in `hit`.
-int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit)
+int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* pRect, Vec* pCross)
 {
     Vec e1;
     Vec e2;
@@ -890,19 +890,19 @@ int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit)
     f32 db;
     f32 t;
 
-    PSVECSubtract(&poly[2], &poly[1], &e1);
-    PSVECSubtract(&poly[0], &poly[1], &e2);
+    PSVECSubtract(&pRect[2], &pRect[1], &e1);
+    PSVECSubtract(&pRect[0], &pRect[1], &e2);
     PSVECCrossProduct(&e1, &e2, &n);
     if (n.x == 0.0f && n.y == 0.0f && n.z == 0.0f) {
         return 0;
     }
 #line 1552
     VECNormalize(&n, &n);
-    da = PSVECDotProduct(&n, pPos) - PSVECDotProduct(&n, &poly[0]);
+    da = PSVECDotProduct(&n, pPos) - PSVECDotProduct(&n, &pRect[0]);
     if (da <= 0.0f) {
         return 0;
     }
-    db = PSVECDotProduct(&n, pPos2) - PSVECDotProduct(&n, &poly[0]);
+    db = PSVECDotProduct(&n, pPos2) - PSVECDotProduct(&n, &pRect[0]);
     if (db >= 0.0f) {
         return 0;
     }
@@ -911,31 +911,31 @@ int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit)
     PSVECSubtract(pPos, pPos2, &p);
     PSVECScale(&p, &p, t);
     PSVECAdd(&p, pPos2, &p);
-    PSVECSubtract(&p, &poly[1], &e1);
-    PSVECSubtract(&poly[0], &poly[1], &e2);
+    PSVECSubtract(&p, &pRect[1], &e1);
+    PSVECSubtract(&pRect[0], &pRect[1], &e2);
     PSVECCrossProduct(&e1, &e2, &c);
     if (PSVECDotProduct(&n, &c) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(&p, &poly[2], &e1);
-    PSVECSubtract(&poly[1], &poly[2], &e2);
+    PSVECSubtract(&p, &pRect[2], &e1);
+    PSVECSubtract(&pRect[1], &pRect[2], &e2);
     PSVECCrossProduct(&e1, &e2, &c);
     if (PSVECDotProduct(&n, &c) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(&p, &poly[3], &e1);
-    PSVECSubtract(&poly[2], &poly[3], &e2);
+    PSVECSubtract(&p, &pRect[3], &e1);
+    PSVECSubtract(&pRect[2], &pRect[3], &e2);
     PSVECCrossProduct(&e1, &e2, &c);
     if (PSVECDotProduct(&n, &c) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(&p, &poly[0], &e1);
-    PSVECSubtract(&poly[3], &poly[0], &e2);
+    PSVECSubtract(&p, &pRect[0], &e1);
+    PSVECSubtract(&pRect[3], &pRect[0], &e2);
     PSVECCrossProduct(&e1, &e2, &c);
     if (PSVECDotProduct(&n, &c) < 0.0f) {
         return 0;
     }
-    *hit = p;
+    *pCross = p;
     return 1;
 }
 
@@ -943,8 +943,8 @@ int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit)
 // (or the nearest when pos2 is at pos); rad = squared distance centre -> pos.
 YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
 {
-    Vec top;
-    Vec bottom;
+    Vec pTop;
+    Vec pBtm;
     Vec center;
     Vec d;
     Vec s;
@@ -976,21 +976,21 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
         if ((p->flag & YAT_FLAG_HANDGUN_MUSHI) && HandgunCk(flag)) {
             continue;
         }
-        bottom = p->offset;
-        top = p->offset;
+        pBtm = p->offset;
+        pTop = p->offset;
         if (p->flag & (YAT_FLAG_X_AXIS | YAT_FLAG_Z_AXIS)) {
             if (p->flag & YAT_FLAG_X_AXIS) {
-                top.x += p->height;
+                pTop.x += p->height;
             } else {
-                top.z += p->height;
+                pTop.z += p->height;
             }
         } else {
-            top.y += p->height;
+            pTop.y += p->height;
         }
         parts = HitParts(em, p);
-        PSMTXMultVec(parts->mat, &top, &top);
-        PSMTXMultVec(parts->mat, &bottom, &bottom);
-        PSVECAdd(&top, &bottom, &center);
+        PSMTXMultVec(parts->mat, &pTop, &pTop);
+        PSMTXMultVec(parts->mat, &pBtm, &pBtm);
+        PSVECAdd(&pTop, &pBtm, &center);
         PSVECScale(&center, &center, 0.5f);
         if (p->flag & YAT_FLAG_CUBE) {
             Vec box[8] = {
@@ -1039,7 +1039,7 @@ YARARE_INFO* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
             s.z = p->radius;
             PSMTXMultVecSR(parts->mat, &s, &s);
             rr = PSVECMag(&s);
-            if (AtSphereCapsuleCk(pos, r, &top, &bottom, rr) == 0) {
+            if (AtSphereCapsuleCk(pos, r, &pTop, &pBtm, rr) == 0) {
                 continue;
             }
         }
@@ -1408,7 +1408,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
 }
 
 // Enemies inside the blast sphere (pos, r), nearest first.
-int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, int flag)
+int GetWepTargetListBomb(Vec* pPos, f32 radius, WepTarget* list, int num, int wep_no, int flag)
 {
     Vec center;
     Vec bottom;
@@ -1426,15 +1426,15 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     cEm* em;  // one variable for the scan and the sort swap (r24 in both loops)
     YARARE_INFO* part2;
 
-    switch (type) {
+    switch (wep_no) {
     case 0xD:
     case 0x12:
     case 0x13:
-        PlBombHitCk(pos, r);
+        PlBombHitCk(pPos, radius);
         break;
     }
     if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
-        Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
+        Draw_sphere(pPos, radius, 0xFFFF00FF, 1, 1);
     }
     cnt = 0;
     i = 0;
@@ -1457,7 +1457,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         if (EmDeadCk(em)) {
             continue;
         }
-        if (type == 0xE && em->id == 0x4F) {
+        if (wep_no == 0xE && em->id == 0x4F) {
             continue;
         }
         if ((flag & 1) && (em->id == 3 || em->id == 4)) {
@@ -1472,26 +1472,26 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         case 0x45:
         case 0x46:
         case 0x47:
-            rr = r;
+            rr = radius;
             break;
         default:
-            rr = r;
+            rr = radius;
             break;
         case 3:
-            rr = r;
+            rr = radius;
             if (rr > 2500.0f) {
                 rr = 2500.0f;
             }
             break;
         case 4:
-            rr = r;
+            rr = radius;
             if (rr > 1500.0f) {
                 rr = 1500.0f;
             }
             break;
         }
         r2 = rr;
-        switch (type) {
+        switch (wep_no) {
         case 0xD:
         case 0x12:
         case 0x13:
@@ -1501,7 +1501,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
             }
             break;
         }
-        part = emSphereAtCk(em, pos, pos, rr, type, r2);
+        part = emSphereAtCk(em, pPos, pPos, rr, wep_no, r2);
         if (part == 0) {
             continue;
         }
@@ -1532,26 +1532,26 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PSVECScale(&center, &center, 0.5f);
         if (!(part->flag & YAT_FLAG_NO_SCR_BOMB_CK)) {
             mask = 0;
-            if (type != 0x10) {
+            if (wep_no != 0x10) {
                 mask = 0x400000;
             }
-            if ((pos->x - center.x) * (pos->x - center.x) + (pos->y - center.y) * (pos->y - center.y) +
-                        (pos->z - center.z) * (pos->z - center.z) >
+            if ((pPos->x - center.x) * (pPos->x - center.x) + (pPos->y - center.y) * (pPos->y - center.y) +
+                        (pPos->z - center.z) * (pPos->z - center.z) >
                     (rr * 0.3f) * (rr * 0.3f) ||
                 em->id == 3 || em->id == 4 || em->id == 0x39) {
-                if (EatMgr.hitCheck(pos, &center, 0, 0, 0, mask) != 0) {
+                if (EatMgr.hitCheck(pPos, &center, 0, 0, 0, mask) != 0) {
                     continue;
                 }
             }
         }
-        if (cnt < max) {
+        if (cnt < num) {
             list[cnt].part = part;
             list[cnt].em = em;
             cnt++;
             continue;
         }
         worst = 0;
-        for (j = 1; j < max; j++) {
+        for (j = 1; j < num; j++) {
             if (list[worst].part->len <= list[j].part->len) {
                 worst = j;
             }
@@ -1579,7 +1579,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
 
 // Player inside the blast sphere: damage 9 (knock down) beyond the inner radius, 8 with a life
 // loss inside it. 1 when the player was hit.
-int PlBombHitCk(Vec* pos, f32 r)
+int PlBombHitCk(Vec* pPos, f32 radius)
 {
     cModel* parts;
     f32 d2;
@@ -1592,13 +1592,13 @@ int PlBombHitCk(Vec* pos, f32 r)
         return 0;
     }
     parts = pPL->getPartsPtr(0);
-    d2 = (pos->x - parts->world.x) * (pos->x - parts->world.x) +
-         (pos->y - parts->world.y) * (pos->y - parts->world.y) +
-         (pos->z - parts->world.z) * (pos->z - parts->world.z);
+    d2 = (pPos->x - parts->world.x) * (pPos->x - parts->world.x) +
+         (pPos->y - parts->world.y) * (pPos->y - parts->world.y) +
+         (pPos->z - parts->world.z) * (pPos->z - parts->world.z);
     if (d2 > 36000000.0f) {
         return 0;
     }
-    if (d2 > (r + 300.0f) * (r + 300.0f)) {
+    if (d2 > (radius + 300.0f) * (radius + 300.0f)) {
         return 0;
     }
     if (pG->weapon_no == 0xD && pG->weapon_type == 2) {
@@ -1610,7 +1610,7 @@ int PlBombHitCk(Vec* pos, f32 r)
         PlSetDamage(PL_DM_AUTO_SML, 0, 0);
         return 1;
     }
-    if (EatMgr.hitCheck(pos, &parts->world, 0, 0, 0, 0x400000) != 0) {
+    if (EatMgr.hitCheck(pPos, &parts->world, 0, 0, 0, 0x400000) != 0) {
         return 0;
     }
     LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
@@ -1621,7 +1621,7 @@ int PlBombHitCk(Vec* pos, f32 r)
 
 // Point the weapon line p0-p1 hits: the scenario (1), an enemy (2, 3 with flag 0x40) or nothing (0);
 // p1 is moved to the hit point.
-int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, u32* outAttr)
+int GetWepTargetPos(Vec* pPos, Vec* pPos2, int mode, int wep_no, cEm** ppEm, u32* pAttr)
 {
     Mtx m;
     Vec hit;
@@ -1638,14 +1638,14 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
     f32 e2;
     s16 life;
 
-    if (outEm) {
-        *outEm = 0;
+    if (ppEm) {
+        *ppEm = 0;
     }
     attr = EatMgr.hitCheck(pPos, pPos2, &hit, 0, 0, 0x400000);
     if (attr) {
         ret = 1;
-        if (outAttr) {
-            *outAttr = attr;
+        if (pAttr) {
+            *pAttr = attr;
         }
     } else {
         hit = *pPos2;
@@ -1670,7 +1670,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
         if (em->be_flag & 0x10000000) {
             continue;
         }
-        if (plCheck) {
+        if (mode) {
             if (i != 0) {
                 continue;
             }
@@ -1721,8 +1721,8 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
         }
         dist = e2;
         hit = h2;
-        if (outEm) {
-            *outEm = em;
+        if (ppEm) {
+            *ppEm = em;
         }
         ret = 2;
         if (part->flag & YAT_FLAG_NO_MARK) {
@@ -1817,7 +1817,7 @@ YARARE_INFO* EmYarareContactCk(cEm* em, Vec* pos, f32 r, Vec* out)
 }
 
 // Debug draw of the hit boxes (grey; red when the box took the current damage; off when dead).
-void EmYarareDisp(cEm* em)
+void EmYarareDisp(cEm* pEm)
 {
     Vec top;
     Vec bottom;
@@ -1829,24 +1829,24 @@ void EmYarareDisp(cEm* em)
     if (!DbgFlagChk(pG, DBG_YARARE_DISP)) {
         return;
     }
-    for (p = &em->hitInfo; p != 0; p = p->pList) {
+    for (p = &pEm->hitInfo; p != 0; p = p->pList) {
         // Every `p->flags` read is spelled out: the later `& 1` / `& 8` reads are fully redundant, so
         // gcse PRE deletes them and inserts the reaching-register copy (`mr r11,r0`) after the first load.
         if (!(p->flag & YAT_FLAG_ON)) {
             continue;
         }
         color = 0x60606060;
-        if (EmDeadCk(em) && p == em->dmg.m_pDamageYarare) {
+        if (EmDeadCk(pEm) && p == pEm->dmg.m_pDamageYarare) {
             color = 0xFF000000;
         }
-        if (em->hp <= 0) {
+        if (pEm->hp <= 0) {
             color = 0;
         }
         if (!(p->flag & YAT_FLAG_ON)) {
             color = 0;
         }
         if (p->flag & YAT_FLAG_CUBE) {
-            parts = HitParts(em, p);
+            parts = HitParts(pEm, p);
             AtCubeDisp(parts->mat, &p->offset, p->radius, p->height, p->extent, color);
         } else {
             bottom = p->offset;
@@ -1860,7 +1860,7 @@ void EmYarareDisp(cEm* em)
             } else {
                 top.y += p->height;
             }
-            parts = HitParts(em, p);
+            parts = HitParts(pEm, p);
             PSMTXMultVec(parts->mat, &bottom, &bottom);
             PSMTXMultVec(parts->mat, &top, &top);
             s.x = 0.0f;
@@ -1879,22 +1879,22 @@ static int emYarareDead(f32 v)
 }
 
 // Runs the per-enemy scenario hook (em->pScenario) when the room event installed one.
-void EmScenario(cEm* em)
+void EmScenario(cEm* pEm)
 {
-    if (em->pScenario) {
-        em->pScenario(em);
+    if (pEm->pScenario) {
+        pEm->pScenario(pEm);
     }
 }
 
 // LifeDownSet2 without the random spread: take `dmg` life from `em`, flag bit0 keeps 1 point.
-int LifeDownSet(cEm* em, int dmg, int flag)
+int LifeDownSet(cEm* pEm, int dm_val, int rnd)
 {
-    return LifeDownSet2(em, dmg, flag, 0);
+    return LifeDownSet2(pEm, dm_val, rnd, 0);
 }
 
 // Take `dmg` (+-rnd) off the life of `em`: the player (id 0), the partner (ids 1..0xD) or an enemy.
 // flag bit0 leaves 1 life point. Returns the remaining life.
-int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
+int LifeDownSet2(cEm* pEm, int dm_val, int rnd, int flag)
 {
     int r;
     int ret;
@@ -1902,12 +1902,12 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
 
     r = (Rnd() << 8) | Rnd();
     if (rnd != 0) {
-        dmg += r % (rnd * 2) - rnd;
+        dm_val += r % (rnd * 2) - rnd;
         // Dead store: it puts the signed int->float magic first in the pool (flow deletes the code); in
         // this skipped block its constant pseudos stay off the cse path of the live conversions.
-        rate = (f32) dmg;
+        rate = (f32) dm_val;
     }
-    if (em->id == 0) {
+    if (pEm->id == 0) {
         if ((s16) pG->pl_life <= 0) {
             return 0;
         }
@@ -1915,9 +1915,9 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if (PlIsArmor()) {
             rate *= 0.7f;
         }
-        dmg = (int) ((f32) dmg * rate);
-        if (dmg > 100) {
-            if (dmg > 500) {
+        dm_val = (int) ((f32) dm_val * rate);
+        if (dm_val > 100) {
+            if (dm_val > 500) {
                 GameAddPoint(LVADD_PL_BIG_DAMAGE);
             } else {
                 GameAddPoint(LVADD_PL_DAMAGE);
@@ -1929,10 +1929,10 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life > 300 && (Rnd() & 3) == 0) {
             flag |= 1;
         }
-        if ((s16) pG->pl_life < dmg) {
-            dmg = (s16) pG->pl_life;
+        if ((s16) pG->pl_life < dm_val) {
+            dm_val = (s16) pG->pl_life;
         }
-        pG->pl_life = pG->pl_life - dmg;
+        pG->pl_life = pG->pl_life - dm_val;
         if ((s16) pG->pl_life <= 0) {
             if (flag & 1) {
                 pG->pl_life = 1;
@@ -1948,23 +1948,23 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
             pG->pl_life = 2;
         }
         ret = (s16) pG->pl_life;
-    } else if (em->id <= 0xD) {
+    } else if (pEm->id <= 0xD) {
         if ((s16) pG->ashley_life <= 0) {
             return 0;
         }
         rate = (f32) pG->Game_level * 0.1f + 0.5f;
-        dmg = (int) ((f32) dmg * rate);
-        if (dmg > 100) {
-            if (dmg > 500) {
+        dm_val = (int) ((f32) dm_val * rate);
+        if (dm_val > 100) {
+            if (dm_val > 500) {
                 GameAddPoint(LVADD_PL_BIG_DAMAGE);
             } else {
                 GameAddPoint(LVADD_PL_DAMAGE);
             }
         }
-        if ((s16) pG->ashley_life < dmg) {
-            dmg = (s16) pG->ashley_life;
+        if ((s16) pG->ashley_life < dm_val) {
+            dm_val = (s16) pG->ashley_life;
         }
-        pG->ashley_life = pG->ashley_life - dmg;
+        pG->ashley_life = pG->ashley_life - dm_val;
         if ((s16) pG->ashley_life <= 0) {
             if (flag & 1) {
                 pG->ashley_life = 1;
@@ -1982,12 +1982,12 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         ret = (s16) pG->ashley_life;
     } else {
         if (DbgFlagChk(pG, DBG_EM_NO_DEATH)) {
-            return em->hp;
+            return pEm->hp;
         }
-        if (em->hp <= 0) {
+        if (pEm->hp <= 0) {
             return 0;
         }
-        switch (em->id) {
+        switch (pEm->id) {
         case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
         case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
         case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26:
@@ -2001,24 +2001,24 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
             } else {
                 rate = 2.0f - (f32) pG->Game_level * 0.2f;
             }
-            dmg = (int) ((f32) dmg * rate);
-            if (em->id >= 0x10 && em->id <= 0x3F && dmg > 100) {
+            dm_val = (int) ((f32) dm_val * rate);
+            if (pEm->id >= 0x10 && pEm->id <= 0x3F && dm_val > 100) {
                 GameAddPoint(LVADD_EM_DAMAGE);
             }
             break;
         }
         if (DbgFlagChk(pG, DBG_EM_WEAK)) {
-            dmg = em->hp;
+            dm_val = pEm->hp;
         }
-        if (em->hp < dmg) {
-            dmg = em->hp;
+        if (pEm->hp < dm_val) {
+            dm_val = pEm->hp;
         }
-        em->hp -= dmg;
-        if (em->hp <= 0 && (flag & 1)) {
-            em->hp = 1;
+        pEm->hp -= dm_val;
+        if (pEm->hp <= 0 && (flag & 1)) {
+            pEm->hp = 1;
         }
-        ret = em->hp;
-        if (ret <= 0 && (u32) (em->id - 0x10) <= 0x2F) {
+        ret = pEm->hp;
+        if (ret <= 0 && (u32) (pEm->id - 0x10) <= 0x2F) {
             GameAddPoint(LVADD_EM_DIE);
         }
     }
@@ -2027,37 +2027,37 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
 
 // Player damage entry: register the hit, take the life, and start the damage motion `type`
 // (6/7 die, 8 knocked down; on 0 life 8 becomes 7 and the invincibility flags turn 6/7 into 2/8).
-void PlSetDamage(int type, int dmg, int flag)
+void PlSetDamage(int damage_type, int damage_val, int flag)
 {
     pPL->dmg.set(0, 0x1E);
     pPL->subArc = pPL->subArc2;
-    if (dmg != 0) {
-        LifeDownSet2(pPL, dmg, 0, flag);
+    if (damage_val != 0) {
+        LifeDownSet2(pPL, damage_val, 0, flag);
     }
     if ((s16) pG->pl_life <= 0) {
-        if (type == PL_DM_AUTO) {
-            type = PL_DM_BACK;
+        if (damage_type == PL_DM_AUTO) {
+            damage_type = PL_DM_BACK;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
             pG->pl_life = pG->pl_life_max;
-            if (type == PL_DM_FRONT) {
-                type = PL_DM_MIDDLE_FRONT;
+            if (damage_type == PL_DM_FRONT) {
+                damage_type = PL_DM_MIDDLE_FRONT;
             }
-            if (type == PL_DM_BACK) {
-                type = PL_DM_AUTO;
+            if (damage_type == PL_DM_BACK) {
+                damage_type = PL_DM_AUTO;
             }
         }
     }
     if ((s16) pG->pl_life <= 1 && (DbgFlagChk(pG, DBG_NO_DEATH2))) {
         pG->pl_life = 2;
-        if (type == PL_DM_FRONT) {
-            type = PL_DM_MIDDLE_FRONT;
+        if (damage_type == PL_DM_FRONT) {
+            damage_type = PL_DM_MIDDLE_FRONT;
         }
-        if (type == PL_DM_BACK) {
-            type = PL_DM_AUTO;
+        if (damage_type == PL_DM_BACK) {
+            damage_type = PL_DM_AUTO;
         }
     }
-    if ((s16) pG->pl_life <= 0 && type != PL_DM_FRONT && type != PL_DM_BACK) {
+    if ((s16) pG->pl_life <= 0 && damage_type != PL_DM_FRONT && damage_type != PL_DM_BACK) {
         cPlayer* p;
 
         pG->pl_life = 0;
@@ -2068,7 +2068,7 @@ void PlSetDamage(int type, int dmg, int flag)
         p->r_no_2 = 0;
         p->r_no_3 = 0;
     } else {
-        pPL->setDamage((u8) type, 0, 123.0f, 0, 0xFF);
+        pPL->setDamage((u8) damage_type, 0, 123.0f, 0, 0xFF);
     }
 }
 
@@ -2113,7 +2113,7 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* pPos, Vec* pPosOld, int noSub)
 
 // Attack sphere against the player: 0 = miss, else the damage motion type + 1 (front/back, and the
 // height: 4 low, 2 middle).
-int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
+int EmAtkHitCk2(EmAtkInfo* pAtk, Vec* pPos, Vec* pPosOld)
 {
     Vec d;
     Vec fwd;
@@ -2123,7 +2123,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     f32 dy;
 
     if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
-        Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
+        Draw_sphere(pPos, pAtk->range, 0xFFFF00FF, 1, 1);
     }
     if ((s16) pG->pl_life <= 0) {
         return 0;
@@ -2135,7 +2135,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (EatMgr.hitCheck(&parts->world, pPos, 0, 0, 0, 0) != 0) {
         return 0;
     }
-    part = emSphereAtCk(pPL, pPos, pPosOld, info->range, 0x18, info->range);
+    part = emSphereAtCk(pPL, pPos, pPosOld, pAtk->range, 0x18, pAtk->range);
     if (part == 0) {
         return 0;
     }
@@ -2162,7 +2162,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
 
 // Line a-b against the scenario and the player's hit boxes: the hit box (as the emhit.h cEm* view),
 // with the scenario hit in `hit` / `nrm` / `attr`.
-cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
+cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* pCross, Vec* pNorm, u32* pAttr)
 {
     Mtx m;
     Vec d;
@@ -2172,18 +2172,18 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
     int at;
     f32 len;
 
-    at = EatMgr.hitCheck(pPos, pPos2, hit, nrm, 0, 0x400000);
+    at = EatMgr.hitCheck(pPos, pPos2, pCross, pNorm, 0, 0x400000);
     if (at) {
-        len = (pPos->x - hit->x) * (pPos->x - hit->x) + (pPos->y - hit->y) * (pPos->y - hit->y) + (pPos->z - hit->z) * (pPos->z - hit->z);
+        len = (pPos->x - pCross->x) * (pPos->x - pCross->x) + (pPos->y - pCross->y) * (pPos->y - pCross->y) + (pPos->z - pCross->z) * (pPos->z - pCross->z);
     } else {
-        *hit = *pPos2;
+        *pCross = *pPos2;
         len = 1e16f;
-        nrm->x = 0.0f;
-        nrm->y = 0.0f;
-        nrm->z = 0.0f;
+        pNorm->x = 0.0f;
+        pNorm->y = 0.0f;
+        pNorm->z = 0.0f;
     }
-    if (attr) {
-        *attr = at;
+    if (pAttr) {
+        *pAttr = at;
     }
     pl = pPL;
     if (!(pl->be_flag & 1)) {
@@ -2228,7 +2228,7 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
 }
 
 // EmAtkLineHitCk for the partner.
-YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
+YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* pCross, Vec* pNorm)
 {
     Mtx m;
     Vec d;
@@ -2240,14 +2240,14 @@ YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
     if (pSUB == 0) {
         return 0;
     }
-    if (EatMgr.hitCheck(pPos, pPos2, hit, nrm, 0, 0x400000)) {
-        len = (pPos->x - hit->x) * (pPos->x - hit->x) + (pPos->y - hit->y) * (pPos->y - hit->y) + (pPos->z - hit->z) * (pPos->z - hit->z);
+    if (EatMgr.hitCheck(pPos, pPos2, pCross, pNorm, 0, 0x400000)) {
+        len = (pPos->x - pCross->x) * (pPos->x - pCross->x) + (pPos->y - pCross->y) * (pPos->y - pCross->y) + (pPos->z - pCross->z) * (pPos->z - pCross->z);
     } else {
-        *hit = *pPos2;
+        *pCross = *pPos2;
         len = 1e16f;
-        nrm->x = 0.0f;
-        nrm->y = 0.0f;
-        nrm->z = 0.0f;
+        pNorm->x = 0.0f;
+        pNorm->y = 0.0f;
+        pNorm->z = 0.0f;
     }
     sub = pSUB;
     if (!(sub->be_flag & 1)) {
@@ -2292,7 +2292,7 @@ YARARE_INFO* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
 }
 
 // Damage from a line attack that hit the player's box `part`: life loss and the damage motion.
-void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
+void EmAtkSetDamagePL(cEm* pAt, EmAtkInfo* pAtk, Vec* pPos, Vec* pPos2)
 {
     Vec d;
     Vec fwd;
@@ -2300,7 +2300,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
     int keep;
     f32 dy;
 
-    pPL->dmg.m_pDamageYarare = (YARARE_INFO*) part;
+    pPL->dmg.m_pDamageYarare = (YARARE_INFO*) pAt;
     if ((pPos->x - pPos2->x) * (pPos->x - pPos2->x) + (pPos->z - pPos2->z) * (pPos->z - pPos2->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
@@ -2318,32 +2318,32 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
         type += 2;
     }
     keep = 0;
-    if (info->flag & 4) {
+    if (pAtk->flag & 4) {
         keep = 1;
     }
-    LifeDownSet2(pPL, info->dmg, 0, keep);
-    if (info->flag & 8) {
+    LifeDownSet2(pPL, pAtk->dmg, 0, keep);
+    if (pAtk->flag & 8) {
         pG->pl_life = 0;
     }
     PlSetDamage(type, 0, 0);
 }
 
 // Damage from a line attack that hit the partner's box `part`.
-void EmAtkSetDamageSub(YARARE_INFO* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
+void EmAtkSetDamageSub(YARARE_INFO* pAt, EmAtkInfo* pAtk, Vec* pPos, Vec* pPos2)
 {
     if (pSUB) {
-        pSUB->dmg.set(0, 10, 0x18, pPos, part->len, part);
+        pSUB->dmg.set(0, 10, 0x18, pPos, pAt->len, pAt);
     }
 }
 
 // Attack sphere against the partner: the hit box or NULL.
-YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
+YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* pAtk, Vec* pPos, Vec* pPosOld)
 {
     cModel* parts;
     YARARE_INFO* part;
 
     if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
-        Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
+        Draw_sphere(pPos, pAtk->range, 0xFFFF00FF, 1, 1);
     }
     if (pSUB == 0) {
         return 0;
@@ -2358,7 +2358,7 @@ YARARE_INFO* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (EatMgr.hitCheck(&parts->world, pPos, 0, 0, 0, 0) != 0) {
         return 0;
     }
-    part = emSphereAtCk(pSUB, pPos, pPosOld, info->range, 0x18, info->range);
+    part = emSphereAtCk(pSUB, pPos, pPosOld, pAtk->range, 0x18, pAtk->range);
     if (part == 0) {
         return 0;
     }
@@ -2483,9 +2483,9 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
 // One `tmp` for both the rot.y load and the turn step: a pseudo with two deaths is not a local-alloc
 // candidate, so it goes to global.c (f13) and neither the `ry = tmp` copy nor the `tmp * rate` product
 // is tied into ry / rate by local-alloc; rate then ranks below rate2 (f29 / f30).
-int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
+int EmCatchMotionMove(cEm* pEm, f32 rot_rate, f32 pos_rate)
 {
-    cEm* target = em->pEmCatch;
+    cEm* target = pEm->pEmCatch;
     Vec d;
     f32 ry;
     f32 tmp;
@@ -2493,25 +2493,25 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
 
     PSVECSubtract(&target->pos, &target->Catch_at_adj, &d);
     d.y = 0.0f;
-    PSVECAdd(&em->pos, &d, &em->pos);
-    PSVECScale(&em->Catch_pos_adj, &d, rate2);
+    PSVECAdd(&pEm->pos, &d, &pEm->pos);
+    PSVECScale(&pEm->Catch_pos_adj, &d, pos_rate);
     d.y = 0.0f;
-    PSVECAdd(&em->pos, &d, &em->pos);
-    PSVECSubtract(&em->Catch_pos_adj, &d, &em->Catch_pos_adj);
-    tmp = em->ang.y;
+    PSVECAdd(&pEm->pos, &d, &pEm->pos);
+    PSVECSubtract(&pEm->Catch_pos_adj, &d, &pEm->Catch_pos_adj);
+    tmp = pEm->ang.y;
     ry = tmp;
-    em->ang.y = ry + em->Catch_dir;
-    em->ang.y = LIMIT_ANGLE(em->ang.y);
-    ret = MotionMove(em, 0);
-    tmp = em->Catch_dir * rate;
+    pEm->ang.y = ry + pEm->Catch_dir;
+    pEm->ang.y = LIMIT_ANGLE(pEm->ang.y);
+    ret = MotionMove(pEm, 0);
+    tmp = pEm->Catch_dir * rot_rate;
     ry += tmp;
-    em->Catch_dir -= tmp;
-    em->ang.y = ry;
-    em->ang.y = LIMIT_ANGLE(em->ang.y);
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
-    em->Catch_at_adj = em->pos;
+    pEm->Catch_dir -= tmp;
+    pEm->ang.y = ry;
+    pEm->ang.y = LIMIT_ANGLE(pEm->ang.y);
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
+    pEm->Catch_at_adj = pEm->pos;
     return ret;
 }
 
@@ -2528,7 +2528,7 @@ static void EmSubDead2(f32* p)
 // which is desirable only while at most three earlier movables were moved in that pass (threshold 71,
 // -3 per move, 243 insns): the element address is therefore computed as `off = size * i` first, so
 // `lis EmMgr@ha` lives long enough (5 insns) to be hoisted in pass 1 instead of pass 2.
-int EmRackCk(cEm* em, Vec* pos, f32 ang)
+int EmRackCk(cEm* pEm, Vec* pPos, f32 dir)
 {
     Vec v;
     Mtx m;
@@ -2539,8 +2539,8 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
     f32 hz;
     u32 off;
 
-    PSMTXRotRad(m, 'y', ang);
-    TransMatrix(m, pos);
+    PSMTXRotRad(m, 'y', dir);
+    TransMatrix(m, pPos);
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
@@ -2556,8 +2556,8 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         if (e->hp <= 0) {
             continue;
         }
-        if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y) +
-                (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z) >
+        if ((pEm->pos.x - e->pos.x) * (pEm->pos.x - e->pos.x) + (pEm->pos.y - e->pos.y) * (pEm->pos.y - e->pos.y) +
+                (pEm->pos.z - e->pos.z) * (pEm->pos.z - e->pos.z) >
             25000000.0f) {
             continue;
         }
@@ -2638,7 +2638,7 @@ int GetBulletPoint()
 }
 
 // Random ammunition drop by the weapons carried (item id / count), for the current character.
-void GetDropBullet(int* id, int* num)
+void GetDropBullet(int* ret_id, int* ret_num)
 {
     int i = 4;
     int n = 0;  // also holds the handgun ammo total in the third branch (its register: r31 there)
@@ -2651,11 +2651,11 @@ void GetDropBullet(int* id, int* num)
     if (f) {
         r = Rnd() % 100;
         if (r <= 0x27) {
-            *id = i;
+            *ret_id = i;
             if (Rnd() % 10 > 6) {
-                *num = 15;
+                *ret_num = 15;
             } else {
-                *num = 10;
+                *ret_num = 10;
             }
             return;
         }
@@ -2665,8 +2665,8 @@ void GetDropBullet(int* id, int* num)
             if (Rnd() % 10 > 5) {
                 n = 0;
             }
-            *id = i;
-            *num = n;
+            *ret_id = i;
+            *ret_num = n;
             return;
         } else if (r <= 0x5E) {
             i = 7;
@@ -2674,13 +2674,13 @@ void GetDropBullet(int* id, int* num)
             if (Rnd() % 10 > 7) {
                 n = 0;
             }
-            *id = i;
-            *num = n;
+            *ret_id = i;
+            *ret_num = n;
             return;
         } else {
             i = 1;
-            *id = i;
-            *num = n;
+            *ret_id = i;
+            *ret_num = n;
             return;
         }
     } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
@@ -2689,8 +2689,8 @@ void GetDropBullet(int* id, int* num)
         case 0:
         default:
             if (r <= 0x36) {
-                *id = 4;
-                *num = 0;
+                *ret_id = 4;
+                *ret_num = 0;
                 return;
             }
             if (r <= 0x59) {
@@ -2707,19 +2707,19 @@ void GetDropBullet(int* id, int* num)
                 } else {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else {
                 i = 1;
-                *id = i;
-                *num = 0;
+                *ret_id = i;
+                *ret_num = 0;
                 return;
             }
         case 2:
             if (r <= 0x1D) {
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else if (r <= 0x40) {
                 i = 0x20;
@@ -2727,14 +2727,14 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else if (r <= 0x54) {
                 i = 2;
                 n = 0;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else {
                 i = 7;
@@ -2742,8 +2742,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         case 3:
@@ -2753,13 +2753,13 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else {
                 i = 1;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         case 4:
@@ -2769,26 +2769,26 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 10;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else {
                 i = 0xE;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         case 5:
             if (r <= 0x18) {
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
             if (r <= 0x45) {
                 i = 0;
                 n = (Rnd() % 10 <= 7) ? 2 : 0;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
             }
             if (r <= 0x4F) {
                 i = 7;
@@ -2796,23 +2796,23 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             } else if (r <= 0x59) {
                 i = 1;
-                *id = i;
-                *num = 0;
+                *ret_id = i;
+                *ret_num = 0;
                 return;
             } else if (r <= 0x5E) {
                 i = 0xE;
-                *id = i;
-                *num = 0;
+                *ret_id = i;
+                *ret_num = 0;
                 return;
             } else {
                 i = 2;
-                *id = i;
-                *num = 0;
+                *ret_id = i;
+                *ret_num = 0;
                 return;
             }
         }
@@ -2832,8 +2832,8 @@ void GetDropBullet(int* id, int* num)
                         } else {
                             n = 0;
                         }
-                        *id = i;
-                        *num = n;
+                        *ret_id = i;
+                        *ret_num = n;
                         return;
                     }
                 }
@@ -2856,8 +2856,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2869,8 +2869,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2879,16 +2879,16 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 1) {
                     i = 0x1A;
                     n = (Rnd() % 10 <= 7) ? 2 : 0;
-                    *id = i;
-                    *num = n;
+                    *ret_id = i;
+                    *ret_num = n;
                     return;
                 }
             }
             if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B)) {
                 i = 0;
                 n = (Rnd() % 10 <= 7) ? 2 : 0;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2896,8 +2896,8 @@ void GetDropBullet(int* id, int* num)
             if (ItemMgr.num(0x36) || ItemMgr.num(0xAB)) {
                 i = 0x46;
                 n = (Rnd() % 10 <= 7) ? 2 : 0;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2913,13 +2913,13 @@ void GetDropBullet(int* id, int* num)
                 i = 0xE;
                 break;
             }
-            *id = i;
+            *ret_id = i;
             // Codeless launder: keeps the zero and its store from being cross-jumped two insns deep
             // into the fallback's else arm (see `fallback:`); the `*num` input is an anti-dependence
             // on the store, so sched2 still issues the `*id` store first.
             int z = 0;
-            asm("" : "+r"(z) : "m"(*num));
-            *num = z;
+            asm("" : "+r"(z) : "m"(*ret_num));
+            *ret_num = z;
             return;
         }
         if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
@@ -2933,8 +2933,8 @@ void GetDropBullet(int* id, int* num)
                 } else {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2946,8 +2946,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2958,8 +2958,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2967,8 +2967,8 @@ void GetDropBullet(int* id, int* num)
             if (Rnd() % 10 > 4) {
                 i = 0x46;
                 n = (Rnd() % 10 <= 7) ? 4 : 0;
-                *id = i;
-                *num = n;
+                *ret_id = i;
+                *ret_num = n;
                 return;
             }
         }
@@ -2977,8 +2977,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 4) {
                     i = 0x1A;
                     n = (Rnd() % 10 <= 7) ? 2 : 0;
-                    *id = i;
-                    *num = n;
+                    *ret_id = i;
+                    *ret_num = n;
                     return;
                 }
             }
@@ -2986,8 +2986,8 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 4) {
                     i = 0;
                     n = (Rnd() % 10 <= 7) ? 2 : 0;
-                    *id = i;
-                    *num = n;
+                    *ret_id = i;
+                    *ret_num = n;
                     return;
                 }
             }
@@ -3004,13 +3004,13 @@ void GetDropBullet(int* id, int* num)
                 i = 0xE;
                 break;
             }
-            *id = i;
+            *ret_id = i;
             // Codeless launder: keeps the zero and its store from being cross-jumped two insns deep
             // into the fallback's else arm (see `fallback:`); the `*num` input is an anti-dependence
             // on the store, so sched2 still issues the `*id` store first.
             int z = 0;
-            asm("" : "+r"(z) : "m"(*num));
-            *num = z;
+            asm("" : "+r"(z) : "m"(*ret_num));
+            *ret_num = z;
             return;
         }
     fallback:
@@ -3022,11 +3022,11 @@ void GetDropBullet(int* id, int* num)
         // store (see `z` above) is the insn find_cross_jump compares against this `li`, so the sites
         // match one insn (the store) only. COMPILER-DIFF: candidate (jump2 cross-jump order vs the
         // x = a / x = b hoist)
-        *id = 4;
+        *ret_id = 4;
         if (pG->stage_no > 1) {
-            *num = 20;
+            *ret_num = 20;
         } else {
-            *num = 0;
+            *ret_num = 0;
         }
     }
 }
@@ -3048,88 +3048,88 @@ int GetRecoveryPoint()
 
 // Drop the enemy's item (setItem) at its position, once: flagged items go through the system item
 // table, item 0 rolls a random drop.
-void EmSetDropItem(cEm* em)
+void EmSetDropItem(cEm* pEm)
 {
     Vec rot;
     int id;
     int num;
 
-    if (em->Item_id == 0xFFFF) {
+    if (pEm->Item_id == 0xFFFF) {
         return;
     }
-    if (em->be_flag & 0x10000) {
+    if (pEm->be_flag & 0x10000) {
         return;
     }
-    em->be_flag |= 0x10000;
-    if (em->Item_id != 0) {
-        if (SceAtItemFlgCk(em->Item_flg, em->Auto_item_flg)) {
+    pEm->be_flag |= 0x10000;
+    if (pEm->Item_id != 0) {
+        if (SceAtItemFlgCk(pEm->Item_flg, pEm->Auto_item_flg)) {
             return;
         }
-        SceAtItemFlgOn(em->Item_flg, em->Auto_item_flg);
+        SceAtItemFlgOn(pEm->Item_flg, pEm->Auto_item_flg);
         rot.x = 0.0f;
-        rot.y = em->ang.y;
+        rot.y = pEm->ang.y;
         rot.z = 1.0f;
-        if (SceAtCheckSystemItemSet(em->Item_id, &id, &num, &em->pos, &rot) != 1) {
+        if (SceAtCheckSystemItemSet(pEm->Item_id, &id, &num, &pEm->pos, &rot) != 1) {
             return;
         }
-        if (em->Item_id != id) {
-            em->Item_id = id;
-            em->Item_num = num;
+        if (pEm->Item_id != id) {
+            pEm->Item_id = id;
+            pEm->Item_num = num;
         }
-        if (TrolleyItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
+        if (TrolleyItemSetCk(&pEm->pos, pEm->Item_id, pEm->Item_num)) {
             return;
         }
-        if (BullItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
+        if (BullItemSetCk(&pEm->pos, pEm->Item_id, pEm->Item_num)) {
             return;
         }
-        SceAtCancelItemAt(em);
-        SceAtCreateItemAt(&em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1, 0, -1);
+        SceAtCancelItemAt(pEm);
+        SceAtCreateItemAt(&pEm->pos, pEm->Item_id, pEm->Item_num, (s8) pEm->itemFlag, -1, 0, -1);
     } else {
-        RandomItemSet(em);
+        RandomItemSet(pEm);
     }
 }
 
 // Reserve the enemy's item drop at its position (the enemy leaves before dying).
-void EmReserveDropItem(cEm* em)
+void EmReserveDropItem(cEm* pEm)
 {
     int id;
     int num;
 
-    if (em->Item_id == 0xFFFF) {
+    if (pEm->Item_id == 0xFFFF) {
         return;
     }
-    if (em->be_flag & 0x10000) {
+    if (pEm->be_flag & 0x10000) {
         return;
     }
-    if (em->Item_id == 0) {
+    if (pEm->Item_id == 0) {
         return;
     }
-    if (SceAtCheckSystemItemSet(em->Item_id, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
+    if (SceAtCheckSystemItemSet(pEm->Item_id, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
         return;
     }
-    if (em->Item_id != id) {
-        em->Item_id = id;
-        em->Item_num = num;
+    if (pEm->Item_id != id) {
+        pEm->Item_id = id;
+        pEm->Item_num = num;
     }
-    SceAtReserveItemAt(em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
+    SceAtReserveItemAt(pEm, &pEm->pos, pEm->Item_id, pEm->Item_num, (s8) pEm->itemFlag, -1);
 }
 
 // Random drop for the enemy type (RandomItemCk) placed at the enemy.
-void RandomItemSet(cEm* em)
+void RandomItemSet(cEm* pEm)
 {
     int id;
     int num;
 
-    if (RandomItemCk(em->id, &id, &num, 0) != 1) {
+    if (RandomItemCk(pEm->id, &id, &num, 0) != 1) {
         return;
     }
-    if (TrolleyItemSetCk(&em->pos, id, num)) {
+    if (TrolleyItemSetCk(&pEm->pos, id, num)) {
         return;
     }
-    if (BullItemSetCk(&em->pos, id, num)) {
+    if (BullItemSetCk(&pEm->pos, id, num)) {
         return;
     }
-    SceAtCreateItemAt(&em->pos, id, num, -1, -1, 0, -1);
+    SceAtCreateItemAt(&pEm->pos, id, num, -1, -1, 0, -1);
 }
 
 // Random drop table by enemy id: money (0x78), ammunition (GetDropBullet), healing items (5/6/0x19),
@@ -3160,7 +3160,7 @@ static inline void RandomHandgunAmmo(u32& num, int base, int big)
 // handgun ammo, then a ~60% chance of a table item with a "no drop" streak breaker No_drop_cnt;
 // flag bit0 forces a drop) and picks the item id / count from the ammo (GetBulletPoint) and
 // recovery (GetRecoveryPoint) point budgets. 1 and *outId / *outNum when something drops.
-int RandomItemCk(int id, int* outId, int* outNum, int flag)
+int RandomItemCk(int em_id, int* ret_id, int* ret_num, int ctrl_flag)
 {
     u8 r;
     u8 r0;
@@ -3173,7 +3173,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     r = Rnd() % 100;
     bullet = GetBulletPoint();
     recov = GetRecoveryPoint();
-    switch (id) {
+    switch (em_id) {
     case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
     case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
     case 0x20:
@@ -3186,7 +3186,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
                 return 0;
             }
-            switch (id) {
+            switch (em_id) {
             case 0x11:
             case 0x14:
             case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F: case 0x20:
@@ -3194,20 +3194,20 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             case 0x36:
                 itemId = 0x78;
                 RandomHandgunAmmo(num, 20, 1980);
-                *outId = itemId;
-                *outNum = num;
+                *ret_id = itemId;
+                *ret_num = num;
                 return 1;
             default:
                 itemId = 0x78;
                 RandomHandgunAmmo(num, 10, 990);
-                *outId = itemId;
-                *outNum = num;
+                *ret_id = itemId;
+                *ret_num = num;
                 return 1;
             }
         }
         /* fallthrough */
     case 0x25:
-        if (r <= 0x3B || (No_drop_cnt > 2 && Rnd() % 10 > 4) || No_drop_cnt > 5 || (flag & 1)) {
+        if (r <= 0x3B || (No_drop_cnt > 2 && Rnd() % 10 > 4) || No_drop_cnt > 5 || (ctrl_flag & 1)) {
             No_drop_cnt = 0;
         } else {
             No_drop_cnt++;
@@ -3224,8 +3224,8 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
                 num = (Rnd() & 1) * 10 + 40;
             }
         }
-        *outId = itemId;
-        *outNum = num;
+        *ret_id = itemId;
+        *ret_num = num;
         return 1;
     case 0x3C:
         if (r > 0x28) {
@@ -3242,9 +3242,9 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             if (r0 <= 0xC) {
                 itemId = 0xBB;
             }
-            *outId = itemId;
+            *ret_id = itemId;
             num = 1;
-            *outNum = num;
+            *ret_num = num;
             return 1;
         }
         break;
@@ -3257,7 +3257,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     // (`cmplwi 0x1d; bgt`), the variable keeps `cmplwi 0x1e; bge`.
     lim = 30;
     if (pG->pl_type != 1 && (u32) bullet < lim && Rnd() % 10 > 4) {
-        GetDropBullet(outId, outNum);
+        GetDropBullet(ret_id, ret_num);
         return 1;
     }
     lim = 1;
@@ -3285,8 +3285,8 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             }
             num = 0;
             No_drop_cnt2 = 0;
-            *outId = itemId;
-            *outNum = num;
+            *ret_id = itemId;
+            *ret_num = num;
             return 1;
         }
     }
@@ -3295,10 +3295,10 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     }
     lim = 0x96;
     if ((u32) bullet < lim) {
-        GetDropBullet(outId, outNum);
+        GetDropBullet(ret_id, ret_num);
         return 1;
     }
-    if (id == 0x2D) {
+    if (em_id == 0x2D) {
         // The else arm starts with the Rnd() call: with a plain `itemId = 0xBB` first, jump.c hoists
         // the `itemId = 0xB9` of the then arm above the test.
         if (Rnd() & 3) {
@@ -3308,31 +3308,31 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
         } else {
             itemId = 0xBB;
         }
-        *outId = itemId;
+        *ret_id = itemId;
         num = 1;
-        *outNum = num;
+        *ret_num = num;
         return 1;
     }
-    if (flag & 1) {
+    if (ctrl_flag & 1) {
         itemId = 0x78;
         RandomHandgunAmmo(num, 20, 990);
-        *outId = itemId;
-        *outNum = num;
+        *ret_id = itemId;
+        *ret_num = num;
         return 1;
     }
     return 0;
 }
 
 // Model under the water surface (parts `parts` no more than 300 above it when given).
-int CheckInWater(cModel* m, int parts)
+int CheckInWater(cModel* pEm, int parts_no)
 {
     f32 h;
 
-    if (GetWaterHeight(&m->pos, &h) == 0 || m->pos.y > h) {
+    if (GetWaterHeight(&pEm->pos, &h) == 0 || pEm->pos.y > h) {
         return 0;
     }
-    if (parts != 0) {
-        if (m->getPartsPtr(parts)->world.y + 300.0f < h) {
+    if (parts_no != 0) {
+        if (pEm->getPartsPtr(parts_no)->world.y + 300.0f < h) {
             return 0;
         }
     }
@@ -3340,11 +3340,11 @@ int CheckInWater(cModel* m, int parts)
 }
 
 // Weapon ids the hit boxes flagged 0x10 ignore (handguns, the TMP and the knife-like weapons).
-int HandgunCk(int wep)
+int HandgunCk(int wep_no)
 {
     // Each group has its own `return 1`: the distinct case labels make the switch tree emit the
     // greater-than side inline (`beq; ble left; ...`), a shared body emits the left side first.
-    switch (wep) {
+    switch (wep_no) {
     case 1:
     case 2:
     case 3:
@@ -3361,22 +3361,22 @@ int HandgunCk(int wep)
 }
 
 // Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame.
-void GetPlPos(Vec* out, f32 t, cEm* em)
+void GetPlPos(Vec* pPos, f32 frame, cEm* pEm)
 {
     Vec d;
     cModel* parts;
 
-    if (em == 0) {
-        em = pPL;
+    if (pEm == 0) {
+        pEm = pPL;
     }
-    parts = em->getPartsPtr(0);
+    parts = pEm->getPartsPtr(0);
     PSVECSubtract(&parts->world, &parts->world_old2, &d);
-    PSVECScale(&d, &d, t);
-    PSVECAdd(&em->pos, &d, out);
+    PSVECScale(&d, &d, frame);
+    PSVECAdd(&pEm->pos, &d, pPos);
 }
 
 // Item dropped on the mine cart (room 21B): created on the cart the position is above; 1 when so.
-int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
+int TrolleyItemSetCk(Vec* pPos, ITEM_ID item_id, int item_num)
 {
     Vec out;
     u8 parts;
@@ -3394,8 +3394,8 @@ int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
         if (obj->id != 0x3B) {
             continue;
         }
-        if (((cObjTrolley*) obj)->ckTrolleyRide(pos, &parts, &out)) {
-            SceAtCreateItemAt(&out, id, num, -1, -1, obj, parts);
+        if (((cObjTrolley*) obj)->ckTrolleyRide(pPos, &parts, &out)) {
+            SceAtCreateItemAt(&out, item_id, item_num, -1, -1, obj, parts);
             return 1;
         }
     }
@@ -3403,7 +3403,7 @@ int TrolleyItemSetCk(Vec* pos, ITEM_ID id, int num)
 }
 
 // Item dropped on the bulldozer (room 30F).
-int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
+int BullItemSetCk(Vec* pPos, ITEM_ID item_id, int item_num)
 {
     Vec out;
     u8 parts;
@@ -3421,8 +3421,8 @@ int BullItemSetCk(Vec* pos, ITEM_ID id, int num)
         if (obj->id != 0x3E) {
             continue;
         }
-        if (((cObjBull*) obj)->ckBullRide(pos, &parts, &out)) {
-            SceAtCreateItemAt(&out, id, num, -1, -1, obj, parts);
+        if (((cObjBull*) obj)->ckBullRide(pPos, &parts, &out)) {
+            SceAtCreateItemAt(&out, item_id, item_num, -1, -1, obj, parts);
             return 1;
         }
     }
@@ -3437,7 +3437,7 @@ void adjust_add_set(Vec add)
 
 // Move `pos` with the vehicle it stands on (mine cart in room 21B, bulldozer in room 30F): 1 when a
 // vehicle adjusted it; on the bulldozer stage the vehicle offset is added otherwise.
-int VehicleAdjust(Vec* pos)
+int VehicleAdjust(Vec* pPos)
 {
     Vec out;
     cObj* obj;
@@ -3447,8 +3447,8 @@ int VehicleAdjust(Vec* pos)
             if (obj->id != 0x3B) {
                 continue;
             }
-            if (((cObjTrolley*) obj)->ckTrolleyRideAdjust(pos, &out)) {
-                *pos = out;
+            if (((cObjTrolley*) obj)->ckTrolleyRideAdjust(pPos, &out)) {
+                *pPos = out;
                 return 1;
             }
         }
@@ -3458,12 +3458,12 @@ int VehicleAdjust(Vec* pos)
             if (obj->id != 0x3E) {
                 continue;
             }
-            if (((cObjBull*) obj)->ckBullRideAdjust(pos, &out)) {
-                *pos = out;
+            if (((cObjBull*) obj)->ckBullRideAdjust(pPos, &out)) {
+                *pPos = out;
                 return 1;
             }
         }
-        PSVECAdd(&adjust_add, pos, pos);
+        PSVECAdd(&adjust_add, pPos, pPos);
     }
     return 0;
 }

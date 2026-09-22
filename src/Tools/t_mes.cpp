@@ -443,7 +443,7 @@ cIdToolMenu::cIdToolMenu(char** t, int px, int py)
 
 // Draws the menu; up/down move the cursor (wrap), A returns the 1-based entry, B jumps to the last
 // entry (returns it when already there); else 0.
-int cIdToolMenu::ToolMenuMove(int flag)
+int cIdToolMenu::ToolMenuMove(int sw)
 {
     int ret = -1;
     int i;
@@ -460,7 +460,7 @@ int cIdToolMenu::ToolMenuMove(int flag)
     if (Joy[0].trg & 0x100) {
         ret = m_menuNo + 1;
     } else if (Joy[0].trg & 0x200) {
-        if (flag) {
+        if (sw) {
             ret = 0;
         } else {
             if (m_menuNo != m_maxMenu - 1) {
@@ -484,11 +484,11 @@ int cIdToolMenu::ToolMenuMove(int flag)
 }
 
 // Moves the menu by (dx, dy) pixels, kept on screen when `clamp`.
-void cIdToolMenu::ToolMenuLocate(int dx, int dy, int clamp)
+void cIdToolMenu::ToolMenuLocate(int x, int y, int flag)
 {
-    m_x += dx;
-    m_y -= dy;
-    if (clamp) {
+    m_x += x;
+    m_y -= y;
+    if (flag) {
         if (m_x < 16) {
             m_x = 16;
         } else if (m_x > 496) {

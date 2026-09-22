@@ -16,10 +16,10 @@ public:
 
     void WorkClear();
     void Init();
-    int DataLoad(u32 addr);
+    int DataLoad(u32 data_addr);
     int ItmRegist(void* bin, void* tpl, u8 no);
-    int GetBinAddr(u8 no, void** pAddr);
-    int GetTplAddr(u8 no, void** pAddr);
+    int GetBinAddr(u8 id, void** pBin_addr);
+    int GetTplAddr(u8 id, void** pTpl_addr);
 };
 
 extern cItmSys* g_pItemModelSys;
@@ -28,9 +28,9 @@ extern "C" {
 void ItemModelInit();
 void ItemModelRoomInit();
 int ItemModelDataLoad(void* data);
-int ItemGetBinAddr(u8 no, void** pAddr);
-int ItemGetTplAddr(u8 no, void** pAddr);
-int ItemGetBinTplAddr(u8 no, void** pBin, void** pTpl);
+int ItemGetBinAddr(u8 id, void** pBin_addr);
+int ItemGetTplAddr(u8 id, void** pTpl_addr);
+int ItemGetBinTplAddr(u8 id, void** pBin_addr, void** pTpl_addr);
 }
 
 #endif

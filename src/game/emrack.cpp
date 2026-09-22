@@ -159,41 +159,41 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 // without breakage), knocks a shelf plank off (parts scaled to 0), breaks the rack (heavy /
 // explosive weapons, or a close shotgun blast: Rno1 2 with the style in Rno3), or for handgun /
 // knife hits topples it toward the hit position (setDown).
-void emRackDmCk(cEmRack* em)
+void emRackDmCk(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
     YARARE_INFO* part;
     u8 wep;
     int type;
     Vec hit;
 
-    if (em->hp > 0) {
-        type = em->type;
+    if (pEm->hp > 0) {
+        type = pEm->type;
         if (type >= 0) {
             if (type <= 1) {
-                switch (DmgMgr.hitCheck(&em->pos, &hit)) {
+                switch (DmgMgr.hitCheck(&pEm->pos, &hit)) {
                 case DMG_TYPE_FIRE:
                 case DMG_TYPE_FLAME:
                 case DMG_TYPE_LAMP:
                 case DMG_TYPE_ENV_FIRE:
-                    em->hp = 0;
-                    em->r_no_0 = 1;
-                    em->r_no_1 = 2;
-                    em->r_no_2 = 0;
-                    em->r_no_3 = 0;
+                    pEm->hp = 0;
+                    pEm->r_no_0 = 1;
+                    pEm->r_no_1 = 2;
+                    pEm->r_no_2 = 0;
+                    pEm->r_no_3 = 0;
                     return;
                 }
             }
         }
     }
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    em->dmg.m_Flag = 0;
-    if (em->flag & 0x80000000) {
+    pEm->dmg.m_Flag = 0;
+    if (pEm->flag & 0x80000000) {
         return;
     }
-    wep = em->dmg.m_Wep;
+    wep = pEm->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -215,23 +215,23 @@ void emRackDmCk(cEmRack* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmg.m_Timer = 0;
+        pEm->dmg.m_Timer = 0;
         break;
     }
-    if (em->dmg.m_Wep == 0x10) {
-        em->dmg.m_Timer = 0x11;
+    if (pEm->dmg.m_Wep == 0x10) {
+        pEm->dmg.m_Timer = 0x11;
     }
-    switch (em->type) {
+    switch (pEm->type) {
     case 2:
     case 3:
     case 5:
         if (w->Eff_id != 0xFF) {
-            EmDmBloodSet2(em, w->Eff_id, 1, 0, 0, 0);
+            EmDmBloodSet2(pEm, w->Eff_id, 1, 0, 0, 0);
         }
         return;
     }
-    part = em->dmg.m_pDamageYarare;
-    switch (em->dmg.m_Wep) {
+    part = pEm->dmg.m_pDamageYarare;
+    switch (pEm->dmg.m_Wep) {
     case 1:
     case 2:
     case 3:
@@ -249,27 +249,27 @@ void emRackDmCk(cEmRack* em)
     case 0x28:
     case 0x2B:
         if (w->Eff_id != 0xFF) {
-            EmDmBloodSet2(em, w->Eff_id, 1, 0, 0, 0);
+            EmDmBloodSet2(pEm, w->Eff_id, 1, 0, 0, 0);
         }
         break;
     case 7:
     case 8:
         if (part->len < 36000000.0f) {
             if (w->Rack_hp <= 0.0f) {
-                em->r_no_0 = 1;
-                em->r_no_1 = 2;
-                em->r_no_2 = 0;
-                em->r_no_3 = 3;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 2;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 3;
                 return;
             }
             if (part->parts_no != 0) {
                 cModel* p;
 
                 if (w->Eff_id != 0xFF) {
-                    EstSet(em, -1, 0, 0, w->Eff_id, 6, 0, ESP_CORE_KIND_NONE, em, 0);
+                    EstSet(pEm, -1, 0, 0, w->Eff_id, 6, 0, ESP_CORE_KIND_NONE, pEm, 0);
                 }
-                SndCall(6, 0x36, &em->pos, 0, 0, em);
-                p = em->getPartsPtr(1);
+                SndCall(6, 0x36, &pEm->pos, 0, 0, pEm);
+                p = pEm->getPartsPtr(1);
                 p->scale.x = 0.0f;
                 p->scale.y = 0.0f;
                 p->scale.z = 0.0f;
@@ -279,7 +279,7 @@ void emRackDmCk(cEmRack* em)
             w->Rack_hp = 0.0f;
         }
         if (w->Eff_id != 0xFF) {
-            EmDmBloodSet2(em, w->Eff_id, 2, 0, 0, 0);
+            EmDmBloodSet2(pEm, w->Eff_id, 2, 0, 0, 0);
         }
         break;
     case 5:
@@ -295,14 +295,14 @@ void emRackDmCk(cEmRack* em)
     case 0x2D:
     case 0x2E:
     default:
-        em->r_no_0 = 1;
-        em->r_no_1 = 2;
-        em->r_no_2 = 0;
-        em->r_no_3 = 2;
+        pEm->r_no_0 = 1;
+        pEm->r_no_1 = 2;
+        pEm->r_no_2 = 0;
+        pEm->r_no_3 = 2;
         break;
     case 0:
     case 0x14:
-        em->setDown(&em->dmg.m_PosFrom);
+        pEm->setDown(&pEm->dmg.m_PosFrom);
         break;
     }
 }
@@ -321,55 +321,55 @@ void cEmRack::move()
 }
 
 // Rno0 == 0: resets to the Set state.
-void emRack_R0_Init(cEmRack* em)
+void emRack_R0_Init(cEmRack* pEm)
 {
-    em->r_no_0 = 1;
-    em->r_no_1 = 0;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 0;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 Down, 2 Break, 3 Shock).
-void emRack_R0_Move(cEmRack* em)
+void emRack_R0_Move(cEmRack* pEm)
 {
-    EmRack_R1_move_tbl[em->r_no_1](em);
+    EmRack_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: standing rack; when its motion crosses frame 2 (the push motion) spawns the dust est
 // (5, or 7 for the tall shelf), then updates the matrices.
-void emRack_R1_Set(cEmRack* em)
+void emRack_R1_Set(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
 
-    if (MotionCheckCrossFrame((MotionWork*) &em->Motion, 2.0f)) {
+    if (MotionCheckCrossFrame((MotionWork*) &pEm->Motion, 2.0f)) {
         if (w->Eff_id != 0xFF) {
-            if (em->type == 1) {
-                EstSet(em, -1, 0, 0, w->Eff_id, 7, 0, ESP_CORE_KIND_NONE, em, 0);
+            if (pEm->type == 1) {
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 7, 0, ESP_CORE_KIND_NONE, pEm, 0);
             } else {
-                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, em, 0);
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, pEm, 0);
             }
         }
     }
-    em->matUpdate();
+    pEm->matUpdate();
 }
 
 // Rno1 == 1: topples over: rotates parts 0 about x or z (direction Rno3 0..3) with growing speed
 // until 72 degrees, then Rno1 2 Break with style 1.
-void emRack_R1_Down(cEmRack* em)
+void emRack_R1_Down(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
     cModel* p;
     int done;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         w->TmpF = 0.0f;
-        em->hp = 0;
-        em->r_no_2++;
+        pEm->hp = 0;
+        pEm->r_no_2++;
     case 1:
-        p = em->getPartsPtr(0);
+        p = pEm->getPartsPtr(0);
         done = 0;
-        switch (em->r_no_3) {
+        switch (pEm->r_no_3) {
         case 0:
         default:
             p->ang.x += w->TmpF;
@@ -398,57 +398,57 @@ void emRack_R1_Down(cEmRack* em)
         }
         w->TmpF += 0.01f;
         if (done) {
-            em->r_no_0 = 1;
-            em->r_no_1 = 2;
-            em->r_no_2 = 0;
-            em->r_no_3 = 1;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 2;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 1;
         }
         break;
     }
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
-    em->partsMatCalc();
-    em->partsWorldCalc();
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
+    pEm->partsMatCalc();
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 2: broken / fallen; on entry hides the model, sets bit0 of the etc flag, spawns the break
 // est chosen by Rno3 (0 shot, 1 fell, 2 explosion, 3 shotgun, 4 silent restore, 5 wardrobe
 // script) with the crash SE, and disables the collision.
-void emRack_R1_Break(cEmRack* em)
+void emRack_R1_Break(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
     u16* flg;
 
-    if (em->r_no_2 == 0) {
-        em->hp = 0;
-        em->be_flag &= ~2;
+    if (pEm->r_no_2 == 0) {
+        pEm->hp = 0;
+        pEm->be_flag &= ~2;
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
-        switch (em->type) {
+        switch (pEm->type) {
         default:
             if (w->Eff_id == 0xFF) {
                 break;
             }
-            switch (em->r_no_3) {
+            switch (pEm->r_no_3) {
             case 0:
             default:
-                EstSet(em, -1, 0, 0, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, em, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, pEm, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 1:
-                EstSet(em, -1, 0, 0, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, em, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, pEm, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 2:
-                EstSet(em, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, em, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, pEm, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 3:
-                EstSet(em, -1, 0, 0, w->Eff_id, 4, 0, ESP_CORE_KIND_NONE, em, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(pEm, -1, 0, 0, w->Eff_id, 4, 0, ESP_CORE_KIND_NONE, pEm, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 4:
                 break;
@@ -458,29 +458,29 @@ void emRack_R1_Break(cEmRack* em)
             if (w->Eff_id == 0xFF) {
                 break;
             }
-            switch (em->r_no_3) {
+            switch (pEm->r_no_3) {
             case 0:
             default:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 1:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 2:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 3:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             case 4:
                 break;
             case 5:
-                EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(6, 0x33, &pEm->pos, 0, 0, pEm);
                 break;
             }
             break;
@@ -489,29 +489,29 @@ void emRack_R1_Break(cEmRack* em)
         case 5:
             break;
         }
-        emRackSatClear(em);
-        em->r_no_2++;
+        emRackSatClear(pEm);
+        pEm->r_no_2++;
     }
 }
 
 // Rno1 == 3: kicked: takes 50 hp (never below 1), plays the rattle SE and shakes parts 0 for 7
 // frames, then back to Set.
-void emRack_R1_Shock(cEmRack* em)
+void emRack_R1_Shock(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
     cModel* p;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         w->Timer = 7;
-        em->hp -= 50;
-        if (em->hp <= 0) {
-            em->hp = 1;
+        pEm->hp -= 50;
+        if (pEm->hp <= 0) {
+            pEm->hp = 1;
         }
-        SndCall(6, 0x5F, &em->pos, 0, 0, em);
-        em->r_no_2++;
+        SndCall(6, 0x5F, &pEm->pos, 0, 0, pEm);
+        pEm->r_no_2++;
     case 1:
-        p = em->getPartsPtr(0);
+        p = pEm->getPartsPtr(0);
         if (w->Timer != 0) {
             w->Timer--;
             p->ang.x = 0.0f;
@@ -520,41 +520,41 @@ void emRack_R1_Shock(cEmRack* em)
             }
         } else {
             p->ang.y = 0.0f;
-            em->r_no_0 = 1;
-            em->r_no_1 = 0;
-            em->r_no_2 = 0;
-            em->r_no_3 = 0;
+            pEm->r_no_0 = 1;
+            pEm->r_no_1 = 0;
+            pEm->r_no_2 = 0;
+            pEm->r_no_3 = 0;
         }
         break;
     }
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
-    em->partsMatCalc();
-    em->partsWorldCalc();
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
+    pEm->partsMatCalc();
+    pEm->partsWorldCalc();
 }
 
 // Keeps the rack's effect collision (EatMgr quads, attribute 0x400000) in place while intact and
 // the player is within 15000 units: one quad of the rack's footprint and, for the tall shelf,
 // two more shelves at 1000 / 1500 height. Also enables the atari flag 0x200 (blocks the player).
-void emRackSatSet(cEmRack* em)
+void emRackSatSet(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
     Vec v[4];
     f32 hx;
     f32 hz;
     f32 h;
 
-    emRackSatClear(em);
-    if (em->hp <= 0) {
+    emRackSatClear(pEm);
+    if (pEm->hp <= 0) {
         return;
     }
     {
-        cAtariInfo* at = &em->atari;
+        cAtariInfo* at = &pEm->atari;
 
         at->m_flag |= 0x200;
     }
-    if (w->pEatUnder != 0 && em->plDist2 > 225000000.0f) {
+    if (w->pEatUnder != 0 && pEm->plDist2 > 225000000.0f) {
         return;
     }
     hx = w->Size_x - 100.0f;
@@ -571,18 +571,18 @@ void emRackSatSet(cEmRack* em)
     v[3].x = -hx;
     v[3].y = 0.0f;
     v[3].z = hz;
-    if (em->type == 1) {
+    if (pEm->type == 1) {
         h = 1000.0f;
     } else {
         h = w->Size_y;
     }
     if (w->pEatUnder == 0) {
-        w->pEatUnder = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
+        w->pEatUnder = EatMgr.create(&pEm->pos, &pEm->ang, v, h, 0x400000, 0);
     } else {
         w->pEatUnder->m_Flag |= 4;
-        w->pEatUnder->setCoord(&em->pos, &em->ang);
+        w->pEatUnder->setCoord(&pEm->pos, &pEm->ang);
     }
-    if (em->type != 1) {
+    if (pEm->type != 1) {
         return;
     }
     v[0].y = 1000.0f;
@@ -591,10 +591,10 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1000.0f;
     h = 500.0f;
     if (w->pEatCenter == 0) {
-        w->pEatCenter = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
+        w->pEatCenter = EatMgr.create(&pEm->pos, &pEm->ang, v, h, 0x400000, 0);
     } else {
         w->pEatCenter->m_Flag |= 4;
-        w->pEatCenter->setCoord(&em->pos, &em->ang);
+        w->pEatCenter->setCoord(&pEm->pos, &pEm->ang);
     }
     v[0].y = 1500.0f;
     v[1].y = 1500.0f;
@@ -602,19 +602,19 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1500.0f;
     h = 500.0f;
     if (w->pEatTop == 0) {
-        w->pEatTop = EatMgr.create(&em->pos, &em->ang, v, h, 0x400000, 0);
+        w->pEatTop = EatMgr.create(&pEm->pos, &pEm->ang, v, h, 0x400000, 0);
     } else {
         w->pEatTop->m_Flag |= 4;
-        w->pEatTop->setCoord(&em->pos, &em->ang);
+        w->pEatTop->setCoord(&pEm->pos, &pEm->ang);
     }
 }
 
 // Deactivates the rack's collision quads and the atari blocking flag.
-void emRackSatClear(cEmRack* em)
+void emRackSatClear(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
 
-    em->atari.clrFlag200();
+    pEm->atari.clrFlag200();
     if (w->pEatUnder) {
         w->pEatUnder->m_Flag &= ~4;
     }
@@ -628,31 +628,31 @@ void emRackSatClear(cEmRack* em)
 
 // Hit boxes by type: the body cube; the tall shelf adds the top board, both sides and an inner
 // cube (parts 2); pillars use flag 0x41 boxes.
-void emRackYarareInit(cEmRack* em)
+void emRackYarareInit(cEmRack* pEm)
 {
-    FREE_EMRACK* w = EMRACK_WK(em);
+    FREE_EMRACK* w = EMRACK_WK(pEm);
 
-    switch (em->type) {
+    switch (pEm->type) {
     case 0:
     default:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[0], 0.0f, 1800.0f, 0.0f, 700.0f, 200.0f, 400.0f, 0, YAT_FLAG_ON);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[1], -600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, YAT_FLAG_ON);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[2], 600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, YAT_FLAG_ON);
-        YarareAddCube((cEmHit*) em, &w->YarareTbl[3], 0.0f, 1000.0f, 0.0f, 500.0f, 800.0f, 450.0f, 2, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) pEm, &w->YarareTbl[0], 0.0f, 1800.0f, 0.0f, 700.0f, 200.0f, 400.0f, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) pEm, &w->YarareTbl[1], -600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) pEm, &w->YarareTbl[2], 600.0f, 0.0f, 0.0f, 100.0f, w->Size_y, 400.0f, 0, YAT_FLAG_ON);
+        YarareAddCube((cEmHit*) pEm, &w->YarareTbl[3], 0.0f, 1000.0f, 0.0f, 500.0f, 800.0f, 450.0f, 2, YAT_FLAG_ON);
         break;
     case 2:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareInitCube((cEmHit*) pEm, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     case 3:
     case 5:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareInitCube((cEmHit*) pEm, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     case 4:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
+        YarareInitCube((cEmHit*) pEm, 0.0f, 0.0f, 0.0f, w->Size_x, w->Size_y, w->Size_z, 0, YAT_FLAG_ON | YAT_FLAG_NO_MARK);
         break;
     }
 }
@@ -676,7 +676,7 @@ void cEmRack::setBreak(Vec* pPos)
 // Topples an intact rack away from `target` (player / hit position): picks the fall axis from the
 // angle (front / back / left / right); only the tall shelf actually falls (Rno1 1), others break
 // at once.
-void cEmRack::setDown(Vec* target)
+void cEmRack::setDown(Vec* pPos)
 {
     f32 ang;
     f32 abs;
@@ -684,7 +684,7 @@ void cEmRack::setDown(Vec* target)
     if (hp <= 0) {
         return;
     }
-    ang = Muku(&pos, target, this->ang.y, 3.1415927f);
+    ang = Muku(&pos, pPos, this->ang.y, 3.1415927f);
     abs = fabsf(ang);
     if (ang < 0.0f) {
         r_no_3 = 3;
@@ -719,11 +719,11 @@ void cEmRack::setShock()
 }
 
 // Est id used for the hit / break / dust effects.
-void cEmRack::setEff(u8 eff)
+void cEmRack::setEff(u8 eff_id)
 {
     FREE_EMRACK* w = EMRACK_WK(this);
 
-    w->Eff_id = eff;
+    w->Eff_id = eff_id;
 }
 
 // Defines how far the rack may be pushed from its start position in its local north / east /

@@ -100,11 +100,11 @@ void cActionButton::move()
 
 // Shows the prompt: the message (kind + 0x16) at the layout position for the button icon, and
 // tells the cockpit which button icon to draw.
-void cActionButton::disp(ActBtnWork* w)
+void cActionButton::disp(ActBtnWork* work)
 {
     int col = 0;
-    u8 kind = w->kind;
-    u8 btn = w->btn;
+    u8 kind = work->kind;
+    u8 btn = work->btn;
     IdUnit* u;
     s16 sx;
     s16 sy;
@@ -113,7 +113,7 @@ void cActionButton::disp(ActBtnWork* w)
     // register r6 in the target; here the third fpmem-address scratch copy (`mr r6,r10`) takes r6 first.
     register int y asm("r6");
 
-    if (w->flags & ACTCTR_DOOR_COLOR) {
+    if (work->flags & ACTCTR_DOOR_COLOR) {
         col = 7;
     }
     cMes.setLayout(1, LAYOUT_ACT_BTN);
@@ -157,7 +157,7 @@ void cActionButton::disp(ActBtnWork* w)
 // and a `break` pair is grouped into a range node. The case-9 arm ends in a codeless `asm volatile("")`:
 // a real insn in the arm keeps the nodes separate, and it also blocks jump2's `x = a; if (c) goto l;`
 // hoist that turns the case-7 tail into `or.; li r3,1; beqlr` when the `li r3,0` block is adjacent.
-int cActionButton::checkButton(ActBtnWork* w)
+int cActionButton::checkButton(ActBtnWork* work)
 {
     u32 on = Key.on & 0x00CF0000;
     u32 trg = Key.trg & 0x00CF0000;
@@ -168,11 +168,11 @@ int cActionButton::checkButton(ActBtnWork* w)
     register u64 key asm("r9");
     u32 flags;
 
-    switch (w->btn) {
+    switch (work->btn) {
     case DISP_A_NORMAL:
     case DISP_A_RAPID:
     case DISP_A_ACCENT:
-        flags = w->flags;
+        flags = work->flags;
         if (!(flags & ACTCTR_EXACT_KEY)) {
             if (!(flags & ACTCTR_ENFORCE_EXEC)) {
                 if (flags & ACTCTR_NO_TRG) {
@@ -238,7 +238,7 @@ int cActionButton::checkButton(ActBtnWork* w)
     case DISP_L_R:
         if ((trg & 0xC00000) == 0xC00000 || ((on & 0x400000) && (trg & 0x800000)) ||
             ((trg & 0x400000) && (on & 0x800000))) {
-            if (!(w->flags & ACTCTR_EXACT_KEY)) {
+            if (!(work->flags & ACTCTR_EXACT_KEY)) {
                 return 1;
             }
             if ((on & 0xC0000) == 0xC0000) {
@@ -250,7 +250,7 @@ int cActionButton::checkButton(ActBtnWork* w)
     case DISP_A_B:
         if ((trg & 0xC0000) == 0xC0000 || ((on & 0x80000) && (trg & 0x40000)) ||
             ((trg & 0x80000) && (on & 0x40000))) {
-            if (!(w->flags & ACTCTR_EXACT_KEY)) {
+            if (!(work->flags & ACTCTR_EXACT_KEY)) {
                 return 1;
             }
             if ((on & 0xC00000) == 0xC00000) {
@@ -263,7 +263,7 @@ int cActionButton::checkButton(ActBtnWork* w)
         if (!(trg & 0x40000)) {
             break;
         }
-        if (!(w->flags & ACTCTR_EXACT_KEY)) {
+        if (!(work->flags & ACTCTR_EXACT_KEY)) {
             return 1;
         }
         key = on;
@@ -275,7 +275,7 @@ int cActionButton::checkButton(ActBtnWork* w)
         if (!(trg & 0x20000)) {
             break;
         }
-        if (!(w->flags & ACTCTR_EXACT_KEY)) {
+        if (!(work->flags & ACTCTR_EXACT_KEY)) {
             return 1;
         }
         key = on;
@@ -287,7 +287,7 @@ int cActionButton::checkButton(ActBtnWork* w)
         if (!(trg & 0x10000)) {
             break;
         }
-        if (!(w->flags & ACTCTR_EXACT_KEY)) {
+        if (!(work->flags & ACTCTR_EXACT_KEY)) {
             return 1;
         }
         key = on;
@@ -308,17 +308,17 @@ int cActionButton::checkButton(ActBtnWork* w)
 // 1 when the live player may take the action (actCheck, or flags bit1 skips it); some button
 // kinds need the player to be aiming (PlGetStatus 0x10), with flags bit0 marking Status_flg[0]
 // 0x200000.
-int cActionButton::checkPLStatus(ActBtnWork* w)
+int cActionButton::checkPLStatus(ActBtnWork* work)
 {
     if (pPL->hp > 0) {
-        if ((w->flags & ACTCTR_ENFORCE_EXEC) || pPL->actCheck() != 0) {
-            switch (w->btn) {
+        if ((work->flags & ACTCTR_ENFORCE_EXEC) || pPL->actCheck() != 0) {
+            switch (work->btn) {
             case DISP_A_NORMAL:
             case DISP_A_RAPID:
             case DISP_A_B:
             case DISP_A_ACCENT:
                 if (PlGetStatus() & 0x10) {
-                    if (w->flags & ACTCTR_WEP_SET_IGNORE) {
+                    if (work->flags & ACTCTR_WEP_SET_IGNORE) {
                         StaFlagOn(pG, STA_ACT_DONT_FIRE);
                         return 1;
                     }

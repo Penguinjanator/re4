@@ -2104,7 +2104,7 @@ void Evt_R31BS00_Func(Event* e)
 // The count-down state test: the module build had it inline in the header after the class (a
 // linkonce copy follows the room's code; the DOL's is game/mercenaries.cpp's).
 // local copy: a header definition changes this unit's allocation (declaration order)
-inline int CountDown::checkState(u32 bit)
+inline int CountDown::checkState(u32 state)
 {
-    return (m_state & bit) ? 1 : 0;
+    return (m_state & state) ? 1 : 0;
 }

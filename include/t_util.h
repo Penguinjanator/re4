@@ -23,16 +23,16 @@ void TutilInitDefault();
 void TutilQuitDefault();
 // Draws `menu` (size in bytes) at x,y and moves the cursor with `joy`. Returns the selected
 // entry when A is pressed on an enabled line, else -1. `cursor` may be NULL.
-int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy);
+int ToolMenuDisp_cur(int x, int y, int flg, s8* pCur, TOOL_MENU* pMenu, int MenuSize, JOY* pJoy1);
 // tools/t_util.cpp only (dead-stripped from the DOL): screen position of a world point.
-int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup);
-void TutilMoveCursor(Vec* pos, f32 speed, f32 step);
+int TutilGetScreenPos(Vec* mv, f32* sv, int mode);
+void TutilMoveCursor(Vec* pos, f32 anamv, f32 keymv);
 // t_event/t_sce: ToolMenuDisp_cur without a cursor variable
-int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy);
+int ToolMenuDisp(int x, int y, int flg, TOOL_MENU* pMenu, int MenuSize, JOY* pJoy1);
 // Tools only: XZ position under a screen point (projection search around `center`, side `step`).
-int TutilGet3DPosXZ(Vec* target, Vec* center, f32 step, Vec* out);
-int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out);
-int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out);
+int TutilGet3DPosXZ(Vec* sv, Vec* bmv, f32 width, Vec* mv);
+int TutilGet3DPosXZ_Mov(Vec* sv, Vec* bmv, Vec* mv);
+int TutilGet3DPosXZ_All(Vec* sv, Vec* bmv, Vec* mv);
 
 // Prints `n` menu strings one row (14 px) apart; inlined (the giv inits land after the PRE'd pointer
 // high parts in the preheader) (t_cons, t_scroll; t_tplview has its own `*tbl++` form).

@@ -291,20 +291,20 @@ void PadRead()
 }
 
 // Blocks all keys except `mask` until the stop flag is cleared (Stop_flg bit31) — events / menus.
-void KeyStop(u64 mask)
+void KeyStop(u64 un_stop_bit)
 {
     SpfFlagOn(pG, SPF_KEY);
-    KeyClear(mask);
+    KeyClear(un_stop_bit);
 }
 
 // Drops every key bit not in `mask` (the last non-zero mask is remembered) from Key on/trg/rel/
 // rep/rep2 and the triggers, and clears the key-stop status flags.
-void KeyClear(u64 mask)
+void KeyClear(u64 un_stop_bit)
 {
     static u64 un_stop_mask = 0;
 
-    if (mask) {
-        un_stop_mask = mask;
+    if (un_stop_bit) {
+        un_stop_mask = un_stop_bit;
     }
     Key.on &= un_stop_mask;
     Key.trg &= un_stop_mask;
@@ -380,23 +380,23 @@ VibWork* PullVibWork()
 
 // Constant rumble: `level` (0..0xFF) for `time` frames (max 255) after `wait` frames; `type` bits
 // 0-3 select what VibSetClearType can cancel, 0x8000 = random strength.
-void VibSet(u32 time, u32 level, u16 wait, u16 type)
+void VibSet(u32 time, u32 level, u16 delay, u16 flag)
 {
     VibWork* v = PullVibWork();
     if (v) {
         if (time > 0xFF) {
             time = 0xFF;
         }
-        v->type = type;
+        v->type = flag;
         v->time = time;
-        v->wait = wait;
+        v->wait = delay;
         v->level = level << 7;
         v->add = 0;
     }
 }
 
 // Queues every entry of a rumble pattern (start / end level ramp over `time` frames), or-ing `type`.
-void VibSetDataCore(VibData* d, u32 type)
+void VibSetDataCore(VibData* d, u32 flag)
 {
     u32 i;
     VibWork* v;
@@ -413,7 +413,7 @@ void VibSetDataCore(VibData* d, u32 type)
         e += i;
         lvl = e->lvl0 << 12;
         add = ((e->lvl1 - e->lvl0) << 12) / e->time;
-        v->type = e->type | type;
+        v->type = e->type | flag;
         v->time = e->time;
         v->wait = e->wait;
         v->level = lvl;

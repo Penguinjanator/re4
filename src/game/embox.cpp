@@ -583,11 +583,11 @@ void emBoxYarareInit(cEmBox* em)
 
 // Sets the break / hit est id; on an already broken box (room re-entry) places the debris est 4
 // (8 for type 5) or the break model at once.
-void cEmBox::setEff(u8 eff)
+void cEmBox::setEff(u8 eff_id)
 {
     EmBoxWork* w = EMBOX_WK(this);
 
-    w->Eff_id = eff;
+    w->Eff_id = eff_id;
     if (hp > 0) {
         return;
     }

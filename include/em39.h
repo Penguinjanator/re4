@@ -113,7 +113,7 @@ public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM39_WK)
     virtual ~cEm39();
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
     virtual void set2ndBattle();
     virtual int ckHide();
     virtual void set1stDoorClear();

@@ -16,27 +16,27 @@ cDmgMgr::cDmgMgr() : cManager<cDmg>(0x118, 2)
 }
 
 // Places a cylinder (id 0) or quad (id 1) volume into the fresh work.
-int cDmgMgr::construct(cDmg* p, int id)
+int cDmgMgr::construct(cDmg* pDmg, int id)
 {
     switch (id) {
     case ID_CYLINDER:
     default:
-        new (p) cDmgCyl;
-        p->be_flag = 1;
+        new (pDmg) cDmgCyl;
+        pDmg->be_flag = 1;
         break;
     case ID_POINT4:
-        new (p) cDmgP4;
-        p->be_flag = 1;
+        new (pDmg) cDmgP4;
+        pDmg->be_flag = 1;
         break;
     }
-    p->m_Id = id;
+    pDmg->m_Id = id;
     return 1;
 }
 
 // cManager hook (unsigned id).
-int cDmgMgr::construct(cDmg* p, u32 id)
+int cDmgMgr::construct(cDmg* pDmg, u32 id)
 {
-    return construct(p, (int) id);
+    return construct(pDmg, (int) id);
 }
 
 // Per-frame: counts every live volume's lifetime down and destroys it at 0.
@@ -57,48 +57,48 @@ void cDmgMgr::move()
 
 // Registers a cylinder volume (centre, radius, half height) of `kind` for `time` frames; 1 when
 // a work was free.
-int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
+int cDmgMgr::set(int type, int time, Vec* pPos, f32 radius, f32 height)
 {
     cDmgCyl* p = (cDmgCyl*) create(ID_CYLINDER);
 
     if (p == 0) {
         return 0;
     }
-    p->m_Type = kind;
+    p->m_Type = type;
     p->m_Time = time;
-    p->m_Pos = *pos;
-    p->m_Radius = r;
-    p->m_Height = h;
+    p->m_Pos = *pPos;
+    p->m_Radius = radius;
+    p->m_Height = height;
     return 1;
 }
 
 // Registers an XZ quad volume (4 corners, half height) of `kind` for `time` frames.
-int cDmgMgr::set(int kind, int time, Vec* pt, f32 h)
+int cDmgMgr::set(int type, int time, Vec* pPos4, f32 height)
 {
     cDmgP4* p = (cDmgP4*) create(ID_POINT4);
 
     if (p == 0) {
         return 0;
     }
-    p->m_Type = kind;
+    p->m_Type = type;
     p->m_Time = time;
-    p->m_Pos[0] = pt[0];
-    p->m_Pos[1] = pt[1];
-    p->m_Pos[2] = pt[2];
-    p->m_Pos[3] = pt[3];
-    p->m_Height = h;
+    p->m_Pos[0] = pPos4[0];
+    p->m_Pos[1] = pPos4[1];
+    p->m_Pos[2] = pPos4[2];
+    p->m_Pos[3] = pPos4[3];
+    p->m_Height = height;
     return 1;
 }
 
 // The kind of the first live volume containing `pos` (its centre in *out); 0 when none.
-int cDmgMgr::hitCheck(Vec* pos, Vec* out)
+int cDmgMgr::hitCheck(Vec* pPos, Vec* pFrom)
 {
     u32 i;
 
     for (i = 0; i < nArray; i++) {
         cDmg* p = fastAt(i);
         if ((p->be_flag & 0x201) == 1) {
-            if (p->hitCheck(pos, out)) {
+            if (p->hitCheck(pPos, pFrom)) {
                 return p->m_Type;
             }
         }
@@ -108,40 +108,40 @@ int cDmgMgr::hitCheck(Vec* pos, Vec* out)
 
 // Point in cylinder (height band +-m_Height, XZ radius); *out = centre. Debug_flg[2] 0x10000000
 // draws the volume.
-int cDmgCyl::hitCheck(Vec* p, Vec* out)
+int cDmgCyl::hitCheck(Vec* pPos, Vec* pFrom)
 {
     if (DbgFlagChk(pG, DBG_OBA_VIEW)) {
         Draw_cylinder(&m_Pos, m_Radius, m_Height, 0xFFFFFFFF);
     }
-    if (p->y > m_Pos.y + m_Height) {
+    if (pPos->y > m_Pos.y + m_Height) {
         return 0;
     }
-    if (p->y < m_Pos.y - m_Height) {
+    if (pPos->y < m_Pos.y - m_Height) {
         return 0;
     }
-    if ((p->x - m_Pos.x) * (p->x - m_Pos.x) + (p->z - m_Pos.z) * (p->z - m_Pos.z) > m_Radius * m_Radius) {
+    if ((pPos->x - m_Pos.x) * (pPos->x - m_Pos.x) + (pPos->z - m_Pos.z) * (pPos->z - m_Pos.z) > m_Radius * m_Radius) {
         return 0;
     }
-    if (out) {
-        *out = m_Pos;
+    if (pFrom) {
+        *pFrom = m_Pos;
     }
     return m_Type;
 }
 
 // Point in the XZ quad; *out = the corners' mean.
-int cDmgP4::hitCheck(Vec* p, Vec* out)
+int cDmgP4::hitCheck(Vec* pPos, Vec* pFrom)
 {
     u32 i;
 
-    if (HitCheckPoint4(p, m_Pos)) {
-        if (out) {
-            out->x = 0.0f;
-            out->y = 0.0f;
-            out->z = 0.0f;
+    if (HitCheckPoint4(pPos, m_Pos)) {
+        if (pFrom) {
+            pFrom->x = 0.0f;
+            pFrom->y = 0.0f;
+            pFrom->z = 0.0f;
             for (i = 0; i < 4; i++) {
-                PSVECAdd(out, &m_Pos[i], out);
+                PSVECAdd(pFrom, &m_Pos[i], pFrom);
             }
-            PSVECScale(out, out, 0.25f);
+            PSVECScale(pFrom, pFrom, 0.25f);
         }
         return m_Type;
     }
@@ -149,7 +149,7 @@ int cDmgP4::hitCheck(Vec* p, Vec* out)
 }
 
 // Event start: damage volumes are removed.
-void cDmg::beginEvent(u32 mode)
+void cDmg::beginEvent(u32 flag)
 {
     DmgMgr.destroy(this);
 }

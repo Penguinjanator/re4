@@ -18,6 +18,6 @@ void Filter05Trans()
 }
 
 // Empty: parameters from effect controller 44 are ignored.
-void Filter05SetParam(int a, int b, int c, int d, int e, f32 x, f32 y, f32 z, int f, int g)
+void Filter05SetParam(int a, int b, int c, int d, int e, f32 d_alpha, f32 start_a, f32 size, int blend, int tex_id)
 {
 }

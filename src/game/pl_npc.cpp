@@ -1036,7 +1036,7 @@ void cSubChar::moveDown()
 
 // Point 300 behind the scenario wall (of attribute `attr`) 1000 ahead of the partner: position and
 // facing angle for the fence / window actions. 1 when found.
-int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
+int cSubChar::getScrActionPoint(Vec* initPos, Vec* initAng, u32 actAttr)
 {
     // `h` first: its pool entry precedes -1000 (and the const local's extra RTL gives the
     // original's r22/r23 allocation and store schedule).
@@ -1050,23 +1050,23 @@ int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
     u32 r;
     PSMTXMultVec(mat, &b, &b);
     r = SatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
-    if (!(r & 0x01000000) || !(r & attr)) {
+    if (!(r & 0x01000000) || !(r & actAttr)) {
         return 0;
     }
     PSVECScale(&nrm, &b, -1000.0f);
     PSVECAdd(&b, &pos, &b);
     b.y += h;
     r = SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0);
-    if (!(r & 0x01000000) || !(r & attr)) {
+    if (!(r & 0x01000000) || !(r & actAttr)) {
         return 0;
     }
     PSVECScale(&nrm, &b, 300.0f);
     PSVECAdd(&b, &hit, &b);
     b.y = pos.y;
-    *opos = b;
-    orot->z = 0.0f;
-    orot->x = 0.0f;
-    orot->y = atan2(-nrm.x, -nrm.z);
+    *initPos = b;
+    initAng->z = 0.0f;
+    initAng->x = 0.0f;
+    initAng->y = atan2(-nrm.x, -nrm.z);
     return 1;
 }
 
@@ -1861,13 +1861,13 @@ void cSubChar::moveWindowWait()
 }
 
 // Scenario attribute of the wall `len` ahead (300 up).
-u32 cSubChar::checkSatAttr(f32 len)
+u32 cSubChar::checkSatAttr(f32 length)
 {
     Vec a;
     Vec b;
 
     a = pos;
-    b.z = len;
+    b.z = length;
     a.y += 300.0f;
     b.x = 0.0f;
     b.y = 300.0f;
@@ -2183,11 +2183,11 @@ void cSubChar::moveDijection()
 }
 
 // Step `spd` towards `target` in the XZ plane.
-void cSubChar::movePos(Vec* target, f32 spd)
+void cSubChar::movePos(Vec* toPos, f32 spd)
 {
     f32 ang;
 
-    ang = Muku(&pos, target, 0.0f, 3.1415927f);
+    ang = Muku(&pos, toPos, 0.0f, 3.1415927f);
     Vec v = { 0.0f, 0.0f, 0.0f };
     v.z = spd;
     Vec r = { 0.0f, 0.0f, 0.0f };
@@ -2548,14 +2548,14 @@ int cSubChar::ladder2Check()
 }
 
 // Drop from the partner's height to the floor 1000 ahead in direction `ang` (100000 when < 800).
-f32 cSubChar::getCliffHeight(f32 ang)
+f32 cSubChar::getCliffHeight(f32 dy)
 {
     const f32 len = 1000.0f;
     Vec v;
     Vec r;
     f32 h;
 
-    r.y = ang;
+    r.y = dy;
     v.x = 0.0f;
     v.y = 300.0f;
     v.z = len;
@@ -3023,14 +3023,14 @@ void cSubChar::anaSatInfo()
 }
 
 // Event start: interrupts her routine, collision off (bits 0x300).
-void cSubChar::beginEvent(u32 mode)
+void cSubChar::beginEvent(u32 flag)
 {
     interrupt();
     AtariOff(&atari, 0xFCFF);
 }
 
 // Event end: cloth reset (be_flag 0x200000), collision on.
-void cSubChar::endEvent(u32 mode)
+void cSubChar::endEvent(u32 flag)
 {
     be_flag |= 0x200000;
     AtariOn(&atari, 0x300);
@@ -3115,7 +3115,7 @@ void cSubChar::control(int mode)
 }
 
 // Ledge in front of the partner: point 800 out from the wall below it and the facing angle.
-int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
+int getFallPos(cSubChar* pl, Vec* pVec, Vec* pAng)
 {
     static const Vec chk = { 1000.0f, 400.0f, 0.0f };
     static const f32 h = 300.0f;
@@ -3143,12 +3143,12 @@ int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
     VECNormalize(&d, &d);
     PSVECScale(&d, &d, back);
     PSVECAdd(&hit, &d, &b);
-    orot->x = 0.0f;
-    orot->y = Muku3(0.0f, &d, 3.1415927f);
-    orot->z = 0.0f;
-    opos->x = b.x;
-    opos->y = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
-    opos->z = b.z;
+    pAng->x = 0.0f;
+    pAng->y = Muku3(0.0f, &d, 3.1415927f);
+    pAng->z = 0.0f;
+    pVec->x = b.x;
+    pVec->y = SatMgr.getFloor(&b, 0, 600.0f, 100000.0f, 0);
+    pVec->z = b.z;
     return 1;
 }
 
@@ -3528,10 +3528,10 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
 }
 
 // The player registers a ledge for her to wait at (pos / facing angle), for 240 frames.
-void cSubChar::registPlAction(Vec* pos, f32 ang, u8 a)
+void cSubChar::registPlAction(Vec* pos, f32 y, u8 a)
 {
     m_PlActPos = *pos;
-    m_PlActAngY = ang;
+    m_PlActAngY = y;
     m_PlActTime = 0xF0;
     m_PlActType = 0;
 }

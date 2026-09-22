@@ -12,8 +12,8 @@ struct EmiEntry;   // embarrel.h
 // enemy only calls these two members through SetHeliMissile's result.
 class cObjMissile : public cObj {
 public:
-    void setParent(cModel* parent, int partsNo, int noNormalize);
-    void setFire(Vec* target);
+    void setParent(cModel* pCoord, int oya_parts, int mode);
+    void setFire(Vec* pTarget);
 };
 
 cObjMissile* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type);
@@ -53,7 +53,7 @@ class cEm3a : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM3A_WK)
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
     virtual void setAtkWait(int frames);   // defined last in em3a.cpp (precedes the cUnit linkonce copies)
 };
 

@@ -297,14 +297,14 @@ void processBarDisp()
 // Both arms store proc_tick first: the two independent `stwx` have equal priority and sched1 issues
 // the one with more dying registers first -- the LAST store in RTL order owns the index register's
 // death, so the target's `stwx name` before `stwx tick` means the tick store came first in source.
-void ProcessTickGet(int no, const char* name)
+void ProcessTickGet(int no, const char* pProc_name)
 {
     if ((u32) no <= 4) {
         proc_tick[no] = OSGetTick() - zero_tick;
-        proc_name[no] = name;
+        proc_name[no] = pProc_name;
     } else {
         proc_tick[proc_tick_idx + 5] = OSGetTick() - zero_tick;
-        proc_name[proc_tick_idx + 5] = name;
+        proc_name[proc_tick_idx + 5] = pProc_name;
         proc_tick_idx++;
     }
 }
@@ -678,14 +678,14 @@ void ConfigSet()
 
 // Config parser: 1 when the text at *p is the token `sym` (up to `]` or whitespace); advances
 // past it, the closing `]` and following whitespace / comments.
-int symbol_check(char** p, const char* sym)
+int symbol_check(char** p, const char* pSym)
 {
-    int len = strlen(sym);
+    int len = strlen(pSym);
 
     if (len != strcspn(*p, "] \t\n\r")) {
         return 0;  // its own `li r3,0` before the branch
     }
-    if (strncmp(*p, sym, len) == 0) {
+    if (strncmp(*p, pSym, len) == 0) {
         *p += len;
         if (**p == ']') {
             (*p)++;
@@ -708,9 +708,9 @@ char* space_skip(char* p)
 }
 
 // Config parser: skips one [[ ]], /* */ or // comment at *pp; -1 when one was skipped, 0 if not.
-int comment_check(char** pp)
+int comment_check(char** pText)
 {
-    char* p = *pp;
+    char* p = *pText;
 
     if (strncmp(p, "[[", 2) == 0) {
         p += 2;
@@ -732,7 +732,7 @@ int comment_check(char** pp)
     } else {
         return 0;
     }
-    *pp = p;
+    *pText = p;
     return -1;
 }
 

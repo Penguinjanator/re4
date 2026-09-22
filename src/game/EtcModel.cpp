@@ -260,40 +260,40 @@ void EtcModelDebugDisp()
 
 // The etc model in slot `no` when it has etc id `id`: 1 and *out; 0 (an error when flag == 1)
 // for an empty slot or another id.
-int getRoomEtc(int no, ETCMODEL_ID id, cEm** out, int flag)
+int getRoomEtc(int no, ETCMODEL_ID id, cEm** pRet, int bDispErr)
 {
     cEtcTbl* t = &g_EtcTbl[no];
 
-    *out = 0;
+    *pRet = 0;
     if (t->stat != 1) {
-        if (flag == 1) {
+        if (bDispErr == 1) {
             pLog->err(6, 0, "getRoomEtc() : No[%d] not Initialized.", no);
         }
         return 0;
     }
     if (id != t->pData->id) {
-        if (flag == 1) {
+        if (bDispErr == 1) {
             pLog->err(6, 0, "getRoomEtc() : no[%d] is ID diff[%02x/%02x].", no, id, t->pData->id);
         }
         return 0;
     }
-    *out = (cEm*) t->m_pPtr;
+    *pRet = (cEm*) t->m_pPtr;
     return 1;
 }
 
 // The etc model in slot `no` whatever its id; 0 (error when flag) for an empty slot.
-int getRoomEtc2(int no, cEm** out, int flag)
+int getRoomEtc2(int no, cEm** pRet, int bDispErr)
 {
     cEtcTbl* t = &g_EtcTbl[no];
 
-    *out = 0;
+    *pRet = 0;
     if (t->stat != 1) {
-        if (flag == 1) {
+        if (bDispErr == 1) {
             pLog->err(6, 0, "getRoomEtc() : No[%d] not Initialized.", no);
         }
         return 0;
     }
-    *out = (cEm*) t->m_pPtr;
+    *pRet = (cEm*) t->m_pPtr;
     return 1;
 }
 
@@ -2545,31 +2545,31 @@ int EtcModelSet(EtcSetData* pDat)
 }
 
 // The etc archive registered for etc id `id`; 0 when none.
-int EtcGetDasAddr(int id, void** out)
+int EtcGetDasAddr(int id, void** pRet_addr)
 {
     if (g_addr == 0) {
-        *out = 0;
+        *pRet_addr = 0;
         return 0;
     }
-    *out = g_addr;
+    *pRet_addr = g_addr;
     return 1;
 }
 
 // The persistent flag word of etc slot `no` in room `room`'s save record (broken / opened /
 // collected bits the object classes keep); NULL for a bad slot or a room without a record.
-u16* GetEtcFlgPtr(u32 no, u16 room)
+u16* GetEtcFlgPtr(u32 etc_no, u16 room_no)
 {
     u8* p;
 
-    if (no < 0 || no > 0x3F) {
-        pLog->err(6, 0, "GetEtcFlgPtr() : Invalid EtcModel No[%d](MAX:%d)", no, 0x40);
+    if (etc_no < 0 || etc_no > 0x3F) {
+        pLog->err(6, 0, "GetEtcFlgPtr() : Invalid EtcModel No[%d](MAX:%d)", etc_no, 0x40);
         return 0;
     }
-    p = RoomData.getRoomSavePtr(room);
+    p = RoomData.getRoomSavePtr(room_no);
     if (p == 0) {
         return 0;
     }
-    return &((EtcRoomSave*) p)->etcFlag[no];
+    return &((EtcRoomSave*) p)->etcFlag[etc_no];
 }
 
 // display flag (be_flag bit1) of an etc model
@@ -2584,27 +2584,27 @@ static inline void etcDispSet(cUnit* u, int on)
 
 // The breakable etc object in slot `no` of any kind (window, box, door, torch, rack, drum); 0
 // (error when flag) when it is none of those.
-int getRoomEtcBreak(int no, cEm** out, int flag)
+int getRoomEtcBreak(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtcWindow(no, (cEmWindow**) out, 0) == 1) {
+    if (getRoomEtcWindow(no, (cEmWindow**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtcBox(no, out, 0) == 1) {
+    if (getRoomEtcBox(no, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtcDoor(no, (cEmDoor**) out, 0) == 1) {
+    if (getRoomEtcDoor(no, (cEmDoor**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtcTorch(no, out, 0) == 1) {
+    if (getRoomEtcTorch(no, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtcRack(no, out, 0) == 1) {
+    if (getRoomEtcRack(no, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtcDram(no, out, 0) == 1) {
+    if (getRoomEtcDram(no, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcBreak() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
@@ -2612,446 +2612,446 @@ int getRoomEtcBreak(int no, cEm** out, int flag)
 
 // Shows / hides etc slot `no` (breakable objects through their own display logic, others by the
 // model flag); 0 with an error for an empty slot.
-int setRoomEtcDisp(int no, int on, int flag)
+int setRoomEtcDisp(int no, int bDisp, int bErrDisp)
 {
     cEm* em;
 
-    if (setRoomEtcBreakDisp(no, on, 0) == 1) {
+    if (setRoomEtcBreakDisp(no, bDisp, 0) == 1) {
         return 1;
     }
     if (getRoomEtc2(no, &em, 0)) {
-        etcDispSet(em, on);
+        etcDispSet(em, bDisp);
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "setRoomEtcDisp() : no[%d] is no data.", no);
     }
     return 0;
 }
 
 // Shows / hides a breakable etc object.
-static int setRoomEtcBreakDisp(int no, int on, int flag)
+static int setRoomEtcBreakDisp(int no, int bDisp, int bErrDisp)
 {
     cEm* em;
 
     if (getRoomEtcBreak(no, &em, 0)) {
         if (em->hp > 0) {
-            etcDispSet(em, on);
+            etcDispSet(em, bDisp);
         }
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "setRoomEtcBreakDisp() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The torch (light-bearing etc) in slot `id`.
-int getRoomEtcOnLight(u32 id, cModel** out, int flag)
+int getRoomEtcOnLight(u32 no, cModel** ppEm, int bErrDisp)
 {
-    if (getRoomEtcTorch(id, (cEm**) out, 0)) {
+    if (getRoomEtcTorch(no, (cEm**) ppEm, 0)) {
         return 1;
     }
-    if (flag) {
-        pLog->err(6, 0, "getRoomEtcOnLight() : no[%d] is ID diff[%02x].", id, getRoomEtcID(id));
+    if (bErrDisp) {
+        pLog->err(6, 0, "getRoomEtcOnLight() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The window (any of the et00.cpp window ids) in slot `no`.
-int getRoomEtcWindow(int no, cEmWindow** out, int flag)
+int getRoomEtcWindow(int no, cEmWindow** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_WINDOW00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW07, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW07, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW1D, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW1D, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW25, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW25, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW29, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW29, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW2C, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW2C, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW35, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW35, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW36, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW36, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW44, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW44, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW48, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW48, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW4A, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW4A, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW50, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW50, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW51, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW51, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW52, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW52, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW53, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW53, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW54, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW54, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW55, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW55, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW56, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW56, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW57, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW57, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW58, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW58, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5A, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5A, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5B, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5B, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5C, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5C, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5D, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5D, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5E, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5E, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW5F, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW5F, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW60, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW60, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW64, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW64, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WINDOW65, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WINDOW65, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcWindow() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The box / vase / crate (box etc ids) in slot `no`.
-int getRoomEtcBox(int no, cEm** out, int flag)
+int getRoomEtcBox(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_WOODBOX_SML, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WOODBOX_SML, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WOODBOX_MDL, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WOODBOX_MDL, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WOODBOX_BARREL, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WOODBOX_BARREL, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_WOODBOX_BARREL2, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_WOODBOX_BARREL2, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_NEST, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_NEST, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_TUBO_A_S, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TUBO_A_S, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_TUBO_A_L, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TUBO_A_L, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcBox() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The door (any door etc id) in slot `no`.
-int getRoomEtcDoor(int no, cEmDoor** out, int flag)
+int getRoomEtcDoor(int no, cEmDoor** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_DOOR00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR01, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR01, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR02, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR02, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR03, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR03, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR04, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR04, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR05, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR05, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR06, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR06, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR01, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR01, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR02, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR02, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR03, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR03, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR04, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR04, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR05, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR05, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR06, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR06, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR07, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR07, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR08, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR08, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR10, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR10, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR11, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR11, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR12, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR12, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR13, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR13, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR14, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR14, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR15, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR15, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR17, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR17, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR18, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR18, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR19, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR19, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR20, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR20, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR21, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR21, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR22, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR22, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR23, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR23, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR24, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR24, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR25, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR25, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN01, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN01, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN02, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_IRON_DOOR_DOWN02, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED06, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED06, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DOOR_SP00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DOOR_SP00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcDoor() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The rack / pillar (rack etc ids) in slot `no`.
-int getRoomEtcRack(int no, cEm** out, int flag)
+int getRoomEtcRack(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_TANA00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TANA00, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_TANA01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TANA01, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_TANA_BOX, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TANA_BOX, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_YOROI, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_YOROI, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_ZOU, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_ZOU, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcRack() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The ladder (ids 06 / 08) in slot `no`.
-int getRoomEtcLadder(int no, cObjLadder** out, int flag)
+int getRoomEtcLadder(int no, cObjLadder** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_HASIGO00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_HASIGO00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_HASIGO01, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_HASIGO01, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcLadder() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The torch / lamp (torch etc ids) in slot `no`.
-int getRoomEtcTorch(int no, cEm** out, int flag)
+int getRoomEtcTorch(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_TAIMATU01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TAIMATU01, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_TAIMATU02, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TAIMATU02, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_TAIMATU03, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_TAIMATU03, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_LANTERN_A, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_LANTERN_A, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_LANTERN_B, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_LANTERN_B, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DENKYUU, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DENKYUU, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DENKYUU01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DENKYUU01, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_DENKYUU02, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DENKYUU02, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcTorch() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The lever switch (id 0E) in slot `no`.
-int getRoomEtcSwitch(int no, cEm** out, int flag)
+int getRoomEtcSwitch(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_SWITCH, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_SWITCH, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcSwitch() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The barred gate (gate etc ids) in slot `no`.
-int getRoomEtcBarred(int no, cEm** out, int flag)
+int getRoomEtcBarred(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_BARRED00, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED00, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED01, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED01, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED02, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED02, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED03, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED03, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED04, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED04, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BARRED05, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BARRED05, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_AUTO_DOOR, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_AUTO_DOOR, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_AUTO_DOOR2, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_AUTO_DOOR2, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_AUTO_DOOR3, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_AUTO_DOOR3, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_AUTO_DOOR4, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_AUTO_DOOR4, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_AUTO_DOOR5, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_AUTO_DOOR5, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcBarred() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The barrel / drum (ids 12 / 2D / 3C) in slot `no`.
-int getRoomEtcDram(int no, cEm** out, int flag)
+int getRoomEtcDram(int no, cEm** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_DRAM, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_DRAM, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_BOMB_BARREL, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_BOMB_BARREL, ppEm, 0) == 1) {
         return 1;
     }
-    if (getRoomEtc(no, ETC_GUS_BOMBE, out, 0) == 1) {
+    if (getRoomEtc(no, ETC_GUS_BOMBE, ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcDram() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
 }
 
 // The shootable item medal (id 1A) in slot `no`.
-int getRoomEtcItem(int no, EtcItem** out, int flag)
+int getRoomEtcItem(int no, EtcItem** ppEm, int bErrDisp)
 {
-    if (getRoomEtc(no, ETC_MEDAL00, (cEm**) out, 0) == 1) {
+    if (getRoomEtc(no, ETC_MEDAL00, (cEm**) ppEm, 0) == 1) {
         return 1;
     }
-    if (flag) {
+    if (bErrDisp) {
         pLog->err(6, 0, "getRoomEtcItem() : no[%d] is ID diff[%02x].", no, getRoomEtcID(no));
     }
     return 0;
@@ -3165,7 +3165,7 @@ EtcAmbRgb etc_day4_rgb[17] = {
 
 // Applies the room's additive ambient colour for etc ambient kind `no` (the etc classes pass
 // their kind) from the day / night / variant tables chosen by the room id (GetEtcAmbType).
-void EtcSetAddAmb(cModel* m, int no)
+void EtcSetAddAmb(cModel* pMod, int kind)
 {
     u8 r = 0;
     u8 g = 0;
@@ -3173,40 +3173,40 @@ void EtcSetAddAmb(cModel* m, int no)
 
     switch (GetEtcAmbType()) {
     case ETC_AMB_DAY:
-        r = etc_day_rgb[no].r;
-        g = etc_day_rgb[no].g;
-        b = etc_day_rgb[no].b;
+        r = etc_day_rgb[kind].r;
+        g = etc_day_rgb[kind].g;
+        b = etc_day_rgb[kind].b;
         break;
     case ETC_AMB_NIGHT:
-        r = etc_night_rgb[no].r;
-        g = etc_night_rgb[no].g;
-        b = etc_night_rgb[no].b;
+        r = etc_night_rgb[kind].r;
+        g = etc_night_rgb[kind].g;
+        b = etc_night_rgb[kind].b;
         break;
     case ETC_AMB_DAY2:
-        r = etc_day2_rgb[no].r;
-        g = etc_day2_rgb[no].g;
-        b = etc_day2_rgb[no].b;
+        r = etc_day2_rgb[kind].r;
+        g = etc_day2_rgb[kind].g;
+        b = etc_day2_rgb[kind].b;
         break;
     case ETC_AMB_DAY3:
-        r = etc_day3_rgb[no].r;
-        g = etc_day3_rgb[no].g;
-        b = etc_day3_rgb[no].b;
+        r = etc_day3_rgb[kind].r;
+        g = etc_day3_rgb[kind].g;
+        b = etc_day3_rgb[kind].b;
         break;
     case ETC_AMB_DAY4:
-        r = etc_day4_rgb[no].r;
-        g = etc_day4_rgb[no].g;
-        b = etc_day4_rgb[no].b;
+        r = etc_day4_rgb[kind].r;
+        g = etc_day4_rgb[kind].g;
+        b = etc_day4_rgb[kind].b;
         break;
     default:
         pLog->err(6, 0, "EtcSetAddAmb() : invalid type.");
         break;
     }
     if (r == 0 && g == 0 & b == 0) {   // `&`: the original tests g and b with a bitwise and
-        m->be_flag &= ~8;
+        pMod->be_flag &= ~8;
     } else {
-        m->be_flag |= 8;
+        pMod->be_flag |= 8;
     }
-    m->AddAmb_r = r;
-    m->AddAmb_g = g;
-    m->AddAmb_b = b;
+    pMod->AddAmb_r = r;
+    pMod->AddAmb_g = g;
+    pMod->AddAmb_b = b;
 }

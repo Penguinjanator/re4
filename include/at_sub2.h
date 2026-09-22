@@ -16,7 +16,7 @@ public:
     u32 eff6[2];    // 0x34
     u32 eff0D[2];   // 0x3C weapon 0x0D
 
-    int getWepEff(int wepId, u32* eff1, u32* eff2);
+    int getWepEff(int wepNo, u32* type, u32* id);
 };
 
 #endif

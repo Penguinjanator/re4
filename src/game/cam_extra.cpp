@@ -104,13 +104,13 @@ void CameraAttachedToMotion::move()
 // FocusAnimation: filter0a blur fade.
 // ---------------------------------------------------------------------------
 
-void FocusAnimation::init(int id)
+void FocusAnimation::init(int mask_id)
 {
     filter0a_mask_alpha = alpha_max;
-    if (id < 0) {
+    if (mask_id < 0) {
         filter0a_mask_flag = use_filter0a = 0;
     } else {
-        filter0a_mask_id = id;
+        filter0a_mask_id = mask_id;
         filter0a_mask_flag = use_filter0a = 1;
     }
     m_anim_on = 1;
@@ -122,18 +122,18 @@ void FocusAnimation::init(int id)
 // Focus blur animation step: dir 1 ramps the counter up to m_focus_frame (blur in while zooming),
 // dir 0 ramps it down (blur out), then sets the filter0a mask alpha or the Filter01 level from
 // counter / m_focus_frame. m_anim_on: 0 idle, 1 rising, 2 falling.
-void FocusAnimation::move(int dir)
+void FocusAnimation::move(int anim_flag)
 {
     static int _filter0a_flag = 0;
     static f32 level_max = 7.0f;
 
-    if (dir != 0) {
+    if (anim_flag != 0) {
         m_focus_frame = focus_frame;
         m_alpha_max = alpha_max;
     }
     switch (m_anim_on) {
     case 0:
-        if (dir == 1) {
+        if (anim_flag == 1) {
             m_counter++;
             if (m_counter >= (int) m_focus_frame) {
                 m_anim_on = 1;
@@ -143,7 +143,7 @@ void FocusAnimation::move(int dir)
         }
         break;
     case 1:
-        if (dir == 0) {
+        if (anim_flag == 0) {
             m_counter--;
             if (m_counter < 0) {
                 m_anim_on = 0;
@@ -463,9 +463,9 @@ void IdScope::init(void* type)
 }
 
 // Reticle ids per frame: positions the zoom indicator (unit 0x25 ids 1 / 2) from *zoom.
-void IdScope::move(void* p)
+void IdScope::move(void* arg)
 {
-    f32* zoom = (f32*) p;
+    f32* zoom = (f32*) arg;
     static f32 minA = -90.0f;
     static f32 maxA = 180.0f;
     static f32 ampA = 0.08f;

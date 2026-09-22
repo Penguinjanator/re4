@@ -192,11 +192,11 @@ cItemMgr ItemMgr;
 
 // Heals the target selected by m_to_whom (0 = player, else the partner) by n (1/10 life units,
 // clamped to the max); 0 when the target was already full.
-int healing(u16 n)
+int healing(u16 life_add)
 {
     if (ItemMgr.m_to_whom == 0) {
         if ((s16) pG->pl_life < (s16) pG->pl_life_max) {
-            pG->pl_life = n + pG->pl_life;
+            pG->pl_life = life_add + pG->pl_life;
             if ((s16) pG->pl_life > (s16) pG->pl_life_max) {
                 pG->pl_life = pG->pl_life_max;
             }
@@ -204,7 +204,7 @@ int healing(u16 n)
         }
     } else if (ItemMgr.m_to_whom == 1) {
         if ((s16) pG->ashley_life < (s16) pG->ashley_life_max) {
-            pG->ashley_life = n + pG->ashley_life;
+            pG->ashley_life = life_add + pG->ashley_life;
             if ((s16) pG->ashley_life > (s16) pG->ashley_life_max) {
                 pG->ashley_life = pG->ashley_life_max;
             }
@@ -215,9 +215,9 @@ int healing(u16 n)
 }
 
 // Number of max-life upgrades already taken: (max - base) mapped onto `levels` steps.
-int lifeLevel(int levels, s16 max, int base)
+int lifeLevel(int level_up_num, s16 curr_life_max, int init_life_max)
 {
-    return (int) ((f32) (levels * (max - base)) / (f32) base + 0.5f);
+    return (int) ((f32) (level_up_num * (curr_life_max - init_life_max)) / (f32) init_life_max + 0.5f);
 }
 
 // Merchant display: firepower of weapon `id` at tune level `level` (1-based) relative to the
@@ -298,7 +298,7 @@ void cItemMgr::clear()
 
 // New game inventory: the four key items/documents, handgun (0x23) at a fixed case position plus
 // the starting supplies (no != 0: debug 100 of each). Returns the case type 0.
-int cItemMgr::set_game(int no)
+int cItemMgr::set_game(int trial_flag)
 {
     dump(0x7C);
     dump(0x7D);
@@ -330,7 +330,7 @@ int cItemMgr::set_game(int no)
         p->orient = 0;
         p->board = 1;
     }
-    if (no != 0) {
+    if (trial_flag != 0) {
         get(0x30, 0);
         {
             ItemWork* p = pLast;
@@ -1055,11 +1055,11 @@ int cItemMgr::set_debug(int no)
 
 // Debug inventory preset dispatcher (Debug_flg[3] set-ups): maps the preset number onto set_game /
 // set_stage1..3 / set_range / set_debug; returns the case type used.
-int cItemMgr::setUp(int no)
+int cItemMgr::setUp(int set_no)
 {
     int ret = 0;
 
-    switch (no) {
+    switch (set_no) {
     case 0:
         ret = set_game(0);
         break;
@@ -1619,10 +1619,10 @@ void cItemMgr::construct(ItemWork* p, ITEM_ID id)
 }
 
 // Slot by index (0 when out of range).
-ItemWork* cItemMgr::at(int no)
+ItemWork* cItemMgr::at(int i)
 {
-    if (no < m_array_num) {
-        return &m_pItem[no];
+    if (i < m_array_num) {
+        return &m_pItem[i];
     }
     return 0;
 }
@@ -1641,16 +1641,16 @@ int cItemMgr::searchAt(ItemWork* p)
 }
 
 // Sort key of a slot for the treasure list: its position in g_item_order (0xFF unknown).
-u8 gld_order(u8 idx)
+u8 gld_order(u8 no)
 {
     int n = g_item_order_num;
     int i;
 
-    if (ItemMgr.at(idx) == 0) {
+    if (ItemMgr.at(no) == 0) {
         return 0xFF;
     }
     for (i = 0; i < n; i++) {
-        if (g_item_order[i] == ItemMgr.at(idx)->id) {
+        if (g_item_order[i] == ItemMgr.at(no)->id) {
             return i;
         }
     }
@@ -1665,27 +1665,27 @@ int gld_cmp(const void* a, const void* b)
 
 // Builds the sub-screen's slot list: all == 0 -> case items first (*pNum), then treasures (*pNum2)
 // sorted by gld_order; all != 0 -> every slot index (0xFF for the other set). Returns the count.
-int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
+int cItemMgr::makeItemList(u8* p_list, int flag, s8* key_cnt, s8* gld_cnt)
 {
     ItemInfo info;
     ItemWork* p = m_pItem;
     int cnt = 0;
     int i;
 
-    *pNum2 = 0;
-    *pNum = 0;
+    *gld_cnt = 0;
+    *key_cnt = 0;
     for (i = 0; i < m_array_num; i++, p++) {
-        if (all == 0) {
+        if (flag == 0) {
             if (itemUse(p, m_char)) {
                 switch (ITEM_TYPE(p->id)) {
                 case 5:
                 case 12:
-                    (*pNum2)++;
+                    (*gld_cnt)++;
                     break;
                 case 0:
                 case 7:
-                    list[*pNum] = i;
-                    (*pNum)++;
+                    p_list[*key_cnt] = i;
+                    (*key_cnt)++;
                     break;
                 case 1:
                 case 2:
@@ -1699,27 +1699,27 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
             }
         } else {
             if (itemUse(p, m_char) == 0) {
-                list[i] = 0xFF;
+                p_list[i] = 0xFF;
             } else {
-                list[i] = i;
+                p_list[i] = i;
             }
             cnt++;
         }
     }
-    if (all == 0) {
+    if (flag == 0) {
         int j = 0;
 
-        cnt = *pNum + *pNum2;
+        cnt = *key_cnt + *gld_cnt;
         p = m_pItem;
         for (i = 0; i < m_array_num; i++, p++) {
             if (itemUse(p, m_char)) {
                 if (ITEM_TYPE(p->id) == 5 || info.type == 12) {
-                    list[*pNum + j] = i;
+                    p_list[*key_cnt + j] = i;
                     j++;
                 }
             }
         }
-        qsort(list + *pNum, *pNum2, 1, gld_cmp);
+        qsort(p_list + *key_cnt, *gld_cnt, 1, gld_cmp);
     }
     return cnt;
 }
@@ -2139,7 +2139,7 @@ int cItemMgr::dumpAll(ItemWork* p)
 }
 
 // Discards every item of ItemInfo type t (e.g. type 7 maps at a new round).
-int cItemMgr::dumpType(int t)
+int cItemMgr::dumpType(int type)
 {
     ItemInfo info;
     ItemWork* p = m_pItem;
@@ -2147,7 +2147,7 @@ int cItemMgr::dumpType(int t)
 
     for (i = 0; i < m_array_num; i++, p++) {
         if (itemUse(p, m_char)) {
-            if (t == ITEM_TYPE(p->id)) {
+            if (type == ITEM_TYPE(p->id)) {
                 dumpAll(p);
             }
         }
@@ -2156,14 +2156,14 @@ int cItemMgr::dumpType(int t)
 }
 
 // Total count of item `id` in inventory set t.
-u16 cItemMgr::num(int id, u8 t)
+u16 cItemMgr::num(int id, u8 type)
 {
     ItemWork* p = m_pItem;
     u16 n = 0;
     int i;
 
     for (i = 0; i < m_array_num; i++, p++) {
-        if (itemUse(p, t) && p->id == id) {
+        if (itemUse(p, type) && p->id == id) {
             n += p->num;
         }
     }
@@ -2208,19 +2208,19 @@ int itemCombineCheck(ITEM_ID id)
 }
 
 // Looks up the combination of two ids in either order; *result = the product. 0 when none.
-int itemCombine(ITEM_ID srcA, ITEM_ID srcB, u16* result)
+int itemCombine(ITEM_ID srcA, ITEM_ID srcB, u16* dst)
 {
     int i;
 
     for (i = 0; i < (int) (sizeof(combination_info) / sizeof(combination_info[0])); i++) {
         if (srcA == combination_info[i].a && srcB == combination_info[i].b) {
-            *result = combination_info[i].result;
+            *dst = combination_info[i].result;
             return 1;
         }
     }
     for (i = 0; i < (int) (sizeof(combination_info) / sizeof(combination_info[0])); i++) {
         if (srcB == combination_info[i].a && srcA == combination_info[i].b) {
-            *result = combination_info[i].result;
+            *dst = combination_info[i].result;
             return 1;
         }
     }
@@ -2378,7 +2378,7 @@ end:
 // Attaches a weapon part (stock/scope) to a weapon: detaches it from its previous weapon and any
 // same-kind part already on the target, records the weapon slot in part->bullet; the armed weapon
 // id is recomputed.
-int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
+int cItemMgr::partsCombine(ItemWork* pWeapon, ItemWork* pParts)
 {
     u16 newId;
     ItemWork* list[2];
@@ -2389,19 +2389,19 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     int n;
     int i;
 
-    ret = itemCombine(wep->id, part->id, &newId);
+    ret = itemCombine(pWeapon->id, pParts->id, &newId);
     if (ret != 0) {
         ItemInfo info;
 
-        if (part->lv != 0) {
-        part->lv = 0;
-        if (pArm != 0 && pArm == at(part->bullet)) {
+        if (pParts->lv != 0) {
+        pParts->lv = 0;
+        if (pArm != 0 && pArm == at(pParts->bullet)) {
             m_wep_id = weaponId(pArm);
         }
-        part->bullet = 0xFFFF;
+        pParts->bullet = 0xFFFF;
     }
     p = m_pItem;
-    idx = searchAt(wep);
+    idx = searchAt(pWeapon);
     list[0] = 0;
     list[1] = 0;
     n = 0;
@@ -2419,7 +2419,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
         } while (++i < m_array_num);
     }
     for (int j = 0; j < n; j++) {
-        if (list[j]->id == part->id) {
+        if (list[j]->id == pParts->id) {
             list[j]->lv = 0;
             list[j]->bullet = 0xFFFF;
             list[j] = 0;
@@ -2432,10 +2432,10 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
             list[0] = 0;
         }
     }
-        part->bullet = searchAt(wep);
-        part->lv = 1;
-        if (pArm != 0 && pArm == wep) {
-            m_wep_id = weaponId(wep);
+        pParts->bullet = searchAt(pWeapon);
+        pParts->lv = 1;
+        if (pArm != 0 && pArm == pWeapon) {
+            m_wep_id = weaponId(pWeapon);
         }
     }
     return ret;
@@ -2597,28 +2597,28 @@ done:
 }
 
 // Moves rounds from the ammo stack into the weapon up to `max` loaded; returns 1 when any moved.
-int reload_main(ItemWork* wep, ItemWork* ammo, int max)
+int reload_main(ItemWork* pItem_A, ItemWork* pItem_B, int charge_num)
 {
-    int have = BULLET(wep);
-    int room = max - have;
+    int have = BULLET(pItem_A);
+    int room = charge_num - have;
     int n;
     int m;
 
     if (room == 0) {
         return 0;
     }
-    if (ammo->num >= max) {
-        n = max;
+    if (pItem_B->num >= charge_num) {
+        n = charge_num;
     } else {
-        n = ammo->num;
+        n = pItem_B->num;
     }
     if (n > room) {
         m = room;
     } else {
         m = n;
     }
-    wep->bullet = (wep->bullet & 0xE000) | ((have + m) & 0x1FFF);
-    ammo->num -= m;
+    pItem_A->bullet = (pItem_A->bullet & 0xE000) | ((have + m) & 0x1FFF);
+    pItem_B->num -= m;
     return 1;
 }
 
@@ -2739,14 +2739,14 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
 }
 
 // Rounds of ammo type `bulletId` carried plus those loaded in every weapon that uses it.
-u16 cItemMgr::bulletNumTotal(int bulletId)
+u16 cItemMgr::bulletNumTotal(int bllt_id)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
-    u16 total = num(bulletId);
+    u16 total = num(bllt_id);
     int i;
 
     for (i = 0; i < tbl_num; i++) {
-        if (bulletId == wep_info[i].bulletId) {
+        if (bllt_id == wep_info[i].bulletId) {
             total += bulletNum(wep_info[i].id);
         }
     }
@@ -2838,10 +2838,10 @@ int cItemMgr::saveDataSize()
 
 // Writes every slot to the save block (id with the set bit, levels/bullets for weapons and parts,
 // counts, case position) plus the armed slot index and weapon id.
-void cItemMgr::save(void* dst)
+void cItemMgr::save(void* pData)
 {
     ItemInfo info;
-    ItemSaveData* sd = (ItemSaveData*) dst;
+    ItemSaveData* sd = (ItemSaveData*) pData;
     ItemSaveWork* s = sd->item_list;
     ItemWork* p = m_pItem;
     int i;
@@ -2889,10 +2889,10 @@ void cItemMgr::save(void* dst)
 }
 
 // Restores the slots from the save block and re-arms the saved slot.
-void cItemMgr::load(void* src)
+void cItemMgr::load(void* pData)
 {
     ItemInfo info;
-    ItemSaveData* sd = (ItemSaveData*) src;
+    ItemSaveData* sd = (ItemSaveData*) pData;
     ItemSaveWork* s = sd->item_list;
     ItemWork* p = m_pItem;
     int i;
@@ -2946,7 +2946,7 @@ void cItemMgr::load(void* src)
 
 // Discards every case item left on the spare board (board == 0) except `keep` (closing the
 // attache case); unarms a discarded weapon.
-int cItemMgr::offboardDump(ItemWork* keep)
+int cItemMgr::offboardDump(ItemWork* p_get_item)
 {
     ItemInfo info;
     ItemWork* p = m_pItem;
@@ -2961,7 +2961,7 @@ int cItemMgr::offboardDump(ItemWork* keep)
             case 6:
             case 9:
                 if (p->board == 0) {
-                    if (keep != p) {
+                    if (p_get_item != p) {
                         erase(p);
                     }
                     if (pArm == p) {
@@ -3059,17 +3059,17 @@ int cItemMgr::countFiles()
 }
 
 // Weapon table: (weapon number, variant type) -> item id.
-u16 WeaponNo2WeaponId(u8 no, u8 type)
+u16 WeaponNo2WeaponId(u8 wep_no, u8 type)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
     int i;
 
     for (i = 0; i < tbl_num; i++) {
-        if (no == wep_info[i].no && type == wep_info[i].type) {
+        if (wep_no == wep_info[i].no && type == wep_info[i].type) {
             return wep_info[i].id;
         }
     }
-    pLog->err(0, 0, "WeaponNo2WeaponId(): (%d, %d) not found.", no, type);
+    pLog->err(0, 0, "WeaponNo2WeaponId(): (%d, %d) not found.", wep_no, type);
     return 0xFFFF;
 }
 
@@ -3104,13 +3104,13 @@ u8 WeaponId2WeaponType(ITEM_ID id)
 }
 
 // Weapon table: ammo item id for the weapon and ammo attribute (0 normal, 1 alternate).
-u16 WeaponId2BulletId(ITEM_ID id, int attr)
+u16 WeaponId2BulletId(ITEM_ID id, int bllt_type)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
     int i;
 
     for (i = 0; i < tbl_num; i++) {
-        if (id == wep_info[i].id && attr == wep_info[i].attr) {
+        if (id == wep_info[i].id && bllt_type == wep_info[i].attr) {
             return wep_info[i].bulletId;
         }
     }

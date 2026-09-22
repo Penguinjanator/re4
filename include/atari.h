@@ -87,8 +87,8 @@ public:
     cSatBlock* m_pList; // 0x20
     u16 idx[0];      // 0x24  polygon indices
 
-    int lineOverlap(Vec* p, Vec* dir, Vec* absDir);
-    int hitCheckSphere(Vec* pos0, Vec* pos1, f32 r);
+    int lineOverlap(Vec* center, Vec* w, Vec* v);
+    int hitCheckSphere(Vec* pos0, Vec* pos1, f32 radius);
 };
 
 // One scenario collision piece (game/atari.cpp), returned by cSatMgr::create. Owners toggle
@@ -125,12 +125,12 @@ public:
     // `this` (ss_map mapPositionCheck); a plain member store stays `(plus this 0x2A)` (PLUS path cost
     // tie). No new header-level declaration: esp's static `max.<DECL_UID>` name is gcse-hash sensitive.
     cSat() : cUnit(1) { s8& f = m_Flag; f = 0; }
-    void init(cSatFile* f, Vec* pos, Vec* rot);
-    void setCoord(Vec* pos, Vec* rot);
-    void setMatrix(Mtx m);
+    void init(cSatFile* pSf, Vec* pos, Vec* ang);
+    void setCoord(Vec* pos, Vec* ang);
+    void setMatrix(Mtx mat0);
     cSat& operator=(cSatFile* f);
-    void blockInit(cSatBlock* blk);
-    void disp(int no, u32 color, int zupd);
+    void blockInit(cSatBlock* pBlock);
+    void disp(int poly_num, u32 col, int mode);
     // alive and taking part in the checks (hides cUnit::isAlive for cManager<cSat>::destroy)
     int isAlive();
 };
@@ -154,36 +154,36 @@ public:
     virtual void memFree(void* p) { Mem_free(p); }
     virtual void memClear(cSat* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual void destroy(cSat* p);
-    virtual int construct(cSat* p, u32 id);
+    virtual void destroy(cSat* pEm);
+    virtual int construct(cSat* pSat, u32 room_no);
 
     // Runtime scenario piece from a 4-corner polygon (createFloorSat / createBoxSat / createSat by
     // flag bits 0x200 / 0x100); returns the registered piece or NULL.
-    cSat* create(Vec* pos, Vec* rot, Vec* poly, f32 h, u32 attr, u32 flag);
+    cSat* create(Vec* pPos, Vec* pAng, Vec* pVec, f32 height, u32 attr, u32 flag);
     // Piece from prebuilt collision data (obj15 cObjGatling::setEat: EatMgr.create(data, 0, &pos, &rot, type)).
     cSat* create(void* data, int flag, Vec* pos, Vec* rot, u8 type);
     // Ray from `top` down to `bottom`; returns the hit attribute, hit point in `hit`; `attr`
     // receives the address of the hit polygon's normal (in the piece's space).
-    int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int mask);
+    int hitCheck2(Vec* top, Vec* bottom, Vec* pCross, u32* ppNorm, int flag, int mask);
     // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.
-    int hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask);
+    int hitCheck(Vec* pos0, Vec* pos1, Vec* pCross, Vec* pNorm, int flag, int mask);
     // Floor height under `pos`, searching `up` above and `down` below it.
-    f32 getFloor(Vec* pos, u32* attr, f32 up, f32 down, int flag);
+    f32 getFloor(Vec* pos, u32* ppNorm, f32 above_limit, f32 below_limit, int mask);
     // Sphere of radius `r` moving from `a` to `b` against the scenario; `b` is pushed out of the
     // polygons (cLight::hitAdjust). Returns 1 when the sphere was adjusted.
-    int polySphereCk(Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask);
+    int polySphereCk(Vec* a, Vec* b, f32 radius, int flag, Vec* pNorm, int mask);
     // Debug draw of the collision polygons (t_option "SCROLL VIEW").
-    void disp(int flag);
+    void disp(int mode);
     // Model against the scenario (obj00: `SatMgr.check(this, 0)`).
-    int check(cModel* m, int flag);
-    int checkRect(cModel* m);
-    int checkAir(cModel* m, int flag);
-    f32 scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag);
-    f32 scrAtCheckSphereAir(cModel* m, cAtariInfo* info, int flag);
-    void wallAdjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int mask);
+    int check(cModel* pMod, int mask);
+    int checkRect(cModel* pMod);
+    int checkAir(cModel* pMod, int mask);
+    f32 scrAtCheckSphere(cModel* pMod, cAtariInfo* pAt, int mask);
+    f32 scrAtCheckSphereAir(cModel* pMod, cAtariInfo* pAt, int mask);
+    void wallAdjust(Vec* pNorm, Vec* pos_old, Vec* pos_new, f32 radius, int flag, int mask);
     // Sphere of radius `r` moving from `oldPos` to `pos`; `pos` is pushed out of the polygons and
     // the hit normal goes to `nrm` (zero when nothing was hit). obj01 grenade bounce.
-    void adjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int mask);
+    void adjust(Vec* pNorm, Vec* pos_old, Vec* pos_new, f32 radius, int flag, int mask);
 };
 
 extern cSatMgr SatMgr;
@@ -209,7 +209,7 @@ public:
     virtual void log(const char* fmt, ...);
 
     void initEffInfo();
-    void registEffInfo(int type, AtEffInfo* src);
+    void registEffInfo(int type, AtEffInfo* pEi);
     AtEffInfo* getEffInfo(int type);
 };
 
@@ -217,7 +217,7 @@ extern cEatMgr EatMgr;
 
 extern "C" {
 // Effect type of a hitCheck attribute word (game/at_sub.cpp).
-int EatGetEffectType(u32 attr);
+int EatGetEffectType(u32 rgba);
 }
 
 #endif

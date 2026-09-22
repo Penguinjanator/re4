@@ -128,7 +128,7 @@ void cPlayer::debugInit()
 
 // Debug (scr_hit_check): casts a 5000-unit line forward from 1000 above the player through the
 // scroll collision and draws the hit / normal.
-void scrHitCheck(cPlayer* pl)
+void scrHitCheck(cPlayer* pEm)
 {
     if (scr_hit_check) {
         static u32 hcFlag = 0x8000;
@@ -139,12 +139,12 @@ void scrHitCheck(cPlayer* pl)
         Vec nrm;
         int ret;
 
-        top = pl->pos;
+        top = pEm->pos;
         top.y += 1000.0f;
         dir.x = 0.0f;
         dir.y = 0.0f;
         dir.z = 5000.0f;
-        PSMTXMultVecSR(pl->mat, &dir, &dir);
+        PSMTXMultVecSR(pEm->mat, &dir, &dir);
         PSVECAdd(&dir, &top, &dir);
         ret = SatMgr.hitCheck(&top, &dir, &hit, &nrm, hcFlag, hcMask);
         Draw_line3d(&top, &hit, ret ? 0xFFFF0000 : 0xFFFFFFFF, 0);
@@ -157,7 +157,7 @@ void scrHitCheck(cPlayer* pl)
 }
 
 // Debug (sat_make_test): A creates a 2000 x 2000 collision quad 1000 ahead of the player.
-void satMakeTest(cPlayer* pl)
+void satMakeTest(cPlayer* pEm)
 {
     if (sat_make_test) {
         static cSat* pS0 = 0;
@@ -177,16 +177,16 @@ void satMakeTest(cPlayer* pl)
                 SatMgr.destroy(pS0);   // on the object: devirtualised `bl destroy__7cSatMgrP4cSat`
                 pS0 = 0;
             }
-            RotVector(&z0, &pl->ang, &pos);
-            PSVECAdd(&pos, &pl->pos, &pos);
-            pS0 = sat->create(&pos, &pl->ang, quad, 0.0f, 0, 0x200);
+            RotVector(&z0, &pEm->ang, &pos);
+            PSVECAdd(&pos, &pEm->pos, &pos);
+            pS0 = sat->create(&pos, &pEm->ang, quad, 0.0f, 0, 0x200);
         }
     }
 }
 
 // Debug (local_coord_test): moves a point in parts space of the player (pad 2 stick / triggers,
 // Y / X change the parts) and prints its coordinates — for finding attachment offsets.
-void localCoordTest(cPlayer* pl)
+void localCoordTest(cPlayer* pEm)
 {
     if (local_coord_test) {
         static Vec vpos;
@@ -202,7 +202,7 @@ void localCoordTest(cPlayer* pl)
         if (Joy[0].trg & JOY_X) {
             pl_db_parts_no--;
         }
-        PSMTXConcat(pG->Camera.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
+        PSMTXConcat(pG->Camera.v_mat, pEm->getPartsPtr(pl_db_parts_no)->mat, m);
         Draw_local_pos(&vpos, 1000, m);
         eprintf(40, 100, 0, 0, "%5.2f", vpos.x);
         eprintf(40, 116, 0, 0, "%5.2f", vpos.y);
@@ -255,12 +255,12 @@ void cPlayer::emSearch()
 }
 
 // Plays weapon motion `no` (0-2 PlWepMot[], 3 the stand motion) on the player with a 3-frame blend.
-void PlWepMotSet(int no)
+void PlWepMotSet(int type)
 {
     void* mot = 0;
     cPlayer* pl = pPL;
 
-    switch (no) {
+    switch (type) {
     case 0:
         mot = PlWepMot[0];
         break;

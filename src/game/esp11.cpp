@@ -65,7 +65,7 @@ void cEsp11::move()
 }
 
 // EspTransTbl[0x11]: draws nothing (the light itself is rendered by the light manager).
-void Esp11_Trans(cEsp* esp)
+void Esp11_Trans(cEsp* pEsp)
 {
 }
 
@@ -104,15 +104,15 @@ void Esp11_SetParam(cEsp11* esp)
 // Kind 0/1 creates the light (Kind 2 = fixed cut 8 light 0 following the sprite, Kind 3 = no
 // light), records its base colour and applies Type 1 at once. Fails on missing light data or bad
 // Kind/Type. In the effect tool it also clears Stop_flg 0x01000000 so lights keep moving.
-int cEsp11::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp11::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp11Work* w = &m_Free;
 
-    w->Kind = gen->Work8[0];
-    w->CutNo = gen->Work8[1];
-    w->LitNo = gen->Work8[2];
-    w->Type = gen->Work8[3];
-    w->ToolState = gen->WorkSp8[0];
+    w->Kind = pSeq->Work8[0];
+    w->CutNo = pSeq->Work8[1];
+    w->LitNo = pSeq->Work8[2];
+    w->Type = pSeq->Work8[3];
+    w->ToolState = pSeq->WorkSp8[0];
     if (w->Kind == 2) {
         w->Kind = 0;
         w->CutNo = 8;

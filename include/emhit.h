@@ -34,30 +34,30 @@ public:
 
     int ckStatus();                                 // EmHitWork::status
     int ckDmgWeapon();                              // weapon id of the damage taken this frame, 0 = none
-    void setParent(cModel* parent, int partsNo, int noNormalize);   // 0x8010539C
+    void setParent(cModel* pCoord, int oya_parts, int mode);   // 0x8010539C
     void setBeetle(void* mot0, void* mot1, void* mot2);
 };
 
 extern "C" {
 cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type);
-void emHitDmCk(cEmHit* em);
-void emHit_R0_Init(cEmHit* em);
-void emHit_R0_Move(cEmHit* em);
-void emHit_R1_Set(cEmHit* em);
-void emHit_R1_Parent(cEmHit* em);
-void emHit_R1_Break(cEmHit* em);
-void emHit_R1_Beetle(cEmHit* em);
-void emHitYarareInit(cEmHit* em);
+void emHitDmCk(cEmHit* pEm);
+void emHit_R0_Init(cEmHit* pEm);
+void emHit_R0_Move(cEmHit* pEm);
+void emHit_R1_Set(cEmHit* pEm);
+void emHit_R1_Parent(cEmHit* pEm);
+void emHit_R1_Break(cEmHit* pEm);
+void emHit_R1_Beetle(cEmHit* pEm);
+void emHitYarareInit(cEmHit* pEm);
 // Hit box setup (game/at_mod.cpp): the model's own box (em->hitInfo) and extra boxes chained to it.
 // The parts number / flags come last: the callers' `li` argument loads are scheduled after the
 // float moves (emhit, obj14, obj15 ...).
-void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
+void YarareInit(cEm* pEm, f32 x, f32 y, f32 z, f32 r, f32 h, s16 pno, u16 flag);
 void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags);
-void YarareAdd(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
+void YarareAdd(cEm* pEm, YARARE_INFO* pAt, f32 x, f32 y, f32 z, f32 r, f32 h, s16 pno, u16 flag);
 void YarareAddCube(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags);
-int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
-void EmDmBloodSet2(cEm* em, u32 est_id, u32 type, u32 mode, u16 esp_core_flg, u32 core_kind);               // em_sub.cpp
-int VehicleAdjust(Vec* pos);                                                     // em_sub.cpp: rides `pos` along the trolley (room 21B)
+int EmGetDmPos(cEm* pEm, Vec* pPos, Vec* pAng);                                     // em_sub.cpp
+void EmDmBloodSet2(cEm* pEm, u32 est_id, u32 type, u32 mode, u16 esp_core_flg, u32 core_kind);               // em_sub.cpp
+int VehicleAdjust(Vec* pPos);                                                     // em_sub.cpp: rides `pos` along the trolley (room 21B)
 }
 
 // Player damage motion kind (PS2 PL_DM_TYPE): EmAtkInfo::type, PlSetDamage `type`. Bit0 back, +2 middle,
@@ -86,12 +86,12 @@ struct EmAtkInfo {
 };
 
 extern "C" {
-void EmPlBloodSet2(cModel* m, Vec* pos, u32 a, u8 eff_id, u8 type);                 // em_sub.cpp
+void EmPlBloodSet2(cModel* pEm, Vec* pos, u32 a, u8 eff_id, u8 type);                 // em_sub.cpp
 // Line `a`-`b` against the enemies: the hit enemy or NULL; hit point / normal and the scenario attribute out.
-cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
-void EmAtkSetDamagePL(cEm* em, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                 // em_sub.cpp
+cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* pCross, Vec* pNorm, u32* pAttr);              // em_sub.cpp
+void EmAtkSetDamagePL(cEm* em, EmAtkInfo* pAtk, Vec* pPos, Vec* pPos2);                 // em_sub.cpp
 }
 
-void PlSetDamage(int type, int dmg, int flag);                                   // em_sub.cpp (C++ linkage; obj10 hitCkPl)
+void PlSetDamage(int damage_type, int damage_val, int flag);                                   // em_sub.cpp (C++ linkage; obj10 hitCkPl)
 
 #endif

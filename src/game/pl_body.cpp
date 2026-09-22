@@ -29,9 +29,9 @@ void cPlBody::move()
 }
 
 // Sets the waist twist (radians) the next waistMove applies — aiming turns the upper body.
-void cPlBody::waistSet(f32 angle)
+void cPlBody::waistSet(f32 y)
 {
-    m_WaistY = angle;
+    m_WaistY = y;
 }
 
 // Splits m_WaistY over the spine parts 1 and 2 (half each, flags 0x40000000 = extra rotation) and
@@ -97,9 +97,9 @@ void cPlBody::makeSpaeData()
 }
 
 // Remembers the weapon-hand model data the weapon module supplies (setRightHand(1) uses it).
-void cPlBody::initWepHand(u32 hand)
+void cPlBody::initWepHand(u32 addr)
 {
     // Unused; local static consts are still emitted (trailing 0, PI/2, 256 in .rodata).
     static const f32 hand_tbl[3] = {0.0f, PI * 0.5f, 256.0f};
-    pWepHand = (void*) hand;
+    pWepHand = (void*) addr;
 }

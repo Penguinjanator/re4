@@ -88,37 +88,37 @@ void cObjChain::move()
 }
 
 // Rno1 == 0: free: motion and matrices.
-void obj1d_R1_Set(cObjChain* obj)
+void obj1d_R1_Set(cObjChain* pObj)
 {
-    if (obj->Motion.pMot) {
-        MotionMove(obj, 0);
+    if (pObj->Motion.pMot) {
+        MotionMove(pObj, 0);
     } else {
-        RotMatrix(obj->mat, &obj->ang);
-        TransMatrix(obj->mat, &obj->pos);
-        ScaleMatrix(obj->mat, &obj->scale);
-        obj->partsMatCalc();
+        RotMatrix(pObj->mat, &pObj->ang);
+        TransMatrix(pObj->mat, &pObj->pos);
+        ScaleMatrix(pObj->mat, &pObj->scale);
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Rno1 == 1: waits 90 frames then fades out (or vanishes off screen) -> Lost.
-void obj1d_R1_LostWait(cObjChain* obj)
+void obj1d_R1_LostWait(cObjChain* pObj)
 {
-    ChainWork* w = &obj->chain;
+    ChainWork* w = &pObj->chain;
 
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
         w->timer = 90;
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
         if (w->timer == 0) {
-            obj->invisible_factor -= 0.1f;
-            if (obj->invisible_factor <= 0.0f) {
-                obj->invisible_factor = 0.0f;
-                obj->r_no_0 = 1;
-                obj->r_no_1 = 2;
-                obj->r_no_2 = 0;
-                obj->r_no_3 = 0;
+            pObj->invisible_factor -= 0.1f;
+            if (pObj->invisible_factor <= 0.0f) {
+                pObj->invisible_factor = 0.0f;
+                pObj->r_no_0 = 1;
+                pObj->r_no_1 = 2;
+                pObj->r_no_2 = 0;
+                pObj->r_no_3 = 0;
                 break;
             }
         } else {
@@ -128,40 +128,40 @@ void obj1d_R1_LostWait(cObjChain* obj)
             Vec scr;
             Vec p;
 
-            p = obj->pos;
+            p = pObj->pos;
             GetScreenPos(&p, &scr);
             if (scr.z > 1.0f) {
-                obj->r_no_0 = 1;
-                obj->r_no_1 = 2;
-                obj->r_no_2 = 0;
-                obj->r_no_3 = 0;
+                pObj->r_no_0 = 1;
+                pObj->r_no_1 = 2;
+                pObj->r_no_2 = 0;
+                pObj->r_no_3 = 0;
             }
         }
         break;
     }
-    RotMatrix(obj->mat, &obj->ang);
-    TransMatrix(obj->mat, &obj->pos);
-    ScaleMatrix(obj->mat, &obj->scale);
-    obj->partsMatCalc();
-    obj->partsWorldCalc();
+    RotMatrix(pObj->mat, &pObj->ang);
+    TransMatrix(pObj->mat, &pObj->pos);
+    ScaleMatrix(pObj->mat, &pObj->scale);
+    pObj->partsMatCalc();
+    pObj->partsWorldCalc();
 }
 
 // Rno1 == 2: hides and destroys the link.
-void obj1d_R1_Lost(cObjChain* obj)
+void obj1d_R1_Lost(cObjChain* pObj)
 {
-    if (obj->r_no_2 == 0) {
-        obj->r_no_2++;
-        obj->be_flag &= ~2;
-        obj->be_flag &= ~0x20;
-        ObjMgr.destroy(obj);
+    if (pObj->r_no_2 == 0) {
+        pObj->r_no_2++;
+        pObj->be_flag &= ~2;
+        pObj->be_flag &= ~0x20;
+        ObjMgr.destroy(pObj);
     }
 }
 
 // Rno1 == 3: hung between parts1 and parts2 of the parent: orientation = slerp of the two parts
 // matrices (axes normalised unless flags bit 1), position = midpoint of the two offsets.
-void obj1d_R1_Parent(cObjChain* obj)
+void obj1d_R1_Parent(cObjChain* pObj)
 {
-    ChainWork* w = &obj->chain;
+    ChainWork* w = &pObj->chain;
     Mtx ma;
     Mtx mb;
     Vec v0;
@@ -177,14 +177,14 @@ void obj1d_R1_Parent(cObjChain* obj)
     cModel* partsA;
     cModel* partsB;
 
-    RotMatrix(obj->mat, &obj->ang);
-    TransMatrix(obj->mat, &obj->pos);
-    ScaleMatrix(obj->mat, &obj->scale);
+    RotMatrix(pObj->mat, &pObj->ang);
+    TransMatrix(pObj->mat, &pObj->pos);
+    ScaleMatrix(pObj->mat, &pObj->scale);
     if (parent && parent->pParts) {
         partsA = parent->getPartsPtr(w->parts1);
-        PSMTXConcat(partsA->mat, obj->mat, ma);
+        PSMTXConcat(partsA->mat, pObj->mat, ma);
         partsB = parent->getPartsPtr(w->parts2);
-        PSMTXConcat(partsB->mat, obj->mat, mb);
+        PSMTXConcat(partsB->mat, pObj->mat, mb);
         if (!(w->flags & 2)) {
             v0.x = ma[0][0];
             v0.y = ma[1][0];
@@ -256,19 +256,19 @@ void obj1d_R1_Parent(cObjChain* obj)
         C_QUATMtx(&qa, ma);
         C_QUATMtx(&qb, mb);
         C_QUATSlerp(&qa, &qb, &q, 0.5f);
-        PSMTXQuat(obj->mat, &q);
+        PSMTXQuat(pObj->mat, &q);
         PSMTXMultVec(partsA->mat, &w->ofs1, &pa);
         PSMTXMultVec(partsB->mat, &w->ofs2, &pb);
         PosToPos(&pa, &pb, &p, 0.5f);
-        TransMatrix(obj->mat, &p);
+        TransMatrix(pObj->mat, &p);
     }
-    if (obj->Motion.pMot) {
-        obj->Motion.Mot_flag |= 0x40000000;
-        MotionMove(obj, 0);
+    if (pObj->Motion.pMot) {
+        pObj->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pObj, 0);
     } else {
-        obj->partsMatCalc();
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Hangs the link on one parts (both ends the same); flag = keep the parts scale.
@@ -293,16 +293,16 @@ void cObjChain::setParent(cModel* parent, int parts, Vec* ofs, int flag)
 }
 
 // Hangs the link between two parts with their offsets.
-void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Vec* ofs2, int flag)
+void cObjChain::setParent2(cModel* pEm, int parts1, Vec* pPos1, int parts2, Vec* pPos2, int mode)
 {
     ChainWork* w = &chain;
 
-    w->parent = parent;
+    w->parent = pEm;
     w->parts1 = parts1;
     w->parts2 = parts2;
-    w->ofs1 = *ofs1;
-    w->ofs2 = *ofs2;
-    if (flag) {
+    w->ofs1 = *pPos1;
+    w->ofs2 = *pPos2;
+    if (mode) {
         w->flags |= 2;
     } else {
         w->flags &= ~2;
@@ -314,11 +314,11 @@ void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Ve
 }
 
 // Attaches a pendulum cloth to the link.
-void cObjChain::setChain(PenCloth* cloth)
+void cObjChain::setChain(PenCloth* pCloth)
 {
-    chain.cloth = cloth;
-    if (cloth) {
-        PenClothSet(this, cloth, 100.0f);
+    chain.cloth = pCloth;
+    if (pCloth) {
+        PenClothSet(this, pCloth, 100.0f);
     }
 }
 

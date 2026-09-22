@@ -62,20 +62,20 @@ u32 SndStrAramAddr[4] = { 0x700000, 0x740000, 0x780000, 0x7C0000 };
 
 // "Illegal SE No." error for block / number, printed once per SE (callErr bits) unless Debug_flg[2]
 // bit2 asks for every occurrence.
-void sndCallErr(int blk, int no)
+void sndCallErr(int blk, int call_no)
 {
     u32* p;
 
     if (DbgFlagChk(pG, DBG_SE_ERR_ALL)) {
-        pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
+        pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, call_no);
         return;
     }
     p = callErr[blk];
-    if (SND_BIT_CK(p, (u16) no)) {
+    if (SND_BIT_CK(p, (u16) call_no)) {
         return;
     }
-    SND_BIT_SET(p, (u16) no);
-    pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
+    SND_BIT_SET(p, (u16) call_no);
+    pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, call_no);
 }
 
 // AXFX allocator hook: reverb buffers from the game heap.
@@ -230,15 +230,15 @@ void SndSystemReset()
 
 // Pan (0..127, 64 centre) from the angle of the source around the listener (radians; behind is
 // mirrored to the front).
-s8 sndPanCalc(f32 angle)
+s8 sndPanCalc(f32 h_angle)
 {
-    f32 a = fabsf(angle);
+    f32 a = fabsf(h_angle);
     s8 pan;
 
-    if (fabsf(angle) >= 1.5707964f) {
+    if (fabsf(h_angle) >= 1.5707964f) {
         a = 3.1415927f - a;
     }
-    if (angle >= 0.0f) {
+    if (h_angle >= 0.0f) {
         pan = (s8) (a * 40.743664f + 64.0f);
     } else {
         pan = (s8) (64.0f - a * 40.743664f);
@@ -247,9 +247,9 @@ s8 sndPanCalc(f32 angle)
 }
 
 // Surround pan (127 in front, falling with |angle|).
-s8 sndSpanCalc(f32 angle)
+s8 sndSpanCalc(f32 h_angle)
 {
-    return (s8) (127.0f - fabsf(angle) * 40.743664f);
+    return (s8) (127.0f - fabsf(h_angle) * 40.743664f);
 }
 
 s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol);
@@ -258,23 +258,23 @@ s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist);
 // .text order of the original: the callers precede their curve helpers.
 // Volume through the room's distance curve `no` (SndRoomHdr vol_ofs); `vol` unchanged when the
 // room has none.
-int sndVolCalc(int vol, int no, f32 dist)
+int sndVolCalc(int iss_vol, int tbl_no, f32 dist)
 {
     SndRoomHdr* h;
     u32 ofs;
 
-    if (no == -1) {
-        return vol;
+    if (tbl_no == -1) {
+        return iss_vol;
     }
     h = pSnd->hdr;
     if (h == NULL) {
-        return vol;
+        return iss_vol;
     }
-    ofs = h->vol_ofs[no];
+    ofs = h->vol_ofs[tbl_no];
     if (ofs == 0) {
-        return vol;
+        return iss_vol;
     }
-    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (s8) vol);
+    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (s8) iss_vol);
 }
 
 // Interpolates the curve's value at `dist` (clamped to the ends) and scales `vol` by it / 128.
@@ -307,19 +307,19 @@ s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
 }
 
 // Pitch offset from the room's distance curve `no` (pitch_ofs); 0 when none.
-s16 sndPitchCalc(int no, f32 dist)
+s16 sndPitchCalc(int tbl_no, f32 dist)
 {
     SndRoomHdr* h;
     u32 ofs;
 
-    if (no == -1) {
+    if (tbl_no == -1) {
         return 0;
     }
     h = pSnd->hdr;
     if (h == NULL) {
         return 0;
     }
-    ofs = h->pitch_ofs[no];
+    ofs = h->pitch_ofs[tbl_no];
     if (ofs == 0) {
         return 0;
     }
@@ -387,17 +387,17 @@ static int sndFilterCalc(int no, f32 dist)
 }
 
 // 1 when block `blk` is loaded and has SE `no` (type != 0x8000).
-int sndExistCheck(int blk, u32 no)
+int sndExistCheck(int blk, u32 call_no)
 {
     u32* f = pSnd->blk_flag;
 
     if (!SND_BIT_CK(f, (u16) blk)) {
         return 0;
     }
-    if (no >= Snd_iss_blk[blk].num) {
+    if (call_no >= Snd_iss_blk[blk].num) {
         return 0;
     }
-    if (Snd_iss_get_sit_type(blk, no) == 0x8000) {
+    if (Snd_iss_get_sit_type(blk, call_no) == 0x8000) {
         return 0;
     }
     return 1;
@@ -407,25 +407,25 @@ int sndWallCheckSub(Vec* pos);
 
 // Muffles the SE (sit->wall_vol percent, 1..99) when a wall (effect collision 0x404000) lies
 // between the source and the player's head.
-void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
+void sndWallCheck(SND_SIT* pSit, u8* vol, u8* svol, Vec* pos)
 {
     if (pos == NULL) {
         return;
     }
-    if (sit->wall_vol < 1 || sit->wall_vol > 99) {
+    if (pSit->wall_vol < 1 || pSit->wall_vol > 99) {
         return;
     }
     if (sndWallCheckSub(pos) != 1) {
         return;
     }
     if (*vol != 0) {
-        *vol = (s8) ((f32) (s8) *vol * ((f32) (s8) sit->wall_vol / 100.0f));
+        *vol = (s8) ((f32) (s8) *vol * ((f32) (s8) pSit->wall_vol / 100.0f));
         if ((s8) *vol <= 0) {
             *vol = 1;
         }
     }
     if (*svol != 0) {
-        *svol = (s8) ((f32) (s8) *svol * ((f32) (s8) sit->wall_vol / 100.0f));
+        *svol = (s8) ((f32) (s8) *svol * ((f32) (s8) pSit->wall_vol / 100.0f));
         if ((s8) *svol <= 0) {
             *svol = 1;
         }
@@ -453,14 +453,14 @@ int sndWallCheckSub(Vec* pos)
 
 // SEs flagged se_flag 0x20 drop to volume 1 when the player stands in a volume-control floor area
 // (FlrAt kind 1) that does not contain the source.
-void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
+void sndVolCtrlAtCheck(SND_SIT* pSit, u8* vol, u8* svol, Vec* pos)
 {
     FlrAt* at;
 
     if (pos == NULL) {
         return;
     }
-    if (!(sit->se_flag & 0x20)) {
+    if (!(pSit->se_flag & 0x20)) {
         return;
     }
     at = FlrAtCheck(1, &pPL->pos, 0);
@@ -480,19 +480,19 @@ void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 
 // While the player is in an "inner" floor area (FlrAt kind 3), SEs with inner_vol are scaled by
 // that percent. Returns 1 when applied.
-int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
+int sndInnerVolCheck(SND_SIT* pSit, u8* vol, u8* svol)
 {
     int ret = 0;
 
-    if (sit->inner_vol != 0 && FlrAtCheck(3, &pPL->pos, 0) != NULL) {
+    if (pSit->inner_vol != 0 && FlrAtCheck(3, &pPL->pos, 0) != NULL) {
         if (*vol != 0) {
-            *vol = (s8) ((f32) (s8) *vol * ((f32) (s8) sit->inner_vol / 100.0f));
+            *vol = (s8) ((f32) (s8) *vol * ((f32) (s8) pSit->inner_vol / 100.0f));
             if ((s8) *vol <= 0) {
                 *vol = 1;
             }
         }
         if (*svol != 0) {
-            *svol = (s8) ((f32) (s8) *svol * ((f32) (s8) sit->inner_vol / 100.0f));
+            *svol = (s8) ((f32) (s8) *svol * ((f32) (s8) pSit->inner_vol / 100.0f));
             if ((s8) *svol <= 0) {
                 *svol = 1;
             }
@@ -507,40 +507,40 @@ void seRandomCheck(int blk, u16* no);
 // Footstep SE selection: numbers 0x10..0x13 pick the surface variant (+30 per surface index) from
 // the floor attribute; the others use the water check (+30) or the floor's surface (with the foot
 // effect for 0..3, else the floor system default); then the random table and existence check.
-int footSeCheck(u16* no, Vec* pos)
+int footSeCheck(u16* call_no, Vec* pos)
 {
     FlrAt* at;
     int ret;
 
     if (pos != NULL) {
-        if (*no >= 0x10 && *no <= 0x13) {
+        if (*call_no >= 0x10 && *call_no <= 0x13) {
             at = FlrAtCheck(0, pos, 2);
             if (at == NULL) {
                 goto check;
             }
-            *no += at->se.se_type * FOOT_SE_NUM;
-        } else if (EspPlWaterCall(*no >> 1, pos) == 1) {
-            *no += 30;
+            *call_no += at->se.se_type * FOOT_SE_NUM;
+        } else if (EspPlWaterCall(*call_no >> 1, pos) == 1) {
+            *call_no += 30;
         } else {
             at = FlrAtCheck(0, pos, 1);
             if (at != NULL) {
-                if (*no <= 3) {
-                    EspFootCall(*no >> 1, at->se.eff_type, pos);
+                if (*call_no <= 3) {
+                    EspFootCall(*call_no >> 1, at->se.eff_type, pos);
                 }
-                *no += at->se.se_type * FOOT_SE_NUM;
+                *call_no += at->se.se_type * FOOT_SE_NUM;
             } else {
-                if (*no <= 3) {
-                    EspFootCall(*no >> 1, pFlrSys->foot_esp[pFlrSys->group], pos);
+                if (*call_no <= 3) {
+                    EspFootCall(*call_no >> 1, pFlrSys->foot_esp[pFlrSys->group], pos);
                 }
-                *no += pFlrSys->foot_se[pFlrSys->group] * FOOT_SE_NUM;
+                *call_no += pFlrSys->foot_se[pFlrSys->group] * FOOT_SE_NUM;
             }
         }
     }
 check:
-    seRandomCheck(5, no);
-    ret = sndExistCheck(5, *no);
+    seRandomCheck(5, call_no);
+    ret = sndExistCheck(5, *call_no);
     if (ret == 0) {
-        sndCallErr(5, *no);
+        sndCallErr(5, *call_no);
     }
     return ret;
 }
@@ -548,7 +548,7 @@ check:
 // Enemy SE: finds the loaded enemy block (8..13) whose enemy id matches (family aliases: 0x10 group,
 // 0x11 group, 0x1D group; 0xFF = block 8), applies the random table, and refuses a repeat of the
 // same id / number already in the 32-entry recent history (SndEmHist). Returns 1 to play.
-int emSeCheck(u16* blk, u16* no, int id)
+int emSeCheck(u16* blk, u16* call_no, int id)
 {
     int i;
     int ret;
@@ -596,8 +596,8 @@ int emSeCheck(u16* blk, u16* no, int id)
     if (*blk == 0xFFFF) {
         ret = 0;
     } else {
-        seRandomCheck(*blk, no);
-        ret = sndExistCheck(*blk, *no);
+        seRandomCheck(*blk, call_no);
+        ret = sndExistCheck(*blk, *call_no);
         if (ret == 1) {
             free = NULL;
             h = pSnd->em_hist;
@@ -606,39 +606,39 @@ int emSeCheck(u16* blk, u16* no, int id)
                     free = h;
                     continue;
                 }
-                if (h->id == (u16) id && h->no == *no) {
+                if (h->id == (u16) id && h->no == *call_no) {
                     return 0;
                 }
             }
             if (free != NULL) {
                 free->id = id;
                 free->used = 1;
-                free->no = *no;
+                free->no = *call_no;
                 free->timer = 1;
             }
         } else {
-            sndCallErr(*blk, *no);
+            sndCallErr(*blk, *call_no);
         }
     }
     return ret;
 }
 
 // Weapon SE: number 0xF (shell drop) picks the surface variant from the floor attribute.
-int wepSeCheck(u16* no, Vec* pos)
+int wepSeCheck(u16* call_no, Vec* pos)
 {
     int ret;
 
-    if (pos != NULL && *no == 0xF) {
+    if (pos != NULL && *call_no == 0xF) {
         FlrAt* at = FlrAtCheck(0, pos, 4);
         if (at != NULL) {
-            *no += at->se.cartridge_type;
+            *call_no += at->se.cartridge_type;
         } else if (pFlrSys->pData != NULL) {
-            *no += ((FlrAtHead*) pFlrSys->pData)->cartridge_type;
+            *call_no += ((FlrAtHead*) pFlrSys->pData)->cartridge_type;
         }
     }
-    ret = sndExistCheck(2, *no);
+    ret = sndExistCheck(2, *call_no);
     if (ret == 0) {
-        sndCallErr(2, *no);
+        sndCallErr(2, *call_no);
     }
     return ret;
 }
@@ -651,7 +651,7 @@ struct SndRndTbl {
 
 // SEs with a random group (SIT rnd_no) are replaced by a random member of the block's random
 // table, avoiding the last one played (5 tries).
-void seRandomCheck(int blk, u16* no)
+void seRandomCheck(int blk, u16* call_no)
 {
     s8 retry = 5;
     SND_SIT* sit;
@@ -663,10 +663,10 @@ void seRandomCheck(int blk, u16* no)
     if (blk == 3 || blk == 4) {
         return;
     }
-    if (sndExistCheck(blk, *no) == 0) {
+    if (sndExistCheck(blk, *call_no) == 0) {
         return;
     }
-    sit = Snd_get_sit_adrs(blk, *no);
+    sit = Snd_get_sit_adrs(blk, *call_no);
     g = sit->rnd_no;
     if (g == 0) {
         return;
@@ -678,49 +678,49 @@ void seRandomCheck(int blk, u16* no)
     }
     t = (SndRndTbl*) ((u8*) tbl + tbl[g]);
     do {
-        *no = *(t->e + Rnd() % t->num);
+        *call_no = *(t->e + Rnd() % t->num);
         retry--;
-    } while (*no == t->last && retry != 0);
-    t->last = *no;
+    } while (*call_no == t->last && retry != 0);
+    t->last = *call_no;
 }
 
 // Enemy SE `no` of enemy `id` (block 8 + the enemy's block).
-u32 EmSeCall(u16 no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* obj)
+u32 EmSeCall(u16 call_no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* pMod)
 {
-    return SndCall(8, no, pos, id, vol | flag, obj);
+    return SndCall(8, call_no, pos, id, vol | flag, pMod);
 }
 
 // Room SE `no` (block 6).
-u32 RoomSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj)
+u32 RoomSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag, cUnit* pMod)
 {
-    return SndCall(6, no, pos, 0, flag | vol, obj);
+    return SndCall(6, call_no, pos, 0, flag | vol, pMod);
 }
 
 // Player SE `no` (block 1).
-u32 PlSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj)
+u32 PlSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag, cUnit* pMod)
 {
-    return SndCall(1, no, pos, 0, vol | flag, obj);
+    return SndCall(1, call_no, pos, 0, vol | flag, pMod);
 }
 
 // Core (system / common) SE `no` (block 0).
-u32 CoreSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj)
+u32 CoreSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag, cUnit* pMod)
 {
-    return SndCall(0, no, pos, 0, vol | flag, obj);
+    return SndCall(0, call_no, pos, 0, vol | flag, pMod);
 }
 
 // Footstep SE `no` (block 5) at `pos`.
-u32 FootSeCall(u16 no, Vec* pos, u8 vol, u32 flag)
+u32 FootSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag)
 {
-    return SndCall(5, no, pos, 0, vol | flag, 0);
+    return SndCall(5, call_no, pos, 0, vol | flag, 0);
 }
 
 // Door SE `no` (block 7) when the door block is loaded.
-u32 DoorSeCall(u16 no)
+u32 DoorSeCall(u16 call_no)
 {
     if (!SND_BIT_CK(pSnd->blk_flag, 7)) {
         return 0;
     }
-    return SndCall(7, no, 0, 0, 0, 0);
+    return SndCall(7, call_no, 0, 0, 0, 0);
 }
 
 void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
@@ -1131,7 +1131,7 @@ SndPlayWork* getStrWork(u32 id);
 // str_work slot (a paused one of the same number just resumes; `pos` = start seconds), bit1 =
 // make it the room's playing stream, 4 = volume `vol` over `time`, 8 = stop; other reqs address
 // the stream by blk / no (no -1 = slot blk). Returns the stream id, 0 on failure / debug off.
-u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
+u32 SndStrReq(int blk, int no, int flg, int time, int vol, f32 s_time)
 {
     SndPlayWork* w;
     u32 smp = 0;
@@ -1143,7 +1143,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
         OSReport("SND: No STR Header.\n");
         return 0;
     }
-    if (req & 0x1) {
+    if (flg & 0x1) {
         s8 wk;
         SndStrFile* sf;
         SndStrEnt* e;
@@ -1157,7 +1157,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
             return 0;
         }
         w = getStrWork(blk, no);
-        if (blk == 1 || req >= 0) {
+        if (blk == 1 || flg >= 0) {
             w = NULL;
         }
         if (w == NULL) {
@@ -1166,10 +1166,10 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
                 return 0;
             }
             w = &pSnd->str_state[wk];
-            if (pos != 0.0f) {
+            if (s_time != 0.0f) {
                 SND_SHD* shd = Snd_get_shd_adrs(blk, no);
                 u32 bs = Snd_str_get_buff_smp(blk, no);
-                smp = (u32) ((f32) shd->rate * pos) / bs;
+                smp = (u32) ((f32) shd->rate * s_time) / bs;
             }
         } else {
             if (w->stat != 1) {
@@ -1199,7 +1199,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
         }
         w->vol_def = e->vol;
         w->used = 1;
-        if (pos != 0.0f) {
+        if (s_time != 0.0f) {
             Snd_str_init_pos(w->id, smp);
         }
     } else {
@@ -1218,27 +1218,27 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
         w->stat = 0;
         return 0;
     }
-    w->stat = (req == 8 || (req == 4 && vol == 0)) ? 1 : 0;
-    if (req & 0x2) {
+    w->stat = (flg == 8 || (flg == 4 && vol == 0)) ? 1 : 0;
+    if (flg & 0x2) {
         pSnd->play_str_no[blk] = no;
     }
-    return Snd_str_req(w->id, req, time, vol) ? 0 : w->id;
+    return Snd_str_req(w->id, flg, time, vol) ? 0 : w->id;
 }
 
 // Stream request on a playing stream id (4 volume, 8 stop...). Returns 1 on success.
-int SndStrReq(u32 id, int req, int time, int vol)
+int SndStrReq(u32 snd_id, int flg, int time, int vol)
 {
     SndPlayWork* w;
 
     if (DbgFlagChk(pG, DBG_BGM_STOP)) {
         return 0;
     }
-    w = getStrWork(id);
+    w = getStrWork(snd_id);
     if (w == NULL) {
         return 0;
     }
-    w->stat = (req == 8 || (req == 4 && vol == 0)) ? 1 : 0;
-    return Snd_str_req(w->id, req, time, vol) == 0;
+    w->stat = (flg == 8 || (flg == 4 && vol == 0)) ? 1 : 0;
+    return Snd_str_req(w->id, flg, time, vol) == 0;
 }
 
 // 1 when stream blk / no (no -1 = slot blk) is playing with one of the `status` bits; a dead
@@ -1270,9 +1270,9 @@ int SndStrStatusCk(int blk, int no, u32 status)
 }
 
 // 1 when stream `id` is playing with one of the `status` bits.
-int SndStrStatusCk(u32 id, u32 status)
+int SndStrStatusCk(u32 snd_id, u32 status)
 {
-    int s = Snd_str_get_status(id);
+    int s = Snd_str_get_status(snd_id);
 
     if (s != -1 && (s & 0x1) && (s & status)) {
         return 1;
@@ -1312,7 +1312,7 @@ SndPlayWork* getStrWork(int blk, int no)
 }
 
 // The slot playing stream `id`, or NULL.
-SndPlayWork* getStrWork(u32 id)
+SndPlayWork* getStrWork(u32 snd_id)
 {
     SndPlayWork* w;
     int i;
@@ -1322,7 +1322,7 @@ SndPlayWork* getStrWork(u32 id)
             continue;
         }
         w = &pSnd->str_state[i];
-        if (w->id == id) {
+        if (w->id == snd_id) {
             return w;
         }
     }
@@ -1739,18 +1739,18 @@ void SndRoomBgmLoad()
 // Room start (or `reset`): starts the BGM slots whose table entry (room_bgm_tbl[0], or the
 // alternate table pG->snd_tbl_no after a continue / reset) has the auto-start bit 0x4000 (0x2000 =
 // start at volume 1, faded in later).
-void SndRoomBgmStartCheck(int reset)
+void SndRoomBgmStartCheck(int flag)
 {
     int i;
     int vol = 0;
     int start = 0;
 
-    if (reset != 0) {
+    if (flag != 0) {
         pG->terminal_no = 0;
     }
     for (i = 0; i < 2; i++) {
         u16 b;
-        if (SysFlagChk(pG, SYS_LOAD_GAME) || reset != 0) {
+        if (SysFlagChk(pG, SYS_LOAD_GAME) || flag != 0) {
             b = (u16) (pSnd->room_bgm_tbl[pG->terminal_no + 1] >> (i * 16));
         } else {
             b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
@@ -1772,22 +1772,22 @@ void SndRoomBgmStartCheck(int reset)
 
 // Starts (or restarts at `vol`, 0 = default) BGM slot `no` with the sequence its table entry names
 // (bits 8-9); a different running sequence is stopped first. Returns 1 when the slot has a BGM.
-int SndRoomBgmStart(u8 no, int vol)
+int SndRoomBgmStart(u8 blk_no, int vol)
 {
-    u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (no * 16));
+    u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (blk_no * 16));
     int seq = (b >> 8) & 0x3;
     int ret = 0;
     SndPlayWork* w;
 
     if (b & 0x8000) {
-        w = &pSnd->bgm_state[no];
+        w = &pSnd->bgm_state[blk_no];
         if (w->used == 0) {
             goto call;
         }
         if (seq != w->no) {
             Snd_seq_req(w->id, 2, 0, 0);
         call:
-            do { do { SndCall(no + 3, seq, 0, 0, vol, 0); } while (0); } while (0);
+            do { do { SndCall(blk_no + 3, seq, 0, 0, vol, 0); } while (0); } while (0);
         } else {
             if (vol == 0) {
                 vol = w->vol_def;
@@ -1801,25 +1801,25 @@ int SndRoomBgmStart(u8 no, int vol)
 }
 
 // Stops BGM slot `no`, faded over `time` seconds (0 = at once); stat 1 = stopped by the game.
-void SndRoomBgmStop(u8 no, int time)
+void SndRoomBgmStop(u8 blk_no, int fade_time)
 {
-    SndPlayWork* w = &pSnd->bgm_state[no];
+    SndPlayWork* w = &pSnd->bgm_state[blk_no];
 
     if (w->used != 1 || w->stat != 0) {
         return;
     }
     w->stat = 1;
-    if (time != 0) {
-        Snd_seq_req(w->id, 1, time * 200, 0);
+    if (fade_time != 0) {
+        Snd_seq_req(w->id, 1, fade_time * 200, 0);
     } else {
         Snd_seq_req(w->id, 2, 0, 0);
     }
 }
 
 // Fades BGM slot `no` to `vol` over `time` (driver units) when it is playing.
-int SndRoomBgmVolSet(u8 no, int vol, int time)
+int SndRoomBgmVolSet(u8 blk_no, int vol, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_state[no];
+    SndPlayWork* w = &pSnd->bgm_state[blk_no];
     int ret = 0;
 
     if (w->used == 1 && w->stat == 0) {
@@ -1829,9 +1829,9 @@ int SndRoomBgmVolSet(u8 no, int vol, int time)
 }
 
 // Fades BGM slot `no` back to its default volume.
-int SndRoomBgmVolReset(u8 no, int time)
+int SndRoomBgmVolReset(u8 blk_no, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_state[no];
+    SndPlayWork* w = &pSnd->bgm_state[blk_no];
     int ret = 0;
 
     if (w->used == 1 && w->stat == 0) {
@@ -1842,14 +1842,14 @@ int SndRoomBgmVolReset(u8 no, int time)
 
 // Ducks BGM slot `no` to volume 1 (remembering the current / fading volume) or restores it, over
 // `time` seconds (-1 = at once). Returns 1 when something changed.
-int SndRoomBgmMute(u8 no, int on, int time)
+int SndRoomBgmMute(u8 blk_no, int sw, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_state[no];
+    SndPlayWork* w = &pSnd->bgm_state[blk_no];
     int ret = 0;
     int t = (time == -1) ? 1 : time * 200;
 
     if (w->used == 1 && w->stat == 0) {
-        if (on == 1) {
+        if (sw == 1) {
             if (Snd_seq_fade_check(w->id) == 1) {
                 w->mute_vol = Snd_search_seq_work_snd_id(w->id)->fade_vol;
             } else {
@@ -1869,10 +1869,10 @@ int SndRoomBgmMute(u8 no, int on, int time)
 }
 
 // Ducks / restores both BGM slots.
-void SndRoomBgmMuteAll(int on, int time)
+void SndRoomBgmMuteAll(int sw, int time)
 {
-    SndRoomBgmMute(0, on, time);
-    SndRoomBgmMute(1, on, time);
+    SndRoomBgmMute(0, sw, time);
+    SndRoomBgmMute(1, sw, time);
 }
 
 // Room start: starts the room stream when its table entry (room_str_tbl, or the alternate table
@@ -1895,11 +1895,11 @@ void SndRoomStrStartCheck()
 
 // Starts the room's stream (room_str_tbl[0], low byte = number) looping when `loop`, faded in over
 // `time` seconds; a paused one is faded back to its default volume.
-void SndRoomStrStart(int flag, int time, int loop)
+void SndRoomStrStart(int flag, int time, int play_ck)
 {
     int req = 3;
 
-    if (loop == 1) {
+    if (play_ck == 1) {
         req = 0x80000003;
     }
     if (pSnd->room_str_tbl[0] & 0x8000) {
@@ -1920,15 +1920,15 @@ void SndRoomStrStart(int flag, int time, int loop)
 }
 
 // Stops the room stream, faded over `time` seconds (0 = at once).
-void SndRoomStrStop(int time)
+void SndRoomStrStop(int fade_time)
 {
     SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
 
     if (w == NULL || w->stat != 0) {
         return;
     }
-    if (time != 0) {
-        SndStrReq(w->id, 4, time * 200, 0);
+    if (fade_time != 0) {
+        SndStrReq(w->id, 4, fade_time * 200, 0);
     } else {
         SndStrReq(w->id, 8, 0, 0);
     }
@@ -1961,58 +1961,58 @@ int SndRoomStrVolReset(int time)
 void sndMuteSetMain(SndMute* m, u32 type, int on);
 
 // Mutes / unmutes output groups: bit4 SE (headphones type), bit5 BGM, bit6 SE (TV), bit7 BGM (TV).
-void SndMuteSet(int bits, int on)
+void SndMuteSet(int kind, int sw)
 {
-    if (bits & 0x10) {
-        sndMuteSetMain(&Snd.mute[0], 0x20001, on);
+    if (kind & 0x10) {
+        sndMuteSetMain(&Snd.mute[0], 0x20001, sw);
     }
-    if (bits & 0x20) {
-        sndMuteSetMain(&Snd.mute[1], 0x40001, on);
+    if (kind & 0x20) {
+        sndMuteSetMain(&Snd.mute[1], 0x40001, sw);
     }
-    if (bits & 0x40) {
-        sndMuteSetMain(&Snd.mute[2], 0x20002, on);
+    if (kind & 0x40) {
+        sndMuteSetMain(&Snd.mute[2], 0x20002, sw);
     }
-    if (bits & 0x80) {
-        sndMuteSetMain(&Snd.mute[3], 0x40002, on);
+    if (kind & 0x80) {
+        sndMuteSetMain(&Snd.mute[3], 0x40002, sw);
     }
 }
 
 // Mutes one group by saving its master volume and setting 0, or restores it.
-void sndMuteSetMain(SndMute* m, u32 type, int on)
+void sndMuteSetMain(SndMute* pMute, u32 type, int sw)
 {
-    if (on == 1) {
-        if (m->on == 0) {
-            m->vol = SndGetMasterVol(type);
+    if (sw == 1) {
+        if (pMute->on == 0) {
+            pMute->vol = SndGetMasterVol(type);
             SndSetMasterVol(type, 0);
-            m->on = on;
+            pMute->on = sw;
         }
-    } else if (m->on == 1) {
-        SndSetMasterVol(type, m->vol);
-        m->on = 0;
+    } else if (pMute->on == 1) {
+        SndSetMasterVol(type, pMute->vol);
+        pMute->on = 0;
     }
 }
 
 // Master volume `vol` (0..0x7F) of a driver channel: type bit0 / bit1 = output kind, 0x10000 SE,
 // 0x20000 sequence, 0x40000 stream. Returns 1 when the type is valid.
-int SndSetMasterVol(u32 type, int vol)
+int SndSetMasterVol(u32 kind, int vol)
 {
     int ret = 0;
     u32 t = 0;
 
-    if (type & 0x1) {
-        if (type & 0x10000) {
+    if (kind & 0x1) {
+        if (kind & 0x10000) {
             t = 0x2;
-        } else if (type & 0x20000) {
+        } else if (kind & 0x20000) {
             t = 0x8;
-        } else if (type & 0x40000) {
+        } else if (kind & 0x40000) {
             t = 0x20;
         }
-    } else if (type & 0x2) {
-        if (type & 0x10000) {
+    } else if (kind & 0x2) {
+        if (kind & 0x10000) {
             t = 0x1;
-        } else if (type & 0x20000) {
+        } else if (kind & 0x20000) {
             t = 0x4;
-        } else if (type & 0x40000) {
+        } else if (kind & 0x40000) {
             t = 0x10;
         }
     }
@@ -2025,24 +2025,24 @@ int SndSetMasterVol(u32 type, int vol)
 }
 
 // Current master volume of a driver channel (see SndSetMasterVol), -1 for an invalid type.
-int SndGetMasterVol(u32 type)
+int SndGetMasterVol(u32 kind)
 {
     u32 t = 0;
 
-    if (type & 0x1) {
-        if (type & 0x10000) {
+    if (kind & 0x1) {
+        if (kind & 0x10000) {
             t = 0x2;
-        } else if (type & 0x20000) {
+        } else if (kind & 0x20000) {
             t = 0x8;
-        } else if (type & 0x40000) {
+        } else if (kind & 0x40000) {
             t = 0x20;
         }
-    } else if (type & 0x2) {
-        if (type & 0x10000) {
+    } else if (kind & 0x2) {
+        if (kind & 0x10000) {
             t = 0x1;
-        } else if (type & 0x20000) {
+        } else if (kind & 0x20000) {
             t = 0x4;
-        } else if (type & 0x40000) {
+        } else if (kind & 0x40000) {
             t = 0x10;
         }
     }
@@ -2051,11 +2051,11 @@ int SndGetMasterVol(u32 type)
 
 // Output mode 0 mono / 1 stereo / 2 surround (DPL2): from the save at `init`, else applied now
 // (reverb re-set, pans / volumes recomputed); the movie output follows (ADXT mono).
-void SndSetOutputMode(int mode, int init)
+void SndSetOutputMode(int mode, int flg)
 {
     int efx = Snd_efx_get_status(0) == 1;
 
-    if (init != 0) {
+    if (flg != 0) {
         pSys->SndMode = Snd_sound_mode_init_load(mode);
     } else {
         if (efx == 1) {
@@ -2078,7 +2078,7 @@ void SndSetOutputMode(int mode, int init)
 
 // Angle of `pos` around the listener: yaw (pan) and elevation (span) in a frame at the player's
 // position aligned with the camera, and the distance from the camera.
-void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
+void getCam2SndAngle(f32* h_angle, f32* v_angle, f32* dist, Vec* pos)
 {
     Camera* cam = &pG->Camera;
     Vec out;
@@ -2112,11 +2112,11 @@ void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
     }
     PSMTXInverse(m, inv);
     PSMTXMultVec(inv, pos, &out);
-    if (pan != NULL) {
-        *pan = atan2f(out.x, -out.z);
+    if (h_angle != NULL) {
+        *h_angle = atan2f(out.x, -out.z);
     }
-    if (span != NULL) {
-        *span = atan2f(out.y, -out.z);
+    if (v_angle != NULL) {
+        *v_angle = atan2f(out.y, -out.z);
     }
     if (dist != NULL) {
         f32 dx = pos->x - cam->param.pos.x;
@@ -2272,12 +2272,12 @@ void SndAllFadeOut()
 }
 
 // Pauses / resumes the SEs of `type` (-1 = all).
-void SndSePause(int on, s16 type)
+void SndSePause(int sw, s16 blk)
 {
-    if (on == 1) {
-        Snd_se_pause_on2(type);
+    if (sw == 1) {
+        Snd_se_pause_on2(blk);
     } else {
-        Snd_se_pause_off2(type);
+        Snd_se_pause_off2(blk);
     }
 }
 
@@ -2288,9 +2288,9 @@ void SndSeAbsPause()
 }
 
 // Pauses / resumes all SEs.
-void SndSePauseAll(int on)
+void SndSePauseAll(int sw)
 {
-    SndSePause(on, -1);
+    SndSePause(sw, -1);
 }
 
 // Soft reset of the driver: waits for the reset to complete, reverb off.
@@ -2306,9 +2306,9 @@ void SndSoftReset()
 // Scenario: switches room `room` to BGM / stream table entry `no` of the BGM table file (its six
 // BGM and stream words into the room's save record, and into the live tables when it is the
 // current room). Returns 1 when found.
-int SndBgmTblSet(u16 room, int no)
+int SndBgmTblSet(u16 room_no, int tbl_no)
 {
-    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(room);
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(room_no);
     SndBgmRoom* r = NULL;
     int ret = 0;
     u16* rl;
@@ -2322,7 +2322,7 @@ int SndBgmTblSet(u16 room, int no)
         i = 0;
         // no block-scope declaration inside the body: that would stop GCC duplicating the exit test
         while (*rl != 0xFFFF) {
-            if (*rl == room) {
+            if (*rl == room_no) {
                 r = (SndBgmRoom*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs + ((u32*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs))[i]);
                 break;
             }
@@ -2331,11 +2331,11 @@ int SndBgmTblSet(u16 room, int no)
         }
         if (r != NULL) {
             for (j = 0; j < r->num; j++) {
-                if (r->e[j].id == no) {
+                if (r->e[j].id == tbl_no) {
                     for (k = 0; k < 6; k++) {
                         rs->bgm[k] = r->e[j].bgm[k];
                         rs->str[k] = r->e[j].str[k];
-                        if (room == pG->room_id) {
+                        if (room_no == pG->room_id) {
                             pSnd->room_bgm_tbl[k] = r->e[j].bgm[k];
                             pSnd->room_str_tbl[k] = r->e[j].str[k];
                         }
@@ -2351,37 +2351,37 @@ int SndBgmTblSet(u16 room, int no)
 
 // Sets the auto-start bits of the room's BGM slot 0 (type bit0) / slot 1 (bit1) / stream (bit2)
 // table words, also in the save record when `save`.
-void SndBgmTblSetEnable(int type, int save)
+void SndBgmTblSetEnable(int kind, int tbl_update)
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
     int i;
 
     for (i = 0; i < 6; i++) {
-        if (type & 0x1) {
+        if (kind & 0x1) {
             if (pSnd->room_bgm_tbl[i] & 0x8000) {
                 pSnd->room_bgm_tbl[i] |= 0x4000;
             }
-            if (save == 1 && rs != NULL) {
+            if (tbl_update == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x8000) {
                     rs->bgm[i] |= 0x4000;
                 }
             }
         }
-        if (type & 0x2) {
+        if (kind & 0x2) {
             if (pSnd->room_bgm_tbl[i] & 0x80000000) {
                 pSnd->room_bgm_tbl[i] |= 0x40000000;
             }
-            if (save == 1 && rs != NULL) {
+            if (tbl_update == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x80000000) {
                     rs->bgm[i] |= 0x40000000;
                 }
             }
         }
-        if (type & 0x4) {
+        if (kind & 0x4) {
             if (pSnd->room_str_tbl[i] & 0x8000) {
                 pSnd->room_str_tbl[i] |= 0x4000;
             }
-            if (save == 1 && rs != NULL) {
+            if (tbl_update == 1 && rs != NULL) {
                 if (rs->str[i] & 0x8000) {
                     rs->str[i] |= ~0x4000;
                 }
@@ -2391,37 +2391,37 @@ void SndBgmTblSetEnable(int type, int save)
 }
 
 // Clears the auto-start bits (see SndBgmTblSetEnable).
-void SndBgmTblSetDisable(int type, int save)
+void SndBgmTblSetDisable(int kind, int tbl_update)
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
     int i;
 
     for (i = 0; i < 6; i++) {
-        if (type & 0x1) {
+        if (kind & 0x1) {
             if (pSnd->room_bgm_tbl[i] & 0x8000) {
                 pSnd->room_bgm_tbl[i] &= ~0x4000;
             }
-            if (save == 1 && rs != NULL) {
+            if (tbl_update == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x8000) {
                     rs->bgm[i] &= ~0x4000;
                 }
             }
         }
-        if (type & 0x2) {
+        if (kind & 0x2) {
             if (pSnd->room_bgm_tbl[i] & 0x80000000) {
                 pSnd->room_bgm_tbl[i] &= ~0x40000000;
             }
-            if (save == 1 && rs != NULL) {
+            if (tbl_update == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x80000000) {
                     rs->bgm[i] &= ~0x40000000;
                 }
             }
         }
-        if (type & 0x4) {
+        if (kind & 0x4) {
             if (pSnd->room_str_tbl[i] & 0x8000) {
                 pSnd->room_str_tbl[i] &= ~0x4000;
             }
-            if (save == 1 && rs != NULL) {
+            if (tbl_update == 1 && rs != NULL) {
                 if (rs->str[i] & 0x8000) {
                     rs->str[i] &= ~0x4000;
                 }
@@ -2497,7 +2497,7 @@ void SndEventEnd()
 
 // Enemy block slot (0..5) to load enemy `id`'s sounds into: the first free one; -1 when the id is
 // already loaded or all six are used.
-int SndEmDataReadCheck(int id)
+int SndEmDataReadCheck(int em_id)
 {
     int i;
     u32* f = pSnd->blk_flag;
@@ -2506,7 +2506,7 @@ int SndEmDataReadCheck(int id)
         if (!SND_BIT_CK(f, i + 8)) {
             return i;
         }
-        if (pSnd->snd_em_id[i] == id) {
+        if (pSnd->snd_em_id[i] == em_id) {
             return -1;
         }
     }
@@ -2541,20 +2541,20 @@ void SndBlkInit(int type, int id, int no)
 }
 
 // Reads BGM `no`'s data (file 0x61 entry) unless already resident.
-void SndBgmLoad(int no)
+void SndBgmLoad(int bgm_no)
 {
     int r;
 
-    if (SndBgmDataReadCheck(no) == -1) {
+    if (SndBgmDataReadCheck(bgm_no) == -1) {
         return;
     }
 #line 3784 SND_FILE
-    r = DvdRead(0x61, 0, 0, SndMem.bgm_file[no], 0, 0x8001, __FILE__, __LINE__);
+    r = DvdRead(0x61, 0, 0, SndMem.bgm_file[bgm_no], 0, 0x8001, __FILE__, __LINE__);
     Dvd.ReadCheck(r, 0, 0, 0);
 }
 
 // BGM slot (0 / 1) to load BGM `id` into: the first free one; -1 when loaded or both used.
-int SndBgmDataReadCheck(int id)
+int SndBgmDataReadCheck(int bgm_no)
 {
     int i;
     u32* f = pSnd->blk_flag;
@@ -2563,7 +2563,7 @@ int SndBgmDataReadCheck(int id)
         if (!SND_BIT_CK(f, i + 3)) {
             return i;
         }
-        if (pSnd->snd_bgm_id[i] == id) {
+        if (pSnd->snd_bgm_id[i] == bgm_no) {
             return -1;
         }
     }
@@ -2635,14 +2635,14 @@ void debug_mute_check()
 
 // Room-change wait screen: prints the BGM / stream slots while sounds are still stopping and the
 // read `req` is pending; returns 1 when both are done.
-int SndStatDisp(int req)
+int SndStatDisp(int read_id)
 {
     u32 i;
     int y = 0x10;
     int y2 = 0x10;
     int ret = 0;
     int stop = SndStopCheck();
-    int read = Dvd.ReadCheck(req, 0, 0, 0);
+    int read = Dvd.ReadCheck(read_id, 0, 0, 0);
 
     if (stop == 0) {
         eprintf(0x18, 0x10, 0, 0, "Stop WAIT");
@@ -2811,9 +2811,9 @@ void SndSeAbsFadeOutAll_5msec(s16 time)
 }
 
 // Fades all sequences of `type` out over `sec` seconds.
-void SndSeqFadeOutAll_sec(u8 type, int sec)
+void SndSeqFadeOutAll_sec(u8 type, int time)
 {
-    Snd_seq_fade_out_type(type, sec * 200);
+    Snd_seq_fade_out_type(type, time * 200);
 }
 
 // The split object's .sdata is 8-aligned (0x18 bytes: the u8 flag_bak is followed by 7 bytes of pad).

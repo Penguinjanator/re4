@@ -231,14 +231,14 @@ void AddWaterPowerSub(EspgenWork* w)
 // Public splash entry (footsteps, bullets, bodies): pushes the water height field down by
 // power x 5 at `pos` on every live water surface. No-op unless a water surface exists this frame
 // (Status_flg[0] 0x200).
-void AddWaterPower(Vec& pos, f32 power)
+void AddWaterPower(Vec& pos, f32 pow)
 {
     // A local for the zero, declared before the flag check: without it pos loses its register tie
     // with g_pWater and gets copied to a second register.
     u32 n = 0;
     if (StaFlagChk(pG, STA_WATER_ALIVE)) {
         Height_find = n;
-        Add_power = power * 5.0f;
+        Add_power = pow * 5.0f;
         Chk_pos = pos;
         if (g_pWater != NULL) {
             u8 flg = g_pWater->flag;
@@ -285,25 +285,25 @@ static inline void GetWaterHeightCore(EspgenWork* w, Vec v)
 }
 
 // Runs the height test for Chk_pos on generator `w` (only ids 0x42 / 0x45).
-void GetWaterHeightSub(EspgenWork* w)
+void GetWaterHeightSub(EspgenWork* pGen)
 {
-    if (w->id == 0x42) {
-        GetWaterHeightCore(w, Chk_pos);
-    } else if (w->id == 0x45) {
-        GetWaterHeightCore(w, Chk_pos);
+    if (pGen->id == 0x42) {
+        GetWaterHeightCore(pGen, Chk_pos);
+    } else if (pGen->id == 0x45) {
+        GetWaterHeightCore(pGen, Chk_pos);
     }
 }
 
 // Debug switch: makes GetWaterHeight report "no water" everywhere.
-void Espgen42SetNoWater(int on)
+void Espgen42SetNoWater(int flg)
 {
-    g_bNoWater = on;
+    g_bNoWater = flg;
 }
 
 // Surface height under `pos`: 1 and *height when the point (in grid space) lies inside the room
 // water or the weather water (an unbounded weather surface answers its plane height); 0 when no
 // live water covers it or no water exists this frame.
-int GetWaterHeight(Vec* pos, f32* height)
+int GetWaterHeight(Vec* pos, f32* Ret)
 {
     if (!StaFlagChk(pG, STA_WATER_ALIVE)) {
         return 0;
@@ -337,13 +337,13 @@ int GetWaterHeight(Vec* pos, f32* height)
             Height_ret = v.y;
         }
     }
-    *height = Height_ret;
+    *Ret = Height_ret;
     return Height_find;
 }
 
 // Intersects the segment Cross_Chk_pos -> Cross_Chk_dest with the room water plane (id 0x42)
 // and stores the hit in Cross_Ret_pos when it lies inside the grid.
-void GetWaterCrossPosSub(EspgenWork* w)
+void GetWaterCrossPosSub(EspgenWork* pGen)
 {
     Espgen42Work* p;
     Vec d;
@@ -352,9 +352,9 @@ void GetWaterCrossPosSub(EspgenWork* w)
     Vec v2;
     f32 t;
 
-    if (w->id == 0x42) {
+    if (pGen->id == 0x42) {
         PSVECSubtract(&Cross_Chk_dest, &Cross_Chk_pos, &d);
-        p = (Espgen42Work*) w->work;
+        p = (Espgen42Work*) pGen->work;
         v.z = 0.0f;
         v.y = 0.0f;
         v.x = 0.0f;
@@ -380,9 +380,9 @@ void GetWaterCrossPosSub(EspgenWork* w)
         }
         Cross_Ret_pos = hit;
         Cross_find = 1;
-    } else if (w->id == 0x45) {
+    } else if (pGen->id == 0x45) {
         PSVECSubtract(&Cross_Chk_dest, &Cross_Chk_pos, &d);
-        p = (Espgen42Work*) w->work;
+        p = (Espgen42Work*) pGen->work;
         v2.z = 0.0f;
         v2.y = 0.0f;
         v2.x = 0.0f;
@@ -415,7 +415,7 @@ void GetWaterCrossPosSub(EspgenWork* w)
 
 // Where the segment pos -> pos + dir crosses a live water surface: 1 and *out on a hit
 // (bullet splashes, item drops), 0 otherwise.
-int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
+int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* Ret)
 {
     if (!StaFlagChk(pG, STA_WATER_ALIVE)) {
         return 0;
@@ -441,7 +441,7 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
     if (g_pWater45 != NULL && (g_pWater45->flag & 1) && !(g_pWater45->flag & 2)) {
         GetWaterCrossPosSub(g_pWater45);
     }
-    *out = Cross_Ret_pos;
+    *Ret = Cross_Ret_pos;
     return Cross_find;
 }
 
@@ -464,7 +464,7 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 // 0.92) plus the frame's noise texture (0xFE, 60 frames), writes the vertex heights, the
 // normals and the I8 bump texture (tilted by grid position so the edges shade flat). Mode 1 is
 // the cheaper single-pass variant; in the effect tool the B button drops the whole surface.
-void Espgen42_Move00(EspgenWork* w)
+void Espgen42_Move00(EspgenWork* pGen)
 {
     static f32 wt_pow = 10.0f;
     // p at the declaration (w's only use): combine folds the parameter copy into `p = (plus r3 20)` AFTER the
@@ -473,7 +473,7 @@ void Espgen42_Move00(EspgenWork* w)
     // through hA/hB/next: loop B's `lhz nx` for v.z issues after `stfs v.x/v.y` and `lwz pos` after the hB
     // stores, as in the target. `p = w->work` after the tex call keeps w's pseudo (live across the call), p's
     // base is then the argument ADDRESS and the loads float above the frame stores (-44 words).
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p = (Espgen42Work*) pGen->work;
     Vec d0;
     Vec d1;
     Vec v;
@@ -704,22 +704,22 @@ void Espgen42_Move00(EspgenWork* w)
 }
 
 // Espgen move entry for id 0x42: runs the step function unless Stop_flg 0x40000 freezes water.
-void Espgen42_Move(EspgenWork* w)
+void Espgen42_Move(EspgenWork* pGen)
 {
     static void (*Espgen42MoveTbl[])(EspgenWork*) = {Espgen42_Move00};
 
     if (SpfFlagChk(pG, SPF_WATER)) {
         return;
     }
-    Espgen42MoveTbl[w->step](w);
+    Espgen42MoveTbl[pGen->step](pGen);
 }
 
 // Queues Espgen42_TransSub in the world OT (0x10, layer 1, priority 0x80) while the generator is
 // live and not suspended.
-void Espgen42_Trans(EspgenWork* w)
+void Espgen42_Trans(EspgenWork* pGen)
 {
-    if ((w->flag & 1) && !(w->flag & 2)) {
-        AddOtDirect(0x10, w, (void (*)()) Espgen42_TransSub, 1, 0x80, NULL, 0.0f);
+    if ((pGen->flag & 1) && !(pGen->flag & 2)) {
+        AddOtDirect(0x10, pGen, (void (*)()) Espgen42_TransSub, 1, 0x80, NULL, 0.0f);
     }
 }
 
@@ -741,18 +741,18 @@ void SetIndMtx(Espgen42Work* p)
 // ambient colours, position and normal matrices, the water texture (texId) with the bump map as
 // an indirect stage plus `stages` extra TEV stages, then calls the pre-built display list of
 // triangle strips; restores the TEV state afterwards.
-void Espgen42_TransSub(EspgenWork* w)
+void Espgen42_TransSub(EspgenWork* pGen)
 {
     GxStageWork* st;
     Espgen42Work* p;
     void* buf;
     s32 stage;
 
-    if (!(w->flag & 1) || (w->flag & 2)) {
+    if (!(pGen->flag & 1) || (pGen->flag & 2)) {
         return;
     }
     st = &pG->gxStage;
-    p = (Espgen42Work*) w->work;
+    p = (Espgen42Work*) pGen->work;
     st->tevStage = 0;
     st->texMap = 0;
     st->texCoord = 0;
@@ -1121,9 +1121,9 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
 }
 
 // Frees all grid buffers and forgets the room water generator.
-void Espgen42_Destruct(EspgenWork* w)
+void Espgen42_Destruct(EspgenWork* pGen)
 {
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p = (Espgen42Work*) pGen->work;
 
     if (p->hA != NULL) {
         Mem_free(p->hA);
@@ -1157,10 +1157,10 @@ void Espgen42_Destruct(EspgenWork* w)
 // record, mode Work8[0] (2: damp / spread from Work8[1..2]), texture Tex_id, bump parameters
 // prm 0xCE / 0xD2, extra TEV stages Work8[3]. Requires the noise texture 0xFE. Runs one move
 // step at once.
-int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
+int Espgen42_SetFreeWork(EspgenWork* pGen, EspGenWork* pSeq, EspSeqData* pSeqHed, cModel* pMod, u16 Null_parts_no, Mtx* pMat,
+                         Vec* pOffset, Vec* pAng, EspSeqOpt* pSct)
 {
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p = (Espgen42Work*) pGen->work;
     Vec r;
     u32 nx = 0x40;
     u32 ny = 0x40;
@@ -1170,15 +1170,15 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->err(0, 0, "Espgen42 : WaterTex(0xfe) not found!");
         return 0;
     }
-    if (rec->WorkSp8[0] != 0) {
-        nx = rec->WorkSp8[0];
+    if (pSeq->WorkSp8[0] != 0) {
+        nx = pSeq->WorkSp8[0];
         if (nx > 0xB8) {
             nx = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : width > 184");
         }
     }
-    if (rec->WorkSp8[1] != 0) {
-        ny = rec->WorkSp8[1];
+    if (pSeq->WorkSp8[1] != 0) {
+        ny = pSeq->WorkSp8[1];
         if (ny > 0xB8) {
             ny = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : height > 184");
@@ -1194,34 +1194,34 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->warn(0, 0, "ESP_WATER : height (%d -> %d)", ny, n);
         ny = n;
     }
-    rate = 1.0f - (f32) (int) rec->WorkSp8[2] / 255.0f;
-    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
-    if (SetWaterWork(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, nx, ny, rate) != NULL) {
-        p->col.r = rec->Col_start_r;
-        p->col.g = rec->Col_start_g;
-        p->col.b = rec->Col_start_b;
-        p->col.a = rec->Col_start_a;
-        p->amb.r = rec->Col_d_r * 255.0f;
-        p->amb.g = rec->Col_d_g * 255.0f;
-        p->amb.b = rec->Col_d_b * 255.0f;
-        p->amb.a = rec->Col_d_a * 255.0f;
-        p->mode = rec->Work8[0];
+    rate = 1.0f - (f32) (int) pSeq->WorkSp8[2] / 255.0f;
+    PSVECScale(&pSeq->Ang, &r, 6.28f / 360.0f);
+    if (SetWaterWork(pGen, (Vec*) &pSeq->Pos.x, &r, pSeq->Size_base_x, nx, ny, rate) != NULL) {
+        p->col.r = pSeq->Col_start_r;
+        p->col.g = pSeq->Col_start_g;
+        p->col.b = pSeq->Col_start_b;
+        p->col.a = pSeq->Col_start_a;
+        p->amb.r = pSeq->Col_d_r * 255.0f;
+        p->amb.g = pSeq->Col_d_g * 255.0f;
+        p->amb.b = pSeq->Col_d_b * 255.0f;
+        p->amb.a = pSeq->Col_d_a * 255.0f;
+        p->mode = pSeq->Work8[0];
         if (p->mode == 2) {
-            p->Prm_a = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
+            p->Prm_a = 0.5f - (f32) (s8) pSeq->Work8[1] * 0.005f;
             if (p->Prm_a > 0.5f) {
                 p->Prm_a = 0.5f;
             }
             if (p->Prm_a < 0.0f) {
                 p->Prm_a = 0.0f;
             }
-            p->Prm_dmp = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
+            p->Prm_dmp = 0.99f - (f32) (int) pSeq->Work8[2] * 0.001f;
         }
-        p->texId = rec->Tex_id;
-        p->indS = rec->prm.h.xCE;
-        p->indT = rec->prm.h.xD2;
-        p->stages = rec->Work8[3];
-        g_pWater = w;
-        Espgen42_Move(w);
+        p->texId = pSeq->Tex_id;
+        p->indS = pSeq->prm.h.xCE;
+        p->indT = pSeq->prm.h.xD2;
+        p->stages = pSeq->Work8[3];
+        g_pWater = pGen;
+        Espgen42_Move(pGen);
         return 1;
     }
     return 0;

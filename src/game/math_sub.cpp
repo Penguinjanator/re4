@@ -93,7 +93,7 @@ void SetOrientationZY(Vec* z, Vec* y, Mtx m)
 
 // Rotation matrix -> Euler angles (radians) in the RotMatrix convention: x and y from the Z column,
 // then z from the residual rotation.
-void Matrix2AxisAngle(Mtx m, Vec* rot)
+void Matrix2AxisAngle(Mtx m, Vec* ang)
 {
     Vec v0;
     Vec v1;
@@ -108,23 +108,23 @@ void Matrix2AxisAngle(Mtx m, Vec* rot)
     getColumn(t, 0, &v0);
     MTX_COL(t, 1, v1);
     MTX_COL(t, 2, v2);
-    rot->x = rot->y = rot->z = 0.0f;
+    ang->x = ang->y = ang->z = 0.0f;
 
-    rot->x = atan2f(-v2.y, v2.z);
+    ang->x = atan2f(-v2.y, v2.z);
     if (v2.x > 1.0f) {
-        rot->y = asinf(1.0f);
+        ang->y = asinf(1.0f);
     } else if (v2.x < -1.0f) {
-        rot->y = asinf(-1.0f);
+        ang->y = asinf(-1.0f);
     } else {
-        rot->y = asinf(v2.x);
+        ang->y = asinf(v2.x);
     }
-    rot->x = -rot->x;
-    rot->y = -rot->y;
-    RotMatrix(r, rot);
+    ang->x = -ang->x;
+    ang->y = -ang->y;
+    RotMatrix(r, ang);
     PSMTXInverse(r, inv);
     PSMTXConcat(m, inv, r);
     MTX_COL(r, 0, v3);
-    rot->z = atan2f(v3.y, v3.x);
+    ang->z = atan2f(v3.y, v3.x);
 }
 
 // Wraps each component into [-PI, PI).
@@ -187,18 +187,18 @@ void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad)
 }
 
 // out = s * a + t * b.
-void VecLinearCombination(Vec* a, f32 s, Vec* b, f32 t, Vec* out)
+void VecLinearCombination(Vec* a, f32 c0, Vec* b, f32 c1, Vec* vec)
 {
     Vec ta;
     Vec tb;
 
-    PSVECScale(a, &ta, s);
-    PSVECScale(b, &tb, t);
-    PSVECAdd(&ta, &tb, out);
+    PSVECScale(a, &ta, c0);
+    PSVECScale(b, &tb, c1);
+    PSVECAdd(&ta, &tb, vec);
 }
 
 // Interpolate the direction of `a` towards `b` by the ratio s : t.
-void VecInternalDivisionAngle(Vec* a, f32 s, Vec* b, f32 t, Vec* out)
+void VecInternalDivisionAngle(Vec* a, f32 m, Vec* b, f32 n, Vec* vec)
 {
     Mtx r;
     Vec axis;
@@ -206,19 +206,19 @@ void VecInternalDivisionAngle(Vec* a, f32 s, Vec* b, f32 t, Vec* out)
 
     if (ang == 0.0f) {
 #line 342 "D:/Bio4/Prog/math_sub.cpp"
-        VECNormalize(a, out);
+        VECNormalize(a, vec);
     } else if (ang == PI) {
     } else {
         PSVECCrossProduct(a, b, &axis);
-        PSMTXRotAxisRad(r, &axis, s / (t + s) * ang);
-        PSMTXMultVecSR(r, a, out);
+        PSMTXRotAxisRad(r, &axis, m / (n + m) * ang);
+        PSMTXMultVecSR(r, a, vec);
 #line 354 "D:/Bio4/Prog/math_sub.cpp"
-        VECNormalize(out, out);
+        VECNormalize(vec, vec);
     }
 }
 
 // Decompose `v` on the plane spanned by `a` and `b`: v = s * a + t * b.
-void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t)
+void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* alpha1, f32* alpha2)
 {
     Vec n;
     Vec m;
@@ -237,22 +237,22 @@ void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t)
     PSVECAdd(vec1, &va, &va);
     l = PSVECMag(v);
     l /= PSVECMag(&va);
-    *s = l * (1.0f - k);
-    *t = l * k;
+    *alpha1 = l * (1.0f - k);
+    *alpha2 = l * k;
 }
 
 // Scales the three columns of m by s.
-void ScaleMatrix(Mtx m, Vec* s)
+void ScaleMatrix(Mtx m, Vec* vec)
 {
-    m[0][0] *= s->x;
-    m[0][1] *= s->y;
-    m[0][2] *= s->z;
-    m[1][0] *= s->x;
-    m[1][1] *= s->y;
-    m[1][2] *= s->z;
-    m[2][0] *= s->x;
-    m[2][1] *= s->y;
-    m[2][2] *= s->z;
+    m[0][0] *= vec->x;
+    m[0][1] *= vec->y;
+    m[0][2] *= vec->z;
+    m[1][0] *= vec->x;
+    m[1][1] *= vec->y;
+    m[1][2] *= vec->z;
+    m[2][0] *= vec->x;
+    m[2][1] *= vec->y;
+    m[2][2] *= vec->z;
 }
 
 // Sets the translation column of m.
@@ -265,7 +265,7 @@ void TransMatrix(Mtx m, Vec* pos)
 
 // The game's Euler rotation matrix (radians): m = Rz(rot.z) * Ry(rot.y) * Rx(rot.x), i.e. a
 // vector is rotated about X first, then Y, then Z; translation cleared. Used for every model angle.
-void RotMatrix(Mtx m, Vec* rot)
+void RotMatrix(Mtx m, Vec* vec)
 {
     f32 sx;
     f32 sy;
@@ -278,12 +278,12 @@ void RotMatrix(Mtx m, Vec* rot)
     f32 szsx;
     f32 czcx;
 
-    sx = sinf(rot->x);
-    sy = sinf(rot->y);
-    sz = sinf(rot->z);
-    cx = cosf(rot->x);
-    cy = cosf(rot->y);
-    cz = cosf(rot->z);
+    sx = sinf(vec->x);
+    sy = sinf(vec->y);
+    sz = sinf(vec->z);
+    cx = cosf(vec->x);
+    cy = cosf(vec->y);
+    cz = cosf(vec->z);
     szcx = sz * cx;
     szsx = sz * sx;
     czsx = cz * sx;
@@ -305,7 +305,7 @@ void RotMatrix(Mtx m, Vec* rot)
 
 // RotMatrix using the game's fast SINF/COSF (zero angles short-cut); same matrix. Used by the
 // effect and parts code.
-void low_RotMatrix(Mtx m, Vec* rot)
+void low_RotMatrix(Mtx m, Vec* vec)
 {
     f32 sx;
     f32 cx;
@@ -318,26 +318,26 @@ void low_RotMatrix(Mtx m, Vec* rot)
     f32 szcx;
     f32 czsx;
 
-    if (rot->x == 0.0f) {
+    if (vec->x == 0.0f) {
         sx = 0.0f;
         cx = 1.0f;
     } else {
-        sx = SINF(rot->x);
-        cx = COSF(rot->x);
+        sx = SINF(vec->x);
+        cx = COSF(vec->x);
     }
-    if (rot->y == 0.0f) {
+    if (vec->y == 0.0f) {
         sy = 0.0f;
         cy = 1.0f;
     } else {
-        sy = SINF(rot->y);
-        cy = COSF(rot->y);
+        sy = SINF(vec->y);
+        cy = COSF(vec->y);
     }
-    if (rot->z == 0.0f) {
+    if (vec->z == 0.0f) {
         sz = 0.0f;
         cz = 1.0f;
     } else {
-        sz = SINF(rot->z);
-        cz = COSF(rot->z);
+        sz = SINF(vec->z);
+        cz = COSF(vec->z);
     }
     szsx = sz * sx;
     czcx = cz * cx;
@@ -360,19 +360,19 @@ void low_RotMatrix(Mtx m, Vec* rot)
 
 // m = Ry * Rx * Rz through PSMTXRotRad: a vector is rotated about Z first, then X, then Y (the
 // effect speed spread uses it).
-void RotMatrixZXY(Mtx m, Vec* rot)
+void RotMatrixZXY(Mtx m, Vec* vec)
 {
     Mtx t;
 
-    PSMTXRotRad(m, 'y', rot->y);
-    PSMTXRotRad(t, 'x', rot->x);
+    PSMTXRotRad(m, 'y', vec->y);
+    PSMTXRotRad(t, 'x', vec->x);
     PSMTXConcat(m, t, m);
-    PSMTXRotRad(t, 'z', rot->z);
+    PSMTXRotRad(t, 'z', vec->z);
     PSMTXConcat(m, t, m);
 }
 
 // Cubic Hermite interpolation of p[0]..p[1] with tangents v[0]..v[1].
-f32 hermite(f32* p, f32* v, f32 t)
+f32 hermite(f32* x, f32* v, f32 t)
 {
     f32 t2 = t * t;
     f32 t3 = t * t2;
@@ -381,7 +381,7 @@ f32 hermite(f32* p, f32* v, f32 t)
     f32 h10 = h11 - t2 + t;
     f32 h00 = -h01 + 1.0f;
 
-    return p[0] * h00 + p[1] * h01 + v[0] * h10 + v[1] * h11;
+    return x[0] * h00 + x[1] * h01 + v[0] * h10 + v[1] * h11;
 }
 
 // n x m float matrix on the debug heap (rows allocated separately); NULL on failure.
@@ -412,21 +412,21 @@ f32** malloc_2dim_array_f32(int n, int m)
 }
 
 // Frees a matrix from malloc_2dim_array_f32.
-void free_2dim_array_f32(int n, int m, f32** p)
+void free_2dim_array_f32(int n, int m, f32** A)
 {
     int i;
 
     for (i = 0; i < n; i++) {
-        Mem_free(p[i]);
+        Mem_free(A[i]);
     }
-    Mem_free(p);
+    Mem_free(A);
 }
 
 // B-spline basis functions of order k + 1 for n control points at parameter t (de Boor-Cox
 // recursion). `knot` may be NULL for a uniform knot vector. Returns 0 on allocation failure.
-int de_Boor_Cox(int n, f32* knot, f32 t, int k, f32* out)
+int de_Boor_Cox(int n, f32* p, f32 t, int order, f32* B)
 {
-    int m = k + 1;
+    int m = order + 1;
     f32** tmp_B;
     f32* q;
     int i;
@@ -451,15 +451,15 @@ int de_Boor_Cox(int n, f32* knot, f32 t, int k, f32* out)
         }
     }
 
-    if (knot != NULL) {
+    if (p != NULL) {
         for (j = 0; j < m; j++) {
-            q[j] = knot[0];
+            q[j] = p[0];
         }
         for (j = m; j < n; j++) {
-            q[j] = (knot[j - m] + knot[j]) * 0.5f;
+            q[j] = (p[j - m] + p[j]) * 0.5f;
         }
         for (j = n; j < n + m; j++) {
-            q[j] = knot[n - 1];
+            q[j] = p[n - 1];
         }
     } else {
         for (j = 0; j < m; j++) {
@@ -495,7 +495,7 @@ int de_Boor_Cox(int n, f32* knot, f32 t, int k, f32* out)
     }
 
     for (i = 0; i < n; i++) {
-        out[i] = tmp_B[i][m - 1];
+        B[i] = tmp_B[i][m - 1];
     }
     Mem_free(q);
     free_2dim_array_f32(n + m, m, tmp_B);
@@ -568,7 +568,7 @@ f32 MtxNNLUDecomposition(int n, f32* A, int* ip)
 }
 
 // Inverse of the n x n matrix `m` into `inv`; returns the determinant (0 = singular / no memory).
-f32 MtxNNInverse(int n, f32* m, f32* inv)
+f32 MtxNNInverse(int n, f32* m, f32* m_inv)
 {
     int* ip;
     f32* m_tmp;
@@ -600,17 +600,17 @@ f32 MtxNNInverse(int n, f32* m, f32* inv)
                 p = ip[i];
                 t = (p == k) ? 1.0f : 0.0f;
                 for (j = 0; j < i; j++) {
-                    t -= m_tmp[p * n + j] * inv[j * n + k];
+                    t -= m_tmp[p * n + j] * m_inv[j * n + k];
                 }
-                inv[i * n + k] = t;
+                m_inv[i * n + k] = t;
             }
             for (i = n - 1; i >= 0; i--) {
                 p = ip[i];
-                t = inv[i * n + k];
+                t = m_inv[i * n + k];
                 for (j = i + 1; j < n; j++) {
-                    t -= m_tmp[p * n + j] * inv[j * n + k];
+                    t -= m_tmp[p * n + j] * m_inv[j * n + k];
                 }
-                inv[i * n + k] = t / m_tmp[p * n + i];
+                m_inv[i * n + k] = t / m_tmp[p * n + i];
             }
         }
     }
@@ -620,39 +620,39 @@ f32 MtxNNInverse(int n, f32* m, f32* inv)
 }
 
 // out = mtx (n x m) * v
-void MtxNNMultVecSR(int n, int m, f32* mtx, f32* v, f32* out)
+void MtxNNMultVecSR(int n, int m, f32* mat, f32* v, f32* v_dst)
 {
     int i;
     int j;
 
     for (i = 0; i < n; i++) {
-        out[i] = 0.0f;
+        v_dst[i] = 0.0f;
         for (j = 0; j < m; j++) {
-            out[i] += mtx[m * i + j] * v[j];
+            v_dst[i] += mat[m * i + j] * v[j];
         }
     }
 }
 
 // Project `p` along `dir` onto the plane (plane_p, plane_n).
-void OrthographicProjection(Vec* p, Vec* out, Vec* dir, Vec* plane_p, Vec* plane_n)
+void OrthographicProjection(Vec* src_pos, Vec* dst_pos, Vec* projection_dir, Vec* plane_pos, Vec* plane_norm)
 {
     Vec d;
     f32 s;
 
-    PSVECSubtract(plane_p, p, &d);
-    s = PSVECDotProduct(plane_n, &d);
-    s /= PSVECDotProduct(plane_n, dir);
-    PSVECScale(dir, out, s);
-    PSVECAdd(p, out, out);
+    PSVECSubtract(plane_pos, src_pos, &d);
+    s = PSVECDotProduct(plane_norm, &d);
+    s /= PSVECDotProduct(plane_norm, projection_dir);
+    PSVECScale(projection_dir, dst_pos, s);
+    PSVECAdd(src_pos, dst_pos, dst_pos);
 }
 
 // x to the integer power n.
-f32 IPOW(f32 x, int n)
+f32 IPOW(f32 x, int y)
 {
     f32 r = 1.0f;
     int i;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < y; i++) {
         r *= x;
     }
     return r;

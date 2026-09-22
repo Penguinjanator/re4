@@ -24,13 +24,13 @@ u32 cLightPathHeader::getSize()
 }
 
 // Path string `no` (0 with an error log when out of range).
-cLightPathData* cLightPathHeader::getPathData(u32 no)
+cLightPathData* cLightPathHeader::getPathData(u32 idx)
 {
-    if (no >= nPath) {
-        pLog->err(0, 0, "cLightPathHeader::getPathData() IDX OVER %d", no);
+    if (idx >= nPath) {
+        pLog->err(0, 0, "cLightPathHeader::getPathData() IDX OVER %d", idx);
         return 0;
     }
-    return (cLightPathData*) ((u8*) this + *(u32*) (no * 4 + (u32) this + 4));
+    return (cLightPathData*) ((u8*) this + *(u32*) (idx * 4 + (u32) this + 4));
 }
 
 // Length of the string including the 0xFF terminator.
@@ -47,11 +47,11 @@ u32 cLightPathData::getSize()
 }
 
 // Starts walking `data`; `no` is the flag byte (bit 1 = inverted brightness 200 - v).
-int cLightPath::setPath(cLightPathData* data, u8 no)
+int cLightPath::setPath(cLightPathData* pPath, u8 flag)
 {
-    if (!VALID_PTR(data)) { pLog->err(0, 0, "setPath() INVALID PTR %08X", data); return 0; }
-    pCur = pStart = data;
-    Flag = no;
+    if (!VALID_PTR(pPath)) { pLog->err(0, 0, "setPath() INVALID PTR %08X", pPath); return 0; }
+    pCur = pStart = pPath;
+    Flag = flag;
     return 1;
 }
 // Returns the current brightness (0..200, inverted with Flag bit 1) and advances; wraps to the

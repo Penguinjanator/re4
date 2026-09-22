@@ -79,21 +79,21 @@ void IDSystem::free()
 }
 
 // 1 when a table of class `type` is currently set (m_set_flag bit).
-int IDSystem::setCk(int type)
+int IDSystem::setCk(int classNo)
 {
-    u8 t = type;
+    u8 t = classNo;
     return IdBitChk(m_set_flag, t);
 }
 
 // Shows (sw 1) or hides (sw 0) every unit of class `type` at draw time (m_disp_off bit).
-void IDSystem::dispSw(int type, int sw)
+void IDSystem::dispSw(int classNo, int sw)
 {
     switch (sw) {
     case 1:
-        FlagOffVar(m_disp_off, (u32) ((u8) type));
+        FlagOffVar(m_disp_off, (u32) ((u8) classNo));
         break;
     case 0:
-        FlagOnVar(m_disp_off, (u32) ((u8) type));
+        FlagOnVar(m_disp_off, (u32) ((u8) classNo));
         break;
     }
 }
@@ -185,11 +185,11 @@ IdUnit* IDSystem::unitPtr(u8 id, int type)
 }
 
 // v2 record match: mode 0 compares the record id, mode 1 (child pass) its parent number.
-int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
+int cmp_id_no(IdData2* p_id_v2, u8 dst_no, int attr)
 {
     u8 no;
 
-    switch (mode) {
+    switch (attr) {
     case 0:
     default:
         no = p_id_v2->id;
@@ -198,7 +198,7 @@ int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
         no = p_id_v2->parentNo;
         break;
     }
-    return no == id;
+    return no == dst_no;
 }
 
 // Instantiates the units of id table `data` (version string at its start; 1.x IdData or 2.x IdData2
@@ -559,7 +559,7 @@ void IDSystem::move()
 }
 
 // Starts (1) or freezes (0) the animation of a unit and its children (be_flag 0x4).
-void IDSystem::beMove(IdUnit* u, int sw)
+void IDSystem::beMove(IdUnit* u, int on_off)
 {
     int i;
     IdUnit* c = m_IdUnit;
@@ -569,10 +569,10 @@ void IDSystem::beMove(IdUnit* u, int sw)
             continue;
         }
         if (u == c->pParent) {
-            beMove(c, sw);
+            beMove(c, on_off);
         }
     }
-    switch (sw) {
+    switch (on_off) {
     case 1:
         u->be_flag |= 0x4;
         break;
@@ -1184,7 +1184,7 @@ void IdCommonTrans(IdUnit* u)
 
 // Frame-buffer quad: copies the screen behind the unit into the id buffer and draws it back through
 // the unit's texture (mode selects the TEV combine: invert / multiply).
-void IdNegativeTrans(IdUnit* u, u32 mode)
+void IdNegativeTrans(IdUnit* u, u32 pow)
 {
     IdBlend blend[5] = {
         { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 },
@@ -1228,7 +1228,7 @@ void IdNegativeTrans(IdUnit* u, u32 mode)
     GXSetTexCoordGen(0, 0, 0, 0x1E);
     GXSetTevOrder(0, 0, 1, 4);
     GXSetTevColorIn(0, 0xF, 0xF, 0xF, 8);
-    switch (mode) {
+    switch (pow) {
     case 0:
         GXSetTevColorOp(0, 0, 0, 0, 1, 0);
         break;
@@ -1285,7 +1285,7 @@ void IdNegativeTrans(IdUnit* u, u32 mode)
 
 // Heat-shimmer quad: the screen copy is drawn through an indirect stage warped by the unit's
 // texture with strength alpha * (1 + sub/32) scaled by depth; type selects signed/replace warp.
-void IdShimmerTrans(IdUnit* u, int sub, int type)
+void IdShimmerTrans(IdUnit* u, int u_pow, int Refract_type)
 {
     IdBlend2 blend[5] = {
         { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 },
@@ -1297,7 +1297,7 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     int nGen = 0;
     f32 dot;
 
-    scale = (f32) sub * (1.0f / 32.0f) + 1.0f;
+    scale = (f32) u_pow * (1.0f / 32.0f) + 1.0f;
     GXSetCullMode(0);
     CameraCurrentProjection();
     {
@@ -1365,7 +1365,7 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     {
         u8 signedOfs;
         u8 replace;
-        switch (type) {
+        switch (Refract_type) {
         case 2:
             signedOfs = 0;
             replace = 0;
@@ -1375,7 +1375,7 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
             replace = 0;
             break;
         default:
-            pLog->err(0, 0, "IdShimmerTrans:[%02x,%02x] BLUR_TYPE[%x] invalid", u->classNo, u->unitNo, type);
+            pLog->err(0, 0, "IdShimmerTrans:[%02x,%02x] BLUR_TYPE[%x] invalid", u->classNo, u->unitNo, Refract_type);
             signedOfs = 0;
             replace = 1;
             break;

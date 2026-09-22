@@ -57,34 +57,34 @@ Vec pos_tbl[8] = {
 static cObj* pObj_ck;
 
 // Apply `force` at world point `point`: the force and the torque about the centre accumulate.
-void AddForce(cObj* obj, Vec* point, Vec* force)
+void AddForce(cObj* pObj, Vec* pos, Vec* f)
 {
-    Efm09Work* w = &obj->efm09;
+    Efm09Work* w = &pObj->efm09;
     Vec t;
     Vec r;
 
-    PSVECSubtract(point, &w->basePos, &r);
-    PSVECCrossProduct(&r, force, &t);
-    PSVECAdd(&w->force, force, &w->force);
+    PSVECSubtract(pos, &w->basePos, &r);
+    PSVECCrossProduct(&r, f, &t);
+    PSVECAdd(&w->force, f, &w->force);
     PSVECAdd(&w->torque, &t, &w->torque);
 }
 
 // Euler's equations: angular acceleration from the angular velocity `w`, the torque `t` and the
 // principal moments of inertia.
-void dwdt(Vec* w, Vec* t, Vec* moment, Vec* out)
+void dwdt(Vec* w, Vec* tq, Vec* I, Vec* pRet)
 {
-    out->x = (t->x + (moment->y - moment->z) * w->y * w->z) / moment->x;
-    out->y = (t->y + (moment->z - moment->x) * w->z * w->x) / moment->y;
-    out->z = (t->z + (moment->x - moment->y) * w->x * w->y) / moment->z;
+    pRet->x = (tq->x + (I->y - I->z) * w->y * w->z) / I->x;
+    pRet->y = (tq->y + (I->z - I->x) * w->z * w->x) / I->y;
+    pRet->z = (tq->z + (I->x - I->y) * w->x * w->y) / I->z;
 }
 
 // Integrates linear velocity (force/mass) and angular velocity (second-order Runge-Kutta on dwdt,
 // capped at 16 rad/s) over dt, converts the angular velocity to world space (w) and clears the
 // accumulators.
 // Integrate the linear and angular velocities over `dt` and clear the accumulators.
-static void CalcVel(cObj* obj, f32 dt)
+static void CalcVel(cObj* pObj, f32 dt)
 {
-    Efm09Work* w = &obj->efm09;
+    Efm09Work* w = &pObj->efm09;
     Vec a;
     Vec lt;
     Mtx inv;
@@ -115,9 +115,9 @@ static void CalcVel(cObj* obj, f32 dt)
 
 // One time step: velocities, position, then the rotation matrix (R += dt * omega x R), which
 // is re-orthonormalised from its z axis.
-void Calc(cObj* obj, f32 dt)
+void Calc(cObj* pObj, f32 dt)
 {
-    Efm09Work* w = &obj->efm09;
+    Efm09Work* w = &pObj->efm09;
     Vec v;
     Vec av;
     Mtx n;
@@ -125,7 +125,7 @@ void Calc(cObj* obj, f32 dt)
     Vec tmp;
     Vec tmp2;
 
-    CalcVel(obj, dt);
+    CalcVel(pObj, dt);
     PSVECScale(&w->spd, &v, dt);
     PSVECAdd(&w->basePos, &v, &w->basePos);
     PSVECScale(&w->w, &av, dt);
@@ -206,7 +206,7 @@ void Calc(cObj* obj, f32 dt)
 
 // Rigid body against rigid body: every corner of the body being moved (pObj_ck) inside `obj`'s
 // box gets a spring / damper force along the closest face normal; both bodies are pushed apart.
-static void Obj09HitCheck(cObj* obj)
+static void Obj09HitCheck(cObj* pObj)
 {
     cObj* ck;
     Efm09Work* w1;
@@ -232,16 +232,16 @@ static void Obj09HitCheck(cObj* obj)
     f32 dot;
     int i;
 
-    if (obj->id != 9) {
+    if (pObj->id != 9) {
         return;
     }
     ck = pObj_ck;
-    if (obj == ck) {
+    if (pObj == ck) {
         return;
     }
-    PSMTXCopy(obj->efm09.mat, m2);
-    TransMatrix(m2, &obj->efm09.basePos);
-    w2 = &obj->efm09;
+    PSMTXCopy(pObj->efm09.mat, m2);
+    TransMatrix(m2, &pObj->efm09.basePos);
+    w2 = &pObj->efm09;
     PSMTXInverse(m2, inv);
     PSMTXCopy(ck->efm09.mat, m1);
     TransMatrix(m1, &ck->efm09.basePos);
@@ -348,7 +348,7 @@ static void Obj09HitCheck(cObj* obj)
                 PSVECScale(&nrm, &tmp, obj_move_pow * m);
                 AddForce(pObj_ck, &w1->basePos, &tmp);
                 PSVECScale(&tmp, &tmp, -1.0f);
-                AddForce(obj, &w2->basePos, &tmp);
+                AddForce(pObj, &w2->basePos, &tmp);
             }
             if (depth > obj_max_dist) {
                 d = obj_max_dist;
@@ -363,7 +363,7 @@ static void Obj09HitCheck(cObj* obj)
             PSVECScale(&nrm, &tmp, d * (sprg * mm));
             AddForce(pObj_ck, &wp, &tmp);
             PSVECScale(&tmp, &tmp, -1.0f);
-            AddForce(obj, &wp, &tmp);
+            AddForce(pObj, &wp, &tmp);
             PSVECCrossProduct(&w1->w, &lp, &vel);
             PSVECAdd(&w1->spd, &vel, &vel);
             dot = PSVECDotProduct(&nrm, &vel);
@@ -371,7 +371,7 @@ static void Obj09HitCheck(cObj* obj)
             PSVECScale(&nrm, &tmp, dot * (dmp_ratio * mm));
             AddForce(pObj_ck, &wp, &tmp);
             PSVECScale(&tmp, &tmp, -1.0f);
-            AddForce(obj, &wp, &tmp);
+            AddForce(pObj, &wp, &tmp);
             PSVECScale(&w2->spd, &w2->spd, hit_v_dmp_rate);
             PSVECScale(&w1->spd, &w1->spd, hit_v_dmp_rate);
             PSVECScale(&w2->rotSpd, &w2->rotSpd, hit_w_dmp_rate);
@@ -481,7 +481,7 @@ f32 LinerEquation3(f32 a[][3], f32* b, f32* x)
 
 // A corner (`lp` in body space, `wp` in the world) hit the scenario at `hit` with normal `nrm`:
 // push the body out, add the spring / damper force and the friction impulse.
-static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Vec* hit, Vec* nrm)
+static void calcPointHit(cObj* pObj, Efm09Work* pFree, Vec* pos1, Vec* pos2, Vec* pos_wld, Vec* cross, Vec* pNorm)
 {
     static f32 frc_ratio = -1.0f;
     Vec d;
@@ -500,8 +500,8 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
     f32 mag;
     f32 lim;
 
-    PSVECSubtract(hit, wp, &d);
-    dot = PSVECDotProduct(nrm, &d);
+    PSVECSubtract(cross, pos_wld, &d);
+    dot = PSVECDotProduct(pNorm, &d);
     if (d.x == 0.0f && d.y == 0.0f && d.z == 0.0f) {
         d.y = 1.0f;
     }
@@ -509,21 +509,21 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
     VECNormalize(&d, &d);
     PSVECScale(&d, &d, dot);
     len = PSVECMag(&d);
-    PSVECScale(nrm, &t, len);
-    PSVECAdd(&w->basePos, &t, &w->basePos);
+    PSVECScale(pNorm, &t, len);
+    PSVECAdd(&pFree->basePos, &t, &pFree->basePos);
     if (len > max_in_dist) {
         len = max_in_dist;
     }
-    PSVECScale(nrm, &d, len * (sprg * w->mass));
-    AddForce(obj, hit, &d);
-    PSVECCrossProduct(&w->w, lp, &t);
-    PSVECAdd(&w->spd, &t, &t);
-    dot = PSVECDotProduct(nrm, &t);
-    PSVECScale(nrm, &v, dot);
-    PSVECScale(nrm, &d, dot * (dmp_ratio * w->mass));
-    AddForce(obj, hit, &d);
+    PSVECScale(pNorm, &d, len * (sprg * pFree->mass));
+    AddForce(pObj, cross, &d);
+    PSVECCrossProduct(&pFree->w, pos2, &t);
+    PSVECAdd(&pFree->spd, &t, &t);
+    dot = PSVECDotProduct(pNorm, &t);
+    PSVECScale(pNorm, &v, dot);
+    PSVECScale(pNorm, &d, dot * (dmp_ratio * pFree->mass));
+    AddForce(pObj, cross, &d);
     PSVECSubtract(&t, &v, &vt);
-    frc = PSVECMag(&v) * (frc_ratio * w->mass);
+    frc = PSVECMag(&v) * (frc_ratio * pFree->mass);
     if (vt.x == 0.0f && vt.y == 0.0f && vt.z == 0.0f) {
         d.x = d.y = d.z = 0.0f;
     } else {
@@ -531,12 +531,12 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
         VECNormalize(&vt, &d);
     }
     PSVECScale(&d, &d, frc);
-    PSVECSubtract(hit, &w->basePos, &r);
+    PSVECSubtract(cross, &pFree->basePos, &r);
     rr = r;
-    ix = 1.0f / w->moment.x;
-    iy = 1.0f / w->moment.y;
-    iz = 1.0f / w->moment.z;
-    im = 1.0f / w->mass;
+    ix = 1.0f / pFree->moment.x;
+    iy = 1.0f / pFree->moment.y;
+    iz = 1.0f / pFree->moment.z;
+    im = 1.0f / pFree->mass;
     A[0][0] = iy * rr.z * rr.z + iz * rr.y * rr.y + im;
     A[0][1] = -iz * rr.x * rr.y;
     A[0][2] = -iy * rr.x * rr.z;
@@ -554,7 +554,7 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
         d.y = x.y;
         d.z = x.z;
         mag = PSVECMag(&d);
-        lim = MUE * PSVECMag(&v) * w->mass;
+        lim = MUE * PSVECMag(&v) * pFree->mass;
         if (mag > lim) {
             if (mag > 0.0f) {
                 PSVECScale(&d, &d, SQRTF(lim / mag));
@@ -565,7 +565,7 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
     } else {
         d.x = d.y = d.z = 0.0f;
     }
-    AddForce(obj, hit, &d);
+    AddForce(pObj, cross, &d);
 }
 
 // Per-frame Efm09: gravity, corner contacts with the scenario (SatMgr sweeps of the 8 corners),

@@ -38,19 +38,19 @@ int ConsInitRoom(ConsRoom* p)
 
 // Constant `no`: the room's value when its table has the entry (validity bit set), else the
 // default.
-u32 ConsGetRoomValue(u32 no)
+u32 ConsGetRoomValue(u32 id)
 {
     ConsRoom* r = pConsRoom;
     u32* bits;
     u32* values;
 
     if (r == 0) {
-        return ConsRoomDefault[no];
+        return ConsRoomDefault[id];
     }
     bits = r->bits;
     values = &r->bits[(r->num >> 5) + 1];
-    if (no >= r->num || !(bits[no >> 5] & (1 << (no & 31)))) {
-        return ConsRoomDefault[no];
+    if (id >= r->num || !(bits[id >> 5] & (1 << (id & 31)))) {
+        return ConsRoomDefault[id];
     }
-    return values[no];
+    return values[id];
 }

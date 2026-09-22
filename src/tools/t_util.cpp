@@ -83,26 +83,26 @@ void TutilQuitDefault()
 }
 
 // Moves a 2D cursor with the analog stick (scaled by `speed`) and the digital pad (by `step`).
-void TutilMoveCursor(Vec* pos, f32 speed, f32 step)
+void TutilMoveCursor(Vec* pos, f32 anamv, f32 keymv)
 {
-    pos->x += (f32) Joy[0].stickX * speed * 0.0078125f;
-    pos->y -= (f32) Joy[0].stickY * speed * 0.0078125f;
-    pos->x += (Joy[0].on & JOY_RIGHT) ? step : ((Joy[0].on & JOY_LEFT) ? -step : 0.0f);
-    pos->y += (Joy[0].on & JOY_DOWN) ? step : ((Joy[0].on & JOY_UP) ? -step : 0.0f);
+    pos->x += (f32) Joy[0].stickX * anamv * 0.0078125f;
+    pos->y -= (f32) Joy[0].stickY * anamv * 0.0078125f;
+    pos->x += (Joy[0].on & JOY_RIGHT) ? keymv : ((Joy[0].on & JOY_LEFT) ? -keymv : 0.0f);
+    pos->y += (Joy[0].on & JOY_DOWN) ? keymv : ((Joy[0].on & JOY_UP) ? -keymv : 0.0f);
 }
 
 // Screen position of a world point (GXProject with the current camera); `noSetup` skips TprimDraw3D.
-int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup)
+int TutilGetScreenPos(Vec* mv, f32* sv, int mode)
 {
     f32 proj[7];
     f32 viewport[6];
 
-    if (noSetup == 0) {
+    if (mode == 0) {
         TprimDraw3D(0);
     }
     GXGetProjectionv(proj);
     GXGetViewportv(viewport);
-    GXProject(pos->x, pos->y, pos->z, pG->Camera.v_mat, proj, viewport, &scr[0], &scr[1], &scr[2]);
+    GXProject(mv->x, mv->y, mv->z, pG->Camera.v_mat, proj, viewport, &sv[0], &sv[1], &sv[2]);
     return 1;
 }
 
@@ -127,34 +127,34 @@ static inline void tutil_2d_env(f32* scale, Vec* size)
 // Fits the XZ position whose screen projection is closest to `target`: a square of side `step` around
 // `center` is projected corner by corner, the closest corner becomes the new origin and the side is
 // halved until it underflows to 0.
-int TutilGet3DPosXZ(Vec* target, Vec* center, f32 step, Vec* out)
+int TutilGet3DPosXZ(Vec* sv, Vec* bmv, f32 width, Vec* mv)
 {
     Vec p[4];
     f32 scr[4];
     f32 dist[4];
     int ok[4];
-    f32 x = center->x - step * 0.5f;
-    f32 z = center->z - step * 0.5f;
+    f32 x = bmv->x - width * 0.5f;
+    f32 z = bmv->z - width * 0.5f;
     int i;
     int j;
     int best;
 
 
-    p[0].y = p[1].y = p[2].y = p[3].y = center->y;
+    p[0].y = p[1].y = p[2].y = p[3].y = bmv->y;
     TprimDraw3D(0);
     do {
         p[0].x = x;
         p[0].z = z;
-        p[1].x = x + step;
+        p[1].x = x + width;
         p[1].z = z;
         p[2].x = x;
-        p[2].z = z + step;
-        p[3].x = x + step;
-        p[3].z = z + step;
+        p[2].z = z + width;
+        p[3].x = x + width;
+        p[3].z = z + width;
         for (i = 0; i < 4; i++) {
             ok[i] = TutilGetScreenPos(&p[i], scr, 1);
             if (ok[i]) {
-                dist[i] = (scr[0] - target->x) * (scr[0] - target->x) + (scr[1] - target->y) * (scr[1] - target->y);
+                dist[i] = (scr[0] - sv->x) * (scr[0] - sv->x) + (scr[1] - sv->y) * (scr[1] - sv->y);
             }
         }
         if (ok[0] == 0 && ok[1] == 0 && ok[2] == 0 && ok[3] == 0) {
@@ -177,39 +177,39 @@ int TutilGet3DPosXZ(Vec* target, Vec* center, f32 step, Vec* out)
         case 0:
             break;
         case 1:
-            x += step * 0.5f;
+            x += width * 0.5f;
             break;
         case 2:
-            z += step * 0.5f;
+            z += width * 0.5f;
             break;
         case 3:
-            x += step * 0.5f;
-            z += step * 0.5f;
+            x += width * 0.5f;
+            z += width * 0.5f;
             break;
         }
-        step *= 0.5f;
-    } while (step != 0.0f);
-    out->x = x;
-    out->y = center->y;
-    out->z = z;
+        width *= 0.5f;
+    } while (width != 0.0f);
+    mv->x = x;
+    mv->y = bmv->y;
+    mv->z = z;
     return 1;
 }
 
 // Repeats the fit from a 1024 square until the position stops moving (at most 8 rounds).
-int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out)
+int TutilGet3DPosXZ_Mov(Vec* sv, Vec* bmv, Vec* mv)
 {
     Vec prev;
     Vec cur;
     int i = 0;
 
-    cur.x = center->x;
-    cur.y = center->y;
-    cur.z = center->z;
+    cur.x = bmv->x;
+    cur.y = bmv->y;
+    cur.z = bmv->z;
     do {
         prev.x = cur.x;
         prev.y = cur.y;
         prev.z = cur.z;
-        if (TutilGet3DPosXZ(target, &prev, 1024.0f, &cur) == 0) {
+        if (TutilGet3DPosXZ(sv, &prev, 1024.0f, &cur) == 0) {
             return 0;
         }
         i++;
@@ -217,27 +217,27 @@ int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out)
             break;
         }
     } while (prev.x != cur.x || prev.y != cur.y || prev.z != cur.z);
-    out->x = cur.x;
-    out->y = cur.y;
-    out->z = cur.z;
+    mv->x = cur.x;
+    mv->y = cur.y;
+    mv->z = cur.z;
     return 1;
 }
 
 // The same from a 2048 square, up to 64 rounds.
-int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out)
+int TutilGet3DPosXZ_All(Vec* sv, Vec* bmv, Vec* mv)
 {
     Vec prev;
     Vec cur;
     int i = 0;
 
-    cur.x = center->x;
-    cur.y = center->y;
-    cur.z = center->z;
+    cur.x = bmv->x;
+    cur.y = bmv->y;
+    cur.z = bmv->z;
     do {
         prev.x = cur.x;
         prev.y = cur.y;
         prev.z = cur.z;
-        if (TutilGet3DPosXZ(target, &prev, 2048.0f, &cur) == 0) {
+        if (TutilGet3DPosXZ(sv, &prev, 2048.0f, &cur) == 0) {
             return 0;
         }
         i++;
@@ -245,9 +245,9 @@ int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out)
             break;
         }
     } while (prev.x != cur.x || prev.y != cur.y || prev.z != cur.z);
-    out->x = cur.x;
-    out->y = cur.y;
-    out->z = cur.z;
+    mv->x = cur.x;
+    mv->y = cur.y;
+    mv->z = cur.z;
     return 1;
 }
 #endif
@@ -278,9 +278,9 @@ const f32 TutilZero = 0.0f;
 // t_sce (src/tools/t_util_menu.cpp) have it out of line together with the cursor-less ToolMenuDisp wrapper.
 #ifdef T_UTIL_MENU_FUNCS
 // ToolMenuDisp_cur with the menu's own static cursor.
-int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy)
+int ToolMenuDisp(int x, int y, int flg, TOOL_MENU* pMenu, int MenuSize, JOY* pJoy1)
 {
-    return ToolMenuDisp_cur(x, y, flag, NULL, menu, size, joy);
+    return ToolMenuDisp_cur(x, y, flg, NULL, pMenu, MenuSize, pJoy1);
 }
 
 int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)

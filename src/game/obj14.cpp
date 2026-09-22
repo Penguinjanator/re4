@@ -108,11 +108,11 @@ void cObjBell::move()
 
 // Rno1 == 0: hanging: matrices, and while ringTimer runs publishes the bell position (floor point
 // 250 units in front) as the ringing bell (Status_flg[1] 0x20000000, SeInfo.type 2).
-void obj14_R1_Set(cObjBell* obj)
+void obj14_R1_Set(cObjBell* pObj)
 {
-    BellWork* w = &obj->bell;
+    BellWork* w = &pObj->bell;
 
-    obj14MatCalc(obj);
+    obj14MatCalc(pObj);
     if (w->ringTimer) {
         Vec p;
 
@@ -120,7 +120,7 @@ void obj14_R1_Set(cObjBell* obj)
         p.x = 0.0f;
         p.y = 0.0f;
         p.z = 250.0f;
-        PSMTXMultVec(obj->mat, &p, &p);
+        PSMTXMultVec(pObj->mat, &p, &p);
         p.y = SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0);
         StaFlagOn(pG, STA_SE_BURST);
         pG->SeInfo.pos = p;
@@ -129,39 +129,39 @@ void obj14_R1_Set(cObjBell* obj)
 }
 
 // Rno1 == 1: broken: hides the bell, kills its hit body and spawns the break effect (est 1/7) once.
-void obj14_R1_Break(cObjBell* obj)
+void obj14_R1_Break(cObjBell* pObj)
 {
-    BellWork* w = &obj->bell;
+    BellWork* w = &pObj->bell;
 
-    if (obj->r_no_2 == 0) {
-        obj->be_flag &= ~2;
+    if (pObj->r_no_2 == 0) {
+        pObj->be_flag &= ~2;
         if (w->pEmHit) {
             w->pEmHit->hp = 0;
         }
-        EstSet(0, -1, &obj->pos, &obj->ang, EFF_ROOM, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
-        obj->r_no_2++;
+        EstSet(0, -1, &pObj->pos, &pObj->ang, EFF_ROOM, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
+        pObj->r_no_2++;
     }
-    obj14MatCalc(obj);
+    obj14MatCalc(pObj);
 }
 
 // Rebuilds the bell matrix and parts (when no motion drives them).
-void obj14MatCalc(cObjBell* obj)
+void obj14MatCalc(cObjBell* pObj)
 {
-    RotMatrix(obj->l_mat, &obj->ang);
-    TransMatrix(obj->l_mat, &obj->pos);
-    ScaleMatrix(obj->l_mat, &obj->scale);
-    PSMTXCopy(obj->l_mat, obj->mat);
-    if (obj->Motion.pMot == 0) {
-        obj->partsMatCalc();
+    RotMatrix(pObj->l_mat, &pObj->ang);
+    TransMatrix(pObj->l_mat, &pObj->pos);
+    ScaleMatrix(pObj->l_mat, &pObj->scale);
+    PSMTXCopy(pObj->l_mat, pObj->mat);
+    if (pObj->Motion.pMot == 0) {
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Weapon hits on the hit body: spark/blood effect by weapon kind, the bell sound, ringTimer 90,
 // and a swing impulse (50/30/100 by weapon) from the hit direction on the two pendulum links.
-void obj14DmCk(cObjBell* obj)
+void obj14DmCk(cObjBell* pObj)
 {
-    BellWork* w = &obj->bell;
+    BellWork* w = &pObj->bell;
     Vec dm;
     Vec dm2;
     Vec dir;
@@ -190,7 +190,7 @@ void obj14DmCk(cObjBell* obj)
         }
         break;
     }
-    SndCall(6, 0xE, &obj->pos, 0, 0, 0);
+    SndCall(6, 0xE, &pObj->pos, 0, 0, 0);
     w->ringTimer = 90;
     switch (wep) {
     case 0:
@@ -243,7 +243,7 @@ void obj14DmCk(cObjBell* obj)
     if (EmGetDmPos(w->pEmHit, &dm, &dm2) == 0) {
         dm = w->pEmHit->dmg.m_PosFrom;
     }
-    PSVECSubtract(&obj->pos, &dm, &dir);
+    PSVECSubtract(&pObj->pos, &dm, &dir);
     dir.y = 0.0f;
     if (dir.x == 0.0f && dir.z == 0.0f) {
         dir.z = 1.0f;
@@ -251,9 +251,9 @@ void obj14DmCk(cObjBell* obj)
 #line 359 "D:/Bio4/Prog/obj14.cpp"
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, rate);
-    parts = obj->getPartsPtr(1);
+    parts = pObj->getPartsPtr(1);
     PSVECAdd(&((PenParts*) &parts->pFloor_norm)->speed, &dir, &((PenParts*) &parts->pFloor_norm)->speed);
-    parts = obj->getPartsPtr(2);
+    parts = pObj->getPartsPtr(2);
     PSVECScale(&dir, &dir, 0.8f);
     PSVECAdd(&((PenParts*) &parts->pFloor_norm)->speed, &dir, &((PenParts*) &parts->pFloor_norm)->speed);
 }
@@ -280,9 +280,9 @@ int cObjBell::ckBreak()
 }
 
 // Pendulum set-up: parts 1 -> 2 chain with max swing 45 / 25 degrees, gravity 15.
-void obj14ClothSet(cObjBell* obj)
+void obj14ClothSet(cObjBell* pObj)
 {
-    BellWork* w = &obj->bell;
+    BellWork* w = &pObj->bell;
 
     w->cloth.Num = 2;
     w->cloth.pCloth = obj14ClothP;
@@ -308,13 +308,13 @@ void obj14ClothSet(cObjBell* obj)
     w->cloth.Move_rate = 0.0f;
     w->cloth.Flag = 0x100;
     w->cloth.pPtbl = 0;
-    PenClothSet(obj, &w->cloth, 100.0f);
+    PenClothSet(pObj, &w->cloth, 100.0f);
 }
 
 // Pendulum step (PenClothMove3).
-void obj14ClothMove(cObjBell* obj)
+void obj14ClothMove(cObjBell* pObj)
 {
-    PenClothMove3(obj, &obj->bell.cloth);
+    PenClothMove3(pObj, &pObj->bell.cloth);
 }
 
 // The next unit's .sdata starts 8-byte aligned in the original link.

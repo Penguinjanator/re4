@@ -25,10 +25,10 @@ void cMotBase::set(cMotModel* m, MotionData* data, Vec* p, Vec* r, u8 c)
 
 // Same with the model's current motion; clears Mot_attr bit0 (the motion does not move the
 // model itself while the base drives it).
-void cMotBase::set(cMotModel* m, Vec* p, Vec* r, u8 hokan0)
+void cMotBase::set(cMotModel* pMod0, Vec* pos0, Vec* ang0, u8 hokan0)
 {
-    set(m, m->Motion.pMot, p, r, hokan0);
-    m->Motion.Mot_attr &= ~1;
+    set(pMod0, pMod0->Motion.pMot, pos0, ang0, hokan0);
+    pMod0->Motion.Mot_attr &= ~1;
 }
 
 // add the model's movement since the last move to the followed pose

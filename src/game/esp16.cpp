@@ -285,16 +285,16 @@ void cEsp16::Destruct()
 
 // Reads the point count, optional tail parts, physics parameters, allocates both buffers (fails
 // when the pool is short) and starts every point at the effect's world position with zero speed.
-int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp16::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp16Work* w = &m_Free;
     Vec p;
     Vec z;
     int i;
 
-    w->Num = (u8)(gen->Work8[0] + 2);
+    w->Num = (u8)(pSeq->Work8[0] + 2);
     if (parent != pEffParentWorld && (m_Release_time == 0xFF || m_Release_time <= m_Life_time)) {
-        s8 no = gen->Work8[1];
+        s8 no = pSeq->Work8[1];
 
         if (no != 0) {
             if ((u32)(no - 1) >= m_pMod->nParts) {
@@ -304,11 +304,11 @@ int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
             w->pParts = m_pMod->getPartsPtr(no - 1);
         }
     }
-    w->grav = *(Vec*)&gen->Vec1.x;
-    w->max_len = gen->Vec0.x;
-    w->del = gen->Vec0.y * 0.01f;
-    w->nen = gen->Vec0.z * 0.01f;
-    w->rand_plus = *(Vec*)&gen->Vec2.x;
+    w->grav = *(Vec*)&pSeq->Vec1.x;
+    w->max_len = pSeq->Vec0.x;
+    w->del = pSeq->Vec0.y * 0.01f;
+    w->nen = pSeq->Vec0.z * 0.01f;
+    w->rand_plus = *(Vec*)&pSeq->Vec2.x;
     if (!Esp3f_Alloc(sizeof(Vec), w->Num, &w->pPosBuf, &info) || !Esp3f_Alloc(sizeof(Vec), w->Num, &w->pSpdBuf, &info)) {
         pLog->warn(0, 0, "ESP_16 : Buf alloc failed.");
         return 0;

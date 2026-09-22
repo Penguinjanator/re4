@@ -12,25 +12,25 @@
 extern "C" {
 int InitFile();
 int file_open(const char* path, int mode);
-int file_close(int fd);   // 0 = ok, -1 = failed
-int file_read(int fd, void* buf, int size);
-int file_write(int fd, const void* buf, int size);
-int file_seek(int fd, int ofs, int whence);
+int file_close(int hFile);   // 0 = ok, -1 = failed
+int file_read(int hFile, void* addr, int len);
+int file_write(int hFile, const void* addr, int len);
+int file_seek(int hFile, int ofs, int mode);
 int file_exist(const char* path);
-int file_path(const char* dir);   // "SETROOT:<dir>"
+int file_path(const char* name);   // "SETROOT:<dir>"
 }
 
 // game/file_app.cpp: whole-file helpers on top of the above.
-int HDRead(const char* path, void* buf);
-int HDReadSeekLen(const char* path, void* buf, u32 ofs, int len);
-int HDReadMemAlloc(const char* path, void** buf);
-int HDReadDebugAlloc(const char* path, void** buf, int flag);
-int HDWrite(const char* path, void* buf, int size);
-int HDWrite_only(const char* path, void* buf, int size);
-int file_lock_check(const char* path);
-int file_lock(const char* path);
-int file_unlock(const char* path);
-char* get_lock_file(char* path);
-int file_lock_msg(int mode, const char* path, const char* user);
+int HDRead(const char* fname, void* addr);
+int HDReadSeekLen(const char* fname, void* addr, u32 seeksize, int len);
+int HDReadMemAlloc(const char* fname, void** addr);
+int HDReadDebugAlloc(const char* fname, void** addr, int release_flag);
+int HDWrite(const char* fname, void* addr, int size);
+int HDWrite_only(const char* fname, void* addr, int size);
+int file_lock_check(const char* name);
+int file_lock(const char* name);
+int file_unlock(const char* name);
+char* get_lock_file(char* name);
+int file_lock_msg(int msg_no, const char* name, const char* id);
 
 #endif

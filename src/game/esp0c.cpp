@@ -80,46 +80,46 @@ extern "C" void Esp0c_Trans(cEsp* esp)
 
 // Reads the est owner/id pairs, detaches from the parent into world space, applies the Work8[2]
 // floor / water snap (+65 units, + Vec0.y) and the Work8[3] in-room check; unknown modes fail.
-int cEsp0c::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp0c::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp0cWork* w = &m_Free;
     u32 attr;
     f32 h;
 
-    w->EstNo = gen->Work8[0];
-    w->EstOwner_wt = gen->Work8[1];
-    w->EstNo_wt = gen->prm.b.xCF;
-    w->estPrm2 = gen->prm.b.xD3;
+    w->EstNo = pSeq->Work8[0];
+    w->EstOwner_wt = pSeq->Work8[1];
+    w->EstNo_wt = pSeq->prm.b.xCF;
+    w->estPrm2 = pSeq->prm.b.xD3;
     if (parent != pEffParentWorld) {
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    switch ((s8)gen->Work8[2]) {
+    switch ((s8)pSeq->Work8[2]) {
     case 0:
         break;
     case 1:
-        m_Pos.y = SatMgr.getFloor(&m_Pos, &attr, 600.0f, 100000.0f, 0) + 65.0f + gen->Vec0.y;
+        m_Pos.y = SatMgr.getFloor(&m_Pos, &attr, 600.0f, 100000.0f, 0) + 65.0f + pSeq->Vec0.y;
         break;
     case 2:
         m_Pos.y = SatMgr.getFloor(&m_Pos, &attr, 600.0f, 100000.0f, 0) + 65.0f;
         if (GetWaterHeight(&m_Pos, &h)) {
-            if (m_Pos.y < h + gen->Vec0.y) {
-                m_Pos.y = h + gen->Vec0.y;
+            if (m_Pos.y < h + pSeq->Vec0.y) {
+                m_Pos.y = h + pSeq->Vec0.y;
                 w->onWater = 1;
             }
         }
         break;
     default:
-        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->Work8[2]);
+        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)pSeq->Work8[2]);
         return 0;
     }
-    if ((s8)gen->Work8[3] == 0) {
-    } else if ((s8)gen->Work8[3] == 1) {
+    if ((s8)pSeq->Work8[3] == 0) {
+    } else if ((s8)pSeq->Work8[3] == 1) {
         if (EffAreaCheckInRoom(&m_Pos) == 1) {
             PushEsp(this);
         }
     } else {
-        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->Work8[3]);
+        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)pSeq->Work8[3]);
         return 0;
     }
     return 1;

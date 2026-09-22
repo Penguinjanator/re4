@@ -62,14 +62,14 @@ Filter06Work flt06;
 static Vec cam_vec_LR;
 
 // Places particle `no` randomly around the camera within `spread` * 10 units (plus a per-particle offset).
-void cParticle06::init(u32 no)
+void cParticle06::init(u32 i)
 {
     m_Pos.x = pG->Camera.param.pos.x;
     m_Pos.y = pG->Camera.param.pos.y;
     m_Pos.z = pG->Camera.param.pos.z;
-    m_Pos.x += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
-    m_Pos.y += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
-    m_Pos.z += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
+    m_Pos.x += flt06.spread * 10.0f * fRand1_1() + (f32) i * 500.0f;
+    m_Pos.y += flt06.spread * 10.0f * fRand1_1() + (f32) i * 500.0f;
+    m_Pos.z += flt06.spread * 10.0f * fRand1_1() + (f32) i * 500.0f;
     m_Base_alpha = 0x80;
     m_Alpha = 0;
 }

@@ -8,12 +8,12 @@ extern "C" {
 void DebugControl();
 void debugPadInfoDisp();
 void processBarDisp();
-void ProcessTickGet(int no, const char* name);
+void ProcessTickGet(int no, const char* pProc_name);
 void ProcessTickInit();
 void PrimitiveBuffDisp();
 void ConfigSet();
 // config.txt parser helpers: `*p` is advanced past what was consumed
-int symbol_check(char** p, const char* sym);
+int symbol_check(char** p, const char* pSym);
 char* space_skip(char* p);
 int comment_check(char** p);
 int num_get(char** p);

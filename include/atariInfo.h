@@ -40,18 +40,18 @@ public:
     };
 
     cAtariInfo();
-    void init0(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h, int parts, int hokan, int flags);
+    void init0(f32 ox, f32 oy, f32 oz, f32 rs, f32 ro, f32 ra, f32 h, int pno, int hokan, int flags);
     // init(..., parts, flags, hokan) = init0(..., parts, hokan, flags); m_flag |= 1
-    void init(f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h, int parts, int flags, int hokan);
-    void setPriority(int prio);  // flags bits 3-4
+    void init(f32 ox, f32 oy, f32 oz, f32 rs, f32 ro, f32 ra, f32 h, int pno, int flags, int hokan);
+    void setPriority(int pri);  // flags bits 3-4
     // mode < 0: rect = (100, 100), rect2 = a/b, cnt = -mode; mode == 0: rect = rect2 = a/b; > 0: rect2 only, cnt = mode
     void set(int mode, f32 a, f32 b);
     void move();
     // World position (`getPos`) and the positions before/after this frame's move (`getSpeedVector`).
     void getSpeedVector(cModel* m, Vec* oldPos, Vec* pos);
     void getPos(cModel* m, Vec* out);
-    void disp(cModel* m);
-    void dispRect(cModel* m);
+    void disp(cModel* pMod);
+    void dispRect(cModel* pMod);
     void throughOn() { m_flag &= ~0x300; }   // pass through enemies (mahoThroughOn)
     void throughOff() { m_flag |= 0x300; }
     void clrFlag100() { m_flag &= ~0x100; }  // obj20 SetObaModel

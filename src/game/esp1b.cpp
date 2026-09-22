@@ -43,26 +43,26 @@ void cEsp1b::move()
 
 // Point count = Work8[0] + 4 clamped to 2..0x40 (out of range is reported), control vectors from
 // Vec0..Vec2 x esp1b_scale; sets m_Flg 0x10 (spline sprite) for the trans function.
-int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp1b::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp1bWork* w = &m_Free;
     int n;
 
-    n = (s8)gen->Work8[0] + 4;
+    n = (s8)pSeq->Work8[0] + 4;
     if (n <= 1) {
-        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->Work8[0]);
+        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)pSeq->Work8[0]);
         n = 2;
     }
     if (n > 0x40) {
-        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->Work8[0]);
+        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)pSeq->Work8[0]);
         n = 0x40;
     }
     m_Flg |= 0x10;
     w->div = n;
     // Vec0..Vec2 through byte pointers: `&w->Vec1` changes the schedule (7 words)
-    memcpy((u8*)w + 4, &gen->Vec0.x, sizeof(Vec));
-    memcpy((u8*)w + 0x10, &gen->Vec1.x, sizeof(Vec));
-    memcpy((u8*)w + 0x1C, &gen->Vec2.x, sizeof(Vec));
+    memcpy((u8*)w + 4, &pSeq->Vec0.x, sizeof(Vec));
+    memcpy((u8*)w + 0x10, &pSeq->Vec1.x, sizeof(Vec));
+    memcpy((u8*)w + 0x1C, &pSeq->Vec2.x, sizeof(Vec));
     PSVECScale(&w->Vec0, &w->Vec0, esp1b_scale);
     PSVECScale(&w->Vec1, &w->Vec1, esp1b_scale);
     PSVECScale(&w->Vec2, &w->Vec2, esp1b_scale);

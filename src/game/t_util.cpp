@@ -98,23 +98,23 @@ TOOL_MENU* old_menu = NULL;
 // Draws a debug menu (`size` bytes of TOOL_MENU entries; greyed when Be_flg is 0) at (x, y) with a
 // blinking cursor moved by up / down (flag TOOL_MENU_START_LAST starts at the end, B_LAST jumps
 // there on B). `cursor` (optional) carries the position in and out. Returns the cursor.
-int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
+int ToolMenuDisp_cur(int x, int y, int flg, s8* pCur, TOOL_MENU* pMenu, int MenuSize, JOY* pJoy1)
 {
     static s8 cursor_s = 0;
     static u8 flicker = 4;
-    TOOL_MENU* p = menu;
+    TOOL_MENU* p = pMenu;
     int num;
     int i;
     int ret;
     int color;
 
-    if (cursor != NULL) {
-        cursor_s = *cursor;
+    if (pCur != NULL) {
+        cursor_s = *pCur;
     }
-    num = size / sizeof(TOOL_MENU);
+    num = MenuSize / sizeof(TOOL_MENU);
     if (old_menu != p) {
-        if (cursor == NULL) {
-            if (flag & TOOL_MENU_START_LAST) {
+        if (pCur == NULL) {
+            if (flg & TOOL_MENU_START_LAST) {
                 cursor_s = num - 1;
             } else {
                 cursor_s = 0;
@@ -122,17 +122,17 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
         }
         old_menu = p;
     }
-    if (joy->rep & JOY_DOWN) {
+    if (pJoy1->rep & JOY_DOWN) {
         cursor_s++;
     }
-    if (joy->rep & JOY_UP) {
+    if (pJoy1->rep & JOY_UP) {
         cursor_s--;
     }
     cursor_s = cursor_s < 0 ? num - 1 : (cursor_s > num - 1 ? 0 : cursor_s);
-    if (joy->rep & (JOY_DOWN | JOY_UP)) {
+    if (pJoy1->rep & (JOY_DOWN | JOY_UP)) {
         flicker = 8;
     }
-    if ((joy->trg & JOY_B) && (flag & TOOL_MENU_B_LAST)) {
+    if ((pJoy1->trg & JOY_B) && (flg & TOOL_MENU_B_LAST)) {
         cursor_s = num - 1;
         flicker = 8;
     }
@@ -148,11 +148,11 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
         eprintf(x - 8, y + cursor_s * 16, 0, 0, ">");
     }
     flicker++;
-    if (cursor != NULL) {
-        *cursor = cursor_s;
+    if (pCur != NULL) {
+        *pCur = cursor_s;
     }
-    p = &menu[cursor_s];
-    if ((joy->trg & JOY_A) && p->Be_flg) {
+    p = &pMenu[cursor_s];
+    if ((pJoy1->trg & JOY_A) && p->Be_flg) {
         if (p->pFunc != NULL) {
             p->pFunc();
         }

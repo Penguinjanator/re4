@@ -61,20 +61,20 @@ public:
 
     void init();
     void initRoomSet();
-    void save(void* dst);
-    void load(void* src);
-    void clear(void* src);
+    void save(void* pData);
+    void load(void* pData);
+    void clear(void* p);
     // record for room `room` (stage << 8 | room_no), or NULL when the room has none
-    u8* getRoomSavePtr(u16 room);
-    void execInitFunc(u16 room);
-    void execMainFunc(u16 room);
-    int checkRoomRange(u8 stage, u8 no);
-    int checkRelRead(u16 room);
-    void linkRelData(u16 room);
+    u8* getRoomSavePtr(u16 room_no);
+    void execInitFunc(u16 room_no);
+    void execMainFunc(u16 room_no);
+    int checkRoomRange(u8 stage, u8 room);
+    int checkRelRead(u16 room_no);
+    void linkRelData(u16 room_no);
     void stopRelData();
     void restartRelData();
-    int checkPassed(u16 room, int bit);
-    void setPassed(u16 room, int bit);
+    int checkPassed(u16 room_no, int part_no);
+    void setPassed(u16 room_no, int part_no);
 };
 
 extern cRoomData RoomData;

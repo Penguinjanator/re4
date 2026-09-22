@@ -11,10 +11,10 @@ class cObjLadder : public cObj {
 public:
     int getStatus();
     void setStand();
-    void setCamera(int no);
+    void setCamera(int cam_no);
     void setOff();
     void setOn();
-    void setMotion(void** tbl);   // r400 setLadderMotion: the 20-entry motion table
+    void setMotion(void** pMot);   // r400 setLadderMotion: the 20-entry motion table
     void setDowned();             // r402 R402ExecEvent01Main: the ladder falls into place
 };
 
@@ -26,10 +26,10 @@ extern "C" {
 // Creates ladder `no` from the etc model files (EtcModel.cpp).
 cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no);
 // 1 when a ladder is within reach of `pos` (emwindow.cpp).
-int LadderNearCk(Vec* pos);
+int LadderNearCk(Vec* pPos);
 // Partner ladder climb checks (pl_npc.cpp).
-int SubLadderClimbCk(cEm* em);
-int SubLadderClimbCk2(cEm* em);
+int SubLadderClimbCk(cEm* pEm);
+int SubLadderClimbCk2(cEm* pEm);
 }
 
 #endif

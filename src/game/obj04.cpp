@@ -179,16 +179,16 @@ void cObj04::move()
 
 // Re-orient the model by `m`: position, speed and acceleration are transformed, the rotation
 // is composed with it.
-void Efm04RotMatrix(cObj* obj, Mtx m)
+void Efm04RotMatrix(cObj* pObj, Mtx pMat)
 {
     Mtx tmp;
 
-    PSMTXMultVec(m, &obj->pos, &obj->pos);
-    PSMTXMultVecSR(m, &obj->speed, &obj->speed);
-    PSMTXMultVecSR(m, &obj->efm04.acc, &obj->efm04.acc);
-    RotMatrix(tmp, &obj->ang);
-    PSMTXConcat(m, tmp, tmp);
-    Matrix2AxisAngle(tmp, &obj->ang);
+    PSMTXMultVec(pMat, &pObj->pos, &pObj->pos);
+    PSMTXMultVecSR(pMat, &pObj->speed, &pObj->speed);
+    PSMTXMultVecSR(pMat, &pObj->efm04.acc, &pObj->efm04.acc);
+    RotMatrix(tmp, &pObj->ang);
+    PSMTXConcat(pMat, tmp, tmp);
+    Matrix2AxisAngle(tmp, &pObj->ang);
 }
 
 // The next unit's .sdata starts 8-byte aligned in the original link.

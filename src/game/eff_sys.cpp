@@ -344,9 +344,9 @@ done:
 // the first load, registers every texture (+ animation), the est / sst / path tables and the
 // effect models. A repeated load returns 1 silently unless flag == 1 (then it is an error).
 // 0 on a NULL / wrong-version file.
-int EspDataLoad(u32 addr, u32 owner, int flag)
+int EspDataLoad(u32 eff_addr, u32 owner, int MultipleOK)
 {
-    EffData* data = (EffData*) addr;
+    EffData* data = (EffData*) eff_addr;
     cEspSystem* sys = g_pEspSys;
     EffIdTbl* ids;
     EffOfsTbl* tpls;
@@ -364,7 +364,7 @@ int EspDataLoad(u32 addr, u32 owner, int flag)
         sys->ownerCnt[owner]++;
     }
     if (sys->ownerCnt[owner] != 1) {
-        if (flag != 1) {
+        if (MultipleOK != 1) {
             return 1;
         }
         OWNER_ERR2(owner, "EspDataLoad():[%s] data already regist.", "EspDataLoad():[%x] data already regist.", data);
@@ -426,7 +426,7 @@ int EffAreaDataLoad(SstArea* area)
 // Undoes EspDataLoad for `owner`: flag == 1 decrements the load count and releases only when it
 // reaches 0, otherwise releases unconditionally (textures, est, sst, paths, models). 0 (error if
 // warn) when nothing was registered.
-int EspDataRelease(u32 owner, int flag, int warn)
+int EspDataRelease(u32 owner, int bCountCheck, int warn)
 {
     cEspSystem* sys = g_pEspSys;
 
@@ -437,7 +437,7 @@ int EspDataRelease(u32 owner, int flag, int warn)
         return 0;
     }
     sys->ownerCnt[owner]--;
-    if (flag == 1) {
+    if (bCountCheck == 1) {
         if (sys->ownerCnt[owner] != 0) {
             return 1;
         }
@@ -453,12 +453,12 @@ int EspDataRelease(u32 owner, int flag, int warn)
 }
 
 // Texture work of effect texture `id`; NULL (error unless quiet) when the id is not registered.
-EspTexWk* EspGetTexWk(int id, int quiet)
+EspTexWk* EspGetTexWk(int id, int bNoDispErrMsg)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
     if (w->Owner == EFF_NONE) {
-        if (quiet == 0) {
+        if (bNoDispErrMsg == 0) {
             pLog->err(0, 0, "ESP : TexId[%x] no data", id);
         }
         return NULL;
@@ -484,7 +484,7 @@ void EspTexSet(int id, int ptn)
 }
 
 // GXTexObj of pattern `ptn` of texture `id`; NULL with an error when unregistered.
-GXTexObj* EspGetTexObj(int id, int ptn)
+GXTexObj* EspGetTexObj(int id, int ptn_no)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
@@ -492,7 +492,7 @@ GXTexObj* EspGetTexObj(int id, int ptn)
         pLog->err(0, 0, "ESP : TEX_ID[%x] no data", id);
         return NULL;
     }
-    return &w->pTex_obj_start[ptn];
+    return &w->pTex_obj_start[ptn_no];
 }
 
 // TLUT of texture `id` for CI4 / CI8 textures; NULL otherwise (error when unregistered).
@@ -511,23 +511,23 @@ GXTlutObj* EspGetTlutObj(int id)
 }
 
 // TPL of texture `id` in *out; 0 when unregistered.
-int EspGetTplAddr(int id, void** out)
+int EspGetTplAddr(int id, void** pTpl_addr)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
     if (w->Owner == EFF_NONE) {
         return 0;
     }
-    *out = w->Tpl_addr;
+    *pTpl_addr = w->Tpl_addr;
     return 1;
 }
 
 // Owner id of texture `id` in *out; 0 when unregistered (owner 0xD2).
-int EspGetTexOwner(int id, u32* out)
+int EspGetTexOwner(int id, u32* pOwner)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    *out = w->Owner;
+    *pOwner = w->Owner;
     if (w->Owner == EFF_NONE) {
         return 0;
     }
@@ -536,14 +536,14 @@ int EspGetTexOwner(int id, u32* out)
 
 // Texture animation table (pattern sizes, frame times, loop mode) of texture `id`; 0 when
 // unregistered.
-int EspGetAnmAddr(int id, EspAnmData** out)
+int EspGetAnmAddr(int id, EspAnmData** ppAnm)
 {
     EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
     if (w->Owner == EFF_NONE) {
         return 0;
     }
-    *out = w->Anm_addr;
+    *ppAnm = w->Anm_addr;
     return 1;
 }
 
@@ -655,7 +655,7 @@ int estRegist(void* data, void* list, u32 owner)
 // The est record block of est `id` of `owner` (EstSet's data): looks the id up in the owner's
 // list and returns the data at its offset; NULL (error unless quiet) for a bad owner, an owner
 // without data or an unknown id. Debug_flg[2] 0x80 logs every est call except core est 6.
-EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet)
+EspSeqData* EspGetEstAddr(u32 owner, int id, int NoErrDisp)
 {
     cEspSystem* sys = g_pEspSys;
     SstTbl* t;
@@ -665,14 +665,14 @@ EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet)
     u32 i;
 
     if (owner > EFF_NONE) {
-        if (quiet == 0) {
+        if (NoErrDisp == 0) {
             OWNER_ERR2(owner, "EST_SET:[%s/0x%02x] OWNER Invalid", "EST_SET:[%x/0x%02x] OWNER Invalid", id);
         }
         return NULL;
     }
     t = &sys->estTbl[owner];
     if (t->owner == EFF_NONE) {
-        if (quiet == 0) {
+        if (NoErrDisp == 0) {
             OWNER_ERR2(owner, "EST_SET:[%s/0x%02x] OWNER not init", "EST_SET:[%x/0x%02x] OWNER not init", id);
         }
         return NULL;
@@ -686,7 +686,7 @@ EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet)
         }
     }
     if (no == -1) {
-        if (quiet == 0) {
+        if (NoErrDisp == 0) {
             OWNER_ERR2(owner, "EST_SET:[%s/0x%02x] EST_ID Invalid", "EST_SET:[%x/0x%02x] EST_ID Invalid", id);
         }
         return NULL;
@@ -893,33 +893,33 @@ int efmRelease(u32 owner)
 }
 
 // Model data and TPL of effect model `id`; 0 when unregistered.
-int EspGetEfmAddr(int id, void** model, void** tpl)
+int EspGetEfmAddr(int id, void** ppBin, void** ppTpl)
 {
     EspEfmWk* w = &g_pEspSys->efmWk[id];
 
     if (w->owner == EFF_NONE) {
         return 0;
     }
-    *model = w->model;
-    *tpl = w->tpl;
+    *ppBin = w->model;
+    *ppTpl = w->tpl;
     return 1;
 }
 
 // TPL of effect model `id`; 0 when unregistered.
-int EspGetEfmTplAddr(int id, void** tpl)
+int EspGetEfmTplAddr(int id, void** ppTpl)
 {
     EspEfmWk* w = &g_pEspSys->efmWk[id];
 
     if (w->owner == EFF_NONE) {
         return 0;
     }
-    *tpl = w->tpl;
+    *ppTpl = w->tpl;
     return 1;
 }
 
 // Motion `no` of effect model `id` from its motion table; 0 when the model, table or index is
 // missing.
-int EspGetEfmMotAddr(int id, u32 no, void** out)
+int EspGetEfmMotAddr(int id, u32 no, void** ppMot)
 {
     EspEfmWk* w = &g_pEspSys->efmWk[id];
     EspEfmMotTbl* mot;
@@ -937,7 +937,7 @@ int EspGetEfmMotAddr(int id, u32 no, void** out)
     }
     ofs = mot->ofs;
     ofs += no;
-    *out = (u8*) mot + *ofs;
+    *ppMot = (u8*) mot + *ofs;
     return 1;
 }
 
@@ -970,7 +970,7 @@ int cEspSystem::GetTexObjFlag(u32 no)
 }
 
 // Marks GXTexObj pool slot `no` used (flag 1) or free.
-void cEspSystem::SetTexObjFlag(u32 no, int flag)
+void cEspSystem::SetTexObjFlag(u32 no, int flg)
 {
     u8 bit;
 
@@ -978,7 +978,7 @@ void cEspSystem::SetTexObjFlag(u32 no, int flag)
         pLog->err(0, 0, "cEspSystem::GetTexObjFlag : TexNo over [%d/%d]", no, EFF_TEXOBJ_MAX);
     }
     bit = 1 << (no & 7);
-    if (flag == 1) {
+    if (flg == 1) {
         TexObj_flg[no >> 3] |= bit;
     } else {
         TexObj_flg[no >> 3] &= ~bit;
@@ -1022,14 +1022,14 @@ int EffIsSetFinalCol()
 }
 
 // Copies the room's final (tint) colour used by the effect draw.
-void EffGetFinalCol(GXColor* col)
+void EffGetFinalCol(GXColor* Ret_col)
 {
     cEspSystem* sys = g_pEspSys;
 
-    col->r = sys->Final_col.r;
-    col->g = sys->Final_col.g;
-    col->b = sys->Final_col.b;
-    col->a = sys->Final_col.a;
+    Ret_col->r = sys->Final_col.r;
+    Ret_col->g = sys->Final_col.g;
+    Ret_col->b = sys->Final_col.b;
+    Ret_col->a = sys->Final_col.a;
 }
 
 // Sets the room's final colour and recomputes the "neutral" flag.
@@ -1058,12 +1058,12 @@ int GetAreaState(int no)
 }
 
 // Sets / clears the RstAreaState bit of effect area `no`.
-void SetAreaState(int no, int on)
+void SetAreaState(int no, int flg)
 {
     u32 bit = 1 << no;
     cEspSystem* sys = g_pEspSys;
 
-    if (on == 1) {
+    if (flg == 1) {
         sys->RstAreaState |= bit;
     } else {
         sys->RstAreaState &= ~bit;
@@ -1079,12 +1079,12 @@ int EffGetAreaState(int no)
 // Turns effect area `no` on or off when its state changes: on starts the room's sst `no` with
 // Core_kind no + 0xC, off deletes every esp / espgen / efm of that kind. Called by EffAreaUpdate
 // as the player crosses area boundaries.
-void EffSetAreaState(int no, int on)
+void EffSetAreaState(int no, int flg)
 {
-    if (GetAreaState(no) == on) {
+    if (GetAreaState(no) == flg) {
         return;
     }
-    if (on != 0) {
+    if (flg != 0) {
         SstSet(EFF_ROOM, (u16) no, (ESP_CORE_KIND) (ESP_CORE_KIND_ROOM_AREA00 + no), 0, 0x2F, 0);
     } else {
         u8 kind = no + 0xC;
@@ -1092,7 +1092,7 @@ void EffSetAreaState(int no, int on)
         EffectEspgenDelete(0, kind, 0);
         EffectEfmDelete(0, kind, 0);
     }
-    SetAreaState(no, on);
+    SetAreaState(no, flg);
 }
 
 // ORs `state` into the frame's tool state bits (esp11 light effects publish theirs each frame).
@@ -1139,9 +1139,9 @@ void EffCallToolStateCallBack()
 }
 
 // Registers a room scroll model's data / TPL as effect model `id` under the room owner (1).
-void RoomEfmRegist(cModel* m, u8 id)
+void RoomEfmRegist(cModel* pMod, u8 id)
 {
-    efmRegist(m->pModelInfo->model_addr, m->pModelInfo->tpl_addr, NULL, NULL, id, 1);
+    efmRegist(pMod->pModelInfo->model_addr, pMod->pModelInfo->tpl_addr, NULL, NULL, id, 1);
 }
 
 // Same with raw model data and TPL pointers.

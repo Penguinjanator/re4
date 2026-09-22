@@ -209,16 +209,16 @@ void cObj05::move()
 
 // Re-orient the model by `m`: the position and the burst centre are transformed, the rotation
 // is composed with it.
-void Efm05RotMatrix(cObj* obj, Mtx m)
+void Efm05RotMatrix(cObj* pObj, Mtx pMat)
 {
     Mtx tmp;
 
-    PSMTXMultVec(m, &obj->pos, &obj->pos);
-    RotMatrix(tmp, &obj->ang);
-    PSMTXConcat(m, tmp, tmp);
-    Matrix2AxisAngle(tmp, &obj->ang);
+    PSMTXMultVec(pMat, &pObj->pos, &pObj->pos);
+    RotMatrix(tmp, &pObj->ang);
+    PSMTXConcat(pMat, tmp, tmp);
+    Matrix2AxisAngle(tmp, &pObj->ang);
     tmp[0][3] = 0.0f;
     tmp[1][3] = 0.0f;
     tmp[2][3] = 0.0f;
-    PSMTXMultVec(tmp, &obj->efm05.center, &obj->efm05.center);
+    PSMTXMultVec(tmp, &pObj->efm05.center, &pObj->efm05.center);
 }

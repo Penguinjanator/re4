@@ -32,16 +32,16 @@ typedef struct {
 
 extern "C" {
 cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo);
-void emRackDmCk(cEmRack* em);
-void emRack_R0_Init(cEmRack* em);
-void emRack_R0_Move(cEmRack* em);
-void emRack_R1_Set(cEmRack* em);
-void emRack_R1_Down(cEmRack* em);
-void emRack_R1_Break(cEmRack* em);
-void emRack_R1_Shock(cEmRack* em);
-void emRackSatSet(cEmRack* em);
-void emRackSatClear(cEmRack* em);
-void emRackYarareInit(cEmRack* em);
+void emRackDmCk(cEmRack* pEm);
+void emRack_R0_Init(cEmRack* pEm);
+void emRack_R0_Move(cEmRack* pEm);
+void emRack_R1_Set(cEmRack* pEm);
+void emRack_R1_Down(cEmRack* pEm);
+void emRack_R1_Break(cEmRack* pEm);
+void emRack_R1_Shock(cEmRack* pEm);
+void emRackSatSet(cEmRack* pEm);
+void emRackSatClear(cEmRack* pEm);
+void emRackYarareInit(cEmRack* pEm);
 }
 
 #endif

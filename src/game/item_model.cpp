@@ -56,24 +56,24 @@ int ItemModelDataLoad(void* data)
 }
 
 // Model binary of item `no`; 0 when the room has none.
-int ItemGetBinAddr(u8 no, void** pAddr)
+int ItemGetBinAddr(u8 id, void** pBin_addr)
 {
-    return g_pItemModelSys->GetBinAddr(no, pAddr);
+    return g_pItemModelSys->GetBinAddr(id, pBin_addr);
 }
 
 // Texture palette of item `no`; 0 when the room has none.
-int ItemGetTplAddr(u8 no, void** pAddr)
+int ItemGetTplAddr(u8 id, void** pTpl_addr)
 {
-    return g_pItemModelSys->GetTplAddr(no, pAddr);
+    return g_pItemModelSys->GetTplAddr(id, pTpl_addr);
 }
 
 // Both model files of item `no`; 0 when either is missing.
-int ItemGetBinTplAddr(u8 no, void** pBin, void** pTpl)
+int ItemGetBinTplAddr(u8 id, void** pBin_addr, void** pTpl_addr)
 {
-    if (ItemGetBinAddr(no, pBin) == 0) {
+    if (ItemGetBinAddr(id, pBin_addr) == 0) {
         return 0;
     }
-    if (ItemGetTplAddr(no, pTpl) == 0) {
+    if (ItemGetTplAddr(id, pTpl_addr) == 0) {
         return 0;
     }
     return 1;
@@ -97,12 +97,12 @@ void cItmSys::Init()
 }
 
 // Walks the pack's id / bin offset / tpl offset tables and registers each item id.
-int cItmSys::DataLoad(u32 addr)
+int cItmSys::DataLoad(u32 data_addr)
 {
-    ItemModelPack* pack = (ItemModelPack*) addr;
-    ItemModelIdTbl* idTbl = (ItemModelIdTbl*) (addr + pack->ofsId);
-    ItemModelOfsTbl* binTbl = (ItemModelOfsTbl*) (addr + pack->ofsBin);
-    ItemModelOfsTbl* tplTbl = (ItemModelOfsTbl*) (addr + pack->ofsTpl);
+    ItemModelPack* pack = (ItemModelPack*) data_addr;
+    ItemModelIdTbl* idTbl = (ItemModelIdTbl*) (data_addr + pack->ofsId);
+    ItemModelOfsTbl* binTbl = (ItemModelOfsTbl*) (data_addr + pack->ofsBin);
+    ItemModelOfsTbl* tplTbl = (ItemModelOfsTbl*) (data_addr + pack->ofsTpl);
     u32 i;
 
     for (i = 0; i < idTbl->num; i++) {
@@ -122,20 +122,20 @@ int cItmSys::ItmRegist(void* bin, void* tpl, u8 no)
 }
 
 // Registered binary of item `no` (1 when present).
-int cItmSys::GetBinAddr(u8 no, void** pAddr)
+int cItmSys::GetBinAddr(u8 id, void** pBin_addr)
 {
-    *pAddr = work[no].bin;
-    if (*pAddr != 0) {
+    *pBin_addr = work[id].bin;
+    if (*pBin_addr != 0) {
         return 1;
     }
     return 0;
 }
 
 // Registered tpl of item `no` (1 when present).
-int cItmSys::GetTplAddr(u8 no, void** pAddr)
+int cItmSys::GetTplAddr(u8 id, void** pTpl_addr)
 {
-    *pAddr = work[no].tpl;
-    if (*pAddr != 0) {
+    *pTpl_addr = work[id].tpl;
+    if (*pTpl_addr != 0) {
         return 1;
     }
     return 0;

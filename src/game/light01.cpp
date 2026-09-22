@@ -17,9 +17,9 @@ cLight01::cLight01()
 // LightFuncTbl[1]: torches and candles: DispCol = Col plus one random offset in [-range, range)
 // applied to r, g and b each frame.
 // Flicker light: adds a random offset in [-range, range) to every color channel.
-void Light01_Move(cLight* l)
+void Light01_Move(cLight* pLi)
 {
-    Light01Work* w = (Light01Work*)l->work;
+    Light01Work* w = (Light01Work*)pLi->work;
     int r;
     int c;
 
@@ -28,26 +28,26 @@ void Light01_Move(cLight* l)
     } else {
         r = 0;
     }
-    c = l->Col.r + r;
+    c = pLi->Col.r + r;
     if (c < 0) {
         c = 0;
     } else if (c > 255) {
         c = 255;
     }
-    l->DispCol.r = c;
-    c = l->Col.g + r;
+    pLi->DispCol.r = c;
+    c = pLi->Col.g + r;
     if (c < 0) {
         c = 0;
     } else if (c > 255) {
         c = 255;
     }
-    l->DispCol.g = c;
-    c = l->Col.b + r;
+    pLi->DispCol.g = c;
+    c = pLi->Col.b + r;
     if (c < 0) {
         c = 0;
     } else if (c > 255) {
         c = 255;
     }
-    l->DispCol.b = c;
-    l->DispCol.a = l->Col.a;
+    pLi->DispCol.b = c;
+    pLi->DispCol.a = pLi->Col.a;
 }

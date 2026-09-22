@@ -48,18 +48,18 @@ public:
 
     DatTbl();
     ~DatTbl();
-    int init(int n);
+    int init(int num);
     int end();
     int SetDat(const char* name, void* dat, u8 type, void* dat2, u8 flag, int* wkNo);
-    int GetDat(void** dat, u8* type, const char* name, int* wkNo);
+    int GetDat(void** pDat, u8* pEtc, const char* name, int* pNoWork);
     int ChkDat(const char* name);
-    int GetWkNo(int* wkNo, const char* name);
+    int GetWkNo(int* pNo, const char* name);
     int GetNumDat();
-    int GetDatWkNo(void** dat, u8* type, int wkNo);
-    int ChkDatWkNoName(int wkNo, const char* name);
-    int DelDatWkNo(int wkNo);
+    int GetDatWkNo(void** pDat, u8* pEtc, int noWork);
+    int ChkDatWkNoName(int noWork, const char* name);
+    int DelDatWkNo(int noWork);
     int DelDat(const char* name);
-    int DelAll(int all);
+    int DelAll(int flag);
 };
 
 // Event file ("even" "t" header) the room's evd data hands to EventMgr::SetEvt.
@@ -272,10 +272,10 @@ public:
     virtual ~Event();
     int init(char* name, EvtHeader* data);
     int Run();
-    void EspSetModelPtr(cModel* m);
+    void EspSetModelPtr(cModel* pMod);
     int EspToolSetDat();
-    void EspToolSetMod(int no, char* name);
-    int GetModelPtrNo(int* no, cModel** mod, char* name);
+    void EspToolSetMod(int npMod, char* name);
+    int GetModelPtrNo(int* pNoWork, cModel** pPtr, char* name);
     int RunTool(int mode, int subFrame);
     int RunEvtCancel();
     void CancelSet();
@@ -285,42 +285,42 @@ public:
     void DebugDispTool();
     int IsExePacket();
     int ExePacket();
-    static int ExePacket_BeginEvt(Event* evt);
-    static int ExePacket_SetPl(Event* evt);
-    static int ExePacket_SetEm(Event* evt);
-    static int ExePacket_SetOm(Event* evt);
-    static int ExePacket_SetParts(Event* evt);
+    static int ExePacket_BeginEvt(Event* pEvt);
+    static int ExePacket_SetPl(Event* pEvt);
+    static int ExePacket_SetEm(Event* pEvt);
+    static int ExePacket_SetOm(Event* pEvt);
+    static int ExePacket_SetParts(Event* pEvt);
     int ExePacket_SetPartsSub(char* name, char* bin, char* tpl, char* oya);
-    static int ExePacket_SetList(Event* evt);
-    static int ExePacket_SetEff(Event* evt);
-    static int ExePacket_SetMdt(Event* evt);
-    static int ExePacket_Cam(Event* evt);
-    static int ExePacket_CamPos(Event* evt);
-    static int ExePacket_CamDammy(Event* evt);
-    static int ExePacket_Pos(Event* evt);
-    static int ExePacket_PosPl(Event* evt);
-    static int ExePacket_Mot(Event* evt);
-    static int ExePacket_Shp(Event* evt);
-    static int ExePacket_Esp(Event* evt);
-    static int ExePacket_Lit(Event* evt);
-    static int ExePacket_Fog(Event* evt);
-    static int ExePacket_Focus(Event* evt);
-    static int ExePacket_Str(Event* evt);
-    static int ExePacket_Se(Event* evt);
-    static int ExePacket_Fade(Event* evt);
-    static int ExePacket_Mes(Event* evt);
-    static int ExePacket_Func(Event* evt);
-    static int ExePacket_ParentOn(Event* evt);
-    static int ExePacket_ParentOff(Event* evt);
-    static int ExePacket_EndPl(Event* evt);
-    static int ExePacket_EndEm(Event* evt);
-    static int ExePacket_EndOm(Event* evt);
-    static int ExePacket_EndParts(Event* evt);
-    static int ExePacket_EndList(Event* evt);
-    static int ExePacket_EndEvt(Event* evt);
-    static int ExePacket_EndPac(Event* evt);
-    void ExeBeginEvt(Event* evt, int mode);
-    void ExeEndEvt(Event* evt, u32 mode);
+    static int ExePacket_SetList(Event* pEvt);
+    static int ExePacket_SetEff(Event* pEvt);
+    static int ExePacket_SetMdt(Event* pEvt);
+    static int ExePacket_Cam(Event* pEvt);
+    static int ExePacket_CamPos(Event* pEvt);
+    static int ExePacket_CamDammy(Event* pEvt);
+    static int ExePacket_Pos(Event* pEvt);
+    static int ExePacket_PosPl(Event* pEvt);
+    static int ExePacket_Mot(Event* pEvt);
+    static int ExePacket_Shp(Event* pEvt);
+    static int ExePacket_Esp(Event* pEvt);
+    static int ExePacket_Lit(Event* pEvt);
+    static int ExePacket_Fog(Event* pEvt);
+    static int ExePacket_Focus(Event* pEvt);
+    static int ExePacket_Str(Event* pEvt);
+    static int ExePacket_Se(Event* pEvt);
+    static int ExePacket_Fade(Event* pEvt);
+    static int ExePacket_Mes(Event* pEvt);
+    static int ExePacket_Func(Event* pEvt);
+    static int ExePacket_ParentOn(Event* pEvt);
+    static int ExePacket_ParentOff(Event* pEvt);
+    static int ExePacket_EndPl(Event* pEvt);
+    static int ExePacket_EndEm(Event* pEvt);
+    static int ExePacket_EndOm(Event* pEvt);
+    static int ExePacket_EndParts(Event* pEvt);
+    static int ExePacket_EndList(Event* pEvt);
+    static int ExePacket_EndEvt(Event* pEvt);
+    static int ExePacket_EndPac(Event* pEvt);
+    void ExeBeginEvt(Event* pEvt, int FlagCommon);
+    void ExeEndEvt(Event* pEvt, u32 FlagCommon);
     int ExeFunc(int mode, int param);
     void CalNextPacket();
     void CalNextFrame();
@@ -329,14 +329,14 @@ public:
     int CalMaxFrame(int* maxFrame, int cut);
     int CalMaxTotalFrame(int* maxCut, int* maxTotal);
     void SetDiedemoExec();
-    void BeginActBtn(int no);
+    void BeginActBtn(int act_type);
     void EndActBtn();
     int GetActBtnCount();
     void ExecActBtn();
-    void MesSet(int no, int time, int x, int y);
+    void MesSet(int noMes, int timer, int px, int py);
     void MesClear();
-    void FogMove(Event* evt, void* fog);
-    void FocusMove(Event* evt, void* focus);
+    void FogMove(Event* pEvt, void* pDatFog);
+    void FocusMove(Event* pEvt, void* pDatFocus);
     void MotClear();
     int SetMod(char* name, void* mod, u8 type, void* dat2, u8 flag, int* wkNo);
     int GetMod(void** mod, char* name, u8* type, int* wkNo);
@@ -395,44 +395,44 @@ public:
     virtual void* memAlloc(u32 size) { return MEM_ALLOC(size, 1, 0xD); }
     virtual void memFree(void* p) { Mem_free(p); }
     virtual void memClear(Event* p, u32 size) { memclr_asm(p, size); }
-    virtual int construct(Event* p, u32 id);
+    virtual int construct(Event* pSat, u32 room_no);
 
     int init();
     int myRoomInit();           // room start (game gameRoomInit, after arrayAlloc(2))
     int DelAll();
     int SetEvs(void* evs);      // room "EVS" data (game gameRoomInit)
     int Run();
-    int IsAliveEvt(u32* key, Event** out, int chk);
-    int EvtReadAram(char* name, int em, int* out, int wait, u32 size);
-    int EvtReadMram(char* name, int em, int* out, int wait, u32 size);
+    int IsAliveEvt(u32* pName, Event** ppEvt, int aliveEvtType);
+    int EvtReadAram(char* name, int emId, int* pPtr, int blockType, u32 size);
+    int EvtReadMram(char* name, int emId, int* pPtr, int blockType, u32 size);
     int NameCheck(char* name);
     // Copies the event file name into the manager (Ashley costume 1 swaps the 'r' of the room
     // name for 's'); returns the stored copy (the rooms hand it to DC.setData).
     char* NameChange(char* name);
-    int EvtReadSub(char* name, int aram, int em, int* out, int wait, u32 size);
-    int EvtReadExec(char* name, int em, u32 flags);   // flags: EvtReadFlag bits
+    int EvtReadSub(char* name, int loadType, int emId, int* pPtr, int blockType, u32 size);
+    int EvtReadExec(char* name, int emId, u32 evtReadFlag);   // flags: EvtReadFlag bits
     int EvtFree(char* name);
     void ToolCoreEvdDel();
     // Starts the loaded event data ("even" "t" header); `key` (optional) receives its key.
     int SetEvt(void* data, u32* key);
     int SetEvt(char* name, Event** out);
-    int GetEvt(u32* key, void** out);
+    int GetEvt(u32* pName, void** ppEvt);
     int DelEvt(void* evt, int a);
     int SetBin(char* name, void* data, void* dat2, int flag);
     // Looks a file of the running event up by name; 0 when it is not loaded.
-    int GetBin(void** out, const char* name, int flagGet);
+    int GetBin(void** pAddr, const char* name, int flagGet);
     int DelBin(char* name);
     int SetEvd(char* name, void* data, void* dat2, int flag);
-    int GetEvd(void** out, char* name, int flagGet);
+    int GetEvd(void** pAddr, char* name, int flagGet);
     int DelEvd(char* name);
     int SetFunc(char* name, void* func);
-    int GetFunc(void** out, char* name);
+    int GetFunc(void** pAddr, char* name);
     int SetRead(char* name, int* wkNo, void* unit);
-    int GetRead(void** out, int* wkNo, char* name);
+    int GetRead(void** pDat, int* pWkNo, char* name);
     int DelRead(char* name);
-    int EvtSndStrStop(u32* key, int blk, int wait);
-    void EvtSndStrPlay(u32* key, int blk, int no, int wait, f32 vol);
-    int GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot);
+    int EvtSndStrStop(u32* pName, int noTar, int wait);
+    void EvtSndStrPlay(u32* pName, int noTar, int noStr, int wait, f32 s_time);
+    int GetZeroPartsWorldPos(cModel* pMod, Vec* pPos, Vec* pAng);
     void ClearEmWindowFcv();
     void SetEmWindowFcv(void* a, void* b, void* c);
     // Replaces the three window jump motions of the running event (emwindow ExeWindowEvent).
@@ -469,15 +469,15 @@ public:
     char* getEvName() { return evName; }
     char* getCamName() { return camName; }
     void ClrModelFiles();
-    int AddNameBinTpl(int no, char* bin, char* tpl);
+    int AddNameBinTpl(int npMod, char* pNameBin, char* pNameTpl);
 };
 
 extern EventDebug EvtDebug;
 
 // game/event.cpp (C linkage): streamed sound blocks of the running event
 extern "C" {
-int SndStrPlayBlock(int blk, int no, f32 vol);
-void SndStrStopBlock(int blk);
+int SndStrPlayBlock(int blk, int no, f32 s_time);
+void SndStrStopBlock(int sndId);
 }
 
 #endif

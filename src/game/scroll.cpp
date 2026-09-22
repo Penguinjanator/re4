@@ -52,16 +52,16 @@ const u8* SmdGetIdNumPtr()
 
 // Room start: takes the room's SMD / SMX and the common SMD, allocates the id and work tables.
 // Returns the number of works (0 on failure).
-int SmdInit(cSmd* smd, cSmx* smx, cSmd* comn)
+int SmdInit(cSmd* pSh, cSmx* pSmxh, cSmd* pShCmn)
 {
-    if (smd == NULL) {
+    if (pSh == NULL) {
         pLog->err(0, 0, "ERROR: SMdInit() COMN DATA was NULL");
-        pSmd = smd;
+        pSmd = pSh;
         return 0;
     }
-    pSmx = smx;
-    pSmdComn = comn;
-    pSmd = smd;
+    pSmx = pSmxh;
+    pSmdComn = pShCmn;
+    pSmd = pSh;
 #line 102 "D:/Bio4/Prog/scroll.cpp"
     scrObjTbl = (cObj**) MEM_ALLOC(250 * sizeof(cObj*), 1, 13);
     nScrWork = pSmd->getWorkNum();
@@ -95,17 +95,17 @@ void SmdClear(int mode)
 }
 
 // Marks a new scroll object: kind 2, type 0, ot_type 3, no block yet, keeps moving in events.
-void workInit(cObj* obj)
+void workInit(cObj* pObj)
 {
-    obj->setNoSuspend(1);
-    obj->kindid = 2;
-    obj->type = 0;
-    obj->ot_type = 3;
-    obj->blk = -2;
+    pObj->setNoSuspend(1);
+    pObj->kindid = 2;
+    pObj->type = 0;
+    pObj->ot_type = 3;
+    pObj->blk = -2;
 }
 
 // Creates the objects of the current SMD for scroll block `blk` (version check).
-void SmdSetup(int blk)
+void SmdSetup(int blockNo)
 {
     if (pSmd == NULL) {
         return;
@@ -113,13 +113,13 @@ void SmdSetup(int blk)
     if (pSmd->Version == 0) {
         pLog->err(0, 0, "ERROR! SmdSet() OLD version %02x.", pSmd->Version);
     }
-    setObj(blk);
+    setObj(blockNo);
 }
 
 // Creates a cObj (createBack 2) for every used SmdWork (id != 0xFF), registers it by id (0xFE = not
 // registered) and work index, gives it its model / motion / placement (SmdSetParam) and its SMX
 // parameters; a work already owned by another block is an error. Returns -1 on a model failure.
-int setObj(int blk)
+int setObj(int blkNo)
 {
     SmdWork* w = pSmd->getWorkPtr(0);
     cObj* obj;
@@ -139,11 +139,11 @@ int setObj(int blk)
             scrObjTbl[w->id] = obj;
         }
         scrTbl[i] = obj;
-        if (obj->blk != -2 && obj->blk != blk) {
-            pLog->err(0, 0, "Smd::setObj() REDECLARATION WORK %d. BLK %d and %d", w->id, obj->blk, blk);
+        if (obj->blk != -2 && obj->blk != blkNo) {
+            pLog->err(0, 0, "Smd::setObj() REDECLARATION WORK %d. BLK %d and %d", w->id, obj->blk, blkNo);
             continue;
         }
-        obj->blk = blk;
+        obj->blk = blkNo;
         if (SmdSetParam(obj, w) == 0) {
             return -1;
         }
@@ -161,7 +161,7 @@ int setObj(int blk)
 // Model (bin / tpl from the room or the common SMD by flags bit4, with the common TPL table
 // added), motion (bit6 = common), position / rotation / scale and a bounding-box light for one
 // scroll object. Returns 0 when the model failed (object destroyed).
-int SmdSetParam(cObj* obj, SmdWork* w)
+int SmdSetParam(cObj* pObj, SmdWork* pSw)
 {
     void* bin;
     void* tpl;
@@ -169,111 +169,111 @@ int SmdSetParam(cObj* obj, SmdWork* w)
     ModelBound* b;
     Vec size;
 
-    obj->be_flag |= 4;
-    obj->be_flag &= ~0x20;
-    obj->attr = w->b.attr;
-    if (pSmd->Version <= 0x1F && w->motNo == 0) {
-        w->motNo = 0xFF;
+    pObj->be_flag |= 4;
+    pObj->be_flag &= ~0x20;
+    pObj->attr = pSw->b.attr;
+    if (pSmd->Version <= 0x1F && pSw->motNo == 0) {
+        pSw->motNo = 0xFF;
     }
-    if (w->binNo == 0xFF) {
-        w->binNo = 0;
+    if (pSw->binNo == 0xFF) {
+        pSw->binNo = 0;
         pLog->err(0, 0, "SmdInit() NULL BIN USED");
     }
-    if (w->tplNo == 0xFF) {
-        w->tplNo = 0;
+    if (pSw->tplNo == 0xFF) {
+        pSw->tplNo = 0;
         pLog->err(0, 0, "SmdInit() NULL TPL USED");
     }
-    if (w->flags & 0x10) {
-        bin = pSmdComn->getBinPtr(w->binNo);
-        obj->be_flag |= 0x80000;
+    if (pSw->flags & 0x10) {
+        bin = pSmdComn->getBinPtr(pSw->binNo);
+        pObj->be_flag |= 0x80000;
     } else {
-        bin = pSmd->getBinPtr(w->binNo);
+        bin = pSmd->getBinPtr(pSw->binNo);
     }
-    if (w->flags & 0x10) {
+    if (pSw->flags & 0x10) {
         tpl = DmyZeroTpl;
     } else {
-        tpl = pSmd->getTplPtr(w->tplNo);
+        tpl = pSmd->getTplPtr(pSw->tplNo);
     }
-    if (obj->modelInit(bin, tpl) == 0) {
+    if (pObj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "setObj() failed.");
-        ObjMgr.destroy(obj);
+        ObjMgr.destroy(pObj);
         return 0;
     }
     if (pSmdComn != NULL) {
         u8* tbl = (u8*) pSmdComn + pSmdComn->TplTblOfs;
-        obj->pModelInfo->addTplAddr(tbl + *(u32*) tbl);
+        pObj->pModelInfo->addTplAddr(tbl + *(u32*) tbl);
     }
-    if (w->motNo != 0xFF) {
-        if (w->flags & 0x40) {
-            mot = pSmdComn->getMotPtr(w->motNo);
+    if (pSw->motNo != 0xFF) {
+        if (pSw->flags & 0x40) {
+            mot = pSmdComn->getMotPtr(pSw->motNo);
         } else {
-            mot = pSmd->getMotPtr(w->motNo);
+            mot = pSmd->getMotPtr(pSw->motNo);
         }
         if (mot != NULL) {
-            MotionSetCore(obj, &obj->Motion, mot, 0, 0, 5, 0);
+            MotionSetCore(pObj, &pObj->Motion, mot, 0, 0, 5, 0);
         }
     }
-    obj->pos = w->pos;
-    obj->ang = w->rot;
-    obj->scale = w->scale;
-    if (obj->scale.x == 0.0f || obj->scale.y == 0.0f || obj->scale.z == 0.0f) {
+    pObj->pos = pSw->pos;
+    pObj->ang = pSw->rot;
+    pObj->scale = pSw->scale;
+    if (pObj->scale.x == 0.0f || pObj->scale.y == 0.0f || pObj->scale.z == 0.0f) {
         pLog->warn(0, 0, "SmdInit() cObj SCALE SET 0.0");
     }
-    b = &obj->pModelInfo->bound;
+    b = &pObj->pModelInfo->bound;
     size.x = b->size.x;
     size.y = b->size.y;
     size.z = b->size.z;
-    obj->LightInfo.init2(2, 1, &obj->pModelInfo->bound.center, &size, 0x10);
-    obj->matUpdate();
-    obj->LightInfo.updateMatrix(obj);
+    pObj->LightInfo.init2(2, 1, &pObj->pModelInfo->bound.center, &size, 0x10);
+    pObj->matUpdate();
+    pObj->LightInfo.updateMatrix(pObj);
     return 1;
 }
 
 // SMX display flags: bit0 be_flag 0x10, bit2 0x2000000, bit3 alpha_omit 0x80, bit4 0x8000, bit5
 // attr bit0.
-void SmxSetFlag(cObj* obj, u32 flags)
+void SmxSetFlag(cObj* pObj, u32 flag)
 {
-    if (flags & 1) {
-        obj->be_flag |= 0x10;
+    if (flag & 1) {
+        pObj->be_flag |= 0x10;
     }
-    if (flags & 4) {
-        obj->be_flag |= 0x2000000;
+    if (flag & 4) {
+        pObj->be_flag |= 0x2000000;
     } else {
-        obj->be_flag &= ~0x2000000;
+        pObj->be_flag &= ~0x2000000;
     }
-    if (flags & 8) {
-        obj->alpha_omit = 0x80;
+    if (flag & 8) {
+        pObj->alpha_omit = 0x80;
     }
-    if (flags & 0x10) {
-        obj->be_flag |= 0x8000;
+    if (flag & 0x10) {
+        pObj->be_flag |= 0x8000;
     }
-    if (flags & 0x20) {
-        obj->attr |= 1;
+    if (flag & 0x20) {
+        pObj->attr |= 1;
     }
 }
 
 // The SMX flags an object currently shows (inverse of SmxSetFlag, plus bit1 from the model data).
-int SmxGetFlag(cObj* obj)
+int SmxGetFlag(cObj* pObj)
 {
-    u32 be = obj->be_flag;
+    u32 be = pObj->be_flag;
     int flags = 0;
 
     if (be & 0x10) {
         flags = 1;
     }
-    if (obj->pModelInfo->model_addr->flags & 0x40000000) {
+    if (pObj->pModelInfo->model_addr->flags & 0x40000000) {
         flags |= 2;
     }
     if (be & 0x2000000) {
         flags |= 4;
     }
-    if (obj->alpha_omit != 0xFF) {
+    if (pObj->alpha_omit != 0xFF) {
         flags |= 8;
     }
     if (be & 0x8000) {
         flags |= 0x10;
     }
-    if (obj->attr & 1) {
+    if (pObj->attr & 1) {
         flags |= 0x20;
     }
     return flags;
@@ -349,19 +349,19 @@ void smxInit(cObj* obj, SmxWork* w)
 }
 
 // TPL `no` of the current SMD.
-void* SmdGetTplPtr(int no)
+void* SmdGetTplPtr(int idx)
 {
     u8* tbl = (u8*) pSmd + pSmd->TplTblOfs;
-    return tbl + ((u32*) tbl)[no];
+    return tbl + ((u32*) tbl)[idx];
 }
 
 // The scroll object with id `id` (0..0xF9); NULL (with an error unless the debug flags silence it)
 // when unknown. Complains when the id is a group head.
-cObj* SmdGetObjPtr(u32 id)
+cObj* SmdGetObjPtr(u32 idx)
 {
     cObj* obj;
 
-    if (id > 0xF9) {
+    if (idx > 0xF9) {
         if (DbgFlagChk(pG, DBG_TEST_MODE)) {
             if (!DbgFlagChk(pG, DBG_EVENT_TOOL)) {
                 return NULL;
@@ -372,11 +372,11 @@ cObj* SmdGetObjPtr(u32 id)
             // so jump.c does not hoist the early `return NULL`s above the flag tests (the three
             // `li r3, 0` tails are cross-jumped instead) and each error block keeps its schedule.
             const char* s = "SmdGetObjPtr() invalid ID [%d] used";
-            pLog->err(0, 0, s, id);
+            pLog->err(0, 0, s, idx);
         }
-        id = 0;
+        idx = 0;
     }
-    obj = scrObjTbl[id];
+    obj = scrObjTbl[idx];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
         if (DbgFlagChk(pG, DBG_TEST_MODE)) {
             if (!DbgFlagChk(pG, DBG_EVENT_TOOL)) {
@@ -385,14 +385,14 @@ cObj* SmdGetObjPtr(u32 id)
         }
         {
             const char* s = "SmdGetObjPtr(%d) invalid work";
-            pLog->err(0, 0, s, id);
+            pLog->err(0, 0, s, idx);
         }
         return NULL;
     }
     if (obj->attr & 4) {
-        pLog->err(0, 0, "SmdGetObjPtr(%d) GROUP -> SmdGetGroupObjPtr()", id);
+        pLog->err(0, 0, "SmdGetObjPtr(%d) GROUP -> SmdGetGroupObjPtr()", idx);
     }
-    return scrObjTbl[id];
+    return scrObjTbl[idx];
 }
 
 // Number of SMD works.
@@ -402,14 +402,14 @@ int SmdGetObjNum()
 }
 
 // The scroll id of `obj` (searching the groups too), -1 when it is none.
-int SmdGetWorkId(cObj* obj)
+int SmdGetWorkId(cObj* pObj)
 {
     cObj* p;
     int i;
 
     for (i = 0; i < 250; i++) {
         for (p = scrObjTbl[i]; p != NULL; p = SmdGetGroupNext(p)) {
-            if (p == obj) {
+            if (p == pObj) {
                 return i;
             }
         }
@@ -418,14 +418,14 @@ int SmdGetWorkId(cObj* obj)
 }
 
 // Scroll block `blk` loaded: creates its objects from `smd`.
-void BlockCreate(int blk, cSmd* smd)
+void BlockCreate(int blkNo, cSmd* pBlock)
 {
-    pSmd = smd;
-    SmdSetup(blk);
+    pSmd = pBlock;
+    SmdSetup(blkNo);
 }
 
 // Scroll block `blk` unloaded: destroys its objects (kind 2 with that blk).
-void BlockDestroy(int blk)
+void BlockDestroy(int blkNo)
 {
     cObj* p = ObjMgr.getActiveWork();
     cObj* cur;
@@ -437,7 +437,7 @@ void BlockDestroy(int blk)
             cur = p;
             next = (cObj*) cur->pNext;
             p = next;
-            if (cur->kindid == 2 && cur->blk == blk) {
+            if (cur->kindid == 2 && cur->blk == blkNo) {
                 ObjMgr.destroy(cur);
             }
         } while (next != NULL);
@@ -445,7 +445,7 @@ void BlockDestroy(int blk)
 }
 
 // The SMD moved in memory by `ofs`: relocates the pointers inside every used bin and tpl.
-void cSmd::slide(int ofs)
+void cSmd::slide(int offset)
 {
     SmdWork* w = getWorkPtr(0);
     int nBin = 0;
@@ -455,7 +455,7 @@ void cSmd::slide(int ofs)
     int i;
 
     if ((u32) w < 0x80000000 || (u32) w > 0x82FFFFFF) {
-        pLog->err(0, 0, "cSmd::slide(%d) PTR ERROR", ofs);
+        pLog->err(0, 0, "cSmd::slide(%d) PTR ERROR", offset);
         return;
     }
     for (i = 0; i < nModel; i++, w++) {
@@ -473,7 +473,7 @@ void cSmd::slide(int ofs)
                 pLog->err(0, 0, "cSmd::slide() PTR ERR %08X", addr);
                 return;
             }
-            slideModelAddr(addr, ofs);
+            slideModelAddr(addr, offset);
         }
     }
     nTpl = 0;   // set before the call: the pseudo crosses it and takes a callee-saved register
@@ -485,35 +485,35 @@ void cSmd::slide(int ofs)
     }
     tbl = (u32*) ((u8*) this + TplTblOfs);
     for (i = 0; i < nTpl; i++) {
-        slideTplAddr((u8*) tbl + tbl[i], ofs);
+        slideTplAddr((u8*) tbl + tbl[i], offset);
     }
 }
 
 // Work `no` (the works follow the group count table when Flag bit0).
-SmdWork* cSmd::getWorkPtr(int no)
+SmdWork* cSmd::getWorkPtr(int id)
 {
-    return (Flag & 1) ? (SmdWork*) ((u8*) this + grp.nGroup * 4 + 0x14) : &work[no];
+    return (Flag & 1) ? (SmdWork*) ((u8*) this + grp.nGroup * 4 + 0x14) : &work[id];
 }
 
 // Model bin `no`.
-void* cSmd::getBinPtr(int no)
+void* cSmd::getBinPtr(int id)
 {
     u8* tbl = (u8*) this + BinTblOfs;
-    return tbl + ((u32*) tbl)[no];
+    return tbl + ((u32*) tbl)[id];
 }
 
 // Texture tpl `no`.
-void* cSmd::getTplPtr(int no)
+void* cSmd::getTplPtr(int id)
 {
     u8* tbl = (u8*) this + TplTblOfs;
-    return tbl + ((u32*) tbl)[no];
+    return tbl + ((u32*) tbl)[id];
 }
 
 // Motion `no`.
-void* cSmd::getMotPtr(int no)
+void* cSmd::getMotPtr(int id)
 {
     u8* tbl = (u8*) this + MotTblOfs;
-    return tbl + ((u32*) tbl)[no];
+    return tbl + ((u32*) tbl)[id];
 }
 
 // Works in the file including the group members.
@@ -537,14 +537,14 @@ int cSmd::getWorkNum()
 }
 
 // The SmdWork with scroll id `id`, or NULL.
-SmdWork* SmdGetWorkPtr(int id)
+SmdWork* SmdGetWorkPtr(int idx)
 {
     SmdWork* w;
     u32 i;
 
     for (i = 0; i < pSmd->getWorkNum(); i++) {
         w = pSmd->getWorkPtr(i);
-        if (w->id == id) {
+        if (w->id == idx) {
             return w;
         }
     }
@@ -552,11 +552,11 @@ SmdWork* SmdGetWorkPtr(int id)
 }
 
 // The head object of scroll id `id` (groups allowed); NULL when unknown.
-cObj* SmdGetGroupObjPtr(u32 id)
+cObj* SmdGetGroupObjPtr(u32 idx)
 {
     cObj* obj;
 
-    if (id > 0xF9) {
+    if (idx > 0xF9) {
         if (DbgFlagChk(pG, DBG_TEST_MODE)) {
             if (!DbgFlagChk(pG, DBG_EVENT_TOOL)) {
                 goto ng;
@@ -564,11 +564,11 @@ cObj* SmdGetGroupObjPtr(u32 id)
         }
         {
             const char* s = "SmdGetObjPtr() invalid ID [%d] used";
-            pLog->err(0, 0, s, id);
+            pLog->err(0, 0, s, idx);
         }
-        id = 0;
+        idx = 0;
     }
-    obj = scrObjTbl[id];
+    obj = scrObjTbl[idx];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
         if (DbgFlagChk(pG, DBG_TEST_MODE)) {
             if (!DbgFlagChk(pG, DBG_EVENT_TOOL)) {
@@ -577,7 +577,7 @@ cObj* SmdGetGroupObjPtr(u32 id)
         }
         {
             const char* s = "SmdGetObjPtr(%d) invalid work";
-            pLog->err(0, 0, s, id);
+            pLog->err(0, 0, s, idx);
         }
         // The shared `return NULL` block sits after the second error call and the call jumps over
         // it to the normal return (the layout of the original).
@@ -586,38 +586,38 @@ cObj* SmdGetGroupObjPtr(u32 id)
         return NULL;
     }
 ok:
-    return scrObjTbl[id];
+    return scrObjTbl[idx];
 }
 
 // Head object of `id` without any error reporting.
-cObj* SmdGetGroupObjPtr2(u32 id)
+cObj* SmdGetGroupObjPtr2(u32 idx)
 {
-    if (id > 0xF9) {
+    if (idx > 0xF9) {
         return NULL;
     }
-    return scrObjTbl[id];
+    return scrObjTbl[idx];
 }
 
 // Next member of a scroll group (attr bit2), NULL at the end.
-cObj* SmdGetGroupNext(cObj* obj)
+cObj* SmdGetGroupNext(cObj* pObj00)
 {
-    if (!(obj->attr & 4)) {
+    if (!(pObj00->attr & 4)) {
         return NULL;
     }
-    return ObjMgr.getPrevWork(obj);
+    return ObjMgr.getPrevWork(pObj00);
 }
 
 // Shows / hides (be_flag bit1) every object of scroll id `id`.
-void SmdSetTrans(u32 id, int on)
+void SmdSetTrans(u32 idx, int onoff)
 {
-    cObj* obj = SmdGetGroupObjPtr(id);
+    cObj* obj = SmdGetGroupObjPtr(idx);
 
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
-        pLog->err(0, 0, "SmdSetTrans() INVALID INDEX %d", id);
+        pLog->err(0, 0, "SmdSetTrans() INVALID INDEX %d", idx);
         return;
     }
     do {
-        if (on == 1) {
+        if (onoff == 1) {
             obj->be_flag |= 2;
         } else {
             obj->be_flag &= ~2;

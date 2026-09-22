@@ -19,7 +19,7 @@ public:
     // 0x04: u32[num] byte offset of each path from the header
 
     u32 getSize();
-    cLightPathData* getPathData(u32 no);
+    cLightPathData* getPathData(u32 idx);
 };
 
 // Light path follower kept in cLight::work.
@@ -29,7 +29,7 @@ public:
     cLightPathData* pCur;    // 0x04  next brightness byte (0..200, 0xFF = end)
     u8 Flag;                 // 0x08  bit0: stop at the end, bit1: invert (200 - v)
 
-    int setPath(cLightPathData* data, u8 no);
+    int setPath(cLightPathData* pPath, u8 flag);
     int movePath();
 };
 

@@ -154,7 +154,7 @@ void Esp4e_Trans()
 // by ny = size_y/200*24 (2..50), cell size from Vec0, Tool_flg bit 0 clears the cloth flag, and the
 // wave parameters from Work8[0..3] / prm xCC,xD0 / xD4 / WorkSp8[0..2]. Returns 0 (effect not
 // created) when the texture or a cloth slot is unavailable.
-int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp4e::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp4eWork* wk = &m_Free;
     void* tpl;
@@ -179,15 +179,15 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
     ci = ClothTexSetUp(tpl, &wk->tex, 0, &wk->tlut);
     nx = (int) (m_Size_base_x / 200.0f * 36.0f);
     ny = (int) (m_Size_base_y / 200.0f * 24.0f);
-    width = gen->Vec0.x * 0.1f + 1.0f;
-    height = gen->Vec0.y * 0.1f + 1.0f;
+    width = pSeq->Vec0.x * 0.1f + 1.0f;
+    height = pSeq->Vec0.y * 0.1f + 1.0f;
     if (width == 0.0f) {
         width = 0.001f;
     }
     if (height == 0.0f) {
         height = 0.001f;
     }
-    t = gen->Tool_flg & 1;
+    t = pSeq->Tool_flg & 1;
     flag = t == 0;
     if (nx < 2) {
         nx = 2;
@@ -206,19 +206,19 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
     } else {
         wk->pCl->Set(m_Ang, m_Pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
     }
-    if (gen->Blend_type) {
+    if (pSeq->Blend_type) {
         wk->pCl->blendMode = 1;
     }
-    wk->time_plus = gen->Work8[0];
-    wk->pow = gen->Work8[1];
-    wk->time_plus2 = gen->Work8[2];
-    wk->pow2 = gen->Work8[3];
-    wk->range = (f32) (int) (gen->prm.w.xCC + 1) * 0.5f;
-    wk->range2 = (f32) (int) (gen->prm.w.xD0 + 1) * 0.5f;
-    wk->offset = (f32) (int) gen->xD4 * 0.025f;
-    wk->wind_time_plus = (f32) (gen->WorkSp8[0] + 1) * 0.0025f;
-    wk->wind_range_pow = (f32) (gen->WorkSp8[1] + 1) * 0.07f;
-    wk->rand_ratio = (f32) (gen->WorkSp8[2] + 1) * 0.2f;
+    wk->time_plus = pSeq->Work8[0];
+    wk->pow = pSeq->Work8[1];
+    wk->time_plus2 = pSeq->Work8[2];
+    wk->pow2 = pSeq->Work8[3];
+    wk->range = (f32) (int) (pSeq->prm.w.xCC + 1) * 0.5f;
+    wk->range2 = (f32) (int) (pSeq->prm.w.xD0 + 1) * 0.5f;
+    wk->offset = (f32) (int) pSeq->xD4 * 0.025f;
+    wk->wind_time_plus = (f32) (pSeq->WorkSp8[0] + 1) * 0.0025f;
+    wk->wind_range_pow = (f32) (pSeq->WorkSp8[1] + 1) * 0.07f;
+    wk->rand_ratio = (f32) (pSeq->WorkSp8[2] + 1) * 0.2f;
     return 1;
 }
 

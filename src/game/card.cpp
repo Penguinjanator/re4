@@ -236,13 +236,13 @@ static inline void deleteAllMes()
 }
 
 // Dev mode: prints the slot list (CARD SLOT A / HARD DISK) with the selected one highlighted.
-void debugInfoDisp(int slot, int type)
+void debugInfoDisp(int slot_no, int type)
 {
     static u8 col_tbl[2] = { 0x14, 0x05 };
 
     if (pG->IsDevConsole == 1) {
-        eprintf2(12, 16, 32, 38, col_tbl[slot == 0], 0, "CARD SLOT A");
-        eprintf2(12, 16, 32, 62, col_tbl[slot == 2], 0, "HARD DISK");
+        eprintf2(12, 16, 32, 38, col_tbl[slot_no == 0], 0, "CARD SLOT A");
+        eprintf2(12, 16, 32, 62, col_tbl[slot_no == 2], 0, "HARD DISK");
     }
 }
 
@@ -2252,14 +2252,14 @@ void CardFirstCheck()
 
 // Probes slot `chan` (CARDProbeEx): records size / sector size or the error flag (no card, wrong
 // device, fatal, bad sector size). 1 when a usable card is there (the host disk always).
-int cCard::existCheck(int chan, CardSlot* s)
+int cCard::existCheck(int slot, CardSlot* s)
 {
     int ret = 0;
 
-    if (chan == 2) {
+    if (slot == 2) {
         return 1;
     }
-    m_ResultCode = CARDProbeEx(chan, &s->memSize, &s->sectorSize);
+    m_ResultCode = CARDProbeEx(slot, &s->memSize, &s->sectorSize);
     switch (m_ResultCode) {
     case 0:
         ret = 1;
@@ -2289,17 +2289,17 @@ int cCard::existCheck(int chan, CardSlot* s)
 
 // Async step: mounts the card (CARDMountAsync), setting the slot's error flags on failure. 1 when
 // mounted.
-int cCard::mount(u8* sub, CardSlot* s)
+int cCard::mount(u8* Rno, CardSlot* s)
 {
     int ret = 0;
 
     if (s->chan == 2) {
         return 1;
     }
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
         CARDMountAsync(s->chan, s->workArea, 0, 0);
-        (*sub)++;
+        (*Rno)++;
         // fallthrough
     case 1:
         m_ResultCode = CARDGetResultCode(s->chan);
@@ -2329,17 +2329,17 @@ int cCard::mount(u8* sub, CardSlot* s)
         break;
     }
     if (ret != 0) {
-        *sub = 0;
+        *Rno = 0;
     }
     return ret;
 }
 
 // Unmounts slot `chan`; 1 when done.
-int cCard::unmount(int chan)
+int cCard::unmount(int slot)
 {
     int ret = 0;
 
-    m_ResultCode = CARDUnmount(chan);
+    m_ResultCode = CARDUnmount(slot);
     switch (m_ResultCode) {
     case -3:
         ret = 1;
@@ -2354,30 +2354,30 @@ int cCard::unmount(int chan)
         break;
     }
     if (ret == 1) {
-        OSReport("Slot %c Unmount\n", chan + 'A');
-        m_Slot[chan].flags = 0;
+        OSReport("Slot %c Unmount\n", slot + 'A');
+        m_Slot[slot].flags = 0;
     }
     return ret;
 }
 
 // Async step: CARDCheckAsync (file system check); broken -> flag 0x10.
-int cCard::verifyCheck(u8* sub, CardSlot* s)
+int cCard::verifyCheck(u8* Rno, CardSlot* s)
 {
     int ret = 0;
 
     if (s->chan == 2) {
         return 1;
     }
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
         CARDCheckAsync(s->chan, 0);
-        (*sub)++;
+        (*Rno)++;
         // fallthrough
     case 1:
         m_ResultCode = CARDGetResultCode(s->chan);
         switch (m_ResultCode) {
         case 0:
-            *sub = 0;
+            *Rno = 0;
             ret = 1;
             break;
         case -6:
@@ -2400,25 +2400,25 @@ int cCard::verifyCheck(u8* sub, CardSlot* s)
         break;
     }
     if (ret != 0) {
-        *sub = 0;
+        *Rno = 0;
     }
     return ret;
 }
 
 // Reads the free blocks / files of the card and flags "no space" (0x4 with 0x400 / 0x800 for
 // which file) when a save or the system file would not fit.
-int cCard::freeCheck(u8* sub, CardSlot* s)
+int cCard::freeCheck(u8* Rno, CardSlot* s)
 {
     int ret = 0;
 
     if (s->chan == 2) {
         return 1;
     }
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
         switch (CARDFreeBlocks(s->chan, &s->freeBytes, &s->freeFiles)) {
         case 0:
-            (*sub)++;
+            (*Rno)++;
             break;
         case -6:
             s->flags |= 0x10;
@@ -2469,7 +2469,7 @@ int cCard::freeCheck(u8* sub, CardSlot* s)
     }
     }
     if (ret != 0) {
-        *sub = 0;
+        *Rno = 0;
     }
     return ret;
 }
@@ -2530,25 +2530,25 @@ int cCard::fileClose(CardSlot* s)
 // Async step over the 20 save files: opens each, reads its 0x200 header into pInfo[], verifies
 // the header CRC / version (fileFlag bits 1 exists, 2 corrupt, 4 wrong version) and records the
 // card serial. 1 when all files were checked.
-int cCard::saveFileCheck(u8* sub, CardSlot* s)
+int cCard::saveFileCheck(u8* Rno, CardSlot* s)
 {
     int ret = 0;
     int r;
     int bit;
 
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
         CfgFlagOff(pSys, CFG_06);
         m_SaveNo = 0;
         memclr_asm(s->fileFlag, sizeof(s->fileFlag));
         m_RetryCtr = 0;
-        (*sub)++;
+        (*Rno)++;
         // fallthrough
     case 1:
         if (m_SaveNo == 20) {
             m_SaveNo = 0;
             ret = 1;
-            *sub = 0;
+            *Rno = 0;
             break;
         }
         if (s->chan == 2) {
@@ -2593,9 +2593,9 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
                     s->fileFlag[m_SaveNo] |= 1;
                     s->flags |= 0x100;
                     if (m_aMode == 2) {
-                        *sub = 3;
+                        *Rno = 3;
                     } else {
-                        (*sub)++;
+                        (*Rno)++;
                     }
                 } else {
                     m_RetryCtr = 0;
@@ -2619,9 +2619,9 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         if (r == 0) {
             if (s->stat.commentAddr == 0xFFFFFFFF) {
                 s->fileFlag[m_SaveNo] |= 2;
-                *sub = 4;
+                *Rno = 4;
             } else {
-                (*sub)++;
+                (*Rno)++;
             }
         } else {
             errorSet(r);
@@ -2634,12 +2634,12 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             if (CRCVerify(m_pSaveInfo[m_SaveNo] + 4, 0x1FC, ((SaveInfo*) m_pSaveInfo[m_SaveNo])->crc) == 0) {
                 if (m_RetryCtr == 3) {
                     s->fileFlag[m_SaveNo] |= 2;
-                    (*sub)++;
+                    (*Rno)++;
                 } else {
                     m_RetryCtr++;
                 }
             } else {
-                (*sub)++;
+                (*Rno)++;
                 if (((SaveInfo*) m_pSaveInfo[m_SaveNo])->magic != 0x116) {
                     s->fileFlag[m_SaveNo] |= 6;
                 }
@@ -2647,7 +2647,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         } else {
             if (m_RetryCtr == 3) {
                 s->fileFlag[m_SaveNo] |= 2;
-                (*sub)++;
+                (*Rno)++;
             } else {
                 m_RetryCtr++;
             }
@@ -2655,7 +2655,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         break;
     case 4:
         if (fileClose(s) != 0) {
-            *sub = 1;
+            *Rno = 1;
             m_RetryCtr = 0;
             m_SaveNo++;
         }
@@ -2665,7 +2665,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
 }
 
 // Async step: looks for the system file (flag 0x200 when present) and reads its status.
-int cCard::systemFileCheck(u8* sub, CardSlot* s)
+int cCard::systemFileCheck(u8* Rno, CardSlot* s)
 {
     int ret = 0;
     int r;
@@ -2673,22 +2673,22 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
     if (s->chan == 2) {
         return 1;
     }
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
         m_SaveNo = 0;
         sprintf(m_Name, "bh4_system");
-        (*sub)++;
+        (*Rno)++;
         // fallthrough
     case 1:
         r = fileOpen(s);
         if (r == 0) {
         } else if (r > 0) {
             if (m_ResultCode == 0) {
-                (*sub)++;
+                (*Rno)++;
                 s->flags |= 0x200;
             } else {
                 ret = 1;
-                *sub = 0;
+                *Rno = 0;
             }
         } else if (r < 0) {
             if (m_aMode == 2) {
@@ -2702,7 +2702,7 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
     case 2:
         if (fileClose(s) != 0) {
             ret = 1;
-            *sub = 0;
+            *Rno = 0;
         }
         break;
     }
@@ -2710,14 +2710,14 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
 }
 
 // Async step: reads `len` bytes at `ofs` of the open file; 1 done, negative on error.
-int cCard::fileRead(u8* sub, void* buf, s32 len, s32 ofs, CardSlot* s)
+int cCard::fileRead(u8* Rno, void* addr, s32 size, s32 offset, CardSlot* s)
 {
     int ret = 0;
 
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
-        CARDReadAsync(&s->fileInfo, buf, len, ofs, 0);
-        (*sub)++;
+        CARDReadAsync(&s->fileInfo, addr, size, offset, 0);
+        (*Rno)++;
         // fallthrough
     case 1:
         m_ResultCode = CARDGetResultCode(s->chan);
@@ -2732,21 +2732,21 @@ int cCard::fileRead(u8* sub, void* buf, s32 len, s32 ofs, CardSlot* s)
         break;
     }
     if (ret != 0) {
-        DCFlushRange(buf, len);
-        *sub = 0;
+        DCFlushRange(addr, size);
+        *Rno = 0;
     }
     return ret;
 }
 
 // Async step: writes `blocks` x 8 KB from `buf` to the open file; 1 done.
-int cCard::fileWrite(u8* sub, void* buf, int blocks, CardSlot* s)
+int cCard::fileWrite(u8* Rno, void* addr, int wblock, CardSlot* s)
 {
     int ret = 0;
 
-    switch (*sub) {
+    switch (*Rno) {
     case 0:
-        CARDWriteAsync(&s->fileInfo, buf, blocks << 13, 0, 0);
-        (*sub)++;
+        CARDWriteAsync(&s->fileInfo, addr, wblock << 13, 0, 0);
+        (*Rno)++;
         // fallthrough
     case 1:
         m_ResultCode = CARDGetResultCode(s->chan);
@@ -2761,30 +2761,30 @@ int cCard::fileWrite(u8* sub, void* buf, int blocks, CardSlot* s)
         break;
     }
     if (ret != 0) {
-        *sub = 0;
+        *Rno = 0;
     }
     return ret;
 }
 
 // Reads and validates the system file (status, CRC, version) into pSysBuf and applies the saved
 // options (sysFlags); errMode selects how failures are reported. 1 when read.
-int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
+int cCard::sysfileRead(u8* Rno0, u8* Rno1, int err_set)
 {
     int ret = 0;
     int r;
 
-    switch (*sub) {
+    switch (*Rno0) {
     case 0:
         if (m_SlotNo == 2) {
-            *sub = 2;
+            *Rno0 = 2;
             break;
         }
         r = fileOpen(&m_Slot[m_SlotNo]);
         if (r == 0) {
         } else if (r > 0) {
-            (*sub)++;
+            (*Rno0)++;
         } else if (r < 0) {
-            if (errMode != 0) {
+            if (err_set != 0) {
                 errorSet(-0x206);
                 return 0;
             }
@@ -2797,7 +2797,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             break;
         }
         if (r != 0) {
-            if (errMode != 0) {
+            if (err_set != 0) {
                 errorSet(-0x206);
                 return 0;
             }
@@ -2805,9 +2805,9 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             break;
         }
         if (m_Slot[m_SlotNo].stat.commentAddr != 0xFFFFFFFF) {
-            (*sub)++;
+            (*Rno0)++;
         } else {
-            if (errMode != 0) {
+            if (err_set != 0) {
                 errorSet(-0x202);
                 return 0;
             }
@@ -2831,15 +2831,15 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             if (r == 0) {
                 ret = -1;
             } else {
-                *sub = 3;
+                *Rno0 = 3;
             }
         } else {
-            r = fileRead(sub2, pSysBuf, m_SysSize << 13, 0, &m_Slot[m_SlotNo]);
+            r = fileRead(Rno1, pSysBuf, m_SysSize << 13, 0, &m_Slot[m_SlotNo]);
             if (r == 0) {
             } else if (r > 0) {
-                (*sub)++;
+                (*Rno0)++;
             } else {
-                if (errMode != 0) {
+                if (err_set != 0) {
                     errorSet(-0x206);
                     return 0;
                 }
@@ -2850,20 +2850,20 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
     case 3:
         if (CRCVerify(pSysBuf, SYS_CRC, *(u32*) (pSysBuf + SYS_CRC)) == 0) {
             if (m_RetryCtr == 3) {
-                if (errMode != 0) {
+                if (err_set != 0) {
                     errorSet(-0x202);
                     return 0;
                 }
                 ret = -1;
             } else {
-                *sub2 = 1;
+                *Rno1 = 1;
                 m_RetryCtr++;
             }
         } else {
             if (m_SlotNo == 2) {
                 ret = 1;
             } else {
-                (*sub)++;
+                (*Rno0)++;
             }
         }
         break;
@@ -2873,7 +2873,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         } else if (r > 0) {
             ret = 1;
         } else if (r < 0) {
-            if (errMode != 0) {
+            if (err_set != 0) {
                 errorSet(-0x206);
                 return 0;
             }
@@ -2882,8 +2882,8 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         break;
     }
     if (ret != 0) {
-        *sub = 0;
-        *sub2 = 0;
+        *Rno0 = 0;
+        *Rno1 = 0;
     }
     return ret;
 }
@@ -3048,10 +3048,10 @@ void cCard::screenTrans()
 }
 
 // Shows memcard message `no` from the message table at its layout position in window `slot`.
-void cCard::cardMesSet(int no, int slot, u32 attr)
+void cCard::cardMesSet(int mes_no, int wk_no, u32 attr)
 {
-    MesPos* p = &mes_pos_tbl[pSys->language][no];
-    cMes.MesSet(p->no, p->x, p->y, attr | 0x01020051, slot, 0, 4);
+    MesPos* p = &mes_pos_tbl[pSys->language][mes_no];
+    cMes.MesSet(p->no, p->x, p->y, attr | 0x01020051, wk_no, 0, 4);
 }
 
 // Relocates an in-file TPL in place (offsets -> pointers).
@@ -3111,25 +3111,25 @@ void CRCInit()
 }
 
 // CRC-32 of `len` bytes.
-u32 CRCCalc(u8* data, u32 len)
+u32 CRCCalc(u8* bufPtr, u32 nByte)
 {
     u32 crc = 0;
     u32 i;
 
-    for (i = 0; i < len; i++) {
-        crc = (crc << 8) ^ CRCTable[(crc >> 24) ^ data[i]];
+    for (i = 0; i < nByte; i++) {
+        crc = (crc << 8) ^ CRCTable[(crc >> 24) ^ bufPtr[i]];
     }
     return crc;
 }
 
 // 1 when the CRC of the data matches `saved` (logs both on mismatch).
-int CRCVerify(u8* data, u32 len, u32 saved)
+int CRCVerify(u8* bufPtr, u32 nByte, u32 ChkCRC)
 {
-    u32 crc = CRCCalc(data, len);
-    if (saved == crc) {
+    u32 crc = CRCCalc(bufPtr, nByte);
+    if (ChkCRC == crc) {
         return 1;
     }
-    OSReport("CRCVerifyCRC Error: CRCs doesn't match!!\nSaved CRC  = 0x%x\nActual CRC = 0x%x\n", saved, crc);
+    OSReport("CRCVerifyCRC Error: CRCs doesn't match!!\nSaved CRC  = 0x%x\nActual CRC = 0x%x\n", ChkCRC, crc);
     return 0;
 }
 
@@ -3170,7 +3170,7 @@ void CardDbgCacheSet()
 
 // Fills save slot `no`'s list entry ids: chapter / difficulty / play time / save count digits
 // from the header (or the "broken" / "no data" variants).
-void dispSaveInfo(int no, SaveInfo* info, int type, int broken)
+void dispSaveInfo(int no, SaveInfo* p_info, int type, int flag)
 {
     IDSystem* id = &g_id->m_IdSave;
     IdUnit* u;
@@ -3185,22 +3185,22 @@ void dispSaveInfo(int no, SaveInfo* info, int type, int broken)
 
     putNumber(id, no + 1, 2, 2, type);
     u = id->unitPtr(0x16, type);
-    if (info == 0) {
+    if (p_info == 0) {
         u->be_flag &= ~8;
         return;
     }
     u->be_flag |= 8;
     special = 0;
-    chapter = info->chapter;
+    chapter = p_info->chapter;
     id->unitPtr(0x20, type)->be_flag &= ~8;
     id->unitPtr(7, type)->be_flag &= ~8;
     id->unitPtr(6, type)->be_flag &= ~8;
     id->unitPtr(0x21, type)->be_flag &= ~8;
     id->unitPtr(0x19, type)->be_flag &= ~8;
-    if (broken) {
+    if (flag) {
         u = id->unitPtr(0x20, type);
     } else {
-        switch (info->mode) {
+        switch (p_info->mode) {
         case 1:
             if (chapter == 0x12) {
                 u = id->unitPtr(0x19, type);
@@ -3230,7 +3230,7 @@ skip:
     u = id->unitPtr(3, type);
     u->tex_flag |= 2;
     u->texNo = chap;
-    if (broken || special) {
+    if (flag || special) {
         id->unitPtr(3, type)->be_flag &= ~8;
         id->unitPtr(4, type)->be_flag &= ~8;
         id->unitPtr(5, type)->be_flag &= ~8;
@@ -3239,8 +3239,8 @@ skip:
         id->unitPtr(4, type)->be_flag |= 8;
         id->unitPtr(5, type)->be_flag |= 8;
     }
-    putNumber(id, info->save_cnt, 0xA, 3, type);
-    if (broken) {
+    putNumber(id, p_info->save_cnt, 0xA, 3, type);
+    if (flag) {
         id->unitPtr(8, type)->be_flag &= ~8;
         id->unitPtr(9, type)->be_flag &= ~8;
         id->unitPtr(0xA, type)->be_flag &= ~8;
@@ -3249,7 +3249,7 @@ skip:
         id->unitPtr(9, type)->be_flag |= 8;
         id->unitPtr(0xA, type)->be_flag |= 8;
     }
-    SecToTime(info->playTime, &h, &m, &s);
+    SecToTime(p_info->playTime, &h, &m, &s);
     putNumber(id, h, 0xC, 2, type);
     u = id->unitPtr(0xD, type);
     u->texNo = 0xB;
@@ -3259,7 +3259,7 @@ skip:
     u->texNo = 0xB;
     u->tex_flag |= 2;
     putNumber(id, s, 0x12, 2, type);
-    if (broken) {
+    if (flag) {
         id->unitPtr(0xB, type)->be_flag &= ~8;
         id->unitPtr(0xC, type)->be_flag &= ~8;
         id->unitPtr(0xD, type)->be_flag &= ~8;
@@ -3278,12 +3278,12 @@ skip:
         id->unitPtr(0x11, type)->be_flag |= 8;
         id->unitPtr(0x12, type)->be_flag |= 8;
     }
-    num = info->count + 1;
-    if (info->mode == 3) {
-        num = info->count;
+    num = p_info->count + 1;
+    if (p_info->mode == 3) {
+        num = p_info->count;
     }
     putNumber(id, num, 0x14, 2, type);
-    if (broken) {
+    if (flag) {
         id->unitPtr(0x13, type)->be_flag &= ~8;
         id->unitPtr(0x14, type)->be_flag &= ~8;
     } else {
@@ -3294,7 +3294,7 @@ skip:
     id->unitPtr(0x17, type)->be_flag &= ~8;
     id->unitPtr(0x18, type)->be_flag &= ~8;
     if (pSys->language == 0) {
-        switch (info->game_mode_disp) {
+        switch (p_info->game_mode_disp) {
         case 1:
             id->unitPtr(0x22, type)->be_flag |= 8;
             break;
@@ -3307,7 +3307,7 @@ skip:
             break;
         }
     } else if (pSys->language == 1) {
-        switch (info->game_mode_disp) {
+        switch (p_info->game_mode_disp) {
         case 5:
         default:
             id->unitPtr(0x17, type)->be_flag |= 8;
@@ -3317,7 +3317,7 @@ skip:
             break;
         }
     } else {
-        switch (info->game_mode_disp) {
+        switch (p_info->game_mode_disp) {
         case 3:
             id->unitPtr(0x22, type)->be_flag |= 8;
             break;

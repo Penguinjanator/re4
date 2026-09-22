@@ -59,16 +59,16 @@ static inline int emListVillage(int room)
 // Which enemy list file `room` uses: 8 for Assignment Ada (System_flg bit31), 9 / 10 for the
 // Mercenaries (0x40000000; 10 in rooms 403 / 404), else by stage and story progress (0..7);
 // -1 = the room keeps the current list.
-int checkEmListNo(u16 room)
+int checkEmListNo(u16 room_no)
 {
-    int stage = room >> 8;
+    int stage = room_no >> 8;
     u32 flags = pG->System_flg;
 
     if (flags & 0x80000000) {
         return 8;
     }
     if (flags & 0x40000000) {
-        switch (room) {
+        switch (room_no) {
         default:
             return 9;
         case 0x403:
@@ -78,55 +78,55 @@ int checkEmListNo(u16 room)
     }
     switch (stage) {
     case 1:
-        if (room == 0x120) {
+        if (room_no == 0x120) {
             return 0;
         }
-        if (room == 0x10E) {
+        if (room_no == 0x10E) {
             if (flags & 0x2000) {
                 return 1;
             }
             return -1;
         }
-        return room > 0x10B;
+        return room_no > 0x10B;
     case 2:
-        if (room == 0x22B) {
+        if (room_no == 0x22B) {
             return -1;
         }
-        if (room == 0x22C) {
+        if (room_no == 0x22C) {
             return -1;
         }
-        if (room == 0x22D) {
+        if (room_no == 0x22D) {
             return -1;
         }
-        if (room == 0x200) {
+        if (room_no == 0x200) {
             if (!ScfFlagChk(pG, SCF_ST2_IN)) {
                 return 1;
             }
             return 2;
         }
-        if (room > 0x219) {
-            if (room == 0x222) {
+        if (room_no > 0x219) {
+            if (room_no == 0x222) {
                 return 4;
             }
             return 5;
         }
-        if (room > 0x210) {
+        if (room_no > 0x210) {
             return 4;
         }
         if (ScfFlagChk(pG, SCF_R206_ASHLEY_RESCUE)) {
             return 4;
         }
-        return emListVillage(room);
+        return emListVillage(room_no);
     case 3:
-        if (room <= 0x314) {
+        if (room_no <= 0x314) {
             return 6;
         }
         return 7;
     case 4:
-        if (room > 0x404) {
+        if (room_no > 0x404) {
             return 8;
         }
-        switch (room) {
+        switch (room_no) {
         case 0x403:
         case 0x404:
             break;
@@ -230,7 +230,7 @@ void StageSet()
 // Reads the enemy list file for the current room into pG->Em_list when it differs from the loaded
 // one (always on a new game / save kind 3 / debug); a failed read clears the list.
 #line 280 "D:/Bio4/Prog/stage.cpp"
-void readEmList(int mode)
+void readEmList(int proc)
 {
     const char* name = NULL;
     int result;
@@ -248,7 +248,7 @@ void readEmList(int mode)
     }
     if (name != NULL) {
 #line 296 "D:/Bio4/Prog/stage.cpp"
-        req = DvdReadN(name, pG->Em_list, 0, 0, 0, mode | 0x10, __FILE__, __LINE__);
+        req = DvdReadN(name, pG->Em_list, 0, 0, 0, proc | 0x10, __FILE__, __LINE__);
         while (Dvd.ReadCheck(req, &result, 0, 0) != 1) {
             TaskSleep(1);
         }
@@ -273,16 +273,16 @@ static SubMissionTarget st1_target_tbl[15] = {
 };
 
 // Stage 1 medallion `no` (0..14) still unbroken in both of its rooms.
-int checkSubMissionTarget(int stage, int no)
+int checkSubMissionTarget(int stage_no, int target_no)
 {
     u16* p1;
     u16* p2;
 
-    if (stage != 1) {
+    if (stage_no != 1) {
         return 0;
     }
-    p1 = GetEtcFlgPtr(st1_target_tbl[no].no, st1_target_tbl[no].room1);
-    p2 = GetEtcFlgPtr(st1_target_tbl[no].no, st1_target_tbl[no].room2);
+    p1 = GetEtcFlgPtr(st1_target_tbl[target_no].no, st1_target_tbl[target_no].room1);
+    p2 = GetEtcFlgPtr(st1_target_tbl[target_no].no, st1_target_tbl[target_no].room2);
     if ((*p1 & 1) == 0) {
         if ((*p2 & 1) == 0) {
             return 1;

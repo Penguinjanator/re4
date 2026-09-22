@@ -76,9 +76,9 @@ MessageData MesData;
 static MesQue MsgQueue[3][0x100];
 
 // Message text word -> font glyph index (codes 0x80.. are glyphs).
-u16 getCharCode(u16 code)
+u16 getCharCode(u16 data)
 {
-    return code - 0x80;
+    return data - 0x80;
 }
 
 // 1 when a message word is a control code (< 0x80).
@@ -132,16 +132,16 @@ void RomFont::setup(void* image)
 #define WGFIFO_S16(v) (GXWGFifo->s16 = (v))
 
 // Draws one cell of the font sheet (cell at cx, cy) at screen x, y.
-void RomFont::draw(int x, int y, int cx, int cy)
+void RomFont::draw(int x, int y, int xChar, int yChar)
 {
     s16 x0 = x;
     s16 y0 = y;
-    s16 u0 = cx;
-    s16 v0 = cy;
+    s16 u0 = xChar;
+    s16 v0 = yChar;
     s16 x1 = x0 + ((OSFontHeader*) m_FontData)->cellWidth;
     s16 y1 = y0 + ((OSFontHeader*) m_FontData)->cellHeight;
-    s16 u1 = cx + ((OSFontHeader*) m_FontData)->cellWidth;
-    s16 v1 = cy + ((OSFontHeader*) m_FontData)->cellHeight;
+    s16 u1 = xChar + ((OSFontHeader*) m_FontData)->cellWidth;
+    s16 v1 = yChar + ((OSFontHeader*) m_FontData)->cellHeight;
 
     GXBegin(0x80, 0, 4);
     WGFIFO_S16(x0);
@@ -167,39 +167,39 @@ void RomFont::draw(int x, int y, int cx, int cy)
 }
 
 // Glyph advance of `code` from the width table (left/right bearings); glyph 0 uses entry 1.
-s16 MessageFont::getSize(s16 code, s8* left, s8* right)
+s16 MessageFont::getSize(s16 mes, s8* L, s8* R)
 {
-    int idx = code * 2;
+    int idx = mes * 2;
 
-    if (code == 0) {
+    if (mes == 0) {
         idx = 2;
     }
-    *left = pWidth[idx];
-    *right = pWidth[idx + 1];
-    return *right - *left;
+    *L = pWidth[idx];
+    *R = pWidth[idx + 1];
+    return *R - *L;
 }
 
 // Builds a message font from a .fnt file: relocates the TPL once, records each texture sheet
 // (FONT_TEX: texture + TLUT), the width table and the cell size w x h.
-void MessageFont::create(int w, int h, TEXPalette* tpl, u8* width)
+void MessageFont::create(int char_w, int char_h, TEXPalette* addr, u8* size)
 {
     u32 i;
     TEXDescriptor* d;
     FONT_TEX* t;
 
-    m_tpl = tpl;
-    if ((s32) tpl->descriptorArray >= 0) {
-        tpl->descriptorArray = (TEXDescriptor*) ((u32) tpl->descriptorArray + (u32) tpl);
-        d = tpl->descriptorArray;
-        for (i = 0; i < tpl->numDescriptors; i++, d++) {
-            d->textureHeader = (TEXHeader*) ((u8*) tpl + (u32) d->textureHeader);
-            d->CLUTHeader = (CLUTHeader*) ((u8*) tpl + (u32) d->CLUTHeader);
+    m_tpl = addr;
+    if ((s32) addr->descriptorArray >= 0) {
+        addr->descriptorArray = (TEXDescriptor*) ((u32) addr->descriptorArray + (u32) addr);
+        d = addr->descriptorArray;
+        for (i = 0; i < addr->numDescriptors; i++, d++) {
+            d->textureHeader = (TEXHeader*) ((u8*) addr + (u32) d->textureHeader);
+            d->CLUTHeader = (CLUTHeader*) ((u8*) addr + (u32) d->CLUTHeader);
             if (d->textureHeader->unpacked == 0) {
-                d->textureHeader->data = (u8*) tpl + (u32) d->textureHeader->data;
+                d->textureHeader->data = (u8*) addr + (u32) d->textureHeader->data;
                 d->textureHeader->unpacked = 1;
             }
             if (d->CLUTHeader->unpacked == 0) {
-                d->CLUTHeader->data = (u8*) tpl + (u32) d->CLUTHeader->data;
+                d->CLUTHeader->data = (u8*) addr + (u32) d->CLUTHeader->data;
                 d->CLUTHeader->unpacked = 1;
             }
         }
@@ -208,7 +208,7 @@ void MessageFont::create(int w, int h, TEXPalette* tpl, u8* width)
     t = m_mTex;
     for (i = 0; i < m_tpl->numDescriptors; i++, d++, t++) {
         TEXHeader* th = d->textureHeader;
-        t->pTpl = tpl;
+        t->pTpl = addr;
         t->pTex = th;
         if (d->textureHeader->format - 8 <= 1) {
             if (d->textureHeader->unpacked) {
@@ -223,11 +223,11 @@ void MessageFont::create(int w, int h, TEXPalette* tpl, u8* width)
         }
         PSMTXScale(t->mtx, 1.0f, 1.0f, 1.0f);
     }
-    pWidth = width;
+    pWidth = size;
     be_flag = 1;
     t = m_mTex;
-    m_char_w = w;
-    m_char_h = h;
+    m_char_w = char_w;
+    m_char_h = char_h;
     m_tex_w = t->pTex->width;
     m_tex_h = t->pTex->height;
 }
@@ -248,9 +248,9 @@ struct MesTblBlock {
 
 // Text of message `no` in message file `type` (0 core, 1 room/event mdt, 2 core, 3 item names,
 // 4 ...) for the current language; NULL when out of range.
-u16* MessageData::getAddr(int no, int type)
+u16* MessageData::getAddr(int no, int data_type)
 {
-    u32* tbl = (u32*) ptr[type];
+    u32* tbl = (u32*) ptr[data_type];
     MesTblBlock* blk = (MesTblBlock*) ((u8*) tbl + tbl[lang + 1]);
 
     if (no > (int) blk->count - 1) {
@@ -260,9 +260,9 @@ u16* MessageData::getAddr(int no, int type)
 }
 
 // Number of messages in file `type` for the current language.
-int MessageData::getMesNum(int type)
+int MessageData::getMesNum(int data_type)
 {
-    u32* tbl = (u32*) ptr[type];
+    u32* tbl = (u32*) ptr[data_type];
     MesTblBlock* blk = (MesTblBlock*) ((u8*) tbl + tbl[lang + 1]);
 
     return blk->count;
@@ -278,7 +278,7 @@ int MessageData::getSpaceWidth()
 }
 
 // Applies layout preset `layout` (font size, char spacing, line gap; per language) to slot `no`.
-void MessageControl::setLayout(int no, int layout)
+void MessageControl::setLayout(int no, int type)
 {
     static s8 layout_tbl[2][9][6] = {
         {
@@ -306,7 +306,7 @@ void MessageControl::setLayout(int no, int layout)
     };
     static s8* p_layout;
 
-    p_layout = layout_tbl[MesData.lang][layout];
+    p_layout = layout_tbl[MesData.lang][type];
     setFontSize(no, p_layout[0], p_layout[1]);
     U16Set(MES(no)->m_char_gap, p_layout[3]);
     MES(no)->m_line_gap = p_layout[5];
@@ -346,12 +346,12 @@ void MessageControl::setLanguage(int lang)
 }
 
 // Creates font slot `no` from a loaded .fnt buffer (TPL and width table offsets).
-void MessageControl::setupFont(int w, int h, TEXPalette* tpl, int no)
+void MessageControl::setupFont(int char_w, int char_h, TEXPalette* addr, int no)
 {
-    MesFontFile* f = (MesFontFile*) tpl;
+    MesFontFile* f = (MesFontFile*) addr;
 
-    m_font_addr[no] = tpl;
-    MesFont[no].create(w, h, (TEXPalette*) ((u8*) f + f->tplOfs), (u8*) f + f->widthOfs);
+    m_font_addr[no] = addr;
+    MesFont[no].create(char_w, char_h, (TEXPalette*) ((u8*) f + f->tplOfs), (u8*) f + f->widthOfs);
 }
 
 // Destroys font slot `no`.
@@ -600,11 +600,11 @@ void MessageControl::Trans()
 }
 
 // Sets the glyph draw size of slot `no`.
-void MessageControl::setFontSize(int no, s16 w, s16 h)
+void MessageControl::setFontSize(int no, s16 font_w, s16 font_h)
 {
     Message* m = getMes(no);
-    m->m_font_w = w;
-    m->m_font_h = h;
+    m->m_font_w = font_w;
+    m->m_font_h = font_h;
 }
 
 // Starts message `no` in slot `slot` at (x, y): the font by `type` (0 common, 2 stage/event, 3
@@ -612,14 +612,14 @@ void MessageControl::setFontSize(int no, s16 w, s16 h)
 // and attribute bits (0x80 = no wait/stop, 0x10 = do not stop the game, 0x40 = instant, 0x20 = OT
 // draw, alignment bits 0x20000/0x80000/0x10000, ...). Unless attr 0x80, saves Stop_flg and
 // stops the game and input while the message runs.
-void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, int type)
+void MessageControl::MesSet(int no, int px, int py, u32 attr, int wk, int col, int font_no)
 {
     MessageFont* font;
     Message* m;
     int ok;
 
     if (pSys->language == 0) {
-        if (type == 4) {
+        if (font_no == 4) {
             if (attr & 1) {
                 font = &MesFont[0];
             } else if (attr & 2) {
@@ -630,12 +630,12 @@ void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, i
                 font = &MesFont[0];
             }
         } else {
-            font = &MesFont[type];
+            font = &MesFont[font_no];
         }
     } else {
         font = &MesFont[0];
     }
-    if (slot == 15) {
+    if (wk == 15) {
         font = &MesFont[1];
     }
     ok = 0;
@@ -646,8 +646,8 @@ void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, i
         pLog->err(0, 0, "MesSet(): Font not found", 0);
         return;
     }
-    m = &m_Msg[slot];
-    m->init(no, x, y, attr, col, font);
+    m = &m_Msg[wk];
+    m->init(no, px, py, attr, col, font);
     m->m_scale_w = (f32) m->m_font_w / (f32) font->m_char_w;
     m->m_scale_h = (f32) m->m_font_h / (f32) font->m_char_h;
     if (!(attr & 0x80)) {
@@ -682,11 +682,11 @@ void MessageControl::WaitEnd(int no)
 // Resets a slot for message `no`: routine numbers, position, colour, speed (attr 0x40 = 0 frames
 // per char), text pointer from the file selected by attr bits 0/1/2/3 (falls back to message 0
 // with an error), OT type 0x15.
-void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
+void Message::init(int no, int px, int py, u32 attr, int col, MessageFont* pFont)
 {
     int i;
 
-    m_pFont = fnt;
+    m_pFont = pFont;
     be_flag |= 3;
     m_state = (m_state & ~2) | 1;
     r_no_3 = 0;
@@ -697,11 +697,11 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
     m_sel = 0;
     m_selTbl_size = 0;
     for (i = 15; i >= 0; i--) {
-        m_pos0_x[i] = x;
+        m_pos0_x[i] = px;
     }
-    this->m_pos_x = x;
-    this->m_pos_y = y;
-    m_pos0_y = y;
+    this->m_pos_x = px;
+    this->m_pos_y = py;
+    m_pos0_y = py;
     m_col = mes_col_tbl[col];
     qp = qbase;
     this->m_attr = attr;
@@ -905,16 +905,16 @@ void Message::WidthCk()
 
 // Emits glyph `code` at the pen position: appended to the glyph queue (drawn by trans), or drawn
 // immediately when the slot has no queue; advances the pen by the glyph width + charSpace.
-void Message::QueSet(int code, MessageFont* fnt)
+void Message::QueSet(int code, MessageFont* p_font)
 {
     s8 l, r;
     s16 w, h;
 
-    if (fnt == NULL) {
-        fnt = m_pFont;
+    if (p_font == NULL) {
+        p_font = m_pFont;
     }
-    w = (s16) ((f32) fnt->getSize(code, &l, &r) * m_scale_w);
-    h = (s16) ((f32) (int) fnt->m_char_h * m_scale_h);
+    w = (s16) ((f32) p_font->getSize(code, &l, &r) * m_scale_w);
+    h = (s16) ((f32) (int) p_font->m_char_h * m_scale_h);
     if (!(m_state & 8)) {
         if (qp != NULL) {
             qp->x = m_pos_x;
@@ -923,7 +923,7 @@ void Message::QueSet(int code, MessageFont* fnt)
             qp->code = code;
             qp->w = w;
             qp->h = h;
-            qp->font = fnt;
+            qp->font = p_font;
             qp++;
         } else {
             MesQue q;
@@ -932,7 +932,7 @@ void Message::QueSet(int code, MessageFont* fnt)
             q.color = m_col;
             q.code = code;
             q.h = h;
-            q.font = fnt;
+            q.font = p_font;
             q.w = w;
             messageTrans(&q);
         }
@@ -980,9 +980,9 @@ void Message::putSelCursol()
 }
 
 // Blinks the "next page" cursor (timer 1..30; reset restarts at 20).
-void Message::putNextCursol(int reset)
+void Message::putNextCursol(int flag)
 {
-    if (reset == 0) {
+    if (flag == 0) {
         m_cursol_time = 0x14;
     }
     m_cursol_time++;
@@ -992,10 +992,10 @@ void Message::putNextCursol(int reset)
 }
 
 // Adds a message number to the jump table used by control codes 02/0F/11 with argument 0xFFFF (max 3).
-void Message::setJump(u16 pos)
+void Message::setJump(u16 mes)
 {
     if (m_jump_max <= 2) {
-        m_jump_mes[m_jump_max] = pos;
+        m_jump_mes[m_jump_max] = mes;
         m_jump_max++;
     } else {
         pLog->warn(0, 0, "JumpTbl is Max!");
@@ -1105,10 +1105,10 @@ void messageCamera()
 }
 
 // OT callback / direct draw of one glyph.
-void messageTrans(MesQue* q)
+void messageTrans(MesQue* p_que)
 {
     messageCamera();
-    draw(q);
+    draw(p_que);
 }
 
 // Draws the slot's glyph queue, through the OT (attr 0x20) or directly.

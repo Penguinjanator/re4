@@ -24,7 +24,7 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos);
 // (flags bit 2), stores the bend axis (kind >> 8), the bone lengths from the bind pose and the
 // root->effector direction, and the options: 0x20 = also correct the toe angle (ikAng), 0x80 =
 // the chain has an extra joint (0x210). A degenerate bend plane disables the chain.
-void IKInit(cModel* m, MotionWorkSub* w)
+void IKInit(cModel* pEm, MotionWorkSub* pInfo)
 {
     Vec axis;
     Mtx mtx;
@@ -35,17 +35,17 @@ void IKInit(cModel* m, MotionWorkSub* w)
     cModel* eff;
     int i;
 
-    for (p = m->pParts; p != 0; p = p->pParts) {
+    for (p = pEm->pParts; p != 0; p = p->pParts) {
         IK_FLAGS(p) &= ~4;
         IK_FLAGS(p) &= ~0x10;
         IK_FLAGS(p) &= ~0x300;
     }
-    for (i = 0; i < w->Joint_num; i++) {
-        int kind = w->pJoint_kind[i] & 0xFF;
+    for (i = 0; i < pInfo->Joint_num; i++) {
+        int kind = pInfo->pJoint_kind[i] & 0xFF;
         if (!(kind & 0x30)) {
             continue;
         }
-        root = m->getPartsPtr(w->pJoint_no[i]);
+        root = pEm->getPartsPtr(pInfo->pJoint_no[i]);
         if (root == 0) {
             pLog->err(2, 0, "IKInit(): missing Root.");
             return;
@@ -61,7 +61,7 @@ void IKInit(cModel* m, MotionWorkSub* w)
             return;
         }
         IK_FLAGS(root) |= 4;
-        switch ((w->pJoint_kind[i] >> 8) & 0xF) {
+        switch ((pInfo->pJoint_kind[i] >> 8) & 0xF) {
         case 4:
             axis.x = 0.0f;
             axis.y = 0.0f;
@@ -302,10 +302,10 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos)
 // foot effector (SatMgr.getFloor; skipped when EM_STATUS_IK_OFF or chain flag 0x200), moves the
 // foot target onto the floor when it is within reach, solves the chain (ikCalc), then places the
 // heel/toe (heel2toe) and, with option 0x100, blends the toe angle.
-void InverseKinematics(cModel* m, int flag)
+void InverseKinematics(cModel* pEm, int arm_flag)
 {
-    cEm* em = (cEm*) m;
-    MotionWorkSub* blend = MOTION(m)->blend;
+    cEm* em = (cEm*) pEm;
+    MotionWorkSub* blend = MOTION(pEm)->blend;
     Mtx inv;
     Vec target;
     Vec a;
@@ -317,7 +317,7 @@ void InverseKinematics(cModel* m, int flag)
     f32 ang;
     int n;
 
-    for (p = m->pParts; p != 0; p = p->pParts) {
+    for (p = pEm->pParts; p != 0; p = p->pParts) {
         if (!(IK_FLAGS(p) & 4)) {
             continue;
         }
@@ -326,7 +326,7 @@ void InverseKinematics(cModel* m, int flag)
         }
         joint = p->pParts;
         eff = joint->pParts;
-        PSMTXMultVec(m->mat, &eff->pos, &target);
+        PSMTXMultVec(pEm->mat, &eff->pos, &target);
         if (!em->checkStatus(EM_STATUS_IK_OFF) && !(IK_FLAGS(p) & 0x200)) {
             if (!(em->atari.m_flag & 0x100)) {
                 floorY = target.y - eff->pos.y;
@@ -357,16 +357,16 @@ void InverseKinematics(cModel* m, int flag)
         }
         if (!(IK_FLAGS(p) & 0x10)) {
             if (IK_FLAGS(p) & 0x100) {
-                heel2toe(m->mat, eff, &target);
+                heel2toe(pEm->mat, eff, &target);
             } else {
-                PSMTXConcat(m->mat, eff->l_mat, eff->mat);
+                PSMTXConcat(pEm->mat, eff->l_mat, eff->mat);
                 TransMatrix(eff->mat, &target);
                 MAT_COL(eff->world, eff->mat, 3);
                 IK_LOCAL(eff);
             }
         } else {
             eff = p->pParts->pParts->pParts;
-            PSMTXConcat(m->mat, eff->l_mat, eff->mat);
+            PSMTXConcat(pEm->mat, eff->l_mat, eff->mat);
             MAT_COL(eff->world, eff->mat, 3);
             IK_LOCAL(eff);
         }

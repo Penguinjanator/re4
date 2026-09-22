@@ -302,7 +302,7 @@ static void knife_r2_fire(cPlayer* pl)
 // slash) it first sweeps four intermediate lines between the tip's previous position `ohpos` and
 // the new one, then the line itself and two more offset +200/+400 and -100/-200 in Y (the arc).
 // flag bit2 marks the frames outside 7..8 as secondary hits.
-void hitCheck(cPlayer* pl, int no, u32 flag)
+void hitCheck(cPlayer* pl, int i, u32 flag)
 {
     static Vec ohpos;
     Vec p0;
@@ -521,11 +521,11 @@ static void knife_r3_down10(cPlayer* pl)
 // Show (on = 1) / hide the equipped gun's display type 1 while the knife is out: the rifles and
 // the launcher-type weapons (0x13, 0x16, 0x17, 0x19, 0x1F, 0x20) switch their second object
 // pObj2, the rocket launcher (0xD) is never hidden.
-void setWepTrans(cPlayer* pl, int on)
+void setWepTrans(cPlayer* pl, int onoff)
 {
     switch (pG->weapon_no) {
     default:
-        pl->Wep->m_pWep->setDisp(1, on);
+        pl->Wep->m_pWep->setDisp(1, onoff);
         break;
     case 0x13:
     case 0x16:
@@ -533,7 +533,7 @@ void setWepTrans(cPlayer* pl, int on)
     case 0x19:
     case 0x1F:
     case 0x20:
-        pl->Wep->m_pWepHand->setDisp(1, on);
+        pl->Wep->m_pWepHand->setDisp(1, onoff);
         break;
     case 0xD:
         break;

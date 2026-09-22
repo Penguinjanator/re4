@@ -61,10 +61,10 @@ void cEsp3f::Destruct()
 // Allocates a buffer of `num` elements of `size` bytes: `per` elements fit one child (0x58 bytes),
 // so num / per + 1 children are pulled (max 0x12, else an error). Returns 1 and the parent in
 // *out; on any pool failure everything pulled so far is released and 0 returned.
-int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
+int Esp3f_Alloc(u32 WorkSize, u32 Num, cEsp3f** ppEsp, EspInfo* pEff_core)
 {
     cEsp* dmy = EspGetDmyPtr();
-    u32 per = 0x58 / size;
+    u32 per = 0x58 / WorkSize;
     u32 n;
     cEsp* p;
     cEsp* c;
@@ -72,8 +72,8 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
     Esp3fWork* w;
     u32 i;
 
-    *out = 0;
-    n = num / per + 1;
+    *ppEsp = 0;
+    n = Num / per + 1;
     if (n > ESP3F_BUF_MAX) {
         pLog->err(0, 0, "ESP_3F : Buf size over.[%d/%d]", n, ESP3F_BUF_MAX);
         return 0;
@@ -82,14 +82,14 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
         return 0;
     }
     e = (cEsp3f*)p;
-    e->info = *info;
+    e->info = *pEff_core;
     w = &e->m_Free;
     w->nElem = per;
     w->nWork = n;
     for (i = 0; i < w->nWork; i++) {
         if (PullEsp(&c, 0x3f)) {
             c->m_Rno0 = 1;
-            c->info = *info;
+            c->info = *pEff_core;
             w->pBuf[i] = c;
         } else {
             u32 j;
@@ -102,23 +102,23 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
             return 0;
         }
     }
-    *out = (cEsp3f*)p;
+    *ppEsp = (cEsp3f*)p;
     return 1;
 }
 
 // Address of element `no` (child no / per, slot no % per); NULL with an error when out of range.
-Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no)
+Vec* Esp3f_GetVecPtr(cEsp3f* pEsp, u32 idx)
 {
-    Esp3fWork* w = &p->m_Free;
+    Esp3fWork* w = &pEsp->m_Free;
     u32 per = w->nElem;
     u32 n = w->nWork;
-    u32 buf = no / per;
+    u32 buf = idx / per;
     Vec* ret;
 
     if (buf < n) {
         cEsp3fBuf* b = (cEsp3fBuf*)w->pBuf[buf];
         Vec* vp = b->vec;
-        ret = &vp[no % per];
+        ret = &vp[idx % per];
         if ((int)ret < 0) {
             return ret;
         }
@@ -128,7 +128,7 @@ Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no)
 }
 
 // No generator parameters (buffers are only created through Esp3f_Alloc).
-int cEsp3f::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp3f::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     return 1;
 }

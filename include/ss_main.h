@@ -42,14 +42,14 @@ class SsExitInit : public Widget<SUB_SCREEN> {
 public:
     int _rno;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class SsExitMain : public Widget<SUB_SCREEN> {
 public:
     SsExitMain() : Widget<SUB_SCREEN>(0) {}
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // Item examine screen (ss_main.cpp; ss_cap/ss_file/ss_item chain into it).
@@ -59,8 +59,8 @@ public:
     u8 pad_11[3];
     ItemExamine _itemExam;  // 0x14
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_cap.cpp (bottle cap collection grid)
@@ -68,8 +68,8 @@ class SsCapInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class CapSelect;
@@ -83,18 +83,18 @@ public:
     Widget<SUB_SCREEN>* next;  // 0x20
 
     SsCapMain() : Widget<SUB_SCREEN>(2) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class CapSelect : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10  0 none, 1 back, 2 exit
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_file.cpp (files)
@@ -102,8 +102,8 @@ class SsFileInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class FileSelect;
@@ -120,18 +120,18 @@ public:
     Widget<SUB_SCREEN>* next;  // 0x28
 
     SsFileMain() : Widget<SUB_SCREEN>(5) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class FileSelect : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10  0 none, 1 back to the game, 2 main menu
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class MessageDisplay : public Widget<SUB_SCREEN> {
@@ -143,9 +143,9 @@ public:
     s16 x;        // 0x14
     s16 y;        // 0x16
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_item.cpp (inventory)
@@ -153,8 +153,8 @@ class SsItemInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class ItemSelect;
@@ -172,9 +172,9 @@ public:
     Widget<SUB_SCREEN>* next;  // 0x28
 
     SsItemMain() : Widget<SUB_SCREEN>(6) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_map.cpp (map)
@@ -182,8 +182,8 @@ class SsMapInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class MapFocus;
@@ -207,9 +207,9 @@ public:
     Widget<SUB_SCREEN>* cur;   // 0x34
 
     SsMapMain() : Widget<SUB_SCREEN>(5) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_pzzl.cpp (attache case puzzle)
@@ -219,7 +219,7 @@ public:
 
     // in-class: the body is queued right after the synthesized dtor (eof order dtor, init)
     virtual void init(SUB_SCREEN* wk) { state = 0; }
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PzzlThinking;
@@ -246,9 +246,9 @@ public:
     Widget<SUB_SCREEN>* next;  // 0x3C
 
     SsPzzlMain() : Widget<SUB_SCREEN>(6) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_shop.cpp (merchant)
@@ -256,8 +256,8 @@ class SsShopInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 class PzzlThinking;
@@ -296,9 +296,9 @@ public:
     Widget<SUB_SCREEN>* cur;   // 0x50
     Widget<SUB_SCREEN>* next;  // 0x54
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // ss_term.cpp (the radio / codec call screen: Hunnigan and the partner models talk through the
@@ -308,8 +308,8 @@ public:
     int _counter;
     int _rno;  // 0x14  starts at 2
 
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
+    virtual void move(SUB_SCREEN* pWk);
 };
 
 // One entry of the op message sequence table (0x10 bytes).
@@ -361,9 +361,9 @@ public:
     TermOpeWork ope;  // 0x1C
     TermSub sub;      // 0x4C .. 0x8C
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* pWk);
     virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
+    virtual void move(SUB_SCREEN* pWk);
 
     void OpeMesTblInit(SUB_SCREEN* wk);
     void OpeMdtSet();

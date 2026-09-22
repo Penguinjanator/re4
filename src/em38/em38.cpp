@@ -2337,18 +2337,18 @@ static void em38EscapeAction(cEm38* em)
 // Player damage callback of the duck (em38EscapeAction, dmType 0x1E: invulnerable): probes 2 m to
 // each side for walls and picks the free side (random when both are free) for the dodge roll under
 // the tentacle, with the event camera (em38EscapeCamMove); ends when the motion finishes.
-static void plemEscape(cPlayer* pl)
+static void plemEscape(cPlayer* pEm)
 {
-    pl->subArc = pl->pEmCatch->subArc;
-    pl->dmg.m_Timer = 0x1E;
-    switch (pl->r_no_2) {
+    pEm->subArc = pEm->pEmCatch->subArc;
+    pEm->dmg.m_Timer = 0x1E;
+    switch (pEm->r_no_2) {
     case 0: {
         Vec a;
         Vec b;
         int side;
         int hit;
 
-        if (Muku(&pl->pEmCatch->pos, &pl->pos, pl->ang.y, PI) > 0.0f) {
+        if (Muku(&pEm->pEmCatch->pos, &pEm->pos, pEm->ang.y, PI) > 0.0f) {
             side = 1;
         } else {
             side = 0;
@@ -2361,8 +2361,8 @@ static void plemEscape(cPlayer* pl)
         b.y = 500.0f;
         b.z = 1000.0f;
         hit = 0;
-        PSMTXMultVec(pl->mat, &a, &a);
-        PSMTXMultVec(pl->mat, &b, &b);
+        PSMTXMultVec(pEm->mat, &a, &a);
+        PSMTXMultVec(pEm->mat, &b, &b);
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
             hit |= 1;
         }
@@ -2372,8 +2372,8 @@ static void plemEscape(cPlayer* pl)
         b.x = -2000.0f;
         b.y = 500.0f;
         b.z = 1000.0f;
-        PSMTXMultVec(pl->mat, &a, &a);
-        PSMTXMultVec(pl->mat, &b, &b);
+        PSMTXMultVec(pEm->mat, &a, &a);
+        PSMTXMultVec(pEm->mat, &b, &b);
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
             hit |= 2;
         }
@@ -2384,40 +2384,40 @@ static void plemEscape(cPlayer* pl)
             side = 0;
         }
         if (side) {
-            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4A), EM_ARC(pl, 0x4B), 5, 1, 0);
+            MotionSetCore(pEm, MOTION(pEm), EM_ARC(pEm, 0x4A), EM_ARC(pEm, 0x4B), 5, 1, 0);
         } else {
-            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4A), EM_ARC(pl, 0x4B), 5, 0x41, 0);
+            MotionSetCore(pEm, MOTION(pEm), EM_ARC(pEm, 0x4A), EM_ARC(pEm, 0x4B), 5, 0x41, 0);
         }
         GameAddPoint(LVADD_ESCAPEATTACK);
-        SndCall(1, 0x48, &pl->pos, 0, 0, pl);
-        SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->m_Work0 = 50;
-        pl->m_Work1 = 15;
-        pl->r_no_2++;
+        SndCall(1, 0x48, &pEm->pos, 0, 0, pEm);
+        SndCall(1, 0x11, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+        pEm->m_Work0 = 50;
+        pEm->m_Work1 = 15;
+        pEm->r_no_2++;
     }
     case 1:
-        if (pl->m_Work2) {
-            em38EscapeCamMove((cEm38*)pl->pEmCatch);
-            if (pl->Motion.Seq_frame > 11.7f && pl->Motion.Seq_frame < 12.3f) {
-                EstSet(0, -1, &pl->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
-                SndCall(5, 5, &pl->pos, 0, 0, pl);
+        if (pEm->m_Work2) {
+            em38EscapeCamMove((cEm38*)pEm->pEmCatch);
+            if (pEm->Motion.Seq_frame > 11.7f && pEm->Motion.Seq_frame < 12.3f) {
+                EstSet(0, -1, &pEm->pos, 0, EFF_PL00, 0x13, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(5, 5, &pEm->pos, 0, 0, pEm);
             }
         }
-        if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.3926991f);
-            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
+        if (pEm->m_Work1) {
+            pEm->ang.y += Muku(&pEm->pos, &pEm->pEmCatch->pos, pEm->ang.y, 0.3926991f);
+            pEm->ang.y = LIMIT_ANGLE(pEm->ang.y);
         }
-        if (MotionMove(pl, 0)) {
-            pl->m_Work0 = 0;
+        if (MotionMove(pEm, 0)) {
+            pEm->m_Work0 = 0;
         }
-        if (pl->m_Work0) {
-            pl->m_Work0--;
+        if (pEm->m_Work0) {
+            pEm->m_Work0--;
         } else {
             EndPlDamage();
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Event camera of the escape scenes: behind the player, pulled in to the scenario hit.
@@ -2474,48 +2474,48 @@ static void em38BackjumpAction(cEm38* em)
 // Player damage callback of the back jump (em38BackjumpAction, dmType 0x1E: invulnerable): the
 // jump-back motion from frame 5, turning to face the tentacle for the first 15 frames, with the
 // jump / landing sounds; ends when the motion finishes.
-static void plemBackjump(cPlayer* pl)
+static void plemBackjump(cPlayer* pEm)
 {
-    pl->subArc = pl->pEmCatch->subArc;
-    pl->dmg.m_Timer = 0x1E;
-    switch (pl->r_no_2) {
+    pEm->subArc = pEm->pEmCatch->subArc;
+    pEm->dmg.m_Timer = 0x1E;
+    switch (pEm->r_no_2) {
     case 0:
-        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x4E), 0, 5, 1, 5);
-        EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->m_Work0 = 50;
-        pl->m_Work1 = 15;
-        pl->m_Work2 = 0;
-        pl->r_no_2++;
+        MotionSetCore(pEm, MOTION(pEm), EM_ARC(pEm, 0x4E), 0, 5, 1, 5);
+        EstSet(pEm, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pEm, 0);
+        SndCall(1, 0x43, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+        SndCall(1, 0x44, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+        pEm->m_Work0 = 50;
+        pEm->m_Work1 = 15;
+        pEm->m_Work2 = 0;
+        pEm->r_no_2++;
     case 1:
-        if (pl->m_Work1) {
-            pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 0.3926991f);
-            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
+        if (pEm->m_Work1) {
+            pEm->ang.y += Muku(&pEm->pos, &pEm->pEmCatch->pos, pEm->ang.y, 0.3926991f);
+            pEm->ang.y = LIMIT_ANGLE(pEm->ang.y);
         }
-        if (pl->Motion.Seq_frame > 10.7f && pl->Motion.Seq_frame < 11.3f) {
-            SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
+        if (pEm->Motion.Seq_frame > 10.7f && pEm->Motion.Seq_frame < 11.3f) {
+            SndCall(1, 0x4F, &pEm->pos, 0, 0, pEm);
         }
-        if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
-            SndCall(5, 0x14, &pl->pos, 0, 0, pl);
+        if (pEm->Motion.Seq_frame > 21.7f && pEm->Motion.Seq_frame < 22.3f) {
+            SndCall(5, 0x14, &pEm->pos, 0, 0, pEm);
         }
-        if ((pl->Motion.Seq_frame > 36.7f && pl->Motion.Seq_frame < 37.3f) || (pl->Motion.Seq_frame > 49.7f && pl->Motion.Seq_frame < 50.3f)) {
-            SndCall(5, 2, &pl->pos, 0, 0, pl);
+        if ((pEm->Motion.Seq_frame > 36.7f && pEm->Motion.Seq_frame < 37.3f) || (pEm->Motion.Seq_frame > 49.7f && pEm->Motion.Seq_frame < 50.3f)) {
+            SndCall(5, 2, &pEm->pos, 0, 0, pEm);
         }
-        if ((pl->Motion.Seq_frame > 37.7f && pl->Motion.Seq_frame < 38.3f) || (pl->Motion.Seq_frame > 50.7f && pl->Motion.Seq_frame < 51.3f)) {
-            SndCall(5, 3, &pl->pos, 0, 0, pl);
+        if ((pEm->Motion.Seq_frame > 37.7f && pEm->Motion.Seq_frame < 38.3f) || (pEm->Motion.Seq_frame > 50.7f && pEm->Motion.Seq_frame < 51.3f)) {
+            SndCall(5, 3, &pEm->pos, 0, 0, pEm);
         }
-        if (MotionMove(pl, 0)) {
-            pl->m_Work0 = 0;
+        if (MotionMove(pEm, 0)) {
+            pEm->m_Work0 = 0;
         }
-        if (pl->m_Work0) {
-            pl->m_Work0--;
+        if (pEm->m_Work0) {
+            pEm->m_Work0--;
         } else {
             EndPlDamage();
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Action button of em38_R1_T_BigAtk (tentacle 1): the player crouches.

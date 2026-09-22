@@ -59,9 +59,9 @@ void Cockpit::move()
 }
 
 // mode 1 shows the message window backdrop ids (IDC_MSG_WINDOW), 0 removes them.
-void Cockpit::msgWindow(int mode)
+void Cockpit::msgWindow(int sw)
 {
-    switch (mode) {
+    switch (sw) {
     case 1:
         if (!IdSys.setCk(IDC_MSG_WINDOW)) {
             IdSys.set(ARC_PTR(ofs_94), 0xFF, IDC_MSG_WINDOW, 0x13, 0, 0);
@@ -398,12 +398,12 @@ void LifeMeter::move()
 }
 
 // Stops (sw 0) or restarts (sw 1) the meter's id animation timer.
-void LifeMeter::fix(int sw)
+void LifeMeter::fix(int flag)
 {
     IdUnit* u = IdSys.unitPtr(0, IDC_LIFE_METER);
 
     u->be_flag |= 8;
-    if (sw == 0) {
+    if (flag == 0) {
         u->rev_flag |= 0xF;
         IdSys.setTime(u, 0);
     } else {
@@ -658,7 +658,7 @@ static int dispBulletDigit(u8 no)
 
 // Bullet icon (IDC_BLLT_ICON id) for weapon number `no`: handgun / shotgun / rifle / magnum / TMP /
 // launcher / mine... ammo pictures; 0xFF none.
-u8 dispBulletIconMarkNo(u8 no)
+u8 dispBulletIconMarkNo(u8 weapon_no)
 {
     if (pG->pl_type == 1) {
         return 0xFF;
@@ -669,7 +669,7 @@ u8 dispBulletIconMarkNo(u8 no)
         }
         return 0x33;
     }
-    switch (no) {
+    switch (weapon_no) {
     case 1:
     case 2:
     case 3:

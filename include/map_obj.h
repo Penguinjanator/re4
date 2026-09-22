@@ -28,7 +28,7 @@ public:
     virtual void* memAlloc(u32 size) { return MEM_ALLOC(size, 1, 13); }
     virtual void memFree(void* p) { Mem_free(p); }
     virtual void memClear(cMap* p, u32 size) { memclr_asm(p, size); }
-    virtual int construct(cMap* p, u32 id);
+    virtual int construct(cMap* pSat, u32 room_no);
 
     // Work `no`, 0 when out of range. The callers' guarded do-while loops inline it with the
     // range check kept at the loop top only: the `m` copy stops thread_jumps (user-variable

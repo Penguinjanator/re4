@@ -152,20 +152,20 @@ public:
 
     void SetBeginEvent(u32 a);
     void SetEndEvent(u32 a);
-    static void R0Init(cObjRobo* robo);
-    static void R0WaitGondola(cObjRobo* robo);
-    static void R0WalkPassage(cObjRobo* robo);
-    static void R0WaitDoor(cObjRobo* robo);
-    static void R0WalkBridge(cObjRobo* robo);
-    static void R0WaitBreak(cObjRobo* robo);
-    static void R0WaitDie(cObjRobo* robo);
-    static void R0Event(cObjRobo* robo);
-    void WalkSequence(cObjRobo* robo, int hitCk);
-    static void TaskSwitchFront(cObjRobo* robo);
+    static void R0Init(cObjRobo* pObj);
+    static void R0WaitGondola(cObjRobo* pObj);
+    static void R0WalkPassage(cObjRobo* pObj);
+    static void R0WaitDoor(cObjRobo* pObj);
+    static void R0WalkBridge(cObjRobo* pObj);
+    static void R0WaitBreak(cObjRobo* pObj);
+    static void R0WaitDie(cObjRobo* pObj);
+    static void R0Event(cObjRobo* pObj);
+    void WalkSequence(cObjRobo* pObj, int hitCheckFlag);
+    static void TaskSwitchFront(cObjRobo* pObj);
     static void TaskSwitchBack(cObjRobo* robo);
-    int WalkHitCk(cObjRobo* robo);
-    void SatMove(cObjRobo* robo, Vec* pos, int side);
-    int SatMoveSub(cModel* em, Vec* pos, Vec* d);
+    int WalkHitCk(cObjRobo* pObj);
+    void SatMove(cObjRobo* pObj, Vec* pPosOld, int armNo);
+    int SatMoveSub(cModel* pMod, Vec* pPosCenter, Vec* d);
 };
 
 cObjRobo* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);

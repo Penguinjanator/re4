@@ -210,35 +210,35 @@ void cObj08::move()
 }
 
 // Gravity + move.
-void obj08AddSpeed(cObj08* obj)
+void obj08AddSpeed(cObj08* pObj)
 {
-    Obj08Work* w = &obj->o8;
+    Obj08Work* w = &pObj->o8;
 
     w->spd.y -= w->gravity;
-    PSVECAdd(&obj->pos, &w->spd, &obj->pos);
+    PSVECAdd(&pObj->pos, &w->spd, &pObj->pos);
 }
 
 // Scenario sweep pos_old -> pos: on a hit plays the sound, spawns the floor effect [2] (on a
 // horizontal surface) or the break effect [1] oriented by the normal, destroys the object; returns 1.
-int obj08ScrHitCk(cObj08* obj)
+int obj08ScrHitCk(cObj08* pObj)
 {
-    Obj08Work* w = &obj->o8;
+    Obj08Work* w = &pObj->o8;
     Vec hit;
     Vec nrm;
     Vec est;
 
-    if (EatMgr.hitCheck(&obj->pos_old, &obj->pos, &hit, &nrm, 0, 0x4000)) {
+    if (EatMgr.hitCheck(&pObj->pos_old, &pObj->pos, &hit, &nrm, 0, 0x4000)) {
         if (w->blk_no != 0xFFFF) {
             int id = 0;
             if (w->parent) {
                 id = w->parent->id;
             }
-            SndCall(w->blk_no, w->call_no, &obj->pos, id, 0, 0);
+            SndCall(w->blk_no, w->call_no, &pObj->pos, id, 0, 0);
         }
         if (nrm.y > 0.7f) {
             if (w->estNo[2] && w->estPrm[2]) {
                 est.x = 0.0f;
-                est.y = obj->ang.y;
+                est.y = pObj->ang.y;
                 est.z = 0.0f;
                 hit.y += 10.0f;
                 EstSet(0, -1, &hit, &est, w->estNo[2], (u8) w->estPrm[2], 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -250,7 +250,7 @@ int obj08ScrHitCk(cObj08* obj)
             est.z = 0.0f;
             EstSet(0, -1, &hit, &est, w->estNo[1], (u8) w->estPrm[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
-        ObjMgr.destroy(obj);
+        ObjMgr.destroy(pObj);
         return 1;
     }
     return 0;
@@ -259,9 +259,9 @@ int obj08ScrHitCk(cObj08* obj)
 // Enemy hit (once, be_flag 0x10): sweeps a box of radius r along the frame's movement through
 // GetWepTargetList (up to 3 targets) and damages each (dmg.set kind 0, power 10, the attribute
 // mask), spawning the hit effect. Returns 1 on a hit.
-int obj08ToEmHitCk(cObj08* obj)
+int obj08ToEmHitCk(cObj08* pObj)
 {
-    Obj08Work* w = &obj->o8;
+    Obj08Work* w = &pObj->o8;
     Vec box[8];
     WepTarget list[10];
     Vec ang;
@@ -278,12 +278,12 @@ int obj08ToEmHitCk(cObj08* obj)
     ang.x = 0.0f;
     ang.y = 0.0f;
     ang.z = 0.0f;
-    len = GetDistance3(&obj->pos, &obj->pos_old);
+    len = GetDistance3(&pObj->pos, &pObj->pos_old);
     if (len < 1.0f) {
         len = w->r;
     } else {
         Vec d;
-        PSVECSubtract(&obj->pos, &obj->pos_old, &d);
+        PSVECSubtract(&pObj->pos, &pObj->pos_old, &d);
         ang.x = -atan2f(d.y, len);
         ang.y = atan2f(d.x, d.z);
     }
@@ -310,19 +310,19 @@ int obj08ToEmHitCk(cObj08* obj)
     obj08HitBox[3].z = len;
     obj08HitBox[6].z = len;
     obj08HitBox[7].z = len;
-    BoxWorldCalc(obj08HitBox, box, &obj->pos_old, &ang);
+    BoxWorldCalc(obj08HitBox, box, &pObj->pos_old, &ang);
     if (DbgFlagChk(pG, DBG_YARARE_DISP)) {
         Draw_box(box, 0x20FFFFFF, 0);
     }
-    n = GetWepTargetList(box, &obj->pos, list, 3, (u16) w->atkFlags);
+    n = GetWepTargetList(box, &pObj->pos, list, 3, (u16) w->atkFlags);
     if (n == 0) {
         return 0;
     }
     for (i = 0; i < n; i++) {
         YARARE_INFO* part = list[i].part;
-        list[i].em->dmg.set(0, 10, (u8) w->atkFlags, &obj->pos, part->len, part);
+        list[i].em->dmg.set(0, 10, (u8) w->atkFlags, &pObj->pos, part->len, part);
         if (w->estNo[3] && w->estPrm[3]) {
-            obj08DmEstSet(obj, pPL, &obj->pos_old, part);
+            obj08DmEstSet(pObj, pPL, &pObj->pos_old, part);
         }
     }
     w->be_flag &= ~0x10;
@@ -331,24 +331,24 @@ int obj08ToEmHitCk(cObj08* obj)
 
 // Player / partner hit (once, be_flag 0x20) through the thrower's attack record: hit effect on the
 // victim's hit info, sound, controller vibration. Returns 1 on a hit.
-int obj08ToPlHitCk(cObj08* obj)
+int obj08ToPlHitCk(cObj08* pObj)
 {
-    Obj08Work* w = &obj->o8;
+    Obj08Work* w = &pObj->o8;
     int hit;
 
     if (w->parent == 0) {
         return 0;
     }
     if (w->pAtk && (w->be_flag & 0x20)) {
-        hit = EmAtkHitCk(w->pAtk, &obj->pos, &obj->pos_old, 0);
+        hit = EmAtkHitCk(w->pAtk, &pObj->pos, &pObj->pos_old, 0);
         if (hit) {
             if (w->estNo[3] && w->estPrm[3]) {
                 if (hit & 1) {
-                    obj08DmEstSet(obj, pPL, &obj->pos_old, &pPL->hitInfo);
+                    obj08DmEstSet(pObj, pPL, &pObj->pos_old, &pPL->hitInfo);
                 }
                 if (hit & 2) {
                     if (pSUB) {
-                        obj08DmEstSet(obj, pSUB, &obj->pos_old, &((cEm*) pSUB)->hitInfo);
+                        obj08DmEstSet(pObj, pSUB, &pObj->pos_old, &((cEm*) pSUB)->hitInfo);
                     }
                 }
             } else {
@@ -357,7 +357,7 @@ int obj08ToPlHitCk(cObj08* obj)
                     if (w->parent) {
                         id = w->parent->id;
                     }
-                    SndCall(w->blk_no, w->call_no, &obj->pos, id, 0, 0);
+                    SndCall(w->blk_no, w->call_no, &pObj->pos, id, 0, 0);
                 }
                 VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             }
@@ -370,9 +370,9 @@ int obj08ToPlHitCk(cObj08* obj)
 
 // Spawns the character-hit effect [3]: attached to the victim when hit_type, otherwise on the
 // surface of the hit parts (facing the projectile, clamped to 70% of the parts height), plus the sound.
-void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
+void obj08DmEstSet(cObj08* pObj, cModel* pEm, Vec* pPos, YARARE_INFO* pAt)
 {
-    Obj08Work* w = &obj->o8;
+    Obj08Work* w = &pObj->o8;
     Mtx m;
     Vec p;
     Vec o;
@@ -385,19 +385,19 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
         if (w->parent) {
             id = w->parent->id;
         }
-        SndCall(w->blk_no, w->call_no, &obj->pos, id, 0, 0);
+        SndCall(w->blk_no, w->call_no, &pObj->pos, id, 0, 0);
     }
     if (w->hit_type) {
-        EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, em, 0);
+        EstSet(pEm, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, pEm, 0);
         return;
     }
-    if (part->parts_no != 0) {
-        p = em->getPartsPtr(part->parts_no - 1)->world;
+    if (pAt->parts_no != 0) {
+        p = pEm->getPartsPtr(pAt->parts_no - 1)->world;
     } else {
-        p = em->pos;
+        p = pEm->pos;
     }
-    dy = oldPos->y - p.y;
-    lim = part->height * 0.7f;
+    dy = pPos->y - p.y;
+    lim = pAt->height * 0.7f;
     if (dy > lim) {
         dy = lim;
     }
@@ -405,13 +405,13 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
         dy = -lim;
     }
     rot.x = 0.0f;
-    rot.y = GetXZAngle(&p, oldPos);
+    rot.y = GetXZAngle(&p, pPos);
     rot.z = 0.0f;
     RotMatrix(m, &rot);
     TransMatrix(m, &p);
     o.x = 0.0f;
     o.y = dy;
-    o.z = part->radius * 0.5f;
+    o.z = pAt->radius * 0.5f;
     PSMTXMultVec(m, &o, &o);
     EstSet(0, -1, &o, &rot, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, 0, 0);
 }

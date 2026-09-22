@@ -67,19 +67,19 @@ void espgen01_Move01(EspgenWork* w)
 }
 
 // EspgenMoveTbl entry for controller type 1: dispatches on w->step.
-void Espgen01_Move(EspgenWork* w)
+void Espgen01_Move(EspgenWork* pEspgen)
 {
     static void (*Espgen01MoveTbl[])(EspgenWork*) = {espgen01_Move00, espgen01_Move01};
 
-    Espgen01MoveTbl[w->step](w);
+    Espgen01MoveTbl[pEspgen->step](pEspgen);
 }
 
 // EspgenTransTbl entry: queues HideCheck to run after the scene render (needs the final Z buffer)
 // for a live controller.
-void Espgen01_Trans(EspgenWork* w)
+void Espgen01_Trans(EspgenWork* pEspgen)
 {
-    if ((w->flag & 1) && !(w->flag & 2)) {
-        EspAddOtAfterRender((cEsp*) w, HideCheck);
+    if ((pEspgen->flag & 1) && !(pEspgen->flag & 2)) {
+        EspAddOtAfterRender((cEsp*) pEspgen, HideCheck);
     }
 }
 
@@ -88,9 +88,9 @@ void Espgen01_Trans(EspgenWork* w)
 // sizeRate*0.7))^2, times GetDirAlpha (flg bit 0), GetDistAlpha and hide_alpha (flg bit 1), and if
 // > 0.01 spawns every est table record (one-frame sprites, screen-space parts 0xF8) spaced along
 // the centre line by their record x offset, scaled by alpha*scaleRate.
-void SetEsp(EspgenWork* w)
+void SetEsp(EspgenWork* pGen)
 {
-    Espgen01Work* p = (Espgen01Work*) w->work;
+    Espgen01Work* p = (Espgen01Work*) pGen->work;
     Vec v;
     Vec scr;
     Vec d;
@@ -107,7 +107,7 @@ void SetEsp(EspgenWork* w)
     head = EspGetEstAddr(p->owner, p->est_id, 0);
     if (head == NULL) {
         pLog->err(0, 0, "ESP_FLARE : OWNER[%d] EST_ID[%d] invalid", p->owner, p->est_id);
-        PushEspgen(w);
+        PushEspgen(pGen);
         return;
     }
     num = GetEstTblnum(head);
@@ -119,7 +119,7 @@ void SetEsp(EspgenWork* w)
 
         if (p->parts_no >= p->pMod->nParts) {
             pLog->err(0, 0, "ESP_FLARE :PARTS_NO[%d] is invalid(MAX:%d).", p->parts_no, p->pMod->nParts);
-            PushEspgen(w);
+            PushEspgen(pGen);
             return;
         }
         part = p->pMod->getPartsPtr(p->parts_no);
@@ -146,16 +146,16 @@ void SetEsp(EspgenWork* w)
         alpha *= alpha;
         alpha = 1.0f - alpha;
         if (p->flg & 1) {
-            alpha *= GetDirAlpha(w, &dir);
+            alpha *= GetDirAlpha(pGen, &dir);
         }
-        alpha *= GetDistAlpha(w);
+        alpha *= GetDistAlpha(pGen);
         if (p->flg & 2) {
             alpha *= p->hide_alpha;
         }
         if (alpha > 0.01f) {
-            esp = SetEstTbl(w, head, 0);
+            esp = SetEstTbl(pGen, head, 0);
             if (esp == EspGetDmyPtr()) {
-                PushEspgen(w);
+                PushEspgen(pGen);
                 return;
             }
             esp->m_Parts_no = ESP_PARTS_NOPARTS;
@@ -173,9 +173,9 @@ void SetEsp(EspgenWork* w)
                 esp->m_Size_base_y *= s;
             }
             for (i = 1; i < num; i++) {
-                esp = SetEstTbl(w, head, i);
+                esp = SetEstTbl(pGen, head, i);
                 if (esp == EspGetDmyPtr()) {
-                    PushEspgen(w);
+                    PushEspgen(pGen);
                     return;
                 }
                 PSVECScale(&d, &v, (esp->m_Pos.x - x0) / (Screen.width * 0.5f - x0));
@@ -280,14 +280,14 @@ static f32 GetDirAlpha(EspgenWork* w, Vec* dir)
 // around the screen position (off-screen points count as hidden; border 56 px in the widescreen
 // System_flg 0x800 mode) and eases hide_alpha towards 1 - hidden/10 (0 when all 12 are hidden).
 // A camera change forces hide_alpha to 0 for 2 frames.
-void HideCheck(cEsp* esp)
+void HideCheck(cEsp* pDat)
 {
     static f32 Zscale = 1.0f;
     static f32 Zoffset = 1.0f;
     static int Zs_bias = -5000;
     static f32 hide_x_tbl[12] = {0.0f, 0.5f, 0.86f, 1.0f, 0.86f, 0.5f, 0.0f, -0.5f, -0.86f, -1.0f, -0.86f, -0.5f};
     static f32 hide_y_tbl[12] = {1.0f, 0.86f, 0.5f, 0.0f, -0.5f, -0.86f, -1.0f, -0.86f, -0.5f, 0.0f, 0.5f, 0.86f};
-    EspgenWork* w = (EspgenWork*) esp;
+    EspgenWork* w = (EspgenWork*) pDat;
     Espgen01Work* p = (Espgen01Work*) w->work;
     Vec v;
     Vec s;

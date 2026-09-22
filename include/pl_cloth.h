@@ -67,17 +67,17 @@ struct PenCloth;
 class cObjChain {
 public:
     void setChain(PenCloth* c);
-    void setParent(cModel* parent, int parts, Vec* ofs, int flag);
-    void setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Vec* ofs2, int flag);
+    void setParent(cModel* pMod, int parts, Vec* ofs, int flag);
+    void setParent2(cModel* pEm, int parts1, Vec* pPos1, int parts2, Vec* pPos2, int mode);
 };
 cObjChain* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot);
 
-void PlClothSetLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hair);
-void PlClothMoveLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hair);
-void PlClothSetGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater, int evt);
-void PlClothMoveGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater);
-void PlClothSetLuis(cModel* pl, PlCloth* hair);
-void PlClothMoveLuis(cModel* pl, PlCloth* hair);
+void PlClothSetLeon(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3);
+void PlClothMoveLeon(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3);
+void PlClothSetGirl(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3, int mode);
+void PlClothMoveGirl(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3);
+void PlClothSetLuis(cModel* pl, PlCloth* pCloth1);
+void PlClothMoveLuis(cModel* pl, PlCloth* pCloth1);
 void PlClothSetAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair, int evt);
 void PlClothMoveAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair);
 cObjChain* AdaRibbonSet(cModel* pl, PlCloth* ribbon, void* bin, void* tpl);

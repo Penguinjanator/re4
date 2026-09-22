@@ -59,26 +59,26 @@ void TexRenderMgrRoomInit()
 // Claims the next free render target: allocates its buffer, assigns its effect texture id
 // (0xF8 + slot, the ids the esp Tool_flg 0x10000 effects draw into) and its OT mask bit
 // (8 << slot). 0 with an error when all 8 are used or memory is short.
-int GetTexRenderMgr(TexRenderMng** out)
+int GetTexRenderMgr(TexRenderMng** ppMgr)
 {
     if (g_RndMgrNum == 8) {
         pLog->err(0, 0, "GetTexRenderMgr() : Manager full!!");
         return 0;
     }
-    *out = &g_RndMgr[g_RndMgrNum];
-    (*out)->Init();
-    if (!(*out)->AllocBuf()) {
+    *ppMgr = &g_RndMgr[g_RndMgrNum];
+    (*ppMgr)->Init();
+    if (!(*ppMgr)->AllocBuf()) {
         return 0;
     }
-    (*out)->m_Tex_no = (u8) g_RndMgrNum + 0xF8;
+    (*ppMgr)->m_Tex_no = (u8) g_RndMgrNum + 0xF8;
     {
         // the original stores the mask through a u16 reference (the load of g_RndMgrNum below is
         // not hoisted above a plain member store)
-        u16& mask = (*out)->m_Core_flg;
+        u16& mask = (*ppMgr)->m_Core_flg;
         mask = 8 << g_RndMgrNum;
     }
     g_RndMgrNum++;
-    (*out)->used = 1;
+    (*ppMgr)->used = 1;
     return 1;
 }
 
@@ -237,96 +237,96 @@ void TexRenderMng::ReAllocBuf()
 
 // Claims a target of `size` x `size` (0 = default 128) with wrap mode repType and (re)allocates
 // its buffer.
-void TexRenderInit(TexRenderMng** out, int size, int repType)
+void TexRenderInit(TexRenderMng** ppMgr, int size, int repType)
 {
-    if (!GetTexRenderMgr(out)) {
+    if (!GetTexRenderMgr(ppMgr)) {
         pLog->err(0, 0, "TexRenderInit() : Manager alloc failed!!");
     }
     if (size != 0) {
-        TexRenderMng* m = *out;
+        TexRenderMng* m = *ppMgr;
         m->m_W_size = size;
         m->m_H_size = size;
-        (*out)->ReAllocBuf();
+        (*ppMgr)->ReAllocBuf();
     }
-    (*out)->m_Rep_type = repType;
+    (*ppMgr)->m_Rep_type = repType;
 }
 
 // Makes parts `parts` of model `m` show the render target: installs `tbl` as the parts' texture
 // blend table with the target's texture id, blend ratio 0xFF (blend type 1 unless kept), and
 // turns the reflection mapping on for that parts only (unless kept); alpha into the model.
-void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepBlendType, int keepRefrect, int keepD6, int keep12C, f32 alpha)
+void TexRenderModSet(cModel* pMod, int modelInfoNo, u8* pBlendTbl, TexRenderMng* pMgr, int alphaFlag, int refractFlag, int blendAddFlag, int zModeFlag, f32 invisibleFactor)
 {
     cModelInfo* info;
 
-    if (mgr == NULL) {
+    if (pMgr == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : Manager alloc failed!!");
         return;
     }
-    if (m == NULL) {
+    if (pMod == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;
     }
-    tbl[0] = 1;
-    tbl[1] = 0;
-    tbl[4] = 0xF7;
-    tbl[5] = mgr->m_Tex_no;
-    info = GetModelInfoAddr(m->pModelInfo, parts);
+    pBlendTbl[0] = 1;
+    pBlendTbl[1] = 0;
+    pBlendTbl[4] = 0xF7;
+    pBlendTbl[5] = pMgr->m_Tex_no;
+    info = GetModelInfoAddr(pMod->pModelInfo, modelInfoNo);
     if (info != NULL) {
         info->be_flag |= 8;
-        info->setTexBlendTbl(tbl);
+        info->setTexBlendTbl(pBlendTbl);
         info->setBlendRatio(0xFF);
-        if (keepBlendType == 0) {
+        if (alphaFlag == 0) {
             info->setBlendType(1);
         }
-        if (keepD6 == 0) {
+        if (blendAddFlag == 0) {
             info->blend_mode = 1;
         }
     }
-    if (keepRefrect == 0) {
-        m->Shader_type = 2;
-        m->Refract_pow = 0x10;
-        m->Refract_ratio = 0x90;
-        ModelInfoRefrectOffAll(m);
-        ModelInfoRefrectOn(m, parts);
+    if (refractFlag == 0) {
+        pMod->Shader_type = 2;
+        pMod->Refract_pow = 0x10;
+        pMod->Refract_ratio = 0x90;
+        ModelInfoRefrectOffAll(pMod);
+        ModelInfoRefrectOn(pMod, modelInfoNo);
     }
-    if (keep12C == 0) {
-        m->z_mode = 2;
+    if (zModeFlag == 0) {
+        pMod->z_mode = 2;
     }
-    m->invisible_factor = alpha;
+    pMod->invisible_factor = invisibleFactor;
 }
 
 // Undoes TexRenderModSet on every parts of the model (blend ratio 0, default blend table).
-void TexRenderModRes(cModel* m, u32 parts)
+void TexRenderModRes(cModel* pMod, u32 modelInfoNo)
 {
     cModelInfo* info;
 
-    if (m == NULL) {
+    if (pMod == NULL) {
         pLog->err(0, 0, "TexRenderModRes() : failed!!");
         return;
     }
-    info = GetModelInfoAddr(m->pModelInfo, parts);
+    info = GetModelInfoAddr(pMod->pModelInfo, modelInfoNo);
     if (info != NULL) {
         info->be_flag &= ~8;
         info->setBlendRatio(0);
         info->resetTexBlendTbl();
     }
-    m->Shader_type = 0;
-    m->Refract_pow = 0x10;
-    m->Refract_ratio = 0x90;
+    pMod->Shader_type = 0;
+    pMod->Refract_pow = 0x10;
+    pMod->Refract_ratio = 0x90;
 }
 
 // Queues the model's normal render (ModelRender) into render target OT `ot` (the model drawn
 // into the texture).
-void TexRenderModAddOt(int ot, cModel* m)
+void TexRenderModAddOt(int otType, cModel* pMod)
 {
     StaFlagOn(pG, STA_TEX_RENDER);
-    if (m == NULL) {
+    if (pMod == NULL) {
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;
     }
-    if (commonScreenMat(m)) {
-        lightSetEm(m);
-        AddOtDirect(ot, m, (void (*)()) ModelRender, 3, 1, NULL, 0.0f);
+    if (commonScreenMat(pMod)) {
+        lightSetEm(pMod);
+        AddOtDirect(otType, pMod, (void (*)()) ModelRender, 3, 1, NULL, 0.0f);
     }
 }
 

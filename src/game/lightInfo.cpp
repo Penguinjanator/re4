@@ -70,24 +70,24 @@ u32 cLightInfo::getLightNum()
 
 // Rebuilds imat, the inverse of the volume's world matrix (offset scaled and rotated by the model,
 // at the model position or the parts' world position), for the lighting tests.
-void cLightInfo::updateMatrix(cModel* m)
+void cLightInfo::updateMatrix(cModel* pMod)
 {
     Vec v;
     Mtx tmp;
 
-    v.x = Offset.x * m->scale.x;
-    v.y = Offset.y * m->scale.y;
-    v.z = Offset.z * m->scale.z;
-    RotVector(&v, &m->ang, &v);
+    v.x = Offset.x * pMod->scale.x;
+    v.y = Offset.y * pMod->scale.y;
+    v.z = Offset.z * pMod->scale.z;
+    RotVector(&v, &pMod->ang, &v);
     if (PartsNo == 0) {
-        PSVECAdd(&v, &m->pos, &v);
+        PSVECAdd(&v, &pMod->pos, &v);
     } else {
-        if (m->pParts == 0) {
+        if (pMod->pParts == 0) {
             return;
         }
-        PSVECAdd(&v, &m->getPartsPtr(PartsNo - 1)->world, &v);
+        PSVECAdd(&v, &pMod->getPartsPtr(PartsNo - 1)->world, &v);
     }
-    RotMatrix(tmp, &m->ang);
+    RotMatrix(tmp, &pMod->ang);
     TransMatrix(tmp, &v);
     PSMTXInverse(tmp, imat);
 }

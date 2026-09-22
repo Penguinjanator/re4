@@ -112,19 +112,19 @@ static f32 rad2deg(f32 r)
 
 // Advances the frame unless paused (flags bit3); past the last frame either loops (flags bit2,
 // state 1) or ends (state 4). Returns the state.
-u32 CameraSequenceCtrl(CameraMotionWork* w)
+u32 CameraSequenceCtrl(CameraMotionWork* pInfo)
 {
-    if (!(w->flags & 8)) {
-        if (w->frame >= w->maxFrame) {
-            if (w->flags & 4) {
-                w->state = 1;
-                w->frame = 0.0f;
+    if (!(pInfo->flags & 8)) {
+        if (pInfo->frame >= pInfo->maxFrame) {
+            if (pInfo->flags & 4) {
+                pInfo->state = 1;
+                pInfo->frame = 0.0f;
             } else {
-                w->state = 4;
+                pInfo->state = 4;
             }
         } else {
-            w->frame += 1.0f;
+            pInfo->frame += 1.0f;
         }
     }
-    return w->state;
+    return pInfo->state;
 }

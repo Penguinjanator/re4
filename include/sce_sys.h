@@ -77,7 +77,7 @@ void scenarioLoopBeforeInit();
 void scenarioLoopAfterInit();
 void ScenarioMove();
 u32* scenarioSetOtStart();
-u32* scenarioGetOtAddr(u32* p);
+u32* scenarioGetOtAddr(u32* pSceOt);
 void SceTaskDelete(TASK* t);
 enum SCE_PRIORITY {
     SCE_PRIO_0 = 0,
@@ -108,7 +108,7 @@ enum SCE_PRIORITY {
 };
 
 ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* model);
-void SceSleep(int frames);
+void SceSleep(int ctr);
 void SceExit();
 ScePrim* SceCTask();
 void SceExecInitCondition();
@@ -116,7 +116,7 @@ int SceExecCheckCondition_sub(SceCond* pP);
 void SceExecCheckCondition();
 void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, void* arg, u8 flag);
 void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, void* arg, u8 flag);
-int EmMoveActiveCheck(cEm* em);
+int EmMoveActiveCheck(cEm* pEm);
 void SceExecEventCancel();
 void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag);
 int scenarioCheckEventCancel();

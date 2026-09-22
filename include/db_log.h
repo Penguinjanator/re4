@@ -41,15 +41,15 @@ public:
     void mes(int a, int b, const char* fmt, ...);
     void err(int a, int b, const char* fmt, ...);
     void warn(int a, int b, const char* fmt, ...);
-    void vmes(int flag, int col, const char* fmt, va_list ap);
-    void verr(int flag, int errId, const char* fmt, va_list ap);
-    void vwarn(int flag, int errId, const char* fmt, va_list ap);
+    void vmes(int flag, int col, const char* mes, va_list argptr);
+    void verr(int flag, int errId, const char* mes, va_list argptr);
+    void vwarn(int flag, int errId, const char* mes, va_list argptr);
     void clear();
     int modeReset();
-    int modeSet(int x, int y, int time, int lines);   // window position/duration/size (t_log: 0x30, 0x2A, 0xFF, 0x19)
+    int modeSet(int x, int y, int dispTime, int dispNum);   // window position/duration/size (t_log: 0x30, 0x2A, 0xFF, 0x19)
     void disp();
-    int on(int flag);
-    cLogWork* add(int flag, int key, const char* fmt, va_list ap);
+    int on(int time);
+    cLogWork* add(int flag, int errId, const char* mes, va_list ap);
     int scrSet(s8 n);                          // scroll by `n`, clamped to [0, 100 - lines]
     int dispLineNum(int x, int y);
 };

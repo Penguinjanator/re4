@@ -81,7 +81,7 @@ void RouteCk()
 // route point toward the target's nearest point (returns 0), advancing RckMy once within 250 of
 // the current point or when the next is in clear view. flag bit0 = skip the direct test unless
 // the next hop is the last, bit1 / bit2 (forced for Ashley, id 3) widen / narrow the collision mask.
-int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
+int RouteCkToEm(cEm* pMy, cEm* pTo, Vec* pDest, int mode)
 {
     Vec a;
     Vec b;
@@ -95,37 +95,37 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
     s8* tbl;
     f32 d2;
 
-    a = em->pos;
+    a = pMy->pos;
     a.y += 500.0f;
-    b = target->pos;
+    b = pTo->pos;
     b.y += 500.0f;
-    mask = em->atari.m_flag;
-    if (em->id == 3) {
-        flag |= 4;
+    mask = pMy->atari.m_flag;
+    if (pMy->id == 3) {
+        mode |= 4;
     }
-    if (!(flag & 1)) {
+    if (!(mode & 1)) {
         if (pG->Rtp == NULL) {
-            *out = target->pos;
+            *pDest = pTo->pos;
             return 1;
         }
-        if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
+        if (rckLineHitCheck(&a, &b, mask, mode) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
             if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
-                *out = target->pos;
+                *pDest = pTo->pos;
                 return 1;
             }
         }
     }
-    em->RckMy = em->RckNear = getNearInfo(em, 0, mask);
-    em->RckTo = target->RckNear = getNearInfo(target, 0, mask);
-    p = em->RckMy;
+    pMy->RckMy = pMy->RckNear = getNearInfo(pMy, 0, mask);
+    pMy->RckTo = pTo->RckNear = getNearInfo(pTo, 0, mask);
+    p = pMy->RckMy;
     if (p == -1) {
-        *out = target->pos;
+        *pDest = pTo->pos;
         return 1;
     }
-    t = em->RckTo;
+    t = pMy->RckTo;
     if (t == -1) {
-        *out = target->pos;
+        *pDest = pTo->pos;
         return 1;
     }
     {
@@ -134,31 +134,31 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
     }
     next = tbl[rtpData()->nPoint * p + t];
     if (next == -1) {
-        *out = target->pos;
+        *pDest = pTo->pos;
         return 1;
     }
-    if ((flag & 1) && next == t) {
+    if ((mode & 1) && next == t) {
         if (fabsf(a.y - b.y) < 2000.0f) {
-            if (pG->Rtp == NULL || rckLineHitCheck(&a, &b, mask, flag) == 0) {
-                *out = target->pos;
+            if (pG->Rtp == NULL || rckLineHitCheck(&a, &b, mask, mode) == 0) {
+                *pDest = pTo->pos;
                 return 1;
             }
         }
     }
     mask |= 0x80;
     pts = rtpPoint(rtpData());
-    pt = (RtpPoint*)(em->RckMy * sizeof(RtpPoint) + (u32)pts);
-    d2 = (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x) + (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z);
-    if (d2 < 62500.0f || (next != em->RckMy && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
-        em->RckMy = next;
+    pt = (RtpPoint*)(pMy->RckMy * sizeof(RtpPoint) + (u32)pts);
+    d2 = (pMy->pos.x - pt->pos.x) * (pMy->pos.x - pt->pos.x) + (pMy->pos.z - pt->pos.z) * (pMy->pos.z - pt->pos.z);
+    if (d2 < 62500.0f || (next != pMy->RckMy && rckLineHitCheck(&a, &pts[next].pos, mask, mode) == 0)) {
+        pMy->RckMy = next;
     }
-    *out = rtpPoint(rtpData())[em->RckMy].pos;
+    *pDest = rtpPoint(rtpData())[pMy->RckMy].pos;
     return 0;
 }
 
 // Escape point for `em` fleeing `from`: the linked neighbour of its nearest route point that lies
 // most directly away from `from` (within 1000 in height); the mirrored position when no RTP.
-void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
+void RouteCkEscEm(cEm* pMy, cEm* pTo, Vec* pDest)
 {
     RtpData* rtp;
     RtpPoint* pt;
@@ -169,20 +169,20 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
     f32 best;
     f32 m;
 
-    mask = em->atari.m_flag;
-    PSVECSubtract(&em->pos, &from->pos, out);
-    PSVECAdd(out, &em->pos, out);
-    em->RckNear = getNearInfo(em, 0, mask);
-    if (em->RckNear == -1) {
+    mask = pMy->atari.m_flag;
+    PSVECSubtract(&pMy->pos, &pTo->pos, pDest);
+    PSVECAdd(pDest, &pMy->pos, pDest);
+    pMy->RckNear = getNearInfo(pMy, 0, mask);
+    if (pMy->RckNear == -1) {
         return;
     }
     rtp = rtpData();
-    pt = &rtpPoint(rtp)[em->RckNear];
-    *out = pt->pos;
+    pt = &rtpPoint(rtp)[pMy->RckNear];
+    *pDest = pt->pos;
     if (pt->nLine == 0) {
         return;
     }
-    ang = GetXZAngle(&em->pos, &from->pos);
+    ang = GetXZAngle(&pMy->pos, &pTo->pos);
     best = 0.0f;
     for (i = 0; i < pt->nLine; i++) {
         // Block-local rtp copy (a second `rtp =` would make the entry block's rtp a global
@@ -191,21 +191,21 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
         RtpData* r = rtpData();
         RtpLink* lk = &rtpLink(r)[pt->offLine + i];
         np = &rtpPoint(r)[lk->point];
-        m = fabsf(Muku(&em->pos, &np->pos, ang, PI));
+        m = fabsf(Muku(&pMy->pos, &np->pos, ang, PI));
         if (m < best) {
             continue;
         }
-        if (fabsf(np->pos.y - em->pos.y) > 1000.0f) {
+        if (fabsf(np->pos.y - pMy->pos.y) > 1000.0f) {
             continue;
         }
         best = m;
-        *out = np->pos;
+        *pDest = np->pos;
     }
 }
 
 // RouteCkToEm toward a position: same rules; `dist` (optional) receives the height difference on a
 // direct move or the remaining path length (longest edge counted from the current point).
-int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
+int RouteCkToPos(cEm* pMy, Vec* pPos, Vec* pDest, int mode, f32* pMax)
 {
     Vec a;
     Vec b;
@@ -220,52 +220,52 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
     f32 d2;
     f32 dmax;
 
-    a = em->pos;
+    a = pMy->pos;
     a.y += 500.0f;
-    b = *target;
+    b = *pPos;
     b.y += 500.0f;
-    mask = em->atari.m_flag;
-    if (em->id == 3) {
-        flag |= 4;
+    mask = pMy->atari.m_flag;
+    if (pMy->id == 3) {
+        mode |= 4;
     }
-    if (!(flag & 1)) {
+    if (!(mode & 1)) {
         if (pG->Rtp == NULL) {
-            *out = *target;
-            if (dist != NULL) {
-                *dist = a.y - b.y;
-                *dist = fabsf(*dist);
+            *pDest = *pPos;
+            if (pMax != NULL) {
+                *pMax = a.y - b.y;
+                *pMax = fabsf(*pMax);
             }
             return 1;
         }
-        if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
+        if (rckLineHitCheck(&a, &b, mask, mode) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
             if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
-                *out = *target;
-                if (dist != NULL) {
-                    *dist = a.y - b.y;
-                    *dist = fabsf(*dist);
+                *pDest = *pPos;
+                if (pMax != NULL) {
+                    *pMax = a.y - b.y;
+                    *pMax = fabsf(*pMax);
                 }
                 return 1;
             }
         }
     }
-    em->RckMy = em->RckNear = getNearInfo(em, 0, mask);
-    em->RckTo = getNearPoint(&b, 0, mask);
-    p = em->RckMy;
+    pMy->RckMy = pMy->RckNear = getNearInfo(pMy, 0, mask);
+    pMy->RckTo = getNearPoint(&b, 0, mask);
+    p = pMy->RckMy;
     if (p == -1) {
-        *out = *target;
-        if (dist != NULL) {
-            *dist = a.y - b.y;
-            *dist = fabsf(*dist);
+        *pDest = *pPos;
+        if (pMax != NULL) {
+            *pMax = a.y - b.y;
+            *pMax = fabsf(*pMax);
         }
         return 1;
     }
-    t = em->RckTo;
+    t = pMy->RckTo;
     if (t == -1) {
-        *out = *target;
-        if (dist != NULL) {
-            *dist = a.y - b.y;
-            *dist = fabsf(*dist);
+        *pDest = *pPos;
+        if (pMax != NULL) {
+            *pMax = a.y - b.y;
+            *pMax = fabsf(*pMax);
         }
         return 1;
     }
@@ -275,20 +275,20 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
     }
     next = tbl[rtpData()->nPoint * p + t];
     if (next == -1) {
-        *out = *target;
-        if (dist != NULL) {
-            *dist = a.y - b.y;
-            *dist = fabsf(*dist);
+        *pDest = *pPos;
+        if (pMax != NULL) {
+            *pMax = a.y - b.y;
+            *pMax = fabsf(*pMax);
         }
         return 1;
     }
-    if ((flag & 1) && next == t) {
+    if ((mode & 1) && next == t) {
         if (fabsf(a.y - b.y) < 2000.0f) {
-            if (pG->Rtp == NULL || rckLineHitCheck(&a, &b, mask, flag) == 0) {
-                *out = *target;
-                if (dist != NULL) {
-                    *dist = a.y - b.y;
-                    *dist = fabsf(*dist);
+            if (pG->Rtp == NULL || rckLineHitCheck(&a, &b, mask, mode) == 0) {
+                *pDest = *pPos;
+                if (pMax != NULL) {
+                    *pMax = a.y - b.y;
+                    *pMax = fabsf(*pMax);
                 }
                 return 1;
             }
@@ -296,13 +296,13 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
     }
     mask |= 0x80;
     pts = rtpPoint(rtpData());
-    pt = (RtpPoint*)(em->RckMy * sizeof(RtpPoint) + (u32)pts);
-    d2 = (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x) + (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z);
-    if (d2 < 62500.0f || (next != em->RckMy && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
-        em->RckMy = next;
+    pt = (RtpPoint*)(pMy->RckMy * sizeof(RtpPoint) + (u32)pts);
+    d2 = (pMy->pos.x - pt->pos.x) * (pMy->pos.x - pt->pos.x) + (pMy->pos.z - pt->pos.z) * (pMy->pos.z - pt->pos.z);
+    if (d2 < 62500.0f || (next != pMy->RckMy && rckLineHitCheck(&a, &pts[next].pos, mask, mode) == 0)) {
+        pMy->RckMy = next;
     }
-    *out = rtpPoint(rtpData())[em->RckMy].pos;
-    if (dist != NULL) {
+    *pDest = rtpPoint(rtpData())[pMy->RckMy].pos;
+    if (pMax != NULL) {
         RtpData* r;
         int np;
         // The hop loop reuses `next` (one global pseudo, r30) and keeps the table read in the loop
@@ -313,24 +313,24 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         dmax = fabsf(dmax);
         r = (RtpData*) pG->Rtp;
         np = r->nPoint;
-        next = em->RckMy;
-        while ((next = tbl[np * next + em->RckTo]) != -1) {
+        next = pMy->RckMy;
+        while ((next = tbl[np * next + pMy->RckTo]) != -1) {
             f32 d = fabsf(a.y - rtpPoint(r)[next].pos.y);
             if (d > dmax) {
                 dmax = d;
             }
-            if (next == em->RckTo) {
+            if (next == pMy->RckTo) {
                 break;
             }
         }
-        *dist = dmax;
+        *pMax = dmax;
     }
     return 0;
 }
 
 // Route step between two positions without an enemy (scenario / camera use): `to` itself (1) when
 // reachable directly or unrouted, else the next route point (0).
-int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
+int RouteCkPosToPos(Vec* pPos1, Vec* pPos2, Vec* pDest)
 {
     Vec a;
     Vec b;
@@ -344,29 +344,29 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     f32 d2;
     s8* tbl;
 
-    a = *from;
-    b = *to;
+    a = *pPos1;
+    b = *pPos2;
     a.y += 500.0f;
     b.y += 500.0f;
     if (pG->Rtp == NULL) {
-        *out = *to;
+        *pDest = *pPos2;
         return 1;
     }
     if (rckLineHitCheck(&a, &b, 0, 0) == 0) {
         PosToPos(&a, &b, &c, 0.5f);
         if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
-            *out = *to;
+            *pDest = *pPos2;
             return 1;
         }
     }
     p = getNearPoint(&a, 0, 0);
     if (p == -1) {
-        *out = *to;
+        *pDest = *pPos2;
         return 1;
     }
     t = getNearPoint(&b, 0, 0);
     if (t == -1) {
-        *out = *to;
+        *pDest = *pPos2;
         return 1;
     }
     {
@@ -375,7 +375,7 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     }
     next = tbl[rtpData()->nPoint * p + t];
     if (next == -1) {
-        *out = *to;
+        *pDest = *pPos2;
         return 1;
     }
     rtp = rtpData();
@@ -385,15 +385,15 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
         pt = (RtpPoint*)(p * sizeof(RtpPoint) + base);
         d2 = (a.x - pt->pos.x) * (a.x - pt->pos.x) + (a.z - pt->pos.z) * (a.z - pt->pos.z);
         if (d2 < 62500.0f) {
-            *out = ((RtpPoint*)(next * sizeof(RtpPoint) + base))->pos;
+            *pDest = ((RtpPoint*)(next * sizeof(RtpPoint) + base))->pos;
             return 0;
         }
     }
     if (rckLineHitCheck(&a, &pts[next].pos, 0, 0) == 0) {
-        *out = rtpPoint(rtpData())[next].pos;
+        *pDest = rtpPoint(rtpData())[next].pos;
         return 0;
     }
-    *out = rtpPoint(rtpData())[p].pos;
+    *pDest = rtpPoint(rtpData())[p].pos;
     return 0;
 }
 
@@ -419,7 +419,7 @@ int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2)
 
 // Walking distance between two positions: the route length between their nearest points, or the
 // straight XZ distance when the line is clear / no route.
-f32 RouteCkPosToPosDis(Vec* from, Vec* to)
+f32 RouteCkPosToPosDis(Vec* pPos1, Vec* pPos2)
 {
     Vec a;
     Vec b;
@@ -427,8 +427,8 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
     int p;
     int t;
 
-    a = *from;
-    b = *to;
+    a = *pPos1;
+    b = *pPos2;
     a.y += 500.0f;
     b.y += 500.0f;
     if (pG->Rtp != NULL) {
@@ -436,24 +436,24 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
         // for the from/to arguments although r3/r4 still hold them since the entry copies; ours deletes
         // the two copies in reload_cse_regs. The volatile asm forgets the table (a label or call would too).
         asm volatile("" : : : "memory");
-        if (rckLineHitCheck(from, to, 0, 0) == 0) {
+        if (rckLineHitCheck(pPos1, pPos2, 0, 0) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
             if (SatMgr.getFloor(&c, NULL, 600.0f, 100000.0f, 0) > c.y - 2000.0f) {
                 goto direct;
             }
         }
-        p = getNearPoint(from, 0, 0);
+        p = getNearPoint(pPos1, 0, 0);
         if (p == -1) {
             goto direct;
         }
-        t = getNearPoint(to, 0, 0);
+        t = getNearPoint(pPos2, 0, 0);
         if (t == -1) {
             goto direct;
         }
         return RouteCkGetDist(p, t);
     }
 direct:
-    return VEC_DISTXZ(from, to);
+    return VEC_DISTXZ(pPos1, pPos2);
 }
 
 // The original zeroes the Vec in place with a memset libcall (`crclr cr1eq` = unprototyped
@@ -538,7 +538,7 @@ int RouteCkGetNearPoint(Vec* pos)
 // Route line test against the scroll collision (attr | 0x4000, ignoring the route-only bits
 // 0x383070; flag bit1 also 8, without bit2 also 0x40000); non-zero when blocked. debug_mode 8
 // draws the line.
-static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag)
+static int rckLineHitCheck(Vec* from, Vec* to, int attr, int mode)
 {
     Vec pa;
     Vec pb;
@@ -551,28 +551,28 @@ static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag)
     }
     attr |= 0x4000;
     mask = 0x383070;
-    if (flag & 2) {
+    if (mode & 2) {
         mask = 0x383078;
     }
-    if (!(flag & 4)) {
+    if (!(mode & 4)) {
         mask |= 0x40000;
     }
     return SatMgr.hitCheck(&pa, &pb, NULL, NULL, attr, mask);
 }
 
 // The enemy's nearest route point, computed once per frame (RckStat bit0 caches RckNear).
-int getNearInfo(cEm* em, int mode, int mask)
+int getNearInfo(cEm* pEm, int mode, int flag)
 {
-    if (em->RckStat & 1) {
-        return em->RckNear;
+    if (pEm->RckStat & 1) {
+        return pEm->RckNear;
     }
-    em->RckStat |= 1;
-    return getNearPoint(&em->pos, mode, mask);
+    pEm->RckStat |= 1;
+    return getNearPoint(&pEm->pos, mode, flag);
 }
 
 // Nearest route point to `pos`: the ten closest are sorted; mode != 0 returns the closest, else
 // the first with a clear line from 500 above pos. -1 when none.
-s8 getNearPoint(Vec* pos, int mode, int mask)
+s8 getNearPoint(Vec* pPos, int mode, int flag)
 {
     f32 dist[10];
     int idx[10];
@@ -604,8 +604,8 @@ s8 getNearPoint(Vec* pos, int mode, int mask)
     }
     pt = rtpPoint(rtpData());
     for (i = 0; i < n; i++) {
-        d = (pos->x - pt->pos.x) * (pos->x - pt->pos.x) + (pos->y - pt->pos.y) * (pos->y - pt->pos.y) +
-            (pos->z - pt->pos.z) * (pos->z - pt->pos.z);
+        d = (pPos->x - pt->pos.x) * (pPos->x - pt->pos.x) + (pPos->y - pt->pos.y) * (pPos->y - pt->pos.y) +
+            (pPos->z - pt->pos.z) * (pPos->z - pt->pos.z);
         for (j = m; j > 0; j--) {
             if (d > dist[j - 1]) {
                 break;
@@ -625,10 +625,10 @@ s8 getNearPoint(Vec* pos, int mode, int mask)
         return idx[0];
     }
     pt = rtpPoint(rtpData());
-    p2 = *pos;
+    p2 = *pPos;
     p2.y += 500.0f;
     for (i = 0, ip = idx; i < m; i++, ip++) {
-        if (rckLineHitCheck(&p2, &pt[*ip].pos, mask, 0) == 0) {
+        if (rckLineHitCheck(&p2, &pt[*ip].pos, flag, 0) == 0) {
             return *ip;
         }
     }

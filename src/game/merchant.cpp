@@ -1123,13 +1123,13 @@ void levelDataAdd(MerchantData* d, LevelEntry* tbl)
 
 // Binds the merchant personality, data block, selling and buying (exercise) price tables and the
 // tune price table.
-void MerchantCharacter::setChar(MerchantInfo* info_, MerchantData* data_, PriceEntry* sell, PriceEntry* exer, LevelPrice* level)
+void MerchantCharacter::setChar(MerchantInfo* info, MerchantData* data, PriceEntry* sell, PriceEntry* exer, LevelPrice* lvup)
 {
-    m_p_info = info_;
-    m_p_data = data_;
+    m_p_info = info;
+    m_p_data = data;
     m_p_sell = sell;
     m_p_exer = exer;
-    m_p_lvup = level;
+    m_p_lvup = lvup;
 }
 
 // Shop session object (sub screen): copies the character's tables and loads its data.
@@ -1354,39 +1354,39 @@ int Merchant::stockSpecial(ITEM_ID id)
 }
 
 // 1 when the weapon is at every normal max level and the exclusive upgrade is offered.
-int Merchant::specialTunable(ItemWork* item)
+int Merchant::specialTunable(ItemWork* p_item)
 {
-    if (stockSpecial(item->id) != 0 && LV_FIRE(item) + 1 == WeaponId2MaxLevel(item->id, 0) &&
-        LV_MAG(item) + 1 == WeaponId2MaxLevel(item->id, 1) && LV_SPEED(item) + 1 == WeaponId2MaxLevel(item->id, 2) &&
-        LV_EX(item) + 1 == WeaponId2MaxLevel(item->id, 3)) {
+    if (stockSpecial(p_item->id) != 0 && LV_FIRE(p_item) + 1 == WeaponId2MaxLevel(p_item->id, 0) &&
+        LV_MAG(p_item) + 1 == WeaponId2MaxLevel(p_item->id, 1) && LV_SPEED(p_item) + 1 == WeaponId2MaxLevel(p_item->id, 2) &&
+        LV_EX(p_item) + 1 == WeaponId2MaxLevel(p_item->id, 3)) {
         return 1;
     }
     return 0;
 }
 
 // 1 when the weapon already has its exclusive upgrade.
-int Merchant::specialTuned(ItemWork* item)
+int Merchant::specialTuned(ItemWork* p_item)
 {
-    if (LV_FIRE(item) + 1 > WeaponId2MaxLevel(item->id, 0) || LV_MAG(item) + 1 > WeaponId2MaxLevel(item->id, 1) ||
-        LV_SPEED(item) + 1 > WeaponId2MaxLevel(item->id, 2) || LV_EX(item) + 1 > WeaponId2MaxLevel(item->id, 3)) {
+    if (LV_FIRE(p_item) + 1 > WeaponId2MaxLevel(p_item->id, 0) || LV_MAG(p_item) + 1 > WeaponId2MaxLevel(p_item->id, 1) ||
+        LV_SPEED(p_item) + 1 > WeaponId2MaxLevel(p_item->id, 2) || LV_EX(p_item) + 1 > WeaponId2MaxLevel(p_item->id, 3)) {
         return 1;
     }
     return 0;
 }
 
 // 1 when the weapon can still be tuned here (below an offered max, or the exclusive is available).
-int Merchant::tunable(ItemWork* item)
+int Merchant::tunable(ItemWork* p_item)
 {
-    if (item == 0) {
+    if (p_item == 0) {
         return 0;
     }
-    if (stockSpecial(item->id) == 0) {
-        if (LV_FIRE(item) + 1 >= levelMax(item->id, 0) && LV_MAG(item) + 1 >= levelMax(item->id, 1) &&
-            LV_SPEED(item) + 1 >= levelMax(item->id, 2) && LV_EX(item) + 1 >= levelMax(item->id, 3)) {
+    if (stockSpecial(p_item->id) == 0) {
+        if (LV_FIRE(p_item) + 1 >= levelMax(p_item->id, 0) && LV_MAG(p_item) + 1 >= levelMax(p_item->id, 1) &&
+            LV_SPEED(p_item) + 1 >= levelMax(p_item->id, 2) && LV_EX(p_item) + 1 >= levelMax(p_item->id, 3)) {
             return 0;
         }
     } else {
-        if (specialTuned(item) == 1) {
+        if (specialTuned(p_item) == 1) {
             return 0;
         }
     }
@@ -1654,15 +1654,15 @@ int Merchant::buyupPrice(ItemWork* item, int num)
 
 // Sells a slot to the merchant: adds the price to *money, returns the item (and a weapon's ammo)
 // to the stock and raises favor by buyFavor.
-int Merchant::buyup(ItemWork* item, int num, int* money)
+int Merchant::buyup(ItemWork* p_item, int num, int* pocket)
 {
     ItemInfo ii;
 
-    *money += buyupPrice(item, num);
-    stockAdd(item->id, num);
-    itemInfo(item->id, &ii);
+    *pocket += buyupPrice(p_item, num);
+    stockAdd(p_item->id, num);
+    itemInfo(p_item->id, &ii);
     if (ii.type == 1 && num == 1) {
-        stockAdd(WeaponId2BulletId(item->id, item->bullet >> 13), item->bullet & 0x1FFF);
+        stockAdd(WeaponId2BulletId(p_item->id, p_item->bullet >> 13), p_item->bullet & 0x1FFF);
     }
     m_friendship += m_p_info->shift_Buyup;
     m_friendship = m_friendship < 0 ? 0 : (m_friendship > 100 ? 100 : m_friendship);
@@ -1721,17 +1721,17 @@ int Merchant::sellUnit(u16 id)
 // Buys num of `id` when *money suffices: takes the price, decrements the stock (and a weapon's
 // magazine of ammo), marks the Infinite Launcher as bought, raises favor (sellFavorBig above the
 // threshold) and clears the discount. Returns 1 on success.
-int Merchant::sell(u16 id, int num, int* money)
+int Merchant::sell(u16 id, int num, int* pocket)
 {
     ItemInfo ii;
     int price = sellPrice(id, num);
     int point = (int) ((f32) price * 0.02f);
 
-    if (*money >= price) {
+    if (*pocket >= price) {
         if (id == 0x40) {
             ItfFlagOn(pG, ITF_FN57);
         }
-        *money -= price;
+        *pocket -= price;
         stockSub(id, num);
         itemInfo(id, &ii);
         if (ii.type == 1 && num != 0) {

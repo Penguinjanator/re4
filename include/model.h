@@ -181,7 +181,7 @@ public:
     void setTplAddr(void* tpl);   // pTpl = tpl, relocated
     void addTplAddr(void* tpl);
     void setSpecular(u8 r, u8 g, u8 b);   // specular colour of every part
-    void setTexBlendTbl(void* tbl);
+    void setTexBlendTbl(void* pTbl);
     void resetTexBlendTbl();
     void setBlendRatio(u16 ratio);
     void setBlendType(u8 type);
@@ -203,7 +203,7 @@ public:
 
     cLightInfo();
     int init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask);  // type -> Flag, partsNo -> PartsNo, mask -> EnableMask
-    void updateMatrix(cModel* m);
+    void updateMatrix(cModel* pMod);
     u32 getLightNum();
     cModel* getPos(cModel* m, Vec* out);  // light origin of `m` (the parts x52 - 1 selects); returns the coord it belongs to
 };
@@ -334,7 +334,7 @@ public:
     virtual void memFree(void* p) { MemFree(p); }
     virtual void memClear(cModelInfo* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual int construct(cModelInfo* p, u32 id);
+    virtual int construct(cModelInfo* pSat, u32 room_no);
 
     cModelInfo* create(void* bin, void* tpl);
 };
@@ -368,7 +368,7 @@ public:
     virtual void memFree(void* p) { MemFree(p); }
     virtual void memClear(cParts* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual int construct(cParts* p, u32 id);
+    virtual int construct(cParts* pSat, u32 room_no);
 
     // `n` consecutive free works linked through pNext (the sequential parts list cModel::be_flag
     // bit13 marks), NULL when no run is free.
@@ -461,34 +461,34 @@ public:
     virtual ~cModel() {}
     virtual void matUpdate();
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
 
-    cModel* getPartsPtr(int no);  // -1: the model itself; NULL (and a log) when out of range
+    cModel* getPartsPtr(int idx);  // -1: the model itself; NULL (and a log) when out of range
     int modelInit(void* bin, void* tpl);  // returns the cModelInfo* (pl_leon range-checks it)
     int initJoint(void* bin);     // parts list from the bin's parts records (makePartsList / setPartsParent / setPartsOffset / setJointInfo)
     void releaseJoint();          // releasePartsList(0) when there are parts
     void setPartsParent();        // pParent of every parts from the bin records
     void matBlend(f32 rate);      // parts pose = rate * own pose + (1 - rate) * worldMat pose (motion.cpp MotionMove blends)
     void setSca(Vec* scale);      // scale = *scale; matUpdate()
-    int deleteModelData(cModelData* data);   // destroy the info using `data` (1 when found)
-    int swapModelInfo(cModelData* data, cModelInfo* info);   // replace the info using `data` by `info` (1 when found)
+    int deleteModelData(cModelData* addr);   // destroy the info using `data` (1 when found)
+    int swapModelInfo(cModelData* addr, cModelInfo* info);   // replace the info using `data` by `info` (1 when found)
     void releaseModelInfo();      // destroy every info
     int makePartsList(int n);     // n parts (0: nParts) from PartsMgr, sequential when possible (be_flag bit13)
-    void setJointInfo(void* bin); // mot.blendTbl / mot.flip from the bin (version 0x20030818)
-    void releasePartsList(int no);  // destroy the parts from `no` on (0: all)
+    void setJointInfo(void* pHead); // mot.blendTbl / mot.flip from the bin (version 0x20030818)
+    void releasePartsList(int idx);  // destroy the parts from `no` on (0: all)
     void motionPause();
-    void addModel(cModelInfo* info);
+    void addModel(cModelInfo* pInfo);
     int deleteModelInfo(cModelInfo* info);   // 1 when the info was in the list
     void partsMatCalc();
     void partsWorldCalc();
-    void setPos(Vec* pos);
+    void setPos(Vec* newPos);
     void setAng(Vec* ang);
     // Component overloads: a Vec temporary, then setPos / setAng.
     void setPos(f32 x, f32 y, f32 z) { Vec tpos; tpos.x = x; tpos.y = y; tpos.z = z; setPos(&tpos); }
     void setAng(f32 ax, f32 ay, f32 az) { Vec tang; tang.x = ax; tang.y = ay; tang.z = az; setAng(&tang); }
     void updateOldPos();   // oldPos = pos for the model and its parts (emMove)
     void push();   // pl_sub PlChangeData
-    void drawAllBoundingBox(cModelInfo* info);
+    void drawAllBoundingBox(cModelInfo* pModelInfo);
     void debugSkeletonDisp();
     void error();  // too many lights: flags the model and logs it
     // MotionSetCore(this, &motion (0x1D8), data, a, b, c, d) / MotionMove(this, 0)
@@ -497,14 +497,14 @@ public:
     int isTrans();  // be_flag bit1 (visible) and be_flag != 0 (objWep / objRocket)
     // Hang parts 0 on `parent` at pos / rot (objRocket loadRocket); the 4-argument form
     // selects parts `partsNo` of the parent (-1: the parent itself).
-    void setParent(cModel* parent, Vec* pos, Vec* rot);
-    void setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot);
-    void moveDataAddr(int ofs);   // model data moved by `ofs` bytes (block.cpp memory compaction)
+    void setParent(cModel* pCoord, Vec* pos0, Vec* ang0);
+    void setParent(cModel* pMod, int pno, Vec* pos0, Vec* ang0);
+    void moveDataAddr(int ofsAddr);   // model data moved by `ofs` bytes (block.cpp memory compaction)
     // Copies the parts positions of a model bin (parts bin of an event costume, event SetPartsSub).
     void setPartsOffset(void* bin);
     // setPos / setAng / MotionClear(0) / matUpdate() (event ExeEndEvt puts the player back).
-    void zeroPartsPosInit(Vec* pos, Vec* rot);
-    void partsFixMemory(int no);  // (pl_class setFootwork: 0x13)
+    void zeroPartsPosInit(Vec* vPos, Vec* vAng);
+    void partsFixMemory(int fix_parts);  // (pl_class setFootwork: 0x13)
     void partsFixAdjust();        // (player cPlayer::move)
 
     // The managers the models allocate from (game/model.cpp, .sdata: &ModInfoMgr / &PartsMgr;
@@ -531,6 +531,6 @@ extern "C" void calcTplOffset(struct TEXPalette* tpl);
 // game/model.cpp: shows / hides model info `no` of `m` (the rooms hide the player's weapon models).
 extern "C" void ModelInfoSetTrans(cModel* m, int no, int on);
 // game/model.cpp: turns on the reflection flag of model info `no` (r11b: the water render targets).
-void ModelInfoRefrectOn(cModel* m, int no);
+void ModelInfoRefrectOn(cModel* pMod, int modelInfoNo);
 
 #endif

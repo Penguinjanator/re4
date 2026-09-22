@@ -28,21 +28,21 @@ static EmSwitchFunc EmSwitch_R1_move_tbl[3] = {
 
 // Weapon hit reaction: spawns the spark est (0x62, variant 1 when the shot was close) and, when
 // Damage_ck is on, toggles the lever (open <-> close) like the action button would.
-static void emSwitchDmCk(cEmSwitch* em)
+static void emSwitchDmCk(cEmSwitch* pEm)
 {
-    EmSwitchWork* w = EMSWITCH_WK(em);
+    EmSwitchWork* w = EMSWITCH_WK(pEm);
     int near;
     u8 wep;
 
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    em->dmg.m_Flag = 0;
+    pEm->dmg.m_Flag = 0;
     near = 0;
-    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
+    if (pEm->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmg.m_Wep;
+    wep = pEm->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -55,18 +55,18 @@ static void emSwitchDmCk(cEmSwitch* em)
     if (wep == 0x2A) {
         return;
     }
-    em->dmg.m_Timer = 1;
+    pEm->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmg.m_Timer = 0x11;
+        pEm->dmg.m_Timer = 0x11;
     }
-    switch (em->dmg.m_Wep) {
+    switch (pEm->dmg.m_Wep) {
     case 7:
     case 8:
     case 0x21:
         if (near) {
-            EmDmBloodSet2(em, 0x62, 1, 0, 0, 0);
+            EmDmBloodSet2(pEm, 0x62, 1, 0, 0, 0);
         } else {
-            EmDmBloodSet2(em, 0x62, 0, 0, 0, 0);
+            EmDmBloodSet2(pEm, 0x62, 0, 0, 0, 0);
         }
         break;
     case 0:
@@ -83,7 +83,7 @@ static void emSwitchDmCk(cEmSwitch* em)
     case 0x26:
     case 0x27:
     case 0x2B:
-        EmDmBloodSet2(em, 0x62, 0, 0, 0, 0);
+        EmDmBloodSet2(pEm, 0x62, 0, 0, 0, 0);
         break;
     case 5:
     case 6:
@@ -93,7 +93,7 @@ static void emSwitchDmCk(cEmSwitch* em)
     case 0xF:
     case 0x28:
     case 0x2C:
-        EmDmBloodSet2(em, 0x62, 0, 0, 0, 0);
+        EmDmBloodSet2(pEm, 0x62, 0, 0, 0, 0);
         break;
     case 0xD:
     case 0x12:
@@ -106,10 +106,10 @@ static void emSwitchDmCk(cEmSwitch* em)
         break;
     }
     if (w->Damage_ck) {
-        if (em->ckOpen()) {
-            em->setClose();
+        if (pEm->ckOpen()) {
+            pEm->setClose();
         } else {
-            em->setOpen();
+            pEm->setOpen();
         }
     }
 }
@@ -197,25 +197,25 @@ void cEmSwitch::move()
 }
 
 // Rno1 == 0: idle lever; updates the matrix and offers the action button.
-void emSwitch_R1_Set(cEmSwitch* em)
+void emSwitch_R1_Set(cEmSwitch* pEm)
 {
-    em->matUpdate();
-    emSwitchOperationActEvtCk(em);
+    pEm->matUpdate();
+    emSwitchOperationActEvtCk(pEm);
 }
 
 // Rno1 == 1: pulls the lever up (parts 1 x angle -10 degrees / frame to 0) with the lever SE, then
 // opens the linked gate(s) and settles in state 1 (Mode 2: immediately closes again).
-void emSwitch_R1_Open(cEmSwitch* em)
+void emSwitch_R1_Open(cEmSwitch* pEm)
 {
-    EmSwitchWork* w = EMSWITCH_WK(em);
+    EmSwitchWork* w = EMSWITCH_WK(pEm);
     cModel* p;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        SndCall(6, 0x23, &em->pos, 0, 0, em);
-        em->r_no_2++;
+        SndCall(6, 0x23, &pEm->pos, 0, 0, pEm);
+        pEm->r_no_2++;
     case 1:
-        p = em->getPartsPtr(1);
+        p = pEm->getPartsPtr(1);
         p->ang.x -= 0.17453292f;
         if (p->ang.x < 0.0f) {
             p->ang.x = 0.0f;
@@ -229,36 +229,36 @@ void emSwitch_R1_Open(cEmSwitch* em)
             if (w->Mode == 2) {
                 w->Status = 0;
                 w->Onoff_flag = 0;
-                em->r_no_0 = 1;
-                em->r_no_1 = 2;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 2;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             } else {
-                em->r_no_0 = 1;
-                em->r_no_1 = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             }
         }
         break;
     }
-    em->matUpdate();
+    pEm->matUpdate();
 }
 
 // Rno1 == 2: pushes the lever down (to 78 degrees), then closes the linked gate(s); with setBarrel
 // (room 227) also releases a rolling barrel every 150 frames; settles in state 2 (Mode 3
 // setAutoOpen: swings back open at once).
-void emSwitch_R1_Close(cEmSwitch* em)
+void emSwitch_R1_Close(cEmSwitch* pEm)
 {
-    EmSwitchWork* w = EMSWITCH_WK(em);
+    EmSwitchWork* w = EMSWITCH_WK(pEm);
     cModel* p;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        SndCall(6, 0x23, &em->pos, 0, 0, em);
-        em->r_no_2++;
+        SndCall(6, 0x23, &pEm->pos, 0, 0, pEm);
+        pEm->r_no_2++;
     case 1:
-        p = em->getPartsPtr(1);
+        p = pEm->getPartsPtr(1);
         p->ang.x += 0.17453292f;
         if (p->ang.x > 1.3613569f) {
             p->ang.x = 1.3613569f;
@@ -285,20 +285,20 @@ void emSwitch_R1_Close(cEmSwitch* em)
             if (w->Mode == 3) {
                 w->Status = 0;
                 w->Onoff_flag = 1;
-                em->r_no_0 = 1;
-                em->r_no_1 = 1;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 1;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             } else {
-                em->r_no_0 = 1;
-                em->r_no_1 = 0;
-                em->r_no_2 = 0;
-                em->r_no_3 = 0;
+                pEm->r_no_0 = 1;
+                pEm->r_no_1 = 0;
+                pEm->r_no_2 = 0;
+                pEm->r_no_3 = 0;
             }
         }
         break;
     }
-    em->matUpdate();
+    pEm->matUpdate();
 }
 
 // Lever state: 0 moving, 1 open, 2 closed.
@@ -416,17 +416,17 @@ void cEmSwitch::setConnectSwitch(cEmSwitch* s)
 }
 
 // Enables / disables the action button prompt.
-void cEmSwitch::setActButton(int on)
+void cEmSwitch::setActButton(int flag)
 {
-    EMSWITCH_WK(this)->actButton = on;
+    EMSWITCH_WK(this)->actButton = flag;
 }
 
 // Offers action button 0x14 (pull / push lever) when the lever is at rest and the player stands
 // within Ck_dis, at lever height, facing it (and, for type != 1, in front of it): opens a closed
 // lever, closes an open one unless Mode 1.
-void emSwitchOperationActEvtCk(cEmSwitch* em)
+void emSwitchOperationActEvtCk(cEmSwitch* pObj)
 {
-    EmSwitchWork* w = EMSWITCH_WK(em);
+    EmSwitchWork* w = EMSWITCH_WK(pObj);
     f32 dz;
     f32 dx;
 
@@ -436,42 +436,42 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
     if (w->Status == 0) {
         return;
     }
-    dz = em->pos.z - pPL->pos.z;
-    dx = em->pos.x - pPL->pos.x;
+    dz = pObj->pos.z - pPL->pos.z;
+    dx = pObj->pos.x - pPL->pos.x;
     if (dx * dx + dz * dz > w->Ck_dis * w->Ck_dis) {
         return;
     }
-    if (fabsf(em->pos.y - (pPL->pos.y + 1000.0f)) > 1000.0f) {
+    if (fabsf(pObj->pos.y - (pPL->pos.y + 1000.0f)) > 1000.0f) {
         return;
     }
-    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f)) > 0.78539819f) {
+    if (fabsf(Muku(&pPL->pos, &pObj->pos, pPL->ang.y, 3.1415927f)) > 0.78539819f) {
         return;
     }
-    if (em->type != 1) {
-        if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f)) > 1.5707964f) {
+    if (pObj->type != 1) {
+        if (fabsf(Muku(&pObj->pos, &pPL->pos, pObj->ang.y, 3.1415927f)) > 1.5707964f) {
             return;
         }
     }
     if (w->Status == 2) {
-        ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActOpen, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+        ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActOpen, pObj, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
     if (w->Status == 1) {
         if (w->Mode != 1) {
-            ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActClose, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActClose, pObj, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
     }
 }
 
 // Action button callback: open.
-void emSwitchActOpen(cEmSwitch* em)
+void emSwitchActOpen(cEmSwitch* ptr)
 {
-    em->setOpen();
+    ptr->setOpen();
 }
 
 // Action button callback: close.
-void emSwitchActClose(cEmSwitch* em)
+void emSwitchActClose(cEmSwitch* ptr)
 {
-    em->setClose();
+    ptr->setClose();
 }
 
 // Mode 1: the lever can only be opened.

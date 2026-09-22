@@ -22,43 +22,43 @@ void make_lf4(u32 tag);
 }
 
 // Links a primitive at the head of an ordering-table entry (PS1 libgpu AddPrim).
-void AddPrim(u32* ot, u32* prim)
+void AddPrim(u32* pOt, u32* pWk)
 {
-    *prim = *ot;
-    *ot = (u32) prim;
+    *pWk = *pOt;
+    *pOt = (u32) pWk;
 }
 
 // Unlinks a primitive from an ordering table chain.
-void DelPrim(u32* ot, u32* prim)
+void DelPrim(u32* pOt, u32* pWk)
 {
-    if (*ot == 0xFFFFFFFF) {
+    if (*pOt == 0xFFFFFFFF) {
         return;
     }
     do {
-        u32* p = (u32*) *ot;
-        if ((s32) *ot < 0 && p == prim) {
-            *ot = *p;
+        u32* p = (u32*) *pOt;
+        if ((s32) *pOt < 0 && p == pWk) {
+            *pOt = *p;
             return;
         }
-        ot = (u32*) (*ot | 0x80000000);
-    } while (*ot != 0xFFFFFFFF);
+        pOt = (u32*) (*pOt | 0x80000000);
+    } while (*pOt != 0xFFFFFFFF);
 }
 
 // Initialises a reverse ordering table of n entries (each pointing to the previous, the first terminated).
-void ClearOTagR(u32* ot, int n)
+void ClearOTagR(u32* pOt, int n)
 {
     int i;
 
-    *ot = 0xFFFFFFFF;
+    *pOt = 0xFFFFFFFF;
     for (i = 0; i < n - 1; i++) {
-        ot[1] = (u32) ot & 0x7FFFFFFF;
-        ot++;
+        pOt[1] = (u32) pOt & 0x7FFFFFFF;
+        pOt++;
     }
 }
 
 // Draws the chain: screen-space ortho projection (512x448), then each primitive by its code
 // (low 5 bits of word 1) through the make_* table. Used by the debug line/polygon drawing.
-void DrawOTag(u32* ot)
+void DrawOTag(u32* pOt)
 {
     static void (*tbl[])(u32) = {
         make_g3,
@@ -83,16 +83,16 @@ void DrawOTag(u32* ot)
     GXSetCurrentMtx(0);
     GXSetBlendMode(0, 1, 0, 0);
     GXSetCullMode(0);
-    if (*ot == 0xFFFFFFFF) {
+    if (*pOt == 0xFFFFFFFF) {
         return;
     }
     do {
-        u32* p = (u32*) *ot;
+        u32* p = (u32*) *pOt;
         if ((s32) p < 0) {
             tbl[p[1] & 0x1F]((u32) p);
         }
-        ot = (u32*) (*ot | 0x80000000);
-    } while (*ot != 0xFFFFFFFF);
+        pOt = (u32*) (*pOt | 0x80000000);
+    } while (*pOt != 0xFFFFFFFF);
 }
 
 // GX state for one primitive: colour-only vertices, position + colour descriptors, GXBegin.

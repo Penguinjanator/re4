@@ -50,7 +50,7 @@ public:
     YARARE_INFO* m_pDamageYarare;      // 0x14  hit part
 
     cDmgInfo();
-    void set(int flag, int timer, u8 kind, Vec* pos, f32 rad, YARARE_INFO* part);
+    void set(int flag, int timer, u8 wep, Vec* pos, f32 rad, YARARE_INFO* part);
     void set(int flag, int timer);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
     void clear();
     void move();              // counts x1 down; clears stat when it reaches 0
@@ -144,8 +144,8 @@ public:
     virtual void setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff);  // 0x3D6.. item drop (0x3D1 flag)
     virtual void setNoItem();
     virtual int checkThrow();
-    void setStatus(int bit);     // status |= 1 << bit
-    void clearStatus(int bit);
+    void setStatus(int id);     // status |= 1 << bit
+    void clearStatus(int id);
     int checkStatus(int stat);
     int initWork();              // be_flag = 0x21, x12E = 0 (the constructor)
 };
@@ -180,13 +180,13 @@ public:
     virtual void memFree(void* p) { MemFree(p); }
     virtual void memClear(cEm* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual void destroy(cEm* p);   // em.cpp overrides the cManager one (pl_sub SubCharCtrl / PlDataRelease)
-    virtual int construct(cEm* p, u32 id);
+    virtual void destroy(cEm* pEm);   // em.cpp overrides the cManager one (pl_sub SubCharCtrl / PlDataRelease)
+    virtual int construct(cEm* pSat, u32 room_no);
 
-    int arrayAlloc(u32 n);        // cManager<cEm>::arrayAlloc + pPL = pSUB = 0; returns 1
+    int arrayAlloc(u32 workNum);        // cManager<cEm>::arrayAlloc + pPL = pSUB = 0; returns 1
     void move();                  // dieCheck, RouteCk, emMove for every alive work (or only pSUB when stopped)
     // first alive enemy with model id `id`, searching from `start->next` (or the list head)
-    cEm* getEmPtr(int id, cEm* start);
+    cEm* getEmPtr(int id, cEm* pEm);
     int isBattle();               // 1 when any alive enemy has status bit0
     void destroyAll();            // killEm on every alive work (id != 0)
 };
@@ -210,7 +210,7 @@ public:
     void setBreak(Vec* pPos);
     void setDown(Vec* pos);
     void setShock();
-    void setEff(u8 eff);
+    void setEff(u8 eff_id);
     void setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
     int adjustRange(u8 dir);
 };
@@ -222,9 +222,9 @@ public:
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 extern "C" {
-void emMove(cEm* em);        // per-frame update of one alive work: distance to the player, damage info, move()
-void battleCheck(cEm* em);
-void killEm(cEm* em);
+void emMove(cEm* pEm);        // per-frame update of one alive work: distance to the player, damage info, move()
+void battleCheck(cEm* pEm);
+void killEm(cEm* pEm);
 }
 
 #endif

@@ -67,7 +67,7 @@ void Ctrl12Set(cCtrl* pCtrl, int idx, s16 val)
 }
 
 // 1 while timer `idx` is running.
-int Ctrl12Ck(cCtrl* pCtrl, int idx)
+int Ctrl12Ck(cCtrl* pCtrl, int id)
 {
     Ctrl12Work* w;
 
@@ -77,18 +77,18 @@ int Ctrl12Ck(cCtrl* pCtrl, int idx)
     if (pCtrl->Id != 0x12) {
         return 0;
     }
-    if (idx > 12) {
+    if (id > 12) {
         return 0;
     }
     w = (Ctrl12Work*) pCtrl->work;
-    if (w->timer[idx] != 0) {
+    if (w->timer[id] != 0) {
         return 1;
     }
     return 0;
 }
 
 // Adds `add` to counter `idx` (0..5), saturating at 0xFFFF.
-void Ctrl12CntAdd(cCtrl* pCtrl, int idx, int add)
+void Ctrl12CntAdd(cCtrl* pCtrl, int id, int add)
 {
     Ctrl12Work* w;
     u16 v;
@@ -99,16 +99,16 @@ void Ctrl12CntAdd(cCtrl* pCtrl, int idx, int add)
     if (pCtrl->Id != 0x12) {
         return;
     }
-    if (idx > 5) {
+    if (id > 5) {
         return;
     }
     w = (Ctrl12Work*) pCtrl->work;
-    v = w->cnt[idx];
-    w->cnt[idx] = v + add;
+    v = w->cnt[id];
+    w->cnt[id] = v + add;
 }
 
 // 1 when counter `idx` has reached `val`.
-int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val)
+int Ctrl12CntCk(cCtrl* pCtrl, int id, u16 over)
 {
     Ctrl12Work* w;
 
@@ -118,11 +118,11 @@ int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val)
     if (pCtrl->Id != 0x12) {
         return 0;
     }
-    if (idx > 5) {
+    if (id > 5) {
         return 0;
     }
     w = (Ctrl12Work*) pCtrl->work;
-    return w->cnt[idx] >= val;
+    return w->cnt[id] >= over;
 }
 
 // The em2b (El Gigante) texture render target, allocated on first use together with its est

@@ -17,17 +17,17 @@ struct Hermite1 {
 };
 
 extern "C" {
-void Hermite_1Clear(Hermite1* h);
-int Hermite_1CurveRight(Hermite1* h, f32 t);
-int Hermite_1CurveCalc(Hermite1* h, f32 t, f32* out);
-void Hermite_1Scale(Hermite1* h, f32 sx, f32 sy);
-void Hermite_1Trans(Hermite1* h, f32 tx, f32 ty);
-void Hermite_1Reverse(Hermite1* h);
-void Hermite_1(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out);
-void Hermite_1_dt(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out);
+void Hermite_1Clear(Hermite1* pCurve);
+int Hermite_1CurveRight(Hermite1* pCurve, f32 frame);
+int Hermite_1CurveCalc(Hermite1* pCurve, f32 frame, f32* pS);
+void Hermite_1Scale(Hermite1* pScurve, f32 Hscale, f32 Vscale);
+void Hermite_1Trans(Hermite1* pScurve, f32 Xoffset, f32 Yoffset);
+void Hermite_1Reverse(Hermite1* pScurve);
+void Hermite_1(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* pP);
+void Hermite_1_dt(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* pT);
 }
 
 // C++ overload (Hermite_1CurveCalc__FP8Hermite1f): evaluate the curve, 0.0f when t is outside.
-f32 Hermite_1CurveCalc(Hermite1* h, f32 t);
+f32 Hermite_1CurveCalc(Hermite1* pCurve, f32 frame);
 
 #endif

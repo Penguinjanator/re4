@@ -166,7 +166,7 @@ void EspFreeSizeCheckAll()
 
 // Plays the sound effect selected by an effect record's SeType (esp07): 1 = SE 0x2F, 2 = SE 0x0D,
 // 0/3 = silent. Skipped while the generator runs in loop-preview mode (EspGenGetMoveLoop).
-void EspCallSeType(int type, Vec* pos)
+void EspCallSeType(int type, Vec* pPos)
 {
     if (EspGenGetMoveLoop()) {
         return;
@@ -175,10 +175,10 @@ void EspCallSeType(int type, Vec* pos)
     case 0:
         break;
     case 1:
-        SndCall(6, 0x2F, pos, 0, 0, NULL);
+        SndCall(6, 0x2F, pPos, 0, 0, NULL);
         break;
     case 2:
-        SndCall(6, 0x0D, pos, 0, 0, NULL);
+        SndCall(6, 0x0D, pPos, 0, 0, NULL);
         break;
     case 3:
         break;
@@ -191,7 +191,7 @@ void EspCallSeType(int type, Vec* pos)
 // Footstep effect for the player's foot `type` (0 left / 1 right): `no` is the ground material's
 // FootSeNo (1/3 dust, 2 splash, 4 room-specific effect from pl->m_pEffRoom[4|5] spawned at the
 // floor height under the player). Spawns through EstSet.
-void EspFootCall(int type, int no, Vec* pos)
+void EspFootCall(int type, int no, Vec* pPos)
 {
     cPlayer* pl = pPL;
     Vec fpos;
@@ -203,13 +203,13 @@ void EspFootCall(int type, int no, Vec* pos)
         case 0:
             break;
         case 1:
-            EstSet(0, -1, pos, NULL, EFF_CORE, 4, 0, ESP_CORE_KIND_NONE, 0, NULL);
+            EstSet(0, -1, pPos, NULL, EFF_CORE, 4, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 2:
-            EstSet(0, -1, pos, NULL, EFF_CORE, 0x16, 0, ESP_CORE_KIND_NONE, 0, NULL);
+            EstSet(0, -1, pPos, NULL, EFF_CORE, 0x16, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 3:
-            EstSet(0, -1, pos, NULL, EFF_CORE, 4, 0, ESP_CORE_KIND_NONE, 0, NULL);
+            EstSet(0, -1, pPos, NULL, EFF_CORE, 4, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 4:
             h = EatMgr.getFloor(&pl->pos, NULL, 600.0f, 100000.0f, 0);
@@ -228,13 +228,13 @@ void EspFootCall(int type, int no, Vec* pos)
         case 0:
             break;
         case 1:
-            EstSet(0, -1, pos, NULL, EFF_CORE, 5, 0, ESP_CORE_KIND_NONE, 0, NULL);
+            EstSet(0, -1, pPos, NULL, EFF_CORE, 5, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 2:
-            EstSet(0, -1, pos, NULL, EFF_CORE, 0x17, 0, ESP_CORE_KIND_NONE, 0, NULL);
+            EstSet(0, -1, pPos, NULL, EFF_CORE, 0x17, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 3:
-            EstSet(0, -1, pos, NULL, EFF_CORE, 5, 0, ESP_CORE_KIND_NONE, 0, NULL);
+            EstSet(0, -1, pPos, NULL, EFF_CORE, 5, 0, ESP_CORE_KIND_NONE, 0, NULL);
             break;
         case 4:
             h = EatMgr.getFloor(&pl->pos, NULL, 600.0f, 100000.0f, 0);
@@ -257,17 +257,17 @@ void EspFootCall(int type, int no, Vec* pos)
 // Called from the sound system for the player's water footsteps: when the point is more than 90 units
 // below the water surface, pushes the water at the player position (AddWaterPower 0.25) and returns
 // 1; otherwise 0.
-int EspPlWaterCall(int type, Vec* pos)
+int EspPlWaterCall(int type, Vec* pPos)
 {
     Vec wpos;
     f32 h;
     int ret = 0;
 
-    if (GetWaterHeight(pos, &h)) {
-        if (pos->y < h - 90.0f) {
+    if (GetWaterHeight(pPos, &h)) {
+        if (pPos->y < h - 90.0f) {
             AddWaterPower(pPL->pos, 0.25f);
             ret = 1;
-            wpos = *pos;
+            wpos = *pPos;
             wpos.y = h;
         }
     }
@@ -297,7 +297,7 @@ void EffCrearRoomSeFunc()
 
 // Calls room effect sound callback `no` with the effect position; logs when the slot is out of range
 // or not registered.
-void EffCallRoomSeFunc(int no, Vec* pos)
+void EffCallRoomSeFunc(int no, Vec* pPos)
 {
     if (no < 0 || no > 7) {
         pLog->err(0, 0, "EffCallRoomSeFunc() : SeNo[%d] invalid.", no);
@@ -307,7 +307,7 @@ void EffCallRoomSeFunc(int no, Vec* pos)
         pLog->err(0, 0, "EffCallRoomSeFunc() : SeFunc[%d] not init.", no);
         return;
     }
-    pSeFunc[no](pos);
+    pSeFunc[no](pPos);
 }
 
 // Per-frame update of the effect area states: tests the player position (+100 y; the camera position
@@ -413,7 +413,7 @@ int EffAreaCheckNo(Vec* pos, u8 areaNo)
 // Gives the model a texture-render blend table (4 stages onto the TexRender manager's texture) so it
 // shows the screen-rendered texture; on first use (Status_flg[1] bit 0x10 clear) allocates the
 // manager, grows its buffer and spawns the est 0x25/0x1F render effect.
-void EffEm2d_setTexRender(cModel* m)
+void EffEm2d_setTexRender(cModel* pMod)
 {
     static u8 buf[0x80];
     u8* tbl = buf;
@@ -446,8 +446,8 @@ void EffEm2d_setTexRender(cModel* m)
         mgr2->m_Rep_type = repType;
         EstSet(0, -1, NULL, NULL, EFF_EM2D, 0x1F, pMgr->m_Core_flg | 0x801, ESP_CORE_KIND_NONE, 0, NULL);
     }
-    m->pModelInfo->setTexBlendTbl(tbl);
-    m->pModelInfo->setBlendRatio(0);
+    pMod->pModelInfo->setTexBlendTbl(tbl);
+    pMod->pModelInfo->setBlendRatio(0);
 }
 
 // Draws one frame of the laser sight line (est owner 0 id 3, effect 0x19) from `from` to `to`;
@@ -461,7 +461,7 @@ void EffEm2d_setTexRender(cModel* m)
 // the `lis` in sched1 and lands between `lis` and `lfs` (the high's life 2 -> 4 = 5000).
 // Reload 1 is then allocated before the high (r9), the high falls to r11 and the walk gives
 // the target; in sched2 the asm fills the empty slot beside the `lfs` and emits nothing.
-void EspDrawLaserLine(Vec from, Vec to, f32 width)
+void EspDrawLaserLine(Vec lpos, Vec lcross, f32 rate)
 {
     cEsp* esp;
     cEsp19* e;
@@ -475,9 +475,9 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     }
     e = (cEsp19*) esp;
     w = &e->m_Free;
-    e->m_Pos = from;
-    w->Vec0 = to;
-    w->max_laser_dist *= width;
+    e->m_Pos = lpos;
+    w->Vec0 = lcross;
+    w->max_laser_dist *= rate;
     if (StaFlagChk(pG, STA_LASERSITE_NOADD)) {
         cEsp* e1 = esp;
         e1->m_Blend_mode = 1;

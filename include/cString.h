@@ -20,7 +20,7 @@ public:
     char* c_str();
     u32 size();
     void clear();
-    void copy(const char* s);
+    void copy(const char* str);
 };
 
 #endif

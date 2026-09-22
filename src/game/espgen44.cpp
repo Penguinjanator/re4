@@ -12,20 +12,20 @@ struct Espgen44Work {
 };
 
 // EspgenMoveTbl entry for controller type 0x44: nothing per frame (the filter runs on its own).
-void Espgen44_Move(EspgenWork* w)
+void Espgen44_Move(EspgenWork* pGen)
 {
 }
 
 // EspgenTransTbl entry: nothing to draw.
-void Espgen44_Trans(EspgenWork* w)
+void Espgen44_Trans(EspgenWork* pGen)
 {
 }
 
 // Destruct entry: turns the filter the record programmed back off (Filter05SetParam / Filter06SetParam
 // with all-zero parameters).
-void Espgen44_Destruct(EspgenWork* w)
+void Espgen44_Destruct(EspgenWork* pGen)
 {
-    Espgen44Work* p = (Espgen44Work*) w->work;
+    Espgen44Work* p = (Espgen44Work*) pGen->work;
 
     switch (p->type) {
     case 0:
@@ -42,11 +42,11 @@ void Espgen44_Destruct(EspgenWork* w)
 // Programs the filter from the record: level = Work8[0]*100+100, colour Col_start_rgba, Col_d_a,
 // scale = Size_base_x*0.005; Filter05 (Id 0) takes Blend_type and kind Tex_id, Filter06 takes
 // Speed/R_speed as vectors and kind Work8[1].
-int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
+int Espgen44_SetFreeWork(EspgenWork* pGen, EspGenWork* pSeq, EspSeqData* pSeqHed, cModel* pMod, u16 Null_parts_no, Mtx* pMat,
+                         Vec* pOffset, Vec* pAng, EspSeqOpt* pSct)
 {
-    Espgen44Work* p = (Espgen44Work*) w->work;
-    if (rec->Id == 0) {
+    Espgen44Work* p = (Espgen44Work*) pGen->work;
+    if (pSeq->Id == 0) {
         p->type = 0;
     } else {
         p->type = 1;
@@ -54,17 +54,17 @@ int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
 
     switch (p->type) {
     case 0: {
-        int level = (s8) rec->Work8[0] * 100 + 100;
-        f32 scale = rec->Size_base_x * 0.005f;
-        int kind = rec->Tex_id;
-        Filter05SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, scale, rec->Blend_type, kind);
+        int level = (s8) pSeq->Work8[0] * 100 + 100;
+        f32 scale = pSeq->Size_base_x * 0.005f;
+        int kind = pSeq->Tex_id;
+        Filter05SetParam(level, pSeq->Col_start_r, pSeq->Col_start_g, pSeq->Col_start_b, pSeq->Col_start_a, pSeq->Col_d_a, 0.0f, scale, pSeq->Blend_type, kind);
         break;
     }
     case 1: {
-        int level = (s8) rec->Work8[0] * 100 + 100;
-        f32 scale = rec->Size_base_x * 0.005f;
-        int kind = rec->Work8[1];
-        Filter06SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, &rec->Speed, &rec->R_speed, scale,
+        int level = (s8) pSeq->Work8[0] * 100 + 100;
+        f32 scale = pSeq->Size_base_x * 0.005f;
+        int kind = pSeq->Work8[1];
+        Filter06SetParam(level, pSeq->Col_start_r, pSeq->Col_start_g, pSeq->Col_start_b, pSeq->Col_start_a, pSeq->Col_d_a, 0.0f, &pSeq->Speed, &pSeq->R_speed, scale,
                          kind);
         break;
     }

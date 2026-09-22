@@ -115,26 +115,26 @@ void cObjMissile::move()
 }
 
 // Rno0 == 0: free: matrices only.
-void objMissile_R0_Set(cObjMissile* obj)
+void objMissile_R0_Set(cObjMissile* pObj)
 {
-    obj->matUpdate();
+    pObj->matUpdate();
 }
 
 // Rno0 == 1: mounted on parts partsNo of the launcher (axes normalised unless noNormalize).
-void objMissile_R0_Parent(cObjMissile* obj)
+void objMissile_R0_Parent(cObjMissile* pObj)
 {
-    MissileWork* w = &obj->missile;
+    MissileWork* w = &pObj->missile;
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
     cModel* parent = w->parent;
 
-    RotMatrix(obj->mat, &obj->ang);
-    TransMatrix(obj->mat, &obj->pos);
-    ScaleMatrix(obj->mat, &obj->scale);
+    RotMatrix(pObj->mat, &pObj->ang);
+    TransMatrix(pObj->mat, &pObj->pos);
+    ScaleMatrix(pObj->mat, &pObj->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, pObj->mat, m);
         if (w->scale_mode == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -170,56 +170,56 @@ void objMissile_R0_Parent(cObjMissile* obj)
             m[1][2] = v2.y;
             m[2][2] = v2.z;
         }
-        PSMTXCopy(m, obj->mat);
+        PSMTXCopy(m, pObj->mat);
     }
-    if (obj->Motion.pMot) {
-        obj->Motion.Mot_flag |= 0x40000000;
-        MotionMove(obj, 0);
+    if (pObj->Motion.pMot) {
+        pObj->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pObj, 0);
     } else {
-        obj->partsMatCalc();
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Rno0 == 2 (setFire): 15 frames on the mount with the ignition effect (type 0: est 0x32/4),
 // then Fire.
-void objMissile_R0_FireWait(cObjMissile* obj)
+void objMissile_R0_FireWait(cObjMissile* pObj)
 {
-    MissileWork* w = &obj->missile;
+    MissileWork* w = &pObj->missile;
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
     cModel* parent = w->parent;
 
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
         w->Timer = 15;
-        switch (obj->type) {
+        switch (pObj->type) {
         case 0:
         default:
-            EstSet(obj, -1, 0, 0, EFF_EM3D, 4, 0, ESP_CORE_KIND_NONE, obj, 0);
+            EstSet(pObj, -1, 0, 0, EFF_EM3D, 4, 0, ESP_CORE_KIND_NONE, pObj, 0);
             break;
         case 1:
             break;
         }
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
         if (w->Timer) {
             w->Timer--;
         } else {
-            obj->r_no_0 = 3;
-            obj->r_no_1 = 0;
-            obj->r_no_2 = 0;
-            obj->r_no_3 = 0;
+            pObj->r_no_0 = 3;
+            pObj->r_no_1 = 0;
+            pObj->r_no_2 = 0;
+            pObj->r_no_3 = 0;
         }
         break;
     }
-    RotMatrix(obj->mat, &obj->ang);
-    TransMatrix(obj->mat, &obj->pos);
-    ScaleMatrix(obj->mat, &obj->scale);
+    RotMatrix(pObj->mat, &pObj->ang);
+    TransMatrix(pObj->mat, &pObj->pos);
+    ScaleMatrix(pObj->mat, &pObj->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, pObj->mat, m);
         if (w->scale_mode == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -255,53 +255,53 @@ void objMissile_R0_FireWait(cObjMissile* obj)
             m[1][2] = v2.y;
             m[2][2] = v2.z;
         }
-        PSMTXCopy(m, obj->mat);
+        PSMTXCopy(m, pObj->mat);
     }
-    if (obj->Motion.pMot) {
-        obj->Motion.Mot_flag |= 0x40000000;
-        MotionMove(obj, 0);
+    if (pObj->Motion.pMot) {
+        pObj->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pObj, 0);
     } else {
-        obj->partsMatCalc();
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Rno0 == 3: launch from the mount aimed at Target (type 0: 300 units/frame with the smoke trail
 // and sound, type 1: 150), speed x1.1 per frame, 90-frame limit; explodes (objMissileBomb) on the
 // scenario 300 units back along the path, on a character (type 1), or when its hit box is shot.
-void objMissile_R0_Fire(cObjMissile* obj)
+void objMissile_R0_Fire(cObjMissile* pObj)
 {
-    MissileWork* w = &obj->missile;
+    MissileWork* w = &pObj->missile;
 
-    if (obj->r_no_2 == 0) {
+    if (pObj->r_no_2 == 0) {
         Vec d;
 
-        obj->pos.x = obj->mat[0][3];
-        obj->pos.y = obj->mat[1][3];
-        obj->pos.z = obj->mat[2][3];
-        obj->pos_old = obj->pos;
-        Matrix2AxisAngle(obj->mat, &obj->ang);
+        pObj->pos.x = pObj->mat[0][3];
+        pObj->pos.y = pObj->mat[1][3];
+        pObj->pos.z = pObj->mat[2][3];
+        pObj->pos_old = pObj->pos;
+        Matrix2AxisAngle(pObj->mat, &pObj->ang);
         if (w->pHit) {
             w->pHit->hp = 1;
         }
         if (w->Target_ok) {
             f32 len;
 
-            PSVECSubtract(&w->Target, &obj->pos, &d);
+            PSVECSubtract(&w->Target, &pObj->pos, &d);
             len = SQRTF(d.x * d.x + d.z * d.z);
-            obj->ang.x = -atan2f(d.y, len);
-            obj->ang.y = atan2f(d.x, d.z);
-            obj->ang.z = 0.0f;
-            RotMatrix(obj->mat, &obj->ang);
-            TransMatrix(obj->mat, &obj->pos);
+            pObj->ang.x = -atan2f(d.y, len);
+            pObj->ang.y = atan2f(d.x, d.z);
+            pObj->ang.z = 0.0f;
+            RotMatrix(pObj->mat, &pObj->ang);
+            TransMatrix(pObj->mat, &pObj->pos);
         }
         w->Timer = 90;
         w->Timer2 = 3;
-        switch (obj->type) {
+        switch (pObj->type) {
         case 0:
         default:
-            EstSet(obj, -1, 0, 0, EFF_EM3D, 5, 0, ESP_CORE_KIND_NONE, obj, 0);
-            SndCall(6, 2, &obj->pos, 0, 0, obj);
+            EstSet(pObj, -1, 0, 0, EFF_EM3D, 5, 0, ESP_CORE_KIND_NONE, pObj, 0);
+            SndCall(6, 2, &pObj->pos, 0, 0, pObj);
             w->Spd.x = 0.0f;
             w->Spd.y = 0.0f;
             w->Spd.z = 300.0f;
@@ -312,77 +312,77 @@ void objMissile_R0_Fire(cObjMissile* obj)
             w->Spd.z = 150.0f;
             break;
         }
-        PSMTXMultVecSR(obj->mat, &w->Spd, &w->Spd);
+        PSMTXMultVecSR(pObj->mat, &w->Spd, &w->Spd);
         w->parent = 0;
-        obj->r_no_2++;
+        pObj->r_no_2++;
     }
     Vec hit;
     Vec nrm;
 
-    PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
+    PSVECAdd(&pObj->pos, &w->Spd, &pObj->pos);
     PSVECScale(&w->Spd, &w->Spd, 1.1f);
     if (w->Timer2) {
         w->Timer2--;
     } else {
-        if (EatMgr.hitCheck(&obj->pos_old, &obj->pos, &hit, 0, 0, 0)) {
-            PSVECSubtract(&obj->pos_old, &obj->pos, &nrm);
+        if (EatMgr.hitCheck(&pObj->pos_old, &pObj->pos, &hit, 0, 0, 0)) {
+            PSVECSubtract(&pObj->pos_old, &pObj->pos, &nrm);
             if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
-                objMissileBomb(obj, &hit);
+                objMissileBomb(pObj, &hit);
                 return;
             }
 #line 450 "D:/Bio4/Prog/objMissile.cpp"
             VECNormalize(&nrm, &nrm);
             PSVECScale(&nrm, &nrm, 300.0f);
             PSVECAdd(&hit, &nrm, &hit);
-            objMissileBomb(obj, &hit);
+            objMissileBomb(pObj, &hit);
             return;
         }
     }
-    if (obj->type == 1) {
+    if (pObj->type == 1) {
         Vec nrm2;
 
-        if (EmAtkLineHitCk(&obj->pos_old, &obj->pos, &hit, &nrm2, 0)) {
-            objMissileBomb(obj, &hit);
+        if (EmAtkLineHitCk(&pObj->pos_old, &pObj->pos, &hit, &nrm2, 0)) {
+            objMissileBomb(pObj, &hit);
             return;
         }
         if (w->pHit) {
             if (w->pHit->ckDmgWeapon()) {
-                objMissileBomb(obj, &obj->pos);
+                objMissileBomb(pObj, &pObj->pos);
                 return;
             }
         }
     }
-    RotMatrix(obj->mat, &obj->ang);
-    TransMatrix(obj->mat, &obj->pos);
-    ScaleMatrix(obj->mat, &obj->scale);
-    if (obj->Motion.pMot) {
-        obj->Motion.Mot_flag |= 0x40000000;
-        MotionMove(obj, 0);
+    RotMatrix(pObj->mat, &pObj->ang);
+    TransMatrix(pObj->mat, &pObj->pos);
+    ScaleMatrix(pObj->mat, &pObj->scale);
+    if (pObj->Motion.pMot) {
+        pObj->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pObj, 0);
     } else {
-        obj->partsMatCalc();
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
     if (w->Timer) {
         w->Timer--;
     } else {
-        obj->r_no_0 = 4;
-        obj->r_no_1 = 0;
-        obj->r_no_2 = 0;
-        obj->r_no_3 = 0;
+        pObj->r_no_0 = 4;
+        pObj->r_no_1 = 0;
+        pObj->r_no_2 = 0;
+        pObj->r_no_3 = 0;
     }
 }
 
 // Rno0 == 4: removes the missile and its hit box.
-void objMissile_R0_Lost(cObjMissile* obj)
+void objMissile_R0_Lost(cObjMissile* pObj)
 {
-    MissileWork* w = &obj->missile;
+    MissileWork* w = &pObj->missile;
 
-    obj->be_flag &= ~2;
+    pObj->be_flag &= ~2;
     if (w->pHit) {
         EmMgr.destroy(w->pHit);
         w->pHit = 0;
     }
-    ObjMgr.destroy(obj);
+    ObjMgr.destroy(pObj);
 }
 
 // Mounts the missile on parts partsNo of `parent` -> Parent.
@@ -400,13 +400,13 @@ void cObjMissile::setParent(cModel* parent, int partsNo, int noNormalize)
 }
 
 // Fires the missile at `target` (NULL = straight ahead) -> FireWait.
-void cObjMissile::setFire(Vec* target)
+void cObjMissile::setFire(Vec* pTarget)
 {
     MissileWork* w = &missile;
 
     w->Target_ok = 0;
-    if (target) {
-        w->Target = *target;
+    if (pTarget) {
+        w->Target = *pTarget;
         w->Target_ok = 1;
     }
     r_no_0 = 2;
@@ -418,20 +418,20 @@ void cObjMissile::setFire(Vec* target)
 // Explosion at pos: type 0 est 0x32/7, sound and a player weapon hit sphere (kind 0x12, radius
 // 8000) that destroys enemies; type 1 est 2/5 with radius 2000 (kind 0x13). Kills the hit box, in
 // r320 raises Room_flg[0] 0x80000000, -> Lost.
-void objMissileBomb(cObjMissile* obj, Vec* pos)
+void objMissileBomb(cObjMissile* pObj, Vec* pPos)
 {
-    MissileWork* w = &obj->missile;
+    MissileWork* w = &pObj->missile;
 
-    switch (obj->type) {
+    switch (pObj->type) {
     case 0:
     default:
-        EstSet(0, -1, pos, 0, EFF_EM3D, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
-        SndCall(6, 3, &obj->pos, 0, 0, obj);
-        PlWepHitCheck2(0, &obj->pos_old, &obj->pos_old, 0x12, 3, 8000.0f);
+        EstSet(0, -1, pPos, 0, EFF_EM3D, 7, 0, ESP_CORE_KIND_NONE, 0, 0);
+        SndCall(6, 3, &pObj->pos, 0, 0, pObj);
+        PlWepHitCheck2(0, &pObj->pos_old, &pObj->pos_old, 0x12, 3, 8000.0f);
         break;
     case 1:
-        EstSet(0, -1, pos, 0, EFF_EM3A, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
-        PlWepHitCheck2(0, &obj->pos_old, &obj->pos_old, 0x13, 3, 2000.0f);
+        EstSet(0, -1, pPos, 0, EFF_EM3A, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
+        PlWepHitCheck2(0, &pObj->pos_old, &pObj->pos_old, 0x13, 3, 2000.0f);
         break;
     }
     if (w->pHit) {
@@ -441,8 +441,8 @@ void objMissileBomb(cObjMissile* obj, Vec* pos)
     if (G_ROOM_ID == 0x320) {
         pG->Room_flg[0] |= 0x80000000;  // RMF_TARGET_DESTROY (r320)
     }
-    obj->r_no_0 = 4;
-    obj->r_no_1 = 0;
-    obj->r_no_2 = 0;
-    obj->r_no_3 = 0;
+    pObj->r_no_0 = 4;
+    pObj->r_no_1 = 0;
+    pObj->r_no_2 = 0;
+    pObj->r_no_3 = 0;
 }

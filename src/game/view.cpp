@@ -16,9 +16,9 @@ VIEW View;
 u8 ViewHit[0xD00];
 
 // Boot: the frustum follows camera `cam` (pG->Camera).
-void VIEW::gameInit(Camera* cam)
+void VIEW::gameInit(Camera* p_camera)
 {
-    _p_camera = cam;
+    _p_camera = p_camera;
     roomInit();
 }
 
@@ -49,9 +49,9 @@ void VIEW::move()
 }
 
 // Far plane distance used from the next frame (rooms shorten it).
-void VIEW::setFarPlane(f32 z)
+void VIEW::setFarPlane(f32 far_plane)
 {
-    _zfar = z;
+    _zfar = far_plane;
 }
 
 // initPerspective: the original's algorithm -- three Vec temporaries (the second normal block uses
@@ -83,7 +83,7 @@ void VIEW::setFarPlane(f32 z)
 // blocks), `w` is likewise shared, the far block has its own `h2` (block-local, tied to the dying `t` in
 // f31); each point is stored z, x, y (the far block's `lfs zf` depends on all twelve near stores, so the
 // store order inside a block is the sched1 order: the dying store first, then source order).
-void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
+void VIEW::initPerspective(f32 fovy, f32 aspect, f32 n, f32 f)
 {
     Vec t1;
     Vec t2;
@@ -104,16 +104,16 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     f32 d2;
     int i;
 
-    _fovy = fovy_;
-    _aspect = aspect_;
-    _zfar = zfar_;
-    _znear = znear_;
+    _fovy = fovy;
+    _aspect = aspect;
+    _zfar = f;
+    _znear = n;
     t = sinf(_fovy * 0.5f * 3.1415927f / 180.0f) / cosf(_fovy * 0.5f * 3.1415927f / 180.0f);
     b = &localFull;
     zn = _znear;
     z = -zn;
     h = zn * t;
-    w = h * aspect_;
+    w = h * aspect;
     b->point[0].z = z;
     b->point[0].x = w;
     b->point[0].y = h;
@@ -129,7 +129,7 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     zf = _zfar;
     h2 = zf * t;
     z = -zf;
-    w = h2 * aspect_;
+    w = h2 * aspect;
     b->point[4].z = z;
     b->point[4].x = w;
     b->point[4].y = h2;

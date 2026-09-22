@@ -72,11 +72,11 @@ struct FlrSys {
 
 extern FlrSys* pFlrSys;
 
-FlrAt* FlrAtCheck(int type, Vec* pos, int flag);
+FlrAt* FlrAtCheck(int id, Vec* pos, int flag);
 
 extern "C" {
 void FlrAtInit();
-int FlrAtSetDefVal(u32 no, u8 foot_se_set, u8 eff_no);
+int FlrAtSetDefVal(u32 group, u8 foot_se_set, u8 eff_no);
 }
 
 #endif

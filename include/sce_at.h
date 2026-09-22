@@ -238,27 +238,27 @@ struct SceAtWork {
 };
 
 extern "C" {
-void SceAtInit(void* atData, void* itemData);
+void SceAtInit(void* pHeader, void* pHeader_i);
 SceAtWork* sceAtSetOtStart();
 SceAtWork* sceAtGetOtAddr(SceAtWork* p);
 void SceAtClearHitFlg();
-void SceAtSetHitFlg(u32 no);
+void SceAtSetHitFlg(u32 at_no);
 void SceAtClearExecFlg();
-void SceAtSetExecFlg(u32 no);
+void SceAtSetExecFlg(u32 at_no);
 void SceAtWorkLoopInit();
 void SceAtCheck();
-int sceAtCheck_main(cEm* em, int type);
-void sceAtGetArea(AreaData* out, SceAtWork* w);
-int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos);
+int sceAtCheck_main(cEm* em, int target_type);
+void sceAtGetArea(AreaData* ret_area, SceAtWork* w);
+int sceAtHitCheck(SceAtWork* w, cModel* pModel, Vec* pos_f, Vec* pos);
 int CheckAshleyActive();
 int CheckDoorJumpWithAshley();
 int itemZoom(SceAtWork* w);
-void releaseModel(SceAtWork* w, int keep);
-void SceAtSetMes(SceAtMesData* m);
+void releaseModel(SceAtWork* w, int disp_flg);
+void SceAtSetMes(SceAtMesData* pMes);
 void sceAtFunc_shd_disp_reverse(SceAtWork* w);
 void sceAtLadder(SceAtWork* w);
-void sceAtGetLadderPos(SceAtLadder* l, Vec* pos, f32* ang);
-int sceAtCheckLadderUp(SceAtLadder* l, cModel* m);
+void sceAtGetLadderPos(SceAtLadder* ladder, Vec* pos, f32* ladder_ang);
+int sceAtCheckLadderUp(SceAtLadder* ladder, cModel* pEm);
 void SceAtDataSet_hide(int no, void (*func)(int));
 int SceAtCheckHideActive();
 void SceAtCheckHideProc();
@@ -267,7 +267,7 @@ void SceAtRoomSet();
 void sceAtSetScrAt(SceAtWork* w);
 void sceAtDeleteScrAt(SceAtWork* w);
 void SceAtCheckMoveScrAt();
-SceAtWork* SceAtPtr(int no);
+SceAtWork* SceAtPtr(int at_no);
 int sceAtPullAtNo(u8* out);
 void SceAtSetDoorFunc(int no, TaskFunc func, void* arg);
 // Area `no`: run `func(obj)` (prio, otPrio) when the player enters it.
@@ -290,37 +290,37 @@ enum SCE_LEVEL {
 };
 
 void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b);
-void SceAtDataReset(int no);
-void SceAtSetEnable(int no, int on);
-int SceAtHitCheck(u32 no);
-void SceAtExecute(int no);
-int SceAtCheckHitModel(int no, cModel* m);
-void SceAtSetActColor(int no, int col);
-void SceAtGetCenterPos(Vec* out, int no);
+void SceAtDataReset(int at_no);
+void SceAtSetEnable(int at_no, int sw);
+int SceAtHitCheck(u32 at_no);
+void SceAtExecute(int at_no);
+int SceAtCheckHitModel(int at_no, cModel* pModel);
+void SceAtSetActColor(int at_no, int col);
+void SceAtGetCenterPos(Vec* ret_pos, int at_no);
 int SceAtSetParent(SceAtWork* w, cModel* parent, int flag);
 int InScreenCheck(Vec* pos);
 void SceAtExecRoomJump(u16 room, Vec* pos, Vec* rot, int a);
 SceAtField* SceAtCheckFieldInfo(Vec* pos);
-int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level);
-int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level);
-void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w);
-void SceAtItemFlgOn(u16 flagNo, u16 saveFlagNo);
-int SceAtItemFlgCk(u16 flagNo, u16 saveFlagNo);
-int SceAtItemFindFlgCk(int no);
+int SceAtCheckLadder(cModel* pEm, Vec* pos, f32* ladder_ang, u8* ladder_height);
+int SceAtSearchLadder(cModel* pEm, Vec* pos, f32* ladder_ang, u8* ladder_height);
+void SceAtDataEyeTriggreCopy(AreaData* area, SceAtWork* w);
+void SceAtItemFlgOn(u16 item_flg, u16 saveFlagNo);
+int SceAtItemFlgCk(u16 item_flg, u16 saveFlagNo);
+int SceAtItemFindFlgCk(int at_no);
 void sceAtItemFlgOn(SceAtItem* it);
 int sceAtItemFlgCk(SceAtItem* it);
 void sceAtItemFindFlgOn(SceAtItem* it);
 int sceAtItemFindFlgCk(SceAtItem* it);
-int SceAtDestroy(int no);
+int SceAtDestroy(int at_no);
 // Area of the four corners `pos` around `m`: (x37, x38, x39, height, x44, angle, angle range, x4A, prio, func, arg, flag).
 int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag);
 int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int val, SceAtField** out);
 int SceAtCreateItemAt(Vec* pos, ITEM_ID id, int num, int effType, int saveNo, cModel* parent, int parts);
-void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, int saveNo);
-void SceAtCancelItemAt(cEm* key);
-int sceAtCheckItemEffectCol(ITEM_ID id);
+void SceAtReserveItemAt(cEm* pEm, Vec* pos, ITEM_ID item_id, int item_num, int item_eff, int save_no);
+void SceAtCancelItemAt(cEm* pEm);
+int sceAtCheckItemEffectCol(ITEM_ID item_id);
 int sceAtCheckSaveItem(u16 id);
-void SceAtLinkEtcDead(int no, int etcNo, int on);
+void SceAtLinkEtcDead(int at_no, int etc_no, int on_off);
 void sceAtLink_check();
 int SceAtSetEmItem(cEm* em, int no);
 void SceAtSetSaveItem();
@@ -331,20 +331,20 @@ void sceAtCheckItemModelParent(SceAtWork* w);
 void sceAtSetItemModelParent(SceAtWork* w);
 int SceAtSetItemModel(int no, cModel* m);
 int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl);
-cModel* SceAtItemModelPtr(int no);
+cModel* SceAtItemModelPtr(int at_no);
 int SceAtItemHitCheck(SceAtWork* w, Vec* pos);
 int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot);
 void sceAtSetItem(SceAtWork* w);
-void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size);
+void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 radius);
 void sceAtItemEffDelete(SceAtItem* it);
-void sceAtItemEffSet(SceAtWork* w, cModel* m);
-void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m);
+void sceAtItemEffSet(SceAtWork* w, cModel* pModel);
+void sceAtItemDisappearEffSet(SceAtWork* w, cModel* pModel);
 }
 
 // C++ overloads of the C entry points above.
 // Area `no` follows parts `parts` of `obj`; 0 when the area does not exist.
 int SceAtSetParent(int no, cObj* obj, int parts);
-int SceAtItemFlgCk(int no);
+int SceAtItemFlgCk(int at_no);
 int SceAtSetEmItem(cEm* em, SceAtWork* w);
 int SceAtSetItemModel(SceAtWork* w, cModel* m);
 

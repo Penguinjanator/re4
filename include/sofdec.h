@@ -113,8 +113,8 @@ public:
     int Initialize(cString& fname, u32 flags);
     int initSub(const char* fname, u32 flags);
     int Move();
-    static void ThreadMove(cSofdec* s);
-    void PlayPause(int pause);
+    static void ThreadMove(cSofdec* pThis);
+    void PlayPause(int sw);
     ~cSofdec() {}
 };
 
@@ -123,11 +123,11 @@ extern cSofdec Sofdec;
 extern "C" {
 void ADXM_ExecMain();
 void SofdecInit();
-void UsrSfcnt2time(int tscale, int count, int* h, int* m, int* s, int* f);
+void UsrSfcnt2time(int sf, int ncnt, int* hh, int* mm, int* ss, int* ff);
 void disp_info(SofdecApp* app);
 void setTevPrm(int mapY, int mapUV);
 void restoreTevPrm();
-void ap_mwply_err_func(void* obj, const char* msg);
+void ap_mwply_err_func(void* obj, const char* errmsg);
 }
 
 #endif

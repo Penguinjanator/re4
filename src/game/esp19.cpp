@@ -40,15 +40,15 @@ void cEsp19::move()
 }
 
 // End point from Vec0, maximum length from Vec1.x (0 -> 12000 units).
-int cEsp19::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp19::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp19Work* w = &m_Free;
 
-    w->Vec0 = *(Vec*)&gen->Vec0.x;
-    if (gen->Vec1.x == 0.0f) {
+    w->Vec0 = *(Vec*)&pSeq->Vec0.x;
+    if (pSeq->Vec1.x == 0.0f) {
         w->max_laser_dist = 12000.0f;
     } else {
-        w->max_laser_dist = gen->Vec1.x;
+        w->max_laser_dist = pSeq->Vec1.x;
     }
     return 1;
 }
@@ -56,7 +56,7 @@ int cEsp19::SetFreeWork(EspGenWork* gen, u32* seed)
 // Draws a 2-vertex GX line from p0 toward p1 in view matrix `mtx`, clipped to `len`, with the
 // effect's blend mode; the end vertex colour is scaled by 1 - d / len. Alpha byte 0xFE in
 // `color` disables the Z test.
-static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* esp, f32 len)
+static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mat, u32 col, cEsp* pEsp, f32 max_laser_dist)
 {
     Vec end;
     Vec dir;
@@ -64,10 +64,10 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
     f32 d;
     u8 r, g, b, a;
 
-    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
+    GXSetBlendMode(pEsp->m_Blend_mode, pEsp->m_Src_factor, pEsp->m_Dst_factor, pEsp->m_Logic_op);
     CameraCurrentProjection();
     GXSetCullMode(0);
-    if ((color >> 24) == 0xFE) {
+    if ((col >> 24) == 0xFE) {
         GXSetZMode(0, 3, 1);
     } else {
         GXSetZMode(1, 3, 1);
@@ -83,24 +83,24 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    GXLoadPosMtxImm(mtx, 0);
+    GXLoadPosMtxImm(mat, 0);
     GXSetCurrentMtx(0);
-    r = (color >> 16) & 0xFF;
-    g = (color >> 8) & 0xFF;
-    b = color & 0xFF;
+    r = (col >> 16) & 0xFF;
+    g = (col >> 8) & 0xFF;
+    b = col & 0xFF;
     a = 0xFF;
 
     end = *p1;
     PSVECSubtract(p1, p0, &dir);
     d = PSVECMag(&dir);
-    if (d > len) {
+    if (d > max_laser_dist) {
 #line 148 "D:/Bio4/Prog/esp19.cpp"
         VECNormalize(&dir, &dir);
-        PSVECScale(&dir, &dir, len);
+        PSVECScale(&dir, &dir, max_laser_dist);
         PSVECAdd(p0, &dir, &end);
-        d = len;
+        d = max_laser_dist;
     }
-    rate = 1.0f - d / len;
+    rate = 1.0f - d / max_laser_dist;
 
     GXBegin(0xB0, 0, 2);
     GXPosition3f32(p0->x, p0->y, p0->z);

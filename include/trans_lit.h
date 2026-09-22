@@ -10,10 +10,10 @@
 
 extern "C" {
 void LightSetInit();
-void LightSetModel(cModel* m);
+void LightSetModel(cModel* pMod);
 // Fill `list` (n entries) with the lights a cloth / water surface / effect picks up.
 void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size);
-void commonWaterLightSet(cLight** list, int n, u32 alpha);
+void commonWaterLightSet(cLight** pLightData, int data_num, u32 pow);
 void commonEspLightSet(cLight** list, int n);
 }
 

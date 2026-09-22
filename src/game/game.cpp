@@ -757,7 +757,7 @@ void GameLoad()
 // Continue after death: reloads the save keeping play time and the continue counters (+1 for mode
 // 0), re-applies costume/weapon data, restores the saved position/angle and jumps to the door demo
 // (Rno0 = 4) of the saved room.
-void GameContinue(int mode)
+void GameContinue(int option_flag)
 {
     u32 time = pG->play_time;
     u16 x4F90 = pG->r_continue_cnt;
@@ -770,7 +770,7 @@ void GameContinue(int mode)
     } else {
         SysFlagOn(pG, SYS_LOAD_GAME);
     }
-    if (mode == 0) {
+    if (option_flag == 0) {
         pG->r_continue_cnt = x4F90 + 1;
         pG->c_continue_cnt = x8338 + 1;
         pG->g_continue_cnt = g_continue_cnt + 1;
@@ -832,33 +832,33 @@ void clearGlobalSaveData()
 // Restores the game from a SAVE_DATA_HEAD image: the global block (0x4F80..), room flags, sub screen,
 // merchant and item data; SaveKind 3 (new round) clears the block, resets rooms/BGM and starts at
 // r120 with the carried-over merchant/items (2nd round bonuses).
-bool cGameSave::load(SAVE_DATA_HEAD* data)
+bool cGameSave::load(SAVE_DATA_HEAD* head)
 {
-    if (data->base == 0) {
+    if (head->base == 0) {
         return 0;
     }
-    checkAddr(data);
+    checkAddr(head);
     {
         u32* save = (u32*) &pG->save_data_start_addr;
 
-        memcpy(save, data->pGlobal, sizeof(GameSaveBlock));
+        memcpy(save, head->pGlobal, sizeof(GameSaveBlock));
     }
     if (pG->SaveKind == 3) {
         clearGlobalSaveData();
-        RoomData.clear(data->pRm);
+        RoomData.clear(head->pRm);
         SndBgmTblInit();
-        MerchantDataLoad(data->pMr);
-        ItemMgr.load(data->pItm);
+        MerchantDataLoad(head->pMr);
+        ItemMgr.load(head->pItm);
         if (pG->game_cnt == 1) {
             Merchant2ndRoundInit();
         }
         ItemMgr.dumpType(7);
         pG->room_id = 0x120;
     } else {
-        RoomData.load(data->pRm);
-        SscrnDataLoad(data->pSscrn);
-        MerchantDataLoad(data->pMr);
-        ItemMgr.load(data->pItm);
+        RoomData.load(head->pRm);
+        SscrnDataLoad(head->pSscrn);
+        MerchantDataLoad(head->pMr);
+        ItemMgr.load(head->pItm);
         PlSetCostume();
     }
     return 1;
@@ -886,60 +886,60 @@ bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
 }
 
 // Re-bases the image's pointers when it was copied from another address (memory card load).
-void cGameSave::checkAddr(SAVE_DATA_HEAD* data)
+void cGameSave::checkAddr(SAVE_DATA_HEAD* head)
 {
-    SAVE_DATA_HEAD* base = data->base;
+    SAVE_DATA_HEAD* base = head->base;
 
-    if (base != 0 && base != data) {
-        calcOffset(data, (u32) base);
-        calcAddr(data);
+    if (base != 0 && base != head) {
+        calcOffset(head, (u32) base);
+        calcAddr(head);
     }
 }
 
 // Converts the image's section pointers to offsets from base (before writing to card).
-void cGameSave::calcOffset(SAVE_DATA_HEAD* data, u32 base)
+void cGameSave::calcOffset(SAVE_DATA_HEAD* head, u32 headaddr)
 {
     u32 p;
 
-    if (data->base == 0) {
+    if (head->base == 0) {
         return;
     }
-    if (base == 0) {
-        base = (u32) data;
+    if (headaddr == 0) {
+        headaddr = (u32) head;
     }
     // One shared temporary: its anti-dependences keep each load below the previous add/sub.
-    data->base = 0;
-    p = (u32) data->pGlobal;
-    data->pGlobal = (GameSaveBlock*) (p - base);
-    p = (u32) data->pRm;
-    data->pRm = (void*) (p - base);
-    p = (u32) data->pSscrn;
-    data->pSscrn = (u32*) (p - base);
-    p = (u32) data->pMr;
-    data->pMr = (void*) (p - base);
-    p = (u32) data->pItm;
-    data->pItm = (void*) (p - base);
+    head->base = 0;
+    p = (u32) head->pGlobal;
+    head->pGlobal = (GameSaveBlock*) (p - headaddr);
+    p = (u32) head->pRm;
+    head->pRm = (void*) (p - headaddr);
+    p = (u32) head->pSscrn;
+    head->pSscrn = (u32*) (p - headaddr);
+    p = (u32) head->pMr;
+    head->pMr = (void*) (p - headaddr);
+    p = (u32) head->pItm;
+    head->pItm = (void*) (p - headaddr);
 }
 
 // Converts the image's section offsets back to pointers (base = the image itself).
-void cGameSave::calcAddr(SAVE_DATA_HEAD* data)
+void cGameSave::calcAddr(SAVE_DATA_HEAD* head)
 {
     u32 p;
 
-    if (data->base != 0) {
+    if (head->base != 0) {
         return;
     }
-    data->base = data;
-    p = (u32) data->pGlobal;
-    data->pGlobal = (GameSaveBlock*) ((u32) data + p);
-    p = (u32) data->pRm;
-    data->pRm = (void*) ((u32) data + p);
-    p = (u32) data->pSscrn;
-    data->pSscrn = (u32*) ((u32) data + p);
-    p = (u32) data->pMr;
-    data->pMr = (void*) ((u32) data + p);
-    p = (u32) data->pItm;
-    data->pItm = (void*) ((u32) data + p);
+    head->base = head;
+    p = (u32) head->pGlobal;
+    head->pGlobal = (GameSaveBlock*) ((u32) head + p);
+    p = (u32) head->pRm;
+    head->pRm = (void*) ((u32) head + p);
+    p = (u32) head->pSscrn;
+    head->pSscrn = (u32*) ((u32) head + p);
+    p = (u32) head->pMr;
+    head->pMr = (void*) ((u32) head + p);
+    p = (u32) head->pItm;
+    head->pItm = (void*) ((u32) head + p);
 }
 
 // Allocates the save image: global block at 0x40, room data at 0x3740, then sub screen, merchant
@@ -1084,7 +1084,7 @@ void gameDiedemoCheck()
 // The death demo task: waits exec_frame, shows "YOU ARE DEAD" (variant when the partner is alive),
 // fades and stops the sound, after 270 frames or START shows the Continue / Load Game menu, then
 // GameContinue(0) + LVADD_DIE or the soft reset.
-void gameDiedemo(DiedemoWork* w)
+void gameDiedemo(DiedemoWork* pDw)
 {
     int cnt = 0;
     u32 step = 0;
@@ -1099,14 +1099,14 @@ void gameDiedemo(DiedemoWork* w)
     for (;;) {
         switch (step) {
         case 0:
-            if (cnt >= w->exec_frame) {
+            if (cnt >= pDw->exec_frame) {
                 step++;
             }
             break;
         case 1:
             IdTexDataLoad((void*) (((OptionArc*) pG->pOption)->ofs_10 + (u32) pG->pOption), TEX_OWNER_ID_DEAD);
             IdSys.kill(0xFF, IDC_LIFE_METER);
-            kind = w->demo_type;
+            kind = pDw->demo_type;
             if (kind == 0) {
                 kind = 1;
                 if (pSUB != 0 && (s16) pG->pl_life != 0) {
@@ -1132,7 +1132,7 @@ void gameDiedemo(DiedemoWork* w)
             SndStrReq(0, 0, (int) 0x80000003, 0, 0, 0.0f);
             /* fallthrough */
         case 2:
-            if (cnt >= w->exec_frame + 0x10E || (Key.trg & 0x80000000)) {
+            if (cnt >= pDw->exec_frame + 0x10E || (Key.trg & 0x80000000)) {
                 IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_18 + (u32) pG->pOption), 0xFF, IDC_CONTINUE, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
@@ -1329,9 +1329,9 @@ void gameRoomMemInit()
 
 // Sets the starting difficulty points by game mode (normal 5500, professional 11000, easy 4500,
 // Separate Ways 4000 / room specific, Assignment Ada 9999) and applies them (GameAddPoint(0)).
-void GamePointInit(u32 mode)
+void GamePointInit(u32 type)
 {
-    switch (mode) {
+    switch (type) {
     case 0:
     default:
         switch (pG->game_mode) {
@@ -1558,9 +1558,9 @@ void primFree()
 }
 
 // Debug: prints the primitive buffer usage at (x, y).
-void PrimDispWorkNum(int x, int y, int col)
+void PrimDispWorkNum(int x, int y, int page)
 {
-    eprintf(x, y, 0, col, "%5X/%5X", (int) ((f32) pG->nPrim * pG->prim_rate), pG->nPrim);
+    eprintf(x, y, 0, page, "%5X/%5X", (int) ((f32) pG->nPrim * pG->prim_rate), pG->nPrim);
 }
 
 u32 stop_rno = 0;

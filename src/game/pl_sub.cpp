@@ -41,9 +41,9 @@ static inline void PlSetRoutine(int a, int b, int c, int d)
 // Switches the player character to pl_type `no` (Leon <-> Ashley chapter): swaps the two life
 // maxima and the peseta counts, frees the weapon data, re-picks the costume; pl_flag bit0 = the
 // player data must be reloaded.
-void PlSelect(int no)
+void PlSelect(int type)
 {
-    if (pG->pl_type != no) {
+    if (pG->pl_type != type) {
         s16 life = pG->pl_life_max;
         u32 tmp;
 
@@ -55,7 +55,7 @@ void PlSelect(int no)
         pG->peseta = pG->peseta_bak;
         pG->peseta_bak = tmp;
     }
-    pG->pl_type = no;
+    pG->pl_type = type;
     PlSetCostume();
     pG->pl_flag |= 1;
 }
@@ -151,16 +151,16 @@ int PlGachaGet()
 }
 
 // Player hurt voice `no` at the head (parts 4); 0 = one of the three random grunts (9-11).
-void PlSetDamageSe(int no)
+void PlSetDamageSe(int se_no)
 {
     cPlayer* pl = pPL;
 
-    if (no == 0) {
+    if (se_no == 0) {
         u8 r = (u32) Rnd() % 3;
 
-        no = r + 9;
+        se_no = r + 9;
     }
-    SndCall(1, no, &pl->getPartsPtr(4)->world, 0, 0, 0);
+    SndCall(1, se_no, &pl->getPartsPtr(4)->world, 0, 0, 0);
 }
 
 // Player routine as a bit word for the camera / scenario / HUD: bit0 idle, 1 walk / turn, 2 back,
@@ -267,21 +267,21 @@ void PlSetCrouch()
 }
 
 // Shows / hides the weapon hand model (type 1 = display slot 0, else slot 1) through cPlWep::setTrans.
-void PlSetHand(int type, int on)
+void PlSetHand(int mode, int flag)
 {
     int t = 1;
 
-    if (type == 1) {
+    if (mode == 1) {
         t = 0;
     }
-    pPL->Wep->setTrans(t, on);
+    pPL->Wep->setTrans(t, flag);
 }
 
 // Partner hand model (cSubChar::setHand).
-void SubCharSetHand(int no)
+void SubCharSetHand(int type)
 {
     if (pSUB) {
-        pSUB->setHand(no);
+        pSUB->setHand(type);
     }
 }
 
@@ -405,7 +405,7 @@ void EndSubDamage()
 
 // Creates the partner enemy if none exists: type 0 = Luis (em 2), 1 = Ashley (em 3, or 5 in the
 // alternate costume; id forced to 3), 2 = (em 4); placed at pos / ang, nudged off the player.
-void SubCharInit(int type, Vec* pos, f32 ang)
+void SubCharInit(int type, Vec* pos, f32 ang_y)
 {
     cSubChar* sub;
 
@@ -442,7 +442,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
 
         rot.x = 0.0f;
         rot.z = 0.0f;
-        rot.y = ang;
+        rot.y = ang_y;
         sub->setAng(&rot);
     }
     if (pos->x == pPL->pos.x && pos->z == pPL->pos.z) {
@@ -456,7 +456,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
 // Partner command: mode 0 follow, 1 wait here, 2 destroy, 3 stop, 4 warp to the player, 5 routine
 // 5, 6 re-init, 7 wait; flag bit0 restarts the routine at once, bit1 = manual control (flg
 // 0x80). Aux parameters are cleared unless she is in the aux routine.
-void SubCharCtrl(int mode, int flag)
+void SubCharCtrl(int mode, int sccf)
 {
     cSubChar* sub = pSUB;
 
@@ -469,7 +469,7 @@ void SubCharCtrl(int mode, int flag)
     switch (mode) {
     case 0:
         sub->control(1);
-        if (flag & 1) {
+        if (sccf & 1) {
             sub->r_no_0 = 0;
             sub->r_no_1 = 0;
             sub->r_no_2 = 0;
@@ -479,7 +479,7 @@ void SubCharCtrl(int mode, int flag)
         break;
     case 1:
         sub->control(2);
-        if (flag & 1) {
+        if (sccf & 1) {
             sub->r_no_0 = 0;
             sub->r_no_1 = 0;
             sub->r_no_2 = 0;
@@ -510,7 +510,7 @@ void SubCharCtrl(int mode, int flag)
         sub->control(6);
         break;
     }
-    if (flag & 2) {
+    if (sccf & 2) {
         sub->flg |= 0x80;
     } else {
         BitOff16(sub->flg, 0x80);
@@ -569,11 +569,11 @@ int SubCharCheckCtrl()
 
 // Partner hide: mode 0 flags her hidden (m_Work1), mode 1 sends her to hide at `pos` (routine
 // 0/0x10, invulnerable).
-void SubCharCtrlHide(Vec* pos, int mode)
+void SubCharCtrlHide(Vec* pos, int type)
 {
     cSubChar* sub = pSUB;
 
-    switch (mode) {
+    switch (type) {
     case 0:
         sub->m_Work1 = 1;
         break;
@@ -591,23 +591,23 @@ void SubCharCtrlHide(Vec* pos, int mode)
 
 // Partner: walk to (x, y, z) with parameter w (193 = special values), unless already going there;
 // flag bit0 sets flg 0x10.
-void SubCharMoveTo(f32 x, f32 y, f32 z, f32 w, int flag)
+void SubCharMoveTo(f32 x, f32 y, f32 z, f32 ry, int mode)
 {
     cSubChar* sub = pSUB;
 
     if ((sub->flg & 8) && x == sub->m_TargetPos.x && y == sub->m_TargetPos.y && z == sub->m_TargetPos.z &&
-        w == sub->m_TargetDir) {
+        ry == sub->m_TargetDir) {
         return;
     }
     sub->m_TargetPos.x = x;
     sub->m_TargetPos.y = y;
     sub->m_TargetPos.z = z;
-    sub->m_TargetDir = w;
+    sub->m_TargetDir = ry;
     sub->control(4);
     sub->analyze();
     sub->move();
     BitOff16(sub->status, 0x40);
-    if (flag & 1) {
+    if (mode & 1) {
         sub->flg |= 0x10;
     }
 }
@@ -734,9 +734,9 @@ void SubCharRegistMotion(void* m0, void* m1)
 }
 
 // Room water effect table for the player (ripple, walk splash, run splash).
-void PlRegistRoomEff(PlRoomEff* eff)
+void PlRegistRoomEff(PlRoomEff* er)
 {
-    pPL->m_pEffRoom = eff;
+    pPL->m_pEffRoom = er;
 }
 
 // After a reload of the bow / launcher / grenade types the weapon object refreshes the player's
@@ -875,7 +875,7 @@ int joyLKamae()
 // Player in water: a ripple (effect table entry 0) every 13 frames, a walk splash (1) when he moved
 // more than 1000 since the last frame, a run splash (2) above 6000, and a wave push; not while
 // carried (Status_flg[1] 0x200000).
-void PlWaterProc(cPlayer* pl)
+void PlWaterProc(cPlayer* pEm)
 {
     static f32 wavePower = 0.055f;
     static f32 spd0 = 1000.0f;
@@ -888,7 +888,7 @@ void PlWaterProc(cPlayer* pl)
     if (StaFlagChk(pG, STA_PL_BOAT)) {
         return;
     }
-    if (pl->m_pEffRoom == 0) {
+    if (pEm->m_pEffRoom == 0) {
         pLog->err(2, 0, "PL WATER EFF NOT REGIST");
         return;
     }
@@ -897,23 +897,23 @@ void PlWaterProc(cPlayer* pl)
         u8 t = hamonTimer % 13;
 
         if (t == 0) {
-            EstSet(pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, ESP_CORE_KIND_NONE, pl, (void*) t);
+            EstSet(pEm, -1, 0, 0, pEm->m_pEffRoom[0].id, pEm->m_pEffRoom[0].type, 0, ESP_CORE_KIND_NONE, pEm, (void*) t);
         }
     }
-    dist = GetDistance(&m_PosOldWater, &pl->pos);
+    dist = GetDistance(&m_PosOldWater, &pEm->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (dist > spd1) {
-        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, ESP_CORE_KIND_NONE, pl, (void*) sibukiTimer);
+        EstSet(pEm, -1, 0, 0, pEm->m_pEffRoom[2].id, pEm->m_pEffRoom[2].type, 0, ESP_CORE_KIND_NONE, pEm, (void*) sibukiTimer);
         sibukiTimer = 10;
     } else if (dist > spd0) {
-        EstSet(pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, ESP_CORE_KIND_NONE, pl, (void*) sibukiTimer);
+        EstSet(pEm, -1, 0, 0, pEm->m_pEffRoom[1].id, pEm->m_pEffRoom[1].type, 0, ESP_CORE_KIND_NONE, pEm, (void*) sibukiTimer);
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {
         AddWaterPower(pPL->pos, wavePower);
     }
-    m_PosOldWater = pl->pos;
+    m_PosOldWater = pEm->pos;
 }
 
 // Back to the idle routine with a footwork (unless in a boat / crouch routine).
@@ -1076,11 +1076,11 @@ int PlGetWeaponNo()
 }
 
 // Player face 0 neutral, 1 pain, 2.
-void PlSetFace(int no)
+void PlSetFace(int type)
 {
     int f;
 
-    switch (no) {
+    switch (type) {
     default:
         f = 0;
         break;
@@ -1095,10 +1095,10 @@ void PlSetFace(int no)
 }
 
 // Ashley's face (id 3 only).
-void SubCharSetFace(int no)
+void SubCharSetFace(int type)
 {
     if (pSUB->id == 3) {
-        pSUB->setFace(no);
+        pSUB->setFace(type);
     }
 }
 

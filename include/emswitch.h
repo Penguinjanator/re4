@@ -41,7 +41,7 @@ public:
     void setBarred(cEmBarred* b);
     void setBarred2nd(cEmBarred* pBarred);
     void setConnectSwitch(cEmSwitch* s);
-    void setActButton(int on);
+    void setActButton(int flag);
     void setOpenOnly();
     void setAutoOpen();
     void setBarrel();
@@ -50,12 +50,12 @@ public:
 
 extern "C" {
 cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo);
-void emSwitch_R1_Set(cEmSwitch* em);
-void emSwitch_R1_Open(cEmSwitch* em);
-void emSwitch_R1_Close(cEmSwitch* em);
-void emSwitchOperationActEvtCk(cEmSwitch* em);
-void emSwitchActOpen(cEmSwitch* em);
-void emSwitchActClose(cEmSwitch* em);
+void emSwitch_R1_Set(cEmSwitch* pEm);
+void emSwitch_R1_Open(cEmSwitch* pEm);
+void emSwitch_R1_Close(cEmSwitch* pEm);
+void emSwitchOperationActEvtCk(cEmSwitch* pObj);
+void emSwitchActOpen(cEmSwitch* ptr);
+void emSwitchActClose(cEmSwitch* ptr);
 }
 
 #endif

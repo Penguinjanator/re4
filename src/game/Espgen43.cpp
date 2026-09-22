@@ -56,7 +56,7 @@ static int Height_find;
 
 // Applies Add_power at Chk_pos to sand generator `w`: raises the hit point and lowers rings of
 // radius 3 / 2 / 1 around it by 2% / 10% / 30% of the power, then smooths the grid.
-void AddSandPowerSub(EspgenWork* w)
+void AddSandPowerSub(EspgenWork* pGen)
 {
     Espgen43Work* p;
     Vec v;
@@ -69,10 +69,10 @@ void AddSandPowerSub(EspgenWork* w)
     int j;
     int k;
 
-    if (w->id != 0x43) {
+    if (pGen->id != 0x43) {
         return;
     }
-    p = (Espgen43Work*) w->work;
+    p = (Espgen43Work*) pGen->work;
     v = Chk_pos;
     PSMTXMultVec(p->Inv_mat, &v, &v);
     if (v.x < (f32) (-p->Width / 2)) {
@@ -147,15 +147,15 @@ void AddSandPower(Vec& pos, f32 power)
 
 // Height test of Chk_pos on sand generator `w`: inside the grid, the surface plane height (the
 // grid is treated as flat) is stored in Height_ret.
-void GetSandHeightSub(EspgenWork* w)
+void GetSandHeightSub(EspgenWork* pGen)
 {
     Espgen43Work* p;
     Vec v;
 
-    if (w->id != 0x43) {
+    if (pGen->id != 0x43) {
         return;
     }
-    p = (Espgen43Work*) w->work;
+    p = (Espgen43Work*) pGen->work;
     v = Chk_pos;
     PSMTXMultVec(p->Inv_mat, &v, &v);
     if (v.x < (f32) (-p->Width / 2)) {
@@ -179,7 +179,7 @@ void GetSandHeightSub(EspgenWork* w)
 }
 
 // Surface height under `pos` on any live sand generator: 1 and *height, 0 when none covers it.
-int GetSandHeight(Vec* pos, f32* height)
+int GetSandHeight(Vec* pos, f32* Ret)
 {
     if (!StaFlagChk(pG, STA_SAND_ALIVE)) {
         return 0;
@@ -188,16 +188,16 @@ int GetSandHeight(Vec* pos, f32* height)
     Height_ret = -100000000.0f;
     Chk_pos = *pos;
     EspgenApplyFunc(GetSandHeightSub);
-    *height = Height_ret;
+    *Ret = Height_ret;
     return Height_find;
 }
 
 // Step 0, every frame: sets Status_flg[0] bit1 and recomputes the vertex normals from the
 // neighbouring heights, flushing both buffers for the GP.
 #line 246 "D:/Bio4/Prog/Espgen43.cpp"
-void Espgen43_Move00(EspgenWork* w)
+void Espgen43_Move00(EspgenWork* pGen)
 {
-    Espgen43Work* p = (Espgen43Work*) w->work;
+    Espgen43Work* p = (Espgen43Work*) pGen->work;
     Vec v;
     int i;
     int j;
@@ -223,24 +223,24 @@ void Espgen43_Move00(EspgenWork* w)
 }
 
 // Espgen move entry for id 0x43: dispatches on w->step.
-void Espgen43_Move(EspgenWork* w)
+void Espgen43_Move(EspgenWork* pGen)
 {
     static void (*Espgen43MoveTbl[])(EspgenWork*) = {Espgen43_Move00};
 
-    Espgen43MoveTbl[w->step](w);
+    Espgen43MoveTbl[pGen->step](pGen);
 }
 
 // Queues Espgen43_TransSub in the world OT (0x10, layer 1, priority 0x80) while live.
-void Espgen43_Trans(EspgenWork* w)
+void Espgen43_Trans(EspgenWork* pGen)
 {
-    if ((w->flag & 1) && !(w->flag & 2)) {
-        AddOtDirect(0x10, w, (void (*)()) Espgen43_TransSub, 1, 0x80, NULL, 0.0f);
+    if ((pGen->flag & 1) && !(pGen->flag & 2)) {
+        AddOtDirect(0x10, pGen, (void (*)()) Espgen43_TransSub, 1, 0x80, NULL, 0.0f);
     }
 }
 
 // Draws the sand grid: lights from commonClothLightSet, material / ambient colours, texture
 // TexNo, then the pre-built display list of triangle strips.
-void Espgen43_TransSub(EspgenWork* w)
+void Espgen43_TransSub(EspgenWork* pGen)
 {
     GxStageWork* st;
     Espgen43Work* p;
@@ -248,14 +248,14 @@ void Espgen43_TransSub(EspgenWork* w)
     GXTlutObj* tlut;
     f32 r;
 
-    if (!(w->flag & 1)) {
+    if (!(pGen->flag & 1)) {
         return;
     }
-    if (w->flag & 2) {
+    if (pGen->flag & 2) {
         return;
     }
     st = &pG->gxStage;
-    p = (Espgen43Work*) w->work;
+    p = (Espgen43Work*) pGen->work;
     st->tevStage = 0;
     st->texMap = 0;
     st->texCoord = 0;
@@ -527,9 +527,9 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
 }
 
 // Frees the height, normal and display list buffers.
-void Espgen43_Destruct(EspgenWork* w)
+void Espgen43_Destruct(EspgenWork* pGen)
 {
-    Espgen43Work* p = (Espgen43Work*) w->work;
+    Espgen43Work* p = (Espgen43Work*) pGen->work;
 
     if (p->pHeightBuf != NULL) {
         Mem_free(p->pHeightBuf);
@@ -548,41 +548,41 @@ void Espgen43_Destruct(EspgenWork* w)
 // Espgen SetFreeWork for id 0x43: grid size prm 0xCC / 0xD0 (default 64, max 256), colours /
 // ambient from the record, texture Tex_id, repeat 2^Work8[0], height scale Size_plus + 1; runs
 // one move step at once.
-int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
+int Espgen43_SetFreeWork(EspgenWork* pGen, EspGenWork* pSeq, EspSeqData* pSeqHed, cModel* pMod, u16 Null_parts_no, Mtx* pMat,
+                         Vec* pOffset, Vec* pAng, EspSeqOpt* pSct)
 {
-    Espgen43Work* p = (Espgen43Work*) w->work;
+    Espgen43Work* p = (Espgen43Work*) pGen->work;
     Vec r;
     u32 nx = 0x40;
     u32 ny = 0x40;
 
-    if (rec->prm.w.xCC != 0) {
-        nx = rec->prm.w.xCC;
+    if (pSeq->prm.w.xCC != 0) {
+        nx = pSeq->prm.w.xCC;
         if (nx > 0x100) {
             nx = 0x100;
         }
     }
-    if (rec->prm.w.xD0 != 0) {
-        ny = rec->prm.w.xD0;
+    if (pSeq->prm.w.xD0 != 0) {
+        ny = pSeq->prm.w.xD0;
         if (ny > 0x100) {
             ny = 0x100;
         }
     }
-    p->Color.r = rec->Col_start_r;
-    p->Color.g = rec->Col_start_g;
-    p->Color.b = rec->Col_start_b;
-    p->Color.a = rec->Col_start_a;
-    p->Amb.r = rec->Col_d_r * 255.0f;
-    p->Amb.g = rec->Col_d_g * 255.0f;
-    p->Amb.b = rec->Col_d_b * 255.0f;
-    p->Amb.a = rec->Col_d_a * 255.0f;
-    p->TexNo = rec->Tex_id;
-    p->texRep = 1 << (s8) rec->Work8[0];
-    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
-    if (SetSandWork(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, rec->Size_plus + 1.0f, nx, ny) == NULL) {
+    p->Color.r = pSeq->Col_start_r;
+    p->Color.g = pSeq->Col_start_g;
+    p->Color.b = pSeq->Col_start_b;
+    p->Color.a = pSeq->Col_start_a;
+    p->Amb.r = pSeq->Col_d_r * 255.0f;
+    p->Amb.g = pSeq->Col_d_g * 255.0f;
+    p->Amb.b = pSeq->Col_d_b * 255.0f;
+    p->Amb.a = pSeq->Col_d_a * 255.0f;
+    p->TexNo = pSeq->Tex_id;
+    p->texRep = 1 << (s8) pSeq->Work8[0];
+    PSVECScale(&pSeq->Ang, &r, 6.28f / 360.0f);
+    if (SetSandWork(pGen, (Vec*) &pSeq->Pos.x, &r, pSeq->Size_base_x, pSeq->Size_plus + 1.0f, nx, ny) == NULL) {
         return 0;
     }
-    Espgen43_Move(w);
+    Espgen43_Move(pGen);
     return 1;
 }
 

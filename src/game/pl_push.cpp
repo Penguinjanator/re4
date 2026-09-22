@@ -169,7 +169,7 @@ void cPlPush::stopTarget()
 
 // Half width / half depth of the object as seen from the push side and the world yaw of that side
 // (from the collision radii, m_Dir; x9 bit0 rotates the sides by 180 degrees).
-void cPlPush::getWHY(f32* w, f32* h, f32* y)
+void cPlPush::getWHY(f32* w, f32* h, f32* dy)
 {
     f32 sz = m_Target->atari.m_radius2;
     f32 sx = m_Target->atari.m_radius;
@@ -199,25 +199,25 @@ void cPlPush::getWHY(f32* w, f32* h, f32* y)
     case 0:
         *w = sx;
         *h = sz;
-        *y = m_Target->ang.y + PI;
+        *dy = m_Target->ang.y + PI;
         break;
     case 1:
         *w = sz;
         *h = sx;
-        *y = m_Target->ang.y + PI * 0.5f;
+        *dy = m_Target->ang.y + PI * 0.5f;
         break;
     case 2:
         *w = sx;
         *h = sz;
-        *y = m_Target->ang.y;
+        *dy = m_Target->ang.y;
         break;
     case 3:
         *w = sz;
         *h = sx;
-        *y = m_Target->ang.y + PI * 1.5f;
+        *dy = m_Target->ang.y + PI * 1.5f;
         break;
     }
-    *y = LIMIT_ANGLE(*y);
+    *dy = LIMIT_ANGLE(*dy);
 }
 
 // 1 when the object is blocked: an enemy would be sandwiched (emSandCheck) or the scroll collision
@@ -245,7 +245,7 @@ int cPlPush::scrHitCheck()
 
 // Wall test for one corner (`side` +1 / -1) of the object's front: a line across the front, one
 // along the side and a floor probe; 1 when the scroll collision blocks it.
-int cPlPush::scrHitCheckSub(f32 w, f32 h, f32 y, Vec* pos, f32 side)
+int cPlPush::scrHitCheckSub(f32 w, f32 h, f32 dy, Vec* pos, f32 sign)
 {
     Vec v0;
     Vec v1;
@@ -255,14 +255,14 @@ int cPlPush::scrHitCheckSub(f32 w, f32 h, f32 y, Vec* pos, f32 side)
     int ret;
 
     rot.x = 0.0f;
-    rot.y = y;
+    rot.y = dy;
     rot.z = 0.0f;
-    v0.x = -side * w;
+    v0.x = -sign * w;
     v0.y = 100.0f;
     v0.z = h;
     RotVector(&v0, &rot, &v0);
     PSVECAdd(&v0, pos, &v0);
-    v1.x = side * w * 2.0f;
+    v1.x = sign * w * 2.0f;
     v1.y = 0.0f;
     v1.z = 0.0f;
     RotVector(&v1, &rot, &v1);
@@ -292,7 +292,7 @@ int cPlPush::scrHitCheckSub(f32 w, f32 h, f32 y, Vec* pos, f32 side)
 // `const f32` locals: each takes a 4-byte frame slot and creates its pool entry at the declaration
 // (800 before 300 before the 0.0 of rot.x) without emitting code, so `h + sand` is computed where it
 // is used (after the first two calls) with only the `lis` hoisted into a callee-saved register.
-int cPlPush::emSandCheck(f32 w, f32 h, f32 y, Vec* pos)
+int cPlPush::emSandCheck(f32 w, f32 h, f32 dy, Vec* pos)
 {
     Vec v0;
     Vec v1;
@@ -302,7 +302,7 @@ int cPlPush::emSandCheck(f32 w, f32 h, f32 y, Vec* pos)
     f32 len;
 
     rot.x = 0.0f;
-    rot.y = y;
+    rot.y = dy;
     rot.z = 0.0f;
     v0.x = w;
     v0.y = base;

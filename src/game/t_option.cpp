@@ -63,12 +63,12 @@ void tp_scr_view();
 void printCursor(int x, int y);
 
 // Resets the menu state (all levels at 0, cursor 0); be_flag = tool active.
-void cDbOption::clear(u8 flag)
+void cDbOption::clear(u8 bf)
 {
     setRno(0, 0, 0, 0, 0, 0, 0, 0);
     cursorCtr = 0;
     cursor = 0;
-    be_flag = flag;
+    be_flag = bf;
 }
 
 // Copies both pads for this frame.

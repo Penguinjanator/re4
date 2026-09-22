@@ -69,19 +69,19 @@ public:
     u8 GetFloor();
     int ChkBreakDir(Vec* pos);
     int ChkStatus();        // etc flag word of this window (GetEtcFlgPtr), 0 when none; bit0 = broken
-    void SetStatus(u16 f);
+    void SetStatus(u16 flag);
     int SetShake();
     int SetBreakAll(Vec* pos, int break_size, int breakType);
     int SetBreakModel();
     int SetChangeModel(void* bin, void* tpl);
     int SetAtariOff();
-    int SetBreakEsp(int dir, int kind, int flag);
-    void SetEnableDamage(int on);
+    int SetBreakEsp(int dir_type, int break_size, int breakType);
+    void SetEnableDamage(int flag);
     int ChkEnableDamage();
-    void SetEtcFlag(u32 no, int on);
-    int ChkEtcFlag(u32 no);
-    int SetEnableFence(int on, int kind);
-    int ChkEnableFence(int kind);
+    void SetEtcFlag(u32 flag, int boolType);
+    int ChkEtcFlag(u32 flag);
+    int SetEnableFence(int flag, int enableFlag);
+    int ChkEnableFence(int enableFlag);
 };
 
 // bin/tpl of the window model, position / rotation, WindowData row `type` (Et*_init 4th
@@ -91,7 +91,7 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
 extern "C" {
 // Window in front of `m` (its field `id` from SceAtCheckFieldInfo(b)): 1 when `m` may go through it;
 // `status` gets the etc flag word, `dir` the through direction, `pos` the window position.
-int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out);
+int ChkWindow(cModel* pModTar, Vec* pos0, Vec* pos1, int field_id, u16* etc_flag, Vec* pNorm, Vec* pCenter, cEmWindow** o_pEm);
 }
 
 #endif

@@ -27,10 +27,10 @@ int ProjType = 1;
 
 // Loads pG->Camera's projection into GX: type 1 perspective, type 2 orthographic (ProjType
 // remembers it for CameraCurrentProjection).
-void CameraSetProjection(int type)
+void CameraSetProjection(int projType)
 {
-    ProjType = type;
-    switch (type) {
+    ProjType = projType;
+    switch (projType) {
     case 1:
         GXSetProjection(pG->Camera.ProjMat, 0);
         break;
@@ -116,15 +116,15 @@ void CameraMove()
 // Analog stick as a world-space move direction: rotated by the camera matrix, or by the previous
 // camera's matrix while the stick is held through a camera cut (so the run direction does not
 // flip on a cut).
-void CamStick2World(Camera* cam, JOY* joy, Vec* out)
+void CamStick2World(Camera* pCam, JOY* pJoy, Vec* pVec)
 {
     static Mtx mat_prev;
     static int carry_on_flag = 0;
     Vec v;
 
-    v.x = (f32) joy->stickX;
+    v.x = (f32) pJoy->stickX;
     v.y = 0.0f;
-    v.z = (f32) -joy->stickY;
+    v.z = (f32) -pJoy->stickY;
     if (CamCtrl.IsChangeCamera()) {
         if (v.x != 0.0f || v.y != 0.0f || v.z != 0.0f) {
             MTX_COPY(CamCtrl.prev_mat, mat_prev);
@@ -135,36 +135,36 @@ void CamStick2World(Camera* cam, JOY* joy, Vec* out)
         carry_on_flag = 0;
     }
     if (carry_on_flag) {
-        PSMTXMultVecSR(mat_prev, &v, out);
+        PSMTXMultVecSR(mat_prev, &v, pVec);
     } else {
-        PSMTXMultVecSR(cam->mat, &v, out);
+        PSMTXMultVecSR(pCam->mat, &v, pVec);
     }
 }
 
 // The world-space view frustum of the current camera (View.worldFull).
-ViewFrustum* CameraViewFrustumPtr(Camera* cam)
+ViewFrustum* CameraViewFrustumPtr(Camera* pCam)
 {
     return &View.worldFull;
 }
 
 // The camera's up vector.
-void CameraGetUpVec(Camera* cam, Vec* up)
+void CameraGetUpVec(Camera* pCam, Vec* up)
 {
-    *up = cam->Up;
+    *up = pCam->Up;
 }
 
 // The camera's look vector (pos - at, normalised: points backwards).
-void CameraGetLookVec(Camera* cam, Vec* look)
+void CameraGetLookVec(Camera* pCam, Vec* look)
 {
-    *look = cam->Look;
+    *look = pCam->Look;
 }
 
 // The forward view direction (-Look).
-void CameraGetLookVecInverse(Camera* cam, Vec* look)
+void CameraGetLookVecInverse(Camera* pCam, Vec* look_inv)
 {
-    look->x = -cam->Look.x;
-    look->y = -cam->Look.y;
-    look->z = -cam->Look.z;
+    look_inv->x = -pCam->Look.x;
+    look_inv->y = -pCam->Look.y;
+    look_inv->z = -pCam->Look.z;
 }
 
 // Never called; dead-stripped from the DOL. Its constant pool (0.0f, the int->float magic
@@ -182,18 +182,18 @@ static f32 ScrnY2Ratio(int y)
 // World-space ray direction through screen pixel (sx, sy): the pixel offset from the screen
 // centre in 640 x 480 units, z from the vertical fov, rotated by the camera matrix (aiming /
 // picking).
-void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out)
+void CamPos2ScrnVec(f32 sX, f32 sY, Vec* vec)
 {
     f32 ang = pG->Camera.param.fovy;
     f32 h = 480.0f;  // first constant of the pool
 
-    out->x = sx - Screen.width * 0.5f;
-    out->y = -(sy - Screen.height * 0.5f);
-    out->x *= 640.0f / Screen.width;
+    vec->x = sX - Screen.width * 0.5f;
+    vec->y = -(sY - Screen.height * 0.5f);
+    vec->x *= 640.0f / Screen.width;
     ang = ang * 0.5f;
     ang = ang * PI;
     ang = ang / 180.0f;
-    out->y *= h / Screen.height;
-    out->z = -(cosf(ang) * 240.0f / sinf(ang));
-    PSMTXMultVecSR(pG->Camera.mat, out, out);
+    vec->y *= h / Screen.height;
+    vec->z = -(cosf(ang) * 240.0f / sinf(ang));
+    PSMTXMultVecSR(pG->Camera.mat, vec, vec);
 }

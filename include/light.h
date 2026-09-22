@@ -122,19 +122,19 @@ public:
     void move();
     cLight& operator=(cLightWork& w);
     int checkScr();
-    void setPartsNo(int no);
-    int setParent(u8 type, u32 id);
-    int setParent(cModel* m);
+    void setPartsNo(int pno);
+    int setParent(u8 type, u32 no);
+    int setParent(cModel* pMod);
     cModel* calcParent();
     cModel* getCoord();
-    int isParent(cModel* m);
-    int getPos2(Vec* src, Vec* dst);
-    int calcPos(Vec* src, Vec* dst);
-    int getNormal(Vec* src, Vec* dst);
-    void setTrans(int on);
+    int isParent(cModel* pMod);
+    int getPos2(Vec* pLiPos, Vec* pPos);
+    int calcPos(Vec* pLiPos, Vec* pPos);
+    int getNormal(Vec* pInNorm, Vec* pNorm);
+    void setTrans(int on_off);
     void hitAdjust();
     void setSpotNormal(Vec* normal);
-    void setSpotTarget(Vec* target);
+    void setSpotTarget(Vec* pos);
 };
 
 class cLight01 : public cLight {
@@ -221,7 +221,7 @@ public:
     // 0x04: u32[nCut] byte offset of each cut from the file start (0 = none)
 
     cLightEnv* getCut(u16 no);
-    int getSafeCutNo(int no);
+    int getSafeCutNo(int cutNo);
     int versionUp();
     u32 getMaxLight();
 };
@@ -263,18 +263,18 @@ public:
     virtual void memFree(void* p) { Mem_free(p); }
     virtual void memClear(cLight* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual int construct(cLight* p, u32 id);
+    virtual int construct(cLight* pSat, u32 room_no);
 
     void init(void (**funcTbl)(cLight*));
     int roomInit(cLit* core, cLit* room, cLit* third);
-    cLight* create(cLightWork* w);
-    cLight* createBack(cLightWork* w);
+    cLight* create(cLightWork* pLw);
+    cLight* createBack(cLightWork* pLw);
     cLight* create(cLit* lit, int cutNo, int lightNo, int flag);
     cLight* createBack(cLit* lit, int cutNo, int lightNo, int flag);
     cLight* create(int kind, int type, int no, int x);  // 0x8014E21C (esp11)
     cLight* createBack(int litNo, int cutNo, int lightNo, int flag);
     f32 setElecPower(f32 d);
-    int setElecPower2(u8 pathNo, u8 idx);
+    int setElecPower2(u8 id, u8 flag);
     int onKind(u8 kind);
     int offKind(u8 kind);
     int checkKind(u8 kind);
@@ -284,35 +284,35 @@ public:
     int move();
     void hokanMove();
     cLightEnv* getEnvPtr();  // 0x8014EFCC: &this->env (at +0x38)
-    void setModel2(cModel* m);
-    void setCloth(cModel* m, u32 count);
-    void setEsp(EspLightList* list, u8 mask);
+    void setModel2(cModel* pMod);
+    void setCloth(cModel* pMod, u32 lightNum);
+    void setEsp(EspLightList* pEnv, u8 enableMask);
     int update(int area_no, int camera_no);
     int setThermo();
-    int registCut(cLightEnv* cut, int hokan);
-    cLightEnv* getCutAddr(int litNo, int cutNo);
-    void setFogStart(f32 v);
-    void setFogEnd(f32 v);
+    int registCut(cLightEnv* pLe, int hokan);
+    cLightEnv* getCutAddr(int type, int cutNo);
+    void setFogStart(f32 datStart);
+    void setFogEnd(f32 datEnd);
     f32 getFogStart();
     f32 getFogEnd();
     void setFog();           // 0x8014FAC8
     void setBlur();
     void deleteScr();
-    void offScr(u8 mask);
+    void offScr(u8 enable);
     int countScr();
-    int setEnv(cLightEnv* cut, int hokan);
-    void setTune(cLightEnv* cut);
-    int setMipmap(cLightEnv* cut);
-    int loadLit(cLightWork* w, u32 n);
-    int saveLit(cLightWork* w);
+    int setEnv(cLightEnv* pLe, int hokan);
+    void setTune(cLightEnv* pLe);
+    int setMipmap(cLightEnv* pLe);
+    int loadLit(cLightWork* pLw, u32 nL);
+    int saveLit(cLightWork* pLw);
     cLit** getLitPPtr();
     int initPath(LightPathHeader* p);
-    cLightPathData* getPathPtr(u8 no);
+    cLightPathData* getPathPtr(u8 id);
     LightPathHeader* getPathHeader();
     void setItemLight();
     void beginEvent();
     void endEvent();
-    void dbSetRoomLit(cLit* lit);
+    void dbSetRoomLit(cLit* pLit);
     void inSscrn();
     void outSscrn(u32 mode);
 
@@ -346,22 +346,22 @@ public:
 };
 
 // per-type move handlers (light01.cpp .. light10.cpp)
-void Light00_Move(cLight* l);
-void Light01_Move(cLight* l);
-void Light02_Move(cLight* l);
-void Light03_Move(cLight* l);
-void Light04_Move(cLight* l);
-void Light05_Move(cLight* l);
-void Light06_Move(cLight* l);
-void Light07_Move(cLight* l);
-void Light08_Move(cLight* l);
-void Light10_Move(cLight* l);
+void Light00_Move(cLight* pLi);
+void Light01_Move(cLight* pLi);
+void Light02_Move(cLight* pLi);
+void Light03_Move(cLight* pLi);
+void Light04_Move(cLight* pLi);
+void Light05_Move(cLight* pLi);
+void Light06_Move(cLight* pLi);
+void Light07_Move(cLight* pLi);
+void Light08_Move(cLight* pLi);
+void Light10_Move(cLight* pLight);
 
 // game/light.cpp
-void lightMove(cLight* l);
-int lightHitCheck(cModel* m, cLight* l);
-int lightHitCheckSphere(cModel* m, cLight* l);
-int lightHitCheckCylinder(cModel* m, cLight* l);
-int lightHitCheckBBox(cModel* m, cLight* l);
+void lightMove(cLight* pLi);
+int lightHitCheck(cModel* pMod, cLight* pLight);
+int lightHitCheckSphere(cModel* pMod, cLight* pLight);
+int lightHitCheckCylinder(cModel* pMod, cLight* pLight);
+int lightHitCheckBBox(cModel* pMod, cLight* pLight);
 
 #endif

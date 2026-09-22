@@ -85,30 +85,30 @@ extern "C" void Esp01_Trans(cEsp01* esp)
 
 // Builds m_Mat = view * parent * Rot(m_Ang) * Trans(pos0), binds texture pattern, blend mode and
 // the position + texcoord vertex format. Screen-mode Parts_no releases the effect.
-void EspStrip01_setup(cEsp01* esp)
+void EspStrip01_setup(cEsp01* pEsp)
 {
-    Esp01Work* w = &esp->m_Free;
+    Esp01Work* w = &pEsp->m_Free;
     Mtx id;
     Mtx m;
 
     CameraCurrentProjection();
-    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
+    if ((s8)pEsp->m_Parts_no >= -8 && (s8)pEsp->m_Parts_no <= -3) {
         pLog->err(0, 0, "ESP_STRIP : SCREEN MODE is invalid.");
-        PushEsp(esp);
+        PushEsp(pEsp);
         return;
     }
-    PSMTXIdentity(esp->m_Mat);
-    RotMatrix(esp->m_Mat, &esp->m_Ang);
-    TransMatrix(esp->m_Mat, &w->BasePos);
-    PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
-    PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
+    PSMTXIdentity(pEsp->m_Mat);
+    RotMatrix(pEsp->m_Mat, &pEsp->m_Ang);
+    TransMatrix(pEsp->m_Mat, &w->BasePos);
+    PSMTXConcat(pG->Camera.v_mat, pEsp->parent->mat, m);
+    PSMTXConcat(m, pEsp->m_Mat, pEsp->m_Mat);
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
-    esp->ChannelSet();
-    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
-    esp->CommonStateSet();
+    EspTexSet(pEsp->m_Tex_id, pEsp->m_Ptn_no);
+    pEsp->ChannelSet();
+    GXSetBlendMode(pEsp->m_Blend_mode, pEsp->m_Src_factor, pEsp->m_Dst_factor, pEsp->m_Logic_op);
+    pEsp->CommonStateSet();
     GXClearVtxDesc();
     GXSetVtxDesc(0, 1);
     GXSetVtxDesc(9, 1);
@@ -120,11 +120,11 @@ void EspStrip01_setup(cEsp01* esp)
 // Computes the trail points by replaying the motion in m_Mat space (a shared 48-entry table
 // when the sampled frame range fits, else per point), then builds each segment's quad
 // perpendicular to the view and draws it with the texture's t split across the segments.
-void esp01Trans_sub(cEsp01* esp)
+void esp01Trans_sub(cEsp01* pEsp)
 {
     static Vec tmp_poss[48];
     static int tmp_n[ESP_STRIP_PTS_MAX];
-    Esp01Work* w = &esp->m_Free;
+    Esp01Work* w = &pEsp->m_Free;
     Vec spd;
     Vec acc;
     Vec org;
@@ -135,18 +135,18 @@ void esp01Trans_sub(cEsp01* esp)
     int i;
     int j;
 
-    PSMTXMultVecSR(esp->m_Mat, &esp->m_Speed, &spd);
-    PSMTXMultVecSR(esp->m_Mat, &esp->m_Speed_plus, &acc);
+    PSMTXMultVecSR(pEsp->m_Mat, &pEsp->m_Speed, &spd);
+    PSMTXMultVecSR(pEsp->m_Mat, &pEsp->m_Speed_plus, &acc);
     org.x = 0.0f;
     org.y = 0.0f;
     org.z = 0.0f;
-    PSMTXMultVec(esp->m_Mat, &org, &org);
+    PSMTXMultVec(pEsp->m_Mat, &org, &org);
     max = 0;
     min = 999999;
     for (i = 0; i < w->Wari_num + 1; i++) {
         int n;
 
-        n = esp->m_Life_time - i * (w->Long_num + 1);
+        n = pEsp->m_Life_time - i * (w->Long_num + 1);
         if (n < 0) {
             n = 0;
         }
@@ -174,7 +174,7 @@ void esp01Trans_sub(cEsp01* esp)
             s.x += acc.x;
             s.y += acc.y;
             s.z += acc.z;
-            PSVECScale(&s, &s, esp->m_D_speed);
+            PSVECScale(&s, &s, pEsp->m_D_speed);
         }
         for (i = 0; i < w->Wari_num + 1; i++) {
             pts[i] = tmp_poss[tmp_n[i] - min];
@@ -185,7 +185,7 @@ void esp01Trans_sub(cEsp01* esp)
             int n;
 
             s2 = spd;
-            n = esp->m_Life_time - i * (w->Long_num + 1);
+            n = pEsp->m_Life_time - i * (w->Long_num + 1);
             pts[i] = org;
             if (n < 0) {
                 n = 0;
@@ -197,7 +197,7 @@ void esp01Trans_sub(cEsp01* esp)
                 s2.x += acc.x;
                 s2.y += acc.y;
                 s2.z += acc.z;
-                PSVECScale(&s2, &s2, esp->m_D_speed);
+                PSVECScale(&s2, &s2, pEsp->m_D_speed);
             }
         }
     }
@@ -219,7 +219,7 @@ void esp01Trans_sub(cEsp01* esp)
 #line 379 "D:/Bio4/Prog/esp01.cpp"
         VECNormalize(&cross, &cross);
         rate = (f32)i / (f32)(w->Wari_num - 1);
-        half = (rate * esp->m_Size_base_y + (1.0f - rate) * esp->m_Size_base_x) * esp->m_Size_mul;
+        half = (rate * pEsp->m_Size_base_y + (1.0f - rate) * pEsp->m_Size_base_x) * pEsp->m_Size_mul;
         PSVECScale(&cross, &q[0], half);
         PSVECScale(&cross, &q[1], -half);
         if (i == 0) {
@@ -231,7 +231,7 @@ void esp01Trans_sub(cEsp01* esp)
         }
         PSVECAdd(&pts[i + 1], &q[0], &v[2]);
         PSVECAdd(&pts[i + 1], &q[1], &v[3]);
-        EspStrip_draw_poly(esp, i, v, w->Wari_num, 0);
+        EspStrip_draw_poly(pEsp, i, v, w->Wari_num, 0);
     }
 }
 
@@ -396,13 +396,13 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
 
 // Segment count 15 - Work8[0] (2 when Work8[0] > 12, max 15), point interval Work8[1], and the
 // spawn position as pos0.
-int cEsp01::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp01::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp01Work* w = &m_Free;
 
     w->BasePos = m_Pos;
-    w->Wari_num = (s8)gen->Work8[0];
-    w->Long_num = (s8)gen->Work8[1];
+    w->Wari_num = (s8)pSeq->Work8[0];
+    w->Long_num = (s8)pSeq->Work8[1];
     if (w->Wari_num > 12) {
         w->Wari_num = 2;
     } else {

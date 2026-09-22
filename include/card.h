@@ -209,21 +209,21 @@ public:
     void firstCheck20();
     void firstCheck30();
     void MainLoop(int arg);
-    int existCheck(int chan, CardSlot* s);
-    int mount(u8* sub, CardSlot* s);
-    int unmount(int chan);
-    int verifyCheck(u8* sub, CardSlot* s);
-    int freeCheck(u8* sub, CardSlot* s);
+    int existCheck(int slot, CardSlot* s);
+    int mount(u8* Rno, CardSlot* s);
+    int unmount(int slot);
+    int verifyCheck(u8* Rno, CardSlot* s);
+    int freeCheck(u8* Rno, CardSlot* s);
     int fileOpen(CardSlot* s);
     int fileClose(CardSlot* s);
-    int saveFileCheck(u8* sub, CardSlot* s);
-    int systemFileCheck(u8* sub, CardSlot* s);
-    int fileRead(u8* sub, void* buf, s32 len, s32 ofs, CardSlot* s);
-    int fileWrite(u8* sub, void* buf, int blocks, CardSlot* s);
-    int sysfileRead(u8* sub, u8* sub2, int errMode);
+    int saveFileCheck(u8* Rno, CardSlot* s);
+    int systemFileCheck(u8* Rno, CardSlot* s);
+    int fileRead(u8* Rno, void* addr, s32 size, s32 offset, CardSlot* s);
+    int fileWrite(u8* Rno, void* addr, int wblock, CardSlot* s);
+    int sysfileRead(u8* Rno0, u8* Rno1, int err_set);
     void createSysfile();
     void screenTrans();
-    void cardMesSet(int no, int slot, u32 attr);   // no: CARD_MES_NO
+    void cardMesSet(int mes_no, int wk_no, u32 attr);   // no: CARD_MES_NO
     void calcTplAddr(struct TEXPalette* tpl);
     void setMsgWindow(int a, int sw);
 

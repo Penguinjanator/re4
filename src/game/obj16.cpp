@@ -915,9 +915,9 @@ void obj16MatCalc(cObj16* obj)
 }
 
 // Target scale the head eases towards.
-void cObj16::setScale(Vec* s)
+void cObj16::setScale(Vec* pScale)
 {
-    o16.Scale = *s;
+    o16.Scale = *pScale;
 }
 
 // Starts the death drip effect (Eff_wait 3).
@@ -934,9 +934,9 @@ void cObj16::clearLostWait()
 }
 
 // Fades the head out after n frames.
-void cObj16::setLostWait(int n)
+void cObj16::setLostWait(int wait)
 {
-    o16.Lost_wait = n;
+    o16.Lost_wait = wait;
     o16.Be_flag |= 1;
 }
 
@@ -988,13 +988,13 @@ void cObj16::setPlDmgMot(void* mot, int a)
 }
 
 // Starts the bite attack routine (flag -> r_no_3: force the second bite motion).
-void cObj16::setAtk(u8 flag)
+void cObj16::setAtk(u8 mode)
 {
     r_no_0 = 1;
     r_no_1 = 2;
     o16.Atk_ck = 0;
     r_no_2 = 0;
-    r_no_3 = flag;
+    r_no_3 = mode;
 }
 
 // Starts the decapitation routine.
@@ -1035,7 +1035,7 @@ static inline int PlIsDead()
 // on a player hit plays the blood/hit effects, sound, vibration and quake, puts the player into the
 // damage motion (plemDmMStar, turned towards/away from the body), kind 3 kills him
 // (obj16PlHeadLost); a partner hit (bit 1) kills the partner (LifeDownSet 9999). Sets Atk_ck.
-int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
+int obj16AtkCk(cObj16* obj, u32 atk_type, int parts_no)
 {
     Obj16Work* w = &obj->o16;
     cModel* body = w->body;
@@ -1060,14 +1060,14 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
         return 0;
     }
     if (w->At_hit_wait != 0) {
-        if (kind == 2) {
+        if (atk_type == 2) {
             return 0;
         }
     }
-    p = obj->getPartsPtr(partsNo);
+    p = obj->getPartsPtr(parts_no);
     pp = &p->world;
     pos = *pp;
-    if (kind == 3) {
+    if (atk_type == 3) {
         pos.y -= 500.0f;
     }
     plPos = pPL->pos;
@@ -1075,10 +1075,10 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
     if (pos.y > body->pos.y + 2500.0f) {
         return 0;
     }
-    info = obj16_atk_info[kind];
+    info = obj16_atk_info[atk_type];
     hit = EmAtkHitCk(&info, pp, pp, 0);
     if (hit & 1) {
-        switch (kind) {
+        switch (atk_type) {
         default:
         case 0:
             if (obj->type == 2) {
@@ -1166,7 +1166,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
         w->Atk_ck = 1;
     }
     if (hit & 2) {
-        if (kind != 3) {
+        if (atk_type != 3) {
             Ctrl12Set(w->pCtrlGroup, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
         } else {
             if (pSUB->id & 3) {
@@ -1325,32 +1325,32 @@ int cObj16::ckAtkHit()
 // Player damage routine for a plaga bite (SetPlDamage): plays Mot_pl_dm (mirrored blend for
 // r_no_3), damage sound, then EndPlDamage.
 // Player damage routine while the head holds him (SetPlDamage callback).
-void plemDmMStar(cPlayer* pl)
+void plemDmMStar(cPlayer* pEm)
 {
     Obj16Work* w = &((cObj*) pPL->pEmCatch)->o16;
     int hokan;
 
-    if (pl->r_no_3 == 0) {
-        pl->dmg.set(0, 2);
+    if (pEm->r_no_3 == 0) {
+        pEm->dmg.set(0, 2);
     }
-    switch (pl->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
-        if (pl->r_no_3) {
+        if (pEm->r_no_3) {
             hokan = 0x41;
         } else {
             hokan = 1;
         }
-        MotionSetCore(pl, &pl->Motion, w->Mot_pl_dm, (void*) w->Seq_pl_dm, 3, hokan, 0);
+        MotionSetCore(pEm, &pEm->Motion, w->Mot_pl_dm, (void*) w->Seq_pl_dm, 3, hokan, 0);
         PlSetDamageSe(0);
-        if (pl->r_no_3) {
-            pl->dmg.set(0, 0xF);
+        if (pEm->r_no_3) {
+            pEm->dmg.set(0, 0xF);
         }
-        pl->r_no_2++;
+        pEm->r_no_2++;
     case 1:
-        if (MotionMove(pl, 0)) {
+        if (MotionMove(pEm, 0)) {
             EndPlDamage();
-            if (pl->r_no_3 == 0) {
-                pl->dmg.set(0, 0xF);
+            if (pEm->r_no_3 == 0) {
+                pEm->dmg.set(0, 0xF);
             }
         }
         break;

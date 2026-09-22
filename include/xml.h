@@ -16,14 +16,14 @@ int strcmp(const char* a, const char* b);
 // literals are what the original xml.o carries in .rodata ahead of the writer's own strings.
 class XmlSimple {
 public:
-    int GetXmlStart(char** out, const char* src, const char* tag);
-    int GetXmlNext(char** out, const char* src, const char* tag);
-    int GetXmlElem(char* out, const char* src, const char* tag);
-    int SetXmlStart(int* size, char* buf);
-    int SetXmlEnd(int* size, char* buf);
+    int GetXmlStart(char** pOut, const char* pIn, const char* pName);
+    int GetXmlNext(char** pOut, const char* pIn, const char* pName);
+    int GetXmlElem(char* pOut, const char* pIn, const char* pName);
+    int SetXmlStart(int* pOut, char* pIn);
+    int SetXmlEnd(int* pOut, char* pIn);
     int SetXmlElemStart(int* size, char* buf);
     int SetXmlElemEnd(int* size, char* buf);
-    int SetXmlElem(int* size, char* buf, const char* name, const char* value);
+    int SetXmlElem(int* pOut, char* pIn, const char* pName, const char* pText);
 
     // Element with an integer value (printed decimal).
     int SetXmlElem(int* size, char* buf, const char* name, long value)

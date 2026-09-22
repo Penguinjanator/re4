@@ -131,7 +131,7 @@ void titleInit(TitleWork* w)
 
 // Shows the title logo / background id layout (the alternate one once everything is unlocked,
 // unlock_flg 0x40000000) at animation time `time`.
-void titleSet(TitleWork* w, int time)
+void titleSet(TitleWork* w, int counter)
 {
     IdSys.kill(0xFF, IDC_TITLE);
     if (!ExtFlagChk(pSys, EXT_HARD_MODE)) {
@@ -139,7 +139,7 @@ void titleSet(TitleWork* w, int time)
     } else {
         IdSys.set(TITLE_ARC_PTR(w->pIdDat, 7), 0xFF, IDC_TITLE, 0x13, 6, 0);
     }
-    IdSys.setTime(IdSys.unitPtr(0, IDC_TITLE), (s16) time);
+    IdSys.setTime(IdSys.unitPtr(0, IDC_TITLE), (s16) counter);
 }
 
 // State 1: waits for the memory card check and the sound bank, loads "SS/<lang>/title.dat" and its
@@ -841,10 +841,10 @@ void titleLoop(TitleWork* w)
 }
 
 // Copies the colour of id unit `src` to unit `dst`.
-void id_color_copy(int src, int dst, u8 type)
+void id_color_copy(int src, int dst, u8 idc)
 {
-    IdUnit* s = IdSys.unitPtr(src, type);
-    IdUnit* d = IdSys.unitPtr(dst, type);
+    IdUnit* s = IdSys.unitPtr(src, idc);
+    IdUnit* d = IdSys.unitPtr(dst, idc);
 
     d->col0[0] = s->col0[0];
     d->col0[1] = s->col0[1];

@@ -203,8 +203,8 @@ public:
     void gameInit(int n);
     void roomInit();
     void free();
-    int setCk(int type);
-    void dispSw(int type, int sw);
+    int setCk(int classNo);
+    void dispSw(int classNo, int sw);
     void unitPush(IdUnit* u);
     IdUnit* unitPull();
     void unitLevel(IdUnit* u, u8 level);
@@ -214,7 +214,7 @@ public:
     void kill(u8 id, int type);
     void stop();
     void move();
-    void beMove(IdUnit* u, int sw);
+    void beMove(IdUnit* u, int on_off);
     void setTime(IdUnit* u, s16 time);
     void movePos(IdUnit* u);
     void trans();
@@ -229,9 +229,9 @@ extern int IdBuffType;
 struct TexWk;
 struct TexAnm;
 void IdTexSet(u8 id, u8 no);
-int IdGetAnmAddr(u8 id, TexAnm** out);
-void IdChannelSet(IdUnit* u);
-TexWk* IdGetTexWk(u8 id, int quiet);
+int IdGetAnmAddr(u8 id, TexAnm** ppAnm);
+void IdChannelSet(IdUnit* pIdUnit);
+TexWk* IdGetTexWk(u8 id, int bNoDispErrMsg);
 
 extern "C" {
 void idSysMove00(IdUnit* u);
@@ -242,8 +242,8 @@ void idSysMove03(IdUnit* u);
 void idSysMove04(IdUnit* u);
 void IdGeneralTrans(IdUnit* u);
 void IdCommonTrans(IdUnit* u);
-void IdNegativeTrans(IdUnit* u, u32 mode);
-void IdShimmerTrans(IdUnit* u, int sub, int type);
+void IdNegativeTrans(IdUnit* u, u32 pow);
+void IdShimmerTrans(IdUnit* u, int u_pow, int Refract_type);
 void IdAllocBuffer();
 void IdFreeBuffer();
 void IdDebugAllocBuffer();
@@ -268,7 +268,7 @@ enum TEX_OWNER {
     TEX_OWNER_MAX = 12
 };
 
-void IdTexRelease(int id);
+void IdTexRelease(int owner);
 int IdTexDataLoad(void* data, int id);
 }
 

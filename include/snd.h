@@ -211,7 +211,7 @@ struct SeAt {
 void SeAtCheck();
 extern "C" {
 void SeAtInit();
-int SeAtSetOnOff(int no, int on);
+int SeAtSetOnOff(int no, int sw);
 SeAt* GetSeAtPtr(int no);
 u32 SeAtSndCall(int no);
 }
@@ -265,10 +265,10 @@ void SndSystemReset();
 // 7 door, 8.. enemies (id selects the enemy block). vol: 0 = from the SIT, 0x100/0x200/0x400 set
 // Snd_ctrl_work.x56 bits, 0x80000000 follow pos. Returns the sound id (0 = not played).
 u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj);
-u32 EmSeCall(u16 no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* obj);
-u32 RoomSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
-u32 PlSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
-u32 CoreSeCall(u16 no, Vec* pos, u8 vol, u32 flag, cUnit* obj);
+u32 EmSeCall(u16 call_no, Vec* pos, u8 id, u8 vol, u32 flag, cUnit* pMod);
+u32 RoomSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag, cUnit* pMod);
+u32 PlSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag, cUnit* pMod);
+u32 CoreSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag, cUnit* pMod);
 // Footstep SE numbers (PS2 ROOM_SE_NO): FootSeCall `no`, offset by FOOT_SE_NUM * the floor's se_type. r117/r204
 // also pass 0xD / 0xE, which the PS2 enum only has as SE_DUMMY8 / SE_DUMMY9.
 enum ROOM_SE_NO {
@@ -294,18 +294,18 @@ enum ROOM_SE_NO {
     SE_GANADO_RUN_R = 19,
     FOOT_SE_NUM = 30
 };
-u32 FootSeCall(u16 no, Vec* pos, u8 vol, u32 flag);
-u32 DoorSeCall(u16 no);
+u32 FootSeCall(u16 call_no, Vec* pos, u8 vol, u32 flag);
+u32 DoorSeCall(u16 call_no);
 int SndSetVol(u32 id, int vol, int time);
 int SndSetDopPitch(u32 id, int pitch);
 int SndStop(u32 id, int time);
 void SndBlkStop(int blk);
 int SndEndCheck(u32 id);
 
-u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos);
-int SndStrReq(u32 id, int req, int time, int vol);
+u32 SndStrReq(int blk, int no, int flg, int time, int vol, f32 s_time);
+int SndStrReq(u32 snd_id, int flg, int time, int vol);
 int SndStrStatusCk(int blk, int no, u32 status);
-int SndStrStatusCk(u32 id, u32 status);
+int SndStrStatusCk(u32 snd_id, u32 status);
 int SndStrVolSet(int blk, int no, int time, int vol);
 int SndStrVolReset(int blk, int no, int time);
 
@@ -315,47 +315,47 @@ void SndReadAddrInit();
 int SndRoomStartInit();
 int SndDoorSeLoad();
 void SndRoomBgmLoad();
-void SndRoomBgmStartCheck(int reset);
-int SndRoomBgmStart(u8 no, int vol);
-void SndRoomBgmStop(u8 no, int time);
-int SndRoomBgmVolSet(u8 no, int vol, int time);
-int SndRoomBgmVolReset(u8 no, int time);
-int SndRoomBgmMute(u8 no, int on, int time);
-void SndRoomBgmMuteAll(int on, int time);
+void SndRoomBgmStartCheck(int flag);
+int SndRoomBgmStart(u8 blk_no, int vol);
+void SndRoomBgmStop(u8 blk_no, int fade_time);
+int SndRoomBgmVolSet(u8 blk_no, int vol, int time);
+int SndRoomBgmVolReset(u8 blk_no, int time);
+int SndRoomBgmMute(u8 blk_no, int sw, int time);
+void SndRoomBgmMuteAll(int sw, int time);
 void SndRoomStrStartCheck();
-void SndRoomStrStart(int flag, int time, int loop);
-void SndRoomStrStop(int time);
+void SndRoomStrStart(int flag, int time, int play_ck);
+void SndRoomStrStop(int fade_time);
 int SndRoomStrVolSet(int vol, int time);
 int SndRoomStrVolReset(int time);
 
-void SndMuteSet(int bits, int on);
-int SndSetMasterVol(u32 type, int vol);
-int SndGetMasterVol(u32 type);
-void SndSetOutputMode(int mode, int init);
+void SndMuteSet(int kind, int sw);
+int SndSetMasterVol(u32 kind, int vol);
+int SndGetMasterVol(u32 kind);
+void SndSetOutputMode(int mode, int flg);
 int SndStopCheck();
 void SndAllStop();
 void SndAllFadeOut();
-void SndSePause(int on, s16 type);
+void SndSePause(int sw, s16 blk);
 void SndSeAbsPause();
-void SndSePauseAll(int on);
+void SndSePauseAll(int sw);
 void SndSoftReset();
 void SndBgmTblInit();   // rebuild the room BGM table (game: cGameSave::load after clearGlobalSaveData)
-int SndBgmTblSet(u16 room, int no);
-void SndBgmTblSetEnable(int type, int save);
-void SndBgmTblSetDisable(int type, int save);
+int SndBgmTblSet(u16 room_no, int tbl_no);
+void SndBgmTblSetEnable(int kind, int tbl_update);
+void SndBgmTblSetDisable(int kind, int tbl_update);
 void SndSubScreenInit();
 void SndSubScreenExit();
 void SndEventStrStop(int time);
 void SndEventInit();
 void SndEventEnd();
-int SndEmDataReadCheck(int id);
+int SndEmDataReadCheck(int em_id);
 void SndBlkInit(int type, int id, int no);
-void SndBgmLoad(int no);
-int SndBgmDataReadCheck(int id);
+void SndBgmLoad(int bgm_no);
+int SndBgmDataReadCheck(int bgm_no);
 void SndSetReverb();
-int SndStatDisp(int req);
+int SndStatDisp(int read_id);
 void SndSeAbsFadeOutAll_sec(int sec);
 void SndSeAbsFadeOutAll_5msec(s16 time);
-void SndSeqFadeOutAll_sec(u8 type, int sec);
+void SndSeqFadeOutAll_sec(u8 type, int time);
 
 #endif

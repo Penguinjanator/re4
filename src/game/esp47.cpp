@@ -137,7 +137,7 @@ void Esp47_Trans(cEsp* pEsp)
 }
 
 // No extra parameters.
-int cEsp47::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp47::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     return 1;
 }

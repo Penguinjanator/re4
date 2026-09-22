@@ -63,12 +63,12 @@ cEmMgr::cEmMgr() : cManager<cEm>(EM_WORK_SIZE, 2)
 }
 
 // cManager log hook: routes the manager's messages to pLog as level-6 warnings.
-void cEmMgr::log(const char* fmt, ...)
+void cEmMgr::log(const char* pStr, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
-    pLog->vwarn(6, 0, fmt, ap);
+    va_start(ap, pStr);
+    pLog->vwarn(6, 0, pStr, ap);
 }
 
 // Places the class for character `id` into the fresh work: id 0 the player (cPlLeon / cPlAshley
@@ -77,22 +77,22 @@ void cEmMgr::log(const char* fmt, ...)
 // the object classes (door, weapon, box, rack, window, torch, barrel, tree, rock, switch, item,
 // hit, barred, mine, shield, bar), 0xFF a bare cEm. Then assigns the serial, be_flag 0x40 |
 // 0x02000000, emset_no 0xFF and stores the read table entry.
-int cEmMgr::construct(cEm* p, u32 id)
+int cEmMgr::construct(cEm* pEm, u32 id)
 {
     switch (id) {
     case 0:
         switch (pG->pl_type) {
         case 0:
-            p = new (p) cPlLeon;
+            pEm = new (pEm) cPlLeon;
             break;
         case 1:
-            p = new (p) cPlAshley;
+            pEm = new (pEm) cPlAshley;
             break;
         case 2:
         case 3:
         case 4:
         case 5:
-            PlInitFunc(p);
+            PlInitFunc(pEm);
             break;
         }
         break;
@@ -110,75 +110,75 @@ int cEmMgr::construct(cEm* p, u32 id)
     case 0xC:
     case 0xD:
     case 0xE:
-        p->subArc = (PlArc*)EmReadSearch((u8) id, 0, 0);
-        if (p->subArc == 0) {
+        pEm->subArc = (PlArc*)EmReadSearch((u8) id, 0, 0);
+        if (pEm->subArc == 0) {
             return 0;
         }
-        EmInitFunc(p);
+        EmInitFunc(pEm);
         break;
     case 0x40:
-        p = new (p) cEmObj;
+        pEm = new (pEm) cEmObj;
         break;
     case 0x41:
-        p = new (p) cEmDoor;
+        pEm = new (pEm) cEmDoor;
         break;
     case 0x42:
-        p = new (p) cEmWep;
+        pEm = new (pEm) cEmWep;
         break;
     case 0x43:
-        p = new (p) cEmBox;
+        pEm = new (pEm) cEmBox;
         break;
     case 0x45:
-        p = new (p) cEmRack;
+        pEm = new (pEm) cEmRack;
         break;
     case 0x46:
-        p = new (p) cEmWindow;
+        pEm = new (pEm) cEmWindow;
         break;
     case 0x47:
-        p = new (p) cEmTorch;
+        pEm = new (pEm) cEmTorch;
         break;
     case 0x48:
-        p = new (p) cEmBarrel;
+        pEm = new (pEm) cEmBarrel;
         break;
     case 0x49:
-        p = new (p) cEmTree;
+        pEm = new (pEm) cEmTree;
         break;
     case 0x4A:
-        p = new (p) cEmRock;
+        pEm = new (pEm) cEmRock;
         break;
     case 0x4B:
-        p = new (p) cEmSwitch;
+        pEm = new (pEm) cEmSwitch;
         break;
     case 0x4C:
-        p = new (p) cEmItem;
+        pEm = new (pEm) cEmItem;
         break;
     case 0x4D:
-        p = new (p) cEmHit;
+        pEm = new (pEm) cEmHit;
         break;
     case 0x4E:
-        p = new (p) cEmBarred;
+        pEm = new (pEm) cEmBarred;
         break;
     case 0x4F:
-        p = new (p) cEmMine;
+        pEm = new (pEm) cEmMine;
         break;
     case 0x50:
-        p = new (p) cEmShield;
+        pEm = new (pEm) cEmShield;
         break;
     case 0x51:
-        p = new (p) cEmBar;
+        pEm = new (pEm) cEmBar;
         break;
     case 0xFF:
-        p = new (p) cEm;
+        pEm = new (pEm) cEm;
         break;
     default:
-        p->subArc = (PlArc*)EmReadSearch((u8) id, 0, 0);
-        if (p->subArc == 0) {
+        pEm->subArc = (PlArc*)EmReadSearch((u8) id, 0, 0);
+        if (pEm->subArc == 0) {
             return 0;
         }
-        EmInitFunc(p);
+        EmInitFunc(pEm);
         break;
     }
-    switch (p->id) {
+    switch (pEm->id) {
     case 0x10:
     case 0x11:
     case 0x12:
@@ -196,23 +196,23 @@ int cEmMgr::construct(cEm* p, u32 id)
     case 0x1E:
     case 0x1F:
     case 0x20:
-        p->id = 0x10;
+        pEm->id = 0x10;
         break;
     }
-    p->guid = Guid;
+    pEm->guid = Guid;
     Guid++;
-    p->emset_no = 0xFF;
-    p->be_flag |= 0x40;
-    p->id = id;
-    p->be_flag |= 0x02000000;
-    p->subArc2 = p->subArc;
+    pEm->emset_no = 0xFF;
+    pEm->be_flag |= 0x40;
+    pEm->id = id;
+    pEm->be_flag |= 0x02000000;
+    pEm->subArc2 = pEm->subArc;
     return 1;
 }
 
 // Allocates the pool of `n` character works and clears the player / partner pointers.
-int cEmMgr::arrayAlloc(u32 n)
+int cEmMgr::arrayAlloc(u32 workNum)
 {
-    cManager<cEm>::arrayAlloc(n);
+    cManager<cEm>::arrayAlloc(workNum);
     pPL = 0;
     pSUB = 0;
     return 1;
@@ -244,14 +244,14 @@ void cEmMgr::move()
 
 // Releases a character work: validates the pointer and its live flags (be_flag 0x201 == 1),
 // runs the work's push() cleanup and returns it to the pool.
-void cEmMgr::destroy(cEm* p)
+void cEmMgr::destroy(cEm* pEm)
 {
-    if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF || (p->be_flag & 0x201) != 1) {
-        pLog->err(0, 0, "cEmMgr::destroy() WORK IS ALREADY DEAD. %08X", p);
+    if ((u32) pEm < 0x80000000 || (u32) pEm > 0x82FFFFFF || (pEm->be_flag & 0x201) != 1) {
+        pLog->err(0, 0, "cEmMgr::destroy() WORK IS ALREADY DEAD. %08X", pEm);
         return;
     }
-    p->push();
-    cManager<cEm>::destroy(p);
+    pEm->push();
+    cManager<cEm>::destroy(pEm);
 }
 
 // 1 when any live character has EM_STATUS_ATTACKING set (used for the battle music / save
@@ -275,18 +275,18 @@ int cEmMgr::isBattle()
 }
 
 // isBattle helper: raises battleCheckFlag for a character with EM_STATUS_ATTACKING.
-void battleCheck(cEm* em)
+void battleCheck(cEm* pEm)
 {
-    if (em->checkStatus(0)) {
+    if (pEm->checkStatus(0)) {
         battleCheckFlag = 1;
     }
 }
 
 // destroyAll helper: destroys every character except the player (id 0).
-void killEm(cEm* em)
+void killEm(cEm* pEm)
 {
-    if (em->id != 0) {
-        EmMgr.destroy(em);
+    if (pEm->id != 0) {
+        EmMgr.destroy(pEm);
     }
 }
 
@@ -307,11 +307,11 @@ void cEmMgr::destroyAll()
 }
 
 // Next live character with `id` after `start` (from the head when start is NULL); NULL when none.
-cEm* cEmMgr::getEmPtr(int id, cEm* start)
+cEm* cEmMgr::getEmPtr(int id, cEm* pEm)
 {
     cEm* p;
 
-    p = start;
+    p = pEm;
     if (p) {
         p = (cEm*) p->pNext;
     } else {
@@ -333,21 +333,21 @@ cEm::cEm()
 }
 
 // Sets EM_STATUS bit `bit` in `status`.
-void cEm::setStatus(int bit)
+void cEm::setStatus(int id)
 {
-    status |= 1 << bit;
+    status |= 1 << id;
 }
 
 // Clears EM_STATUS bit `bit`.
-void cEm::clearStatus(int bit)
+void cEm::clearStatus(int id)
 {
-    status &= ~(1 << bit);
+    status &= ~(1 << id);
 }
 
 // 1 when EM_STATUS bit `bit` is set.
-int cEm::checkStatus(int bit)
+int cEm::checkStatus(int id)
 {
-    if (status & (1 << bit)) {
+    if (status & (1 << id)) {
         return 1;
     }
     return 0;
@@ -385,52 +385,52 @@ void cEm::setNoItem()
 // squared distance to the player (plDist2), ticks the damage info, runs the virtual move(), then
 // the shape (skeleton) update, the queued SE (seNo), old position update, hit box debug display
 // and bounding boxes, and resets invisible_factor2.
-void emMove(cEm* em)
+void emMove(cEm* pEm)
 {
     f32 dx;
     f32 dz;
 
-    if ((em->be_flag & 0x201) != 1) {
-        pLog->err(2, 0, "emMove() DEAD WORK CALLED %08X(ID:%02X)", em, em->id);
-        EmMgr.destroy(em);
+    if ((pEm->be_flag & 0x201) != 1) {
+        pLog->err(2, 0, "emMove() DEAD WORK CALLED %08X(ID:%02X)", pEm, pEm->id);
+        EmMgr.destroy(pEm);
         return;
     }
-    if (StaFlagChk(pG, STA_SUSPEND) && !(em->be_flag & 0x800)) {
+    if (StaFlagChk(pG, STA_SUSPEND) && !(pEm->be_flag & 0x800)) {
         return;
     }
-    if (em == pPL) {
+    if (pEm == pPL) {
         return;
     }
-    if (em == pSUB && (SpfFlagChk(pG, SPF_SUBCHAR))) {
+    if (pEm == pSUB && (SpfFlagChk(pG, SPF_SUBCHAR))) {
         return;
     }
-    dz = pPL->pos.z - em->pos.z;
-    dx = pPL->pos.x - em->pos.x;
-    em->plDist2 = dx * dx + dz * dz;
-    em->l_sub = 1e16f;
-    em->dmg.move();
-    em->move();
-    if ((em->be_flag & 0x201) != 1) {
+    dz = pPL->pos.z - pEm->pos.z;
+    dx = pPL->pos.x - pEm->pos.x;
+    pEm->plDist2 = dx * dx + dz * dz;
+    pEm->l_sub = 1e16f;
+    pEm->dmg.move();
+    pEm->move();
+    if ((pEm->be_flag & 0x201) != 1) {
         return;
     }
-    em->be_flag &= ~0x20000000;
-    ShapeMove(em->pModelInfo);
-    if (em->Motion.Seq_old.Se) {
-        int no = em->Motion.Seq_old.Se - 1;
-        cModel* parts = em->getPartsPtr(0);
+    pEm->be_flag &= ~0x20000000;
+    ShapeMove(pEm->pModelInfo);
+    if (pEm->Motion.Seq_old.Se) {
+        int no = pEm->Motion.Seq_old.Se - 1;
+        cModel* parts = pEm->getPartsPtr(0);
 
-        SndCall(8, no, &parts->world, em->id, 0, em);
-        em->Motion.Seq_old.Se = 0;
+        SndCall(8, no, &parts->world, pEm->id, 0, pEm);
+        pEm->Motion.Seq_old.Se = 0;
     }
-    em->updateOldPos();
-    EmYarareDisp(em);
+    pEm->updateOldPos();
+    EmYarareDisp(pEm);
     if (DbgFlagChk(pG, DBG_OBA_VIEW)) {
-        DrawOba(em);
+        DrawOba(pEm);
     }
-    if (em->be_flag & 0x80000000) {
-        em->drawAllBoundingBox(em->pModelInfo);
+    if (pEm->be_flag & 0x80000000) {
+        pEm->drawAllBoundingBox(pEm->pModelInfo);
     }
-    em->invisible_factor2 = 1.0f;
+    pEm->invisible_factor2 = 1.0f;
 }
 
 // Virtual per-frame behaviour; the base character does nothing.
@@ -455,14 +455,14 @@ cDmgInfo::cDmgInfo()
 // Registers a hit on the character: stat = flag | 1 (a hit is pending), lifetime `timer` frames
 // (bit7 = hold until cleared), damage kind, hit position / radius and the hit box that was hit.
 // The character's own move reads and clears it.
-void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, YARARE_INFO* prt)
+void cDmgInfo::set(int flag, int timer, u8 wep, Vec* pos, f32 dist, YARARE_INFO* pYarare)
 {
     m_Flag = flag | 1;
     m_Timer = timer;
-    m_Wep = kind;
-    m_PosFrom = *p;
-    m_Dist = r;
-    m_pDamageYarare = prt;
+    m_Wep = wep;
+    m_PosFrom = *pos;
+    m_Dist = dist;
+    m_pDamageYarare = pYarare;
 }
 
 // Sets only the state byte and the timer (player damage motions).

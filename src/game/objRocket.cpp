@@ -179,7 +179,7 @@ void cObjRocket::fire()
 }
 
 // A rocket in flight is dropped when an event starts.
-void cObjRocket::beginEvent(u32 mode)
+void cObjRocket::beginEvent(u32 flag)
 {
     if (r_no_0) {
         ObjMgr.destroy(this);
@@ -204,7 +204,7 @@ cObjLauncher::~cObjLauncher()
 // Launcher model (player archive 0x76/0x75; blue tint for the special one), gripped on the back
 // (or in hand for the infinite launcher, weapon_type 2), idle motions from the weapon archive; a
 // rocket is loaded when the item has ammo, else the player's "empty launcher" flag 0x400 is set.
-void cObjLauncher::init(cModel* parent)
+void cObjLauncher::init(cModel* pMod)
 {
     cModelInfo* info;
 
@@ -223,7 +223,7 @@ void cObjLauncher::init(cModel* parent)
     sub2B4.atari.throughOn();
     LightInfo.init2(1, 1, &cObjRocket::lightPos, &cObjRocket::lightSize, 1);
     grip(0);
-    wep.parent = parent;
+    wep.parent = pMod;
     if (pG->weapon_type != 2) {
         wep.motReset[0] = WEP_ARC_PTR(0x1E);
         wep.motReset[1] = WEP_ARC_PTR(0x1E);
@@ -431,45 +431,45 @@ int cObjLauncher::keyKamae()
 // Fills the player's motion table (m_MotTbl) with the launcher's stand / walk / aim / damage motions
 // from the weapon archive, and shows the launcher in the hands (or the empty-handed set when
 // stat 0x400: no rocket).
-void cObjLauncher::setMotion(cPlayer* pl)
+void cObjLauncher::setMotion(cPlayer* pEm)
 {
-    WEP_MOT(pl, 0, 0x8);
-    WEP_MOT(pl, 2, 0x9);
-    WEP_MOT(pl, 6, 0xB);
-    WEP_MOT(pl, 8, 0xA);
-    WEP_MOT(pl, 0xB, 0xC);
-    WEP_MOT(pl, 0xD, 0xD);
-    WEP_MOT(pl, 0xF, 0xE);
-    WEP_MOT(pl, 1, 0x21);
-    WEP_MOT(pl, 3, 0x22);
-    WEP_MOT(pl, 7, 0x24);
-    WEP_MOT(pl, 9, 0x23);
-    WEP_MOT(pl, 0xC, 0x25);
-    WEP_MOT(pl, 0xE, 0x26);
-    WEP_MOT(pl, 0x10, 0x27);
-    PLA_MOT(pl, 0x3D, 0x5D);
+    WEP_MOT(pEm, 0, 0x8);
+    WEP_MOT(pEm, 2, 0x9);
+    WEP_MOT(pEm, 6, 0xB);
+    WEP_MOT(pEm, 8, 0xA);
+    WEP_MOT(pEm, 0xB, 0xC);
+    WEP_MOT(pEm, 0xD, 0xD);
+    WEP_MOT(pEm, 0xF, 0xE);
+    WEP_MOT(pEm, 1, 0x21);
+    WEP_MOT(pEm, 3, 0x22);
+    WEP_MOT(pEm, 7, 0x24);
+    WEP_MOT(pEm, 9, 0x23);
+    WEP_MOT(pEm, 0xC, 0x25);
+    WEP_MOT(pEm, 0xE, 0x26);
+    WEP_MOT(pEm, 0x10, 0x27);
+    PLA_MOT(pEm, 0x3D, 0x5D);
     if (pG->weapon_type != 2) {
-        WEP_MOT(pl, 0x39, 0x2A);
-        WEP_MOT(pl, 0x3A, 0x2B);
-        WEP_MOT(pl, 0x41, 0x2C);
-        WEP_MOT(pl, 0x42, 0x2D);
-        WEP_MOT(pl, 0x3F, 0x28);
-        WEP_MOT(pl, 0x40, 0x29);
+        WEP_MOT(pEm, 0x39, 0x2A);
+        WEP_MOT(pEm, 0x3A, 0x2B);
+        WEP_MOT(pEm, 0x41, 0x2C);
+        WEP_MOT(pEm, 0x42, 0x2D);
+        WEP_MOT(pEm, 0x3F, 0x28);
+        WEP_MOT(pEm, 0x40, 0x29);
     }
-    WEP_MOT(pl, 0x55, 0x1A);
-    WEP_MOT(pl, 0x59, 0x2E);
-    WEP_MOT(pl, 0x5B, 0x1B);
-    WEP_MOT(pl, 0x57, 0x1C);
-    if (!(pl->stat & 0x400)) {
-        pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
-        pl->setRightHand(1);
-        pl->setLeftHand(4);
+    WEP_MOT(pEm, 0x55, 0x1A);
+    WEP_MOT(pEm, 0x59, 0x2E);
+    WEP_MOT(pEm, 0x5B, 0x1B);
+    WEP_MOT(pEm, 0x57, 0x1C);
+    if (!(pEm->stat & 0x400)) {
+        pEm->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
+        pEm->setRightHand(1);
+        pEm->setLeftHand(4);
         setDisp(0, 1);
         loadRocket();
     } else {
-        pl->Body->initWepHand((u32) PL_ARC_PTR(pG->pPlayer, 0x12));
-        pl->setRightHand(1);
-        pl->setLeftHand(0);
+        pEm->Body->initWepHand((u32) PL_ARC_PTR(pG->pPlayer, 0x12));
+        pEm->setRightHand(1);
+        pEm->setLeftHand(0);
         setDisp(0, 0);
     }
 }

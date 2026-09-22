@@ -39,7 +39,7 @@ public:
     ViewSphere _l_sphere_outer;        // 0x37C  camera space
     ViewSphere _sphere_outer;   // 0x390  world space
 
-    void gameInit(Camera* cam);
+    void gameInit(Camera* p_camera);
     void roomInit();
     void init();
     void move();

@@ -848,53 +848,53 @@ static void plemEscapeAction(cEm3c* em)
 // Player damage callback for the grab escape: plays the break-free motion (archive 0x65 for
 // Ashley with her voice, 0x60 otherwise with the struggle sounds) with per-frame voice / foley cues,
 // and ends the damage when it finishes. The sub archive is swapped like in plemSurprised.
-static void plemEscape(cPlayer* pl)
+static void plemEscape(cPlayer* pEm)
 {
-    pl->subArc = pl->pEmCatch->subArc;
-    pl->dmg.m_Timer = 2;
-    switch (pl->r_no_2) {
+    pEm->subArc = pEm->pEmCatch->subArc;
+    pEm->dmg.m_Timer = 2;
+    switch (pEm->r_no_2) {
     case 0:
         if (pG->pl_type == 1) {
-            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x65), 0, 3, 1, 0);
-            EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
-            SndCall(1, 5, &pl->pos, pl->id, 0, pl);
+            MotionSetCore(pEm, MOTION(pEm), EM_ARC(pEm, 0x65), 0, 3, 1, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pEm, 0);
+            SndCall(1, 5, &pEm->pos, pEm->id, 0, pEm);
         } else {
-            MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x60), 0, 3, 1, 0);
-            EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
-            SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
-            SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
+            MotionSetCore(pEm, MOTION(pEm), EM_ARC(pEm, 0x60), 0, 3, 1, 0);
+            EstSet(pEm, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pEm, 0);
+            SndCall(1, 0x43, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
+            SndCall(1, 0x44, &pEm->getPartsPtr(4)->world, 0, 0, pEm);
         }
-        pl->atari.throughOff();
-        pl->r_no_2++;
+        pEm->atari.throughOff();
+        pEm->r_no_2++;
     case 1:
         if (pG->pl_type == 1) {
-            if (pl->Motion.Seq_frame > 24.7f && pl->Motion.Seq_frame < 25.3f) {
-                SndCall(5, 5, &pl->pos, 0, 0, pl);
+            if (pEm->Motion.Seq_frame > 24.7f && pEm->Motion.Seq_frame < 25.3f) {
+                SndCall(5, 5, &pEm->pos, 0, 0, pEm);
             }
-            if (pl->Motion.Seq_frame > 60.7f && pl->Motion.Seq_frame < 61.3f) {
-                SndCall(1, 6, &pl->pos, pl->id, 0, pl);
-                SndCall(1, 0x12, &pl->pos, pl->id, 0, pl);
+            if (pEm->Motion.Seq_frame > 60.7f && pEm->Motion.Seq_frame < 61.3f) {
+                SndCall(1, 6, &pEm->pos, pEm->id, 0, pEm);
+                SndCall(1, 0x12, &pEm->pos, pEm->id, 0, pEm);
             }
         } else {
-            if (pl->Motion.Seq_frame > 10.7f && pl->Motion.Seq_frame < 11.3f) {
-                SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
+            if (pEm->Motion.Seq_frame > 10.7f && pEm->Motion.Seq_frame < 11.3f) {
+                SndCall(1, 0x4F, &pEm->pos, 0, 0, pEm);
             }
-            if (pl->Motion.Seq_frame > 21.7f && pl->Motion.Seq_frame < 22.3f) {
-                SndCall(5, 0x14, &pl->pos, 0, 0, pl);
+            if (pEm->Motion.Seq_frame > 21.7f && pEm->Motion.Seq_frame < 22.3f) {
+                SndCall(5, 0x14, &pEm->pos, 0, 0, pEm);
             }
-            if ((pl->Motion.Seq_frame > 36.7f && pl->Motion.Seq_frame < 37.3f) || (pl->Motion.Seq_frame > 49.7f && pl->Motion.Seq_frame < 50.3f)) {
-                SndCall(5, 2, &pl->pos, 0, 0, pl);
+            if ((pEm->Motion.Seq_frame > 36.7f && pEm->Motion.Seq_frame < 37.3f) || (pEm->Motion.Seq_frame > 49.7f && pEm->Motion.Seq_frame < 50.3f)) {
+                SndCall(5, 2, &pEm->pos, 0, 0, pEm);
             }
-            if ((pl->Motion.Seq_frame > 37.7f && pl->Motion.Seq_frame < 38.3f) || (pl->Motion.Seq_frame > 50.7f && pl->Motion.Seq_frame < 51.3f)) {
-                SndCall(5, 3, &pl->pos, 0, 0, pl);
+            if ((pEm->Motion.Seq_frame > 37.7f && pEm->Motion.Seq_frame < 38.3f) || (pEm->Motion.Seq_frame > 50.7f && pEm->Motion.Seq_frame < 51.3f)) {
+                SndCall(5, 3, &pEm->pos, 0, 0, pEm);
             }
         }
-        if (MotionMove(pl, 0)) {
+        if (MotionMove(pEm, 0)) {
             EndPlDamage();
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Partner damage callback (SetSubDamage) for the ambush grab: places the partner beside the
@@ -1377,30 +1377,30 @@ static void em3c_R1_CoreAtk(cEm3c* em)
 // enemy's archive (0x61 / 0x62; r_no_3 set by em3cAtkCk picks the mirrored variant, flag 0x41) with
 // the pain face and sound, and hands control back when it finishes. dmg is set to type 2 while it
 // plays and to 0xF (knocked down) on exit.
-static void plemDmMStar(cPlayer* pl)
+static void plemDmMStar(cPlayer* pEm)
 {
-    pl->subArc = pl->pEmCatch->subArc;
-    pl->dmg.set(0, 2);
-    switch (pl->r_no_2) {
+    pEm->subArc = pEm->pEmCatch->subArc;
+    pEm->dmg.set(0, 2);
+    switch (pEm->r_no_2) {
     case 0: {
         int flag = 1;
 
-        if (pl->r_no_3) {
+        if (pEm->r_no_3) {
             flag = 0x41;
         }
-        MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x61), EM_ARC(pl, 0x62), 3, flag, 0);
+        MotionSetCore(pEm, MOTION(pEm), EM_ARC(pEm, 0x61), EM_ARC(pEm, 0x62), 3, flag, 0);
         PlSetFace(1);
         PlSetDamageSe(0);
-        pl->r_no_2++;
+        pEm->r_no_2++;
     }
     case 1:
-        if (MotionMove(pl, 0)) {
+        if (MotionMove(pEm, 0)) {
             EndPlDamage();
-            pl->dmg.set(0, 0xF);
+            pEm->dmg.set(0, 0xF);
         }
         break;
     }
-    pl->subArc = pl->subArc2;
+    pEm->subArc = pEm->subArc2;
 }
 
 // Routine 2: damage reactions (r_no_1: Dm_Normal, Dm_Big, Dm_Head). Be_flg 0x100 tells em3cDmCk

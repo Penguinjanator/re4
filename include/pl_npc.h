@@ -74,11 +74,11 @@ public:
     Vec posScarf;             // 0x7F8
     cSubChar();
     virtual ~cSubChar();
-    virtual void beginEvent(u32 mode);
-    virtual void endEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
+    virtual void endEvent(u32 flag);
     virtual void move();
     virtual void modelSet() = 0;   // slot 9: pure here (`cSubAshley::modelSet` in pl11); pl_sub EndSubDamage calls it for id 4
-    virtual void setFace(int no);
+    virtual void setFace(int type);
     virtual void setHand(int no);
     virtual void initCloth();
     virtual void moveCloth();
@@ -97,7 +97,7 @@ public:
     void moveKagamu();
     void movePants();
     void moveDown();
-    int getScrActionPoint(Vec* opos, Vec* orot, u32 attr);
+    int getScrActionPoint(Vec* initPos, Vec* initAng, u32 actAttr);
     void moveFance();
     int landCheck();
     void moveFall();
@@ -112,14 +112,14 @@ public:
     void moveFallWait();
     void moveLadderWait();
     void moveWindowWait();
-    u32 checkSatAttr(f32 len);
+    u32 checkSatAttr(f32 length);
     f32 getAdjustX(int n);
     void moveDamage();
     void moveDie();
     void moveBull();
     void moveEvent();
     void moveDijection();
-    void movePos(Vec* target, f32 spd);
+    void movePos(Vec* toPos, f32 spd);
     void neckInit();
     void neckCtrl();
     void neckSet(Vec* pos);
@@ -133,7 +133,7 @@ public:
     int readyCheck();
     int actionCheck();
     int ladder2Check();
-    f32 getCliffHeight(f32 ang);
+    f32 getCliffHeight(f32 dy);
     void pantsCheck();
     int ckPlRun();
     void seqSeCtrl();
@@ -151,7 +151,7 @@ public:
     void damageCheck();
     // scenario damage area hit (sce_at sceAtFunc_damage)
     void setDamage(u8 kind, int arg, f32 power, int a, int b);
-    void registPlAction(Vec* pos, f32 ang, u8 a);
+    void registPlAction(Vec* pos, f32 y, u8 a);
     void moveBust();
     void moveFace();
     void shadowCtrl();

@@ -29,7 +29,7 @@ void cEsp4b::move()
 
 // Sets m_Ptn_no from Work8[0] (0xFF: random pattern of the texture animation). Fails (0) when the
 // texture id has no animation data or the pattern is out of range.
-int cEsp4b::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp4b::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     EspAnmData* anm;
     u32 ptn;
@@ -38,7 +38,7 @@ int cEsp4b::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->err(0, 0, "ESP : TexId[%x] no data", m_Tex_id);
         return 0;
     }
-    ptn = gen->Work8[0];
+    ptn = pSeq->Work8[0];
     if (ptn == 0xff) {
         m_Ptn_no = (Rnd() + Rnd()) % anm->Frames;
     } else {

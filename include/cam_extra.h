@@ -53,7 +53,7 @@ public:
     s32 m_pos_time_sav;  // 0x04
     s32 m_size_time_sav;  // 0x08
 
-    virtual void init(void* type);
+    virtual void init(void* size);
     virtual void move(void* zoom);
     virtual void quit(void* p);
     void save(void*);
@@ -67,8 +67,8 @@ struct FocusAnimation {
     f32 m_focus_frame;   // 0x08
     u8 m_alpha_max;    // 0x0C
 
-    void init(int id);
-    void move(int dir);
+    void init(int mask_id);
+    void move(int anim_flag);
     void quit();
     void clear();
 };

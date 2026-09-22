@@ -212,12 +212,12 @@ int PlReloadDirect = 0;
 // Wall in front of the player (400 up, 1000 ahead) with a fence/ledge behind it: the wall's hit
 // point / normal / attribute go to actWallHit / actWallNrm / actWallAttr, x400 becomes the angle
 // facing the wall. 1 when both shoulders (+-350) also see the wall.
-int actWallCheck(cPlayer* pl)
+int actWallCheck(cPlayer* pEm)
 {
-    pl->m_ActAttr = 0;
+    pEm->m_ActAttr = 0;
     Vec p0 = { 0.0f, 400.0f, 0.0f };
 
-    PSVECAdd(&p0, &pl->pos, &p0);
+    PSVECAdd(&p0, &pEm->pos, &p0);
     Vec p1 = { 0.0f, 400.0f, 1000.0f };
     Vec hit;
     Vec nrm;
@@ -227,7 +227,7 @@ int actWallCheck(cPlayer* pl)
     Vec p3;
     int ret;
 
-    PSMTXMultVec(pl->mat, &p1, &p1);
+    PSMTXMultVec(pEm->mat, &p1, &p1);
     if (SatMgr.hitCheck(&p0, &p1, 0, &nrm, 0, 0) == 0) {
         return 0;
     }
@@ -238,15 +238,15 @@ int actWallCheck(cPlayer* pl)
         return 0;
     }
     PSVECScale(&nrm, &ofs, -1000.0f);
-    pl->m_Fwork0 = (f32) atan2(-nrm.x, -nrm.z);
+    pEm->m_Fwork0 = (f32) atan2(-nrm.x, -nrm.z);
     rot.x = 0.0f;
-    rot.y = pl->m_Fwork0;
+    rot.y = pEm->m_Fwork0;
     rot.z = 0.0f;
     p0.x = 350.0f;
     p0.y = 300.0f;
     p0.z = 0.0f;
     RotVector(&p0, &rot, &p0);
-    PSVECAdd(&p0, &pl->pos, &p0);
+    PSVECAdd(&p0, &pEm->pos, &p0);
     PSVECAdd(&p0, &ofs, &p1);
     ret &= SatMgr.hitCheck(&p0, &p1, 0, 0, 0, 0);
     if (ret == 0) {
@@ -256,21 +256,21 @@ int actWallCheck(cPlayer* pl)
     p2.y = 300.0f;
     p2.z = 0.0f;
     RotVector(&p2, &rot, &p2);
-    PSVECAdd(&p2, &pl->pos, &p2);
+    PSVECAdd(&p2, &pEm->pos, &p2);
     PSVECAdd(&p2, &ofs, &p3);
     ret &= SatMgr.hitCheck(&p2, &p3, 0, 0, 0, 0);
     if (ret == 0) {
         return 0;
     }
-    pl->m_ActAttr = ret;
-    pl->m_ActNorm = nrm;
-    pl->m_ActCross = hit;
+    pEm->m_ActAttr = ret;
+    pEm->m_ActNorm = nrm;
+    pEm->m_ActCross = hit;
     return 1;
 }
 
 // Fence (wall attribute bit5) the player may climb: nothing between the shoulders behind the fence
 // and a floor within 300 of the player's height there. Sets x3E0 (climb flag).
-int fanceCheck(cPlayer* pl)
+int fanceCheck(cPlayer* pEm)
 {
     Vec p0;
     Vec p1;
@@ -283,50 +283,50 @@ int fanceCheck(cPlayer* pl)
     if (StaFlagChk(pG, STA_NO_FENCE)) {
         return 0;
     }
-    if ((pl->m_ActAttr & 0x20) == 0) {
+    if ((pEm->m_ActAttr & 0x20) == 0) {
         return 0;
     }
     rot.x = 0.0f;
-    rot.y = pl->m_Fwork0;
+    rot.y = pEm->m_Fwork0;
     rot.z = 0.0f;
-    PSVECScale(&pl->m_ActNorm, &dir, -1000.0f);
+    PSVECScale(&pEm->m_ActNorm, &dir, -1000.0f);
     p0.x = 400.0f;
     p0.y = 300.0f;
     p0.z = 0.0f;
     RotVector(&p0, &rot, &p0);
-    PSVECAdd(&p0, &pl->pos, &p0);
+    PSVECAdd(&p0, &pEm->pos, &p0);
     PSVECAdd(&p0, &dir, &p0);
     p1.x = -400.0f;
     p1.y = 300.0f;
     p1.z = 0.0f;
     RotVector(&p1, &rot, &p1);
-    PSVECAdd(&p1, &pl->pos, &p1);
+    PSVECAdd(&p1, &pEm->pos, &p1);
     PSVECAdd(&p1, &dir, &p1);
     hit0 = SatMgr.hitCheck(&p0, &p1, 0, 0, 0, 0);
     hit1 = SatMgr.hitCheck(&p1, &p0, 0, 0, 0, 0);
     if ((hit0 | hit1) != 0) {
         return 0;
     }
-    PSVECScale(&pl->m_ActNorm, &p0, -1500.0f);
-    PSVECAdd(&p0, &pl->m_ActCross, &p0);
+    PSVECScale(&pEm->m_ActNorm, &p0, -1500.0f);
+    PSVECAdd(&p0, &pEm->m_ActCross, &p0);
     p1.x = p0.x;
     p1.y = p0.y - 10000.0f;
     p1.z = p0.z;
     SatMgr.hitCheck(&p0, &p1, &hit, 0, 0, 0);
-    if (fabsf(hit.y - pl->pos.y) > 300.0f) {
+    if (fabsf(hit.y - pEm->pos.y) > 300.0f) {
         return 0;
     }
-    pl->m_Work0 = 1;
+    pEm->m_Work0 = 1;
     return 1;
 }
 
 // Window in front of the player: 1 with its break direction and the window when the player may go
 // through it (and no rack is in the way); PlFancePos = 400 behind the window.
-int windowCheck(cPlayer* pl, u8* dir, cEmWindow** out)
+int windowCheck(cPlayer* pEm, u8* pDir, cEmWindow** pEmWindow_out)
 {
     Vec p0 = { 0.0f, 400.0f, 0.0f };
 
-    PSVECAdd(&p0, &pl->pos, &p0);
+    PSVECAdd(&p0, &pEm->pos, &p0);
     Vec p1 = { 0.0f, 400.0f, 1000.0f };
     Vec wdir;
     Vec wpos;
@@ -334,18 +334,18 @@ int windowCheck(cPlayer* pl, u8* dir, cEmWindow** out)
     cEmWindow* win;
     Vec* d = &wdir;
 
-    RotVector(&p1, &pl->ang, &p1);
-    PSVECAdd(&p1, &pl->pos, &p1);
-    if (ChkWindow(pl, &p0, &p1, 1, &status, d, &wpos, &win) == 1) {
-        pl->m_Fwork0 = (f32) atan2(-d->x, -d->z);
-        pl->m_Work0 = 0;
+    RotVector(&p1, &pEm->ang, &p1);
+    PSVECAdd(&p1, &pEm->pos, &p1);
+    if (ChkWindow(pEm, &p0, &p1, 1, &status, d, &wpos, &win) == 1) {
+        pEm->m_Fwork0 = (f32) atan2(-d->x, -d->z);
+        pEm->m_Work0 = 0;
         PSVECScale(d, &PlFancePos, 400.0f);
         PSVECAdd(&PlFancePos, &wpos, &PlFancePos);
-        if (EmRackCk(pl, &pl->pos, atan2f(-wdir.x, -wdir.z)) == 0) {
+        if (EmRackCk(pEm, &pEm->pos, atan2f(-wdir.x, -wdir.z)) == 0) {
             return 0;
         }
-        *dir = win->ChkBreakDir(&pl->pos);
-        *out = win;
+        *pDir = win->ChkBreakDir(&pEm->pos);
+        *pEmWindow_out = win;
         return 1;
     }
     return 0;
@@ -367,9 +367,9 @@ void fanceOn()
 }
 
 // Action button: go through the window (its event as a scenario task).
-void windowOn(cEmWindow* w)
+void windowOn(cEmWindow* pEmWindow)
 {
-    SceExec(0x12, (TaskFunc) cEmWindow::ExeWindowEvent, (int) w, 2, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) cEmWindow::ExeWindowEvent, (int) pEmWindow, 2, SCE_PRIO_DEF_2, 0);
     PlFanceFlag = 1;
 }
 
@@ -444,7 +444,7 @@ void holdOn()
 
 // Wall (attribute bit19) 600 ahead at both shoulders the player may jump over: jumpDir = -normal,
 // jumpHeight = the floor 3800 behind it relative to the player (room 226 zeroes it past 1500).
-int jumpCheck(cPlayer* pl)
+int jumpCheck(cPlayer* pEm)
 {
     Vec p0;
     Vec p1;
@@ -462,33 +462,33 @@ int jumpCheck(cPlayer* pl)
     p0.x = 300.0f;
     p0.y = 400.0f;
     p0.z = 0.0f;
-    PSMTXMultVec(pl->mat, &p0, &p0);
+    PSMTXMultVec(pEm->mat, &p0, &p0);
     p1.x = 300.0f;
     p1.y = 400.0f;
     p1.z = 600.0f;
-    PSMTXMultVec(pl->mat, &p1, &p1);
+    PSMTXMultVec(pEm->mat, &p1, &p1);
     attr = SatMgr.hitCheck(&p0, &p1, &hit, &nrm, 0, 0);
     p0.x = -300.0f;
     p0.y = 400.0f;
     p0.z = 0.0f;
-    PSMTXMultVec(pl->mat, &p0, &p0);
+    PSMTXMultVec(pEm->mat, &p0, &p0);
     p1.x = -300.0f;
     p1.y = 400.0f;
     p1.z = 600.0f;
-    PSMTXMultVec(pl->mat, &p1, &p1);
+    PSMTXMultVec(pEm->mat, &p1, &p1);
     attr &= SatMgr.hitCheck(&p0, &p1, &hit, &nrm, 0, 0);
     if (attr & 0x80000) {
-        pl->m_JumpVec.x = -nrm.x;
-        pl->m_JumpVec.y = nrm.y;
-        pl->m_JumpVec.z = -nrm.z;
-        PSVECScale(&pl->m_JumpVec, &p2, dist);
+        pEm->m_JumpVec.x = -nrm.x;
+        pEm->m_JumpVec.y = nrm.y;
+        pEm->m_JumpVec.z = -nrm.z;
+        PSVECScale(&pEm->m_JumpVec, &p2, dist);
         PSVECAdd(&p2, &hit, &p2);
         p2.y += up;
-        h = SatMgr.getFloor(&p2, 0, 600.0f, 100000.0f, 0) - pl->pos.y;
-        pl->m_JumpAdjY = h;
+        h = SatMgr.getFloor(&p2, 0, 600.0f, 100000.0f, 0) - pEm->pos.y;
+        pEm->m_JumpAdjY = h;
         if (pG->stage_no == 2 && pG->room_no == 0x26) {
             if (fabsf(h) > up) {
-                pl->m_JumpAdjY = 0.0f;
+                pEm->m_JumpAdjY = 0.0f;
             }
         } else {
             if (fabsf(h) > up) {
@@ -774,18 +774,18 @@ int cPlayer::subScrCheck()
 
 // be_flag 0x800 (keep moving while the game is suspended, e.g. during the sub screen) on the player
 // and its weapon object.
-void cPlayer::setNoSuspend(int on)
+void cPlayer::setNoSuspend(int onoff)
 {
-    if (on) {
+    if (onoff) {
         be_flag |= 0x800;
     } else {
         be_flag &= ~0x800;
     }
     if (Wep->m_pWep) {
-        Wep->m_pWep->setNoSuspend(on);
+        Wep->m_pWep->setNoSuspend(onoff);
     }
     if (Wep->m_pWepHand) {
-        Wep->m_pWepHand->setNoSuspend(on);
+        Wep->m_pWepHand->setNoSuspend(onoff);
     }
 }
 
@@ -941,15 +941,15 @@ void cPlayer::checkCtrl()
 }
 
 // Level change wall attributes: 1 up, 2 down, 3 up (kind 2), 0 none.
-u32 upDownCk(cPlayer* pl)
+u32 upDownCk(cPlayer* pEm)
 {
-    if (pl->m_ActAttr & 0x200000) {
+    if (pEm->m_ActAttr & 0x200000) {
         return 1;
     }
-    if (pl->m_ActAttr & 0x2000) {
+    if (pEm->m_ActAttr & 0x2000) {
         return 2;
     }
-    if (pl->m_ActAttr & 0x1000) {
+    if (pEm->m_ActAttr & 0x1000) {
         return 3;
     }
     return 0;
@@ -1067,11 +1067,11 @@ int cPlayer::getLifeLevel()
 }
 
 // Event start: interrupt, routine 5 (0: idle footwork, 1: sub 2).
-void cPlayer::beginEvent(u32 mode)
+void cPlayer::beginEvent(u32 flag)
 {
     interrupt();
     Neck->m_MotR = 0;
-    switch (mode) {
+    switch (flag) {
     case 0:
         EmRoutineSet(this, 5, 0, 0, 0);
         MotionBlendOff(this);
@@ -1246,14 +1246,14 @@ void cPlayer::beginAction()
 // Action end: back to routine 0 with sub routine `routine` pending (m_Hokan).
 // `one` at function scope with a single use in another block: update_equiv_regs moves its `li`
 // next to the `stb`, so the short-lived constant outranks the flags chain for r0.
-void cPlayer::endAction(int routine)
+void cPlayer::endAction(int hokan)
 {
     int one = 1;
 
     if (stat & 2) {
         be_flag |= 2;
         setNoSuspend(0);
-        m_Hokan = routine;
+        m_Hokan = hokan;
         stat &= ~2;
         m_Frame = 0;
         EmRoutineSet(this, 0, 0, 0, one);
@@ -1261,14 +1261,14 @@ void cPlayer::endAction(int routine)
 }
 
 // Motion speed of the player and the weapon (Leon only).
-void cPlayer::setSlow(f32 rate)
+void cPlayer::setSlow(f32 speed)
 {
     if (pG->pl_type != 0) {
         return;
     }
-    MOTION(this)->Seq_speed = rate;
+    MOTION(this)->Seq_speed = speed;
     if (Wep->m_pWep) {
-        MOTION(Wep->m_pWep)->Seq_speed = rate;
+        MOTION(Wep->m_pWep)->Seq_speed = speed;
     }
 }
 
@@ -1696,9 +1696,9 @@ cEm* cPlNeck::getTarget()
 }
 
 // 0 off, 1 on, 2 = turn on next frame.
-void cPlNeck::setMode(int m)
+void cPlNeck::setMode(int mode)
 {
-    m_Mode = m;
+    m_Mode = mode;
 }
 
 // Waist straight.
@@ -1708,11 +1708,11 @@ cPlWaist::cPlWaist()
 }
 
 // Moves the waist angle toward `target` by `rate` (0..1 per frame); returns the change applied.
-f32 cPlWaist::set(f32 target, f32 rate)
+f32 cPlWaist::set(f32 dir, f32 rate)
 {
     f32 old = m_Ang.y;
 
-    m_Ang.y = m_Ang.y * (1.0f - rate) + target * rate;
+    m_Ang.y = m_Ang.y * (1.0f - rate) + dir * rate;
     return m_Ang.y - old;
 }
 
@@ -1763,7 +1763,7 @@ void cMot3::set0(void* m, u8 a, int b)
 
 // Blend rate -1..1: crossing 0 switches the blended motion (mot1 below, mot2 above) at the current
 // frame; the work's blend rate is |rate|.
-void cMot3::move(f32 r)
+void cMot3::move(f32 r0)
 {
     if (m_pEm == 0) {
         return;
@@ -1771,22 +1771,22 @@ void cMot3::move(f32 r)
     if (((cEm*) m_pEm)->Motion.blend == 0) {
         return;
     }
-    if (r > 1.0f) {
-        r = 1.0f;
+    if (r0 > 1.0f) {
+        r0 = 1.0f;
     }
-    if (r < -1.0f) {
-        r = -1.0f;
+    if (r0 < -1.0f) {
+        r0 = -1.0f;
     }
-    if (m_Rate < 0.0f && r >= 0.0f) {
+    if (m_Rate < 0.0f && r0 >= 0.0f) {
         set0(mot1, (u8) ((cEm*) m_pEm)->Motion.Seq_frame, 2);
-    } else if (m_Rate >= 0.0f && r < 0.0f) {
+    } else if (m_Rate >= 0.0f && r0 < 0.0f) {
         set0(mot2, (u8) ((cEm*) m_pEm)->Motion.Seq_frame, 2);
     }
-    m_Rate = r;
-    if (r < 0.0f) {
-        r = -r;
+    m_Rate = r0;
+    if (r0 < 0.0f) {
+        r0 = -r0;
     }
-    ((cEm*) m_pEm)->Motion.blend->Brate = r;
+    ((cEm*) m_pEm)->Motion.blend->Brate = r0;
 }
 
 const f32 cPlayer::SPEED_WALK_TURN = 0.0418879f;

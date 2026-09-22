@@ -164,17 +164,17 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
 // Weapon hit reaction: consumes the registered hit (ignoring knife / grenades), takes 999 or 9999
 // damage by weapon class (shotguns by distance), spawns the hit est (parameter 1) or plays the
 // hit SE, and when the hp is gone breaks the torch with the style decided by the weapon.
-void emTorchDmCk(cEmTorch* em)
+void emTorchDmCk(cEmTorch* pEm)
 {
-    EmTorchWork* w = EMTORCH_WK(em);
+    EmTorchWork* w = EMTORCH_WK(pEm);
     u8 wep;
     int dmg;
 
-    if (em->dmg.m_Flag == 0) {
+    if (pEm->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmg.m_Wep;
-    em->dmg.m_Flag = 0;
+    wep = pEm->dmg.m_Wep;
+    pEm->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -196,10 +196,10 @@ void emTorchDmCk(cEmTorch* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmg.m_Timer = 0;
+        pEm->dmg.m_Timer = 0;
         break;
     }
-    switch (em->dmg.m_Wep) {
+    switch (pEm->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -224,7 +224,7 @@ void emTorchDmCk(cEmTorch* em)
     case 7:
     case 8:
     case 0x21:
-        if (em->plDist2 > 36000000.0f) {
+        if (pEm->plDist2 > 36000000.0f) {
             dmg = 999;
         } else {
             dmg = 9999;
@@ -245,12 +245,12 @@ void emTorchDmCk(cEmTorch* em)
         dmg = 9999;
         break;
     }
-    LifeDownSet(em, dmg, 0);
-    if (em->type == 5) {
-        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
+    LifeDownSet(pEm, dmg, 0);
+    if (pEm->type == 5) {
+        EstSet(0, -1, &pEm->pos, &pEm->ang, w->Eff_id, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
     }
-    if (em->hp <= 0) {
-        switch (em->dmg.m_Wep) {
+    if (pEm->hp <= 0) {
+        switch (pEm->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -270,15 +270,15 @@ void emTorchDmCk(cEmTorch* em)
         case 0x27:
         case 0x28:
         case 0x2B:
-            emTorchSetBreak(em, 0);
+            emTorchSetBreak(pEm, 0);
             break;
         case 7:
         case 8:
         case 0x21:
-            if (em->dmg.m_Dist > 36000000.0f) {
-                emTorchSetBreak(em, 0);
+            if (pEm->dmg.m_Dist > 36000000.0f) {
+                emTorchSetBreak(pEm, 0);
             } else {
-                emTorchSetBreak(em, 1);
+                emTorchSetBreak(pEm, 1);
             }
             break;
         case 5:
@@ -293,15 +293,15 @@ void emTorchDmCk(cEmTorch* em)
         case 0x2C:
         case 0x2D:
         default:
-            emTorchSetBreak(em, 2);
+            emTorchSetBreak(pEm, 2);
             break;
         }
     } else {
-        if (em->type == 0) {
-            SndCall(1, 0x3F, &em->pos, 0, 0, em);
+        if (pEm->type == 0) {
+            SndCall(1, 0x3F, &pEm->pos, 0, 0, pEm);
         }
         if (w->Eff_id != 0xFF) {
-            EstSet(em, -1, 0, 0, w->Eff_id, 1, 0, ESP_CORE_KIND_NONE, em, 0);
+            EstSet(pEm, -1, 0, 0, w->Eff_id, 1, 0, ESP_CORE_KIND_NONE, pEm, 0);
         }
     }
 }
@@ -373,53 +373,53 @@ void cEmTorch::move()
 }
 
 // Rno0 == 0: resets to the Set state.
-void emTorch_R0_Init(cEmTorch* em)
+void emTorch_R0_Init(cEmTorch* pEm)
 {
-    em->r_no_0 = 1;
-    em->r_no_1 = 0;
-    em->r_no_2 = 0;
-    em->r_no_3 = 0;
+    pEm->r_no_0 = 1;
+    pEm->r_no_1 = 0;
+    pEm->r_no_2 = 0;
+    pEm->r_no_3 = 0;
 }
 
 // Rno0 == 1: dispatches on Rno1 (0 Set, 1 Parent, 2 Break, 3 Fall).
-void emTorch_R0_Move(cEmTorch* em)
+void emTorch_R0_Move(cEmTorch* pEm)
 {
-    EmTorch_R1_move_tbl[em->r_no_1](em);
+    EmTorch_R1_move_tbl[pEm->r_no_1](pEm);
 }
 
 // Rno1 == 0: a fixed torch; builds the matrices once, then stays a hit-box-only work.
-void emTorch_R1_Set(cEmTorch* em)
+void emTorch_R1_Set(cEmTorch* pEm)
 {
-    EmTorchWork* w = EMTORCH_WK(em);
+    EmTorchWork* w = EMTORCH_WK(pEm);
 
-    if (em->r_no_2 == 0) {
-        RotMatrix(em->mat, &em->ang);
-        TransMatrix(em->mat, &em->pos);
-        ScaleMatrix(em->mat, &em->scale);
-        em->partsMatCalc();
-        em->partsWorldCalc();
+    if (pEm->r_no_2 == 0) {
+        RotMatrix(pEm->mat, &pEm->ang);
+        TransMatrix(pEm->mat, &pEm->pos);
+        ScaleMatrix(pEm->mat, &pEm->scale);
+        pEm->partsMatCalc();
+        pEm->partsWorldCalc();
         w->Timer = 30;
-        em->r_no_2++;
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
+    pEm->be_flag |= 0x4000;
 }
 
 // Rno1 == 1: carried torch: follows parts `partsNo` of pParent (rotation re-normalised unless
 // Be_flg bit0) and plays its own motion when it has one.
-void emTorch_R1_Parent(cEmTorch* em)
+void emTorch_R1_Parent(cEmTorch* pEm)
 {
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
-    EmTorchWork* w = EMTORCH_WK(em);
+    EmTorchWork* w = EMTORCH_WK(pEm);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->ang);
-    TransMatrix(em->mat, &em->pos);
-    ScaleMatrix(em->mat, &em->scale);
+    RotMatrix(pEm->mat, &pEm->ang);
+    TransMatrix(pEm->mat, &pEm->pos);
+    ScaleMatrix(pEm->mat, &pEm->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, pEm->mat, m);
         if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -455,112 +455,112 @@ void emTorch_R1_Parent(cEmTorch* em)
             m[1][2] = v2.y;
             m[2][2] = v2.z;
         }
-        PSMTXCopy(m, em->mat);
+        PSMTXCopy(m, pEm->mat);
     }
-    if (em->Motion.pMot) {
-        em->Motion.Mot_flag |= 0x40000000;
-        MotionMove(em, 0);
+    if (pEm->Motion.pMot) {
+        pEm->Motion.Mot_flag |= 0x40000000;
+        MotionMove(pEm, 0);
     } else {
-        em->partsMatCalc();
+        pEm->partsMatCalc();
     }
-    em->partsWorldCalc();
+    pEm->partsWorldCalc();
 }
 
 // Rno1 == 2: broken; on entry sets bit0 of the etc flag, hp 0, hides the model; then hit-box-only.
-void emTorch_R1_Break(cEmTorch* em)
+void emTorch_R1_Break(cEmTorch* pEm)
 {
-    EmTorchWork* w = EMTORCH_WK(em);
+    EmTorchWork* w = EMTORCH_WK(pEm);
     u16* flg;
 
-    if (em->r_no_2 == 0) {
+    if (pEm->r_no_2 == 0) {
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
-        em->hp = 0;
-        em->be_flag &= ~2;
+        pEm->hp = 0;
+        pEm->be_flag &= ~2;
         w->Lost_wait = 150;
-        em->r_no_2++;
+        pEm->r_no_2++;
     }
-    em->be_flag |= 0x4000;
+    pEm->be_flag |= 0x4000;
 }
 
 // Rno1 == 3: the hanging lamp drops (gravity 20 / frame) until the effect collision floor, where
 // it deletes its flame, spawns the break est, plays the crash SE, sets a 2500 radius fire damage
 // volume (DmgMgr type 5) for 1500 frames and hides.
-void emTorch_R1_Fall(cEmTorch* em)
+void emTorch_R1_Fall(cEmTorch* pEm)
 {
-    EmTorchWork* w = EMTORCH_WK(em);
+    EmTorchWork* w = EMTORCH_WK(pEm);
     u16* flg;
     f32 floor;
 
-    switch (em->r_no_2) {
+    switch (pEm->r_no_2) {
     case 0:
         flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
-        em->hp = 0;
-        em->be_flag &= ~2;
+        pEm->hp = 0;
+        pEm->be_flag &= ~2;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
-        SndCall(6, 0x2D, &em->pos, 0, 0, em);
-        em->r_no_2++;
+        SndCall(6, 0x2D, &pEm->pos, 0, 0, pEm);
+        pEm->r_no_2++;
     case 1:
-        PSVECAdd(&em->pos, &w->spd, &em->pos);
+        PSVECAdd(&pEm->pos, &w->spd, &pEm->pos);
         w->spd.y -= 20.0f;
-        floor = EatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
-        if (em->pos.y < floor) {
-            em->pos.y = floor;
-            EffectEspDelete(1, w->EffKindId, em, 0);
-            EffectEspgenDelete(1, w->EffKindId, em);
-            EffectEfmDelete(1, w->EffKindId, em);
-            EstSet(0, -1, &em->pos, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
-            SndCall(6, 0x58, &em->pos, 0, 0, em);
-            DmgMgr.set(DMG_TYPE_LAMP, 0x4B, &em->pos, 2500.0f, 1500.0f);
-            em->be_flag &= ~2;
-            em->r_no_2++;
+        floor = EatMgr.getFloor(&pEm->pos, 0, 600.0f, 100000.0f, 0);
+        if (pEm->pos.y < floor) {
+            pEm->pos.y = floor;
+            EffectEspDelete(1, w->EffKindId, pEm, 0);
+            EffectEspgenDelete(1, w->EffKindId, pEm);
+            EffectEfmDelete(1, w->EffKindId, pEm);
+            EstSet(0, -1, &pEm->pos, 0, w->Eff_id, 2, 0, ESP_CORE_KIND_NONE, 0, 0);
+            SndCall(6, 0x58, &pEm->pos, 0, 0, pEm);
+            DmgMgr.set(DMG_TYPE_LAMP, 0x4B, &pEm->pos, 2500.0f, 1500.0f);
+            pEm->be_flag &= ~2;
+            pEm->r_no_2++;
         } else {
-            RotMatrix(em->mat, &em->ang);
-            TransMatrix(em->mat, &em->pos);
-            ScaleMatrix(em->mat, &em->scale);
-            if (em->Motion.pMot) {
-                em->Motion.Mot_flag |= 0x40000000;
-                MotionMove(em, 0);
+            RotMatrix(pEm->mat, &pEm->ang);
+            TransMatrix(pEm->mat, &pEm->pos);
+            ScaleMatrix(pEm->mat, &pEm->scale);
+            if (pEm->Motion.pMot) {
+                pEm->Motion.Mot_flag |= 0x40000000;
+                MotionMove(pEm, 0);
             } else {
-                em->partsMatCalc();
+                pEm->partsMatCalc();
             }
-            em->partsWorldCalc();
-            em->be_flag |= 0x4000;
+            pEm->partsWorldCalc();
+            pEm->be_flag |= 0x4000;
         }
         break;
     case 2:
-        em->be_flag |= 0x4000;
+        pEm->be_flag |= 0x4000;
         break;
     }
 }
 
 // Hit box by type: a cube around the origin (0 / 4), below it (1), further below (5); wall lamps
 // (2 / 3) have none.
-void emTorchYarareInit(cEmTorch* em)
+void emTorchYarareInit(cEmTorch* pEm)
 {
-    EmTorchWork* w = EMTORCH_WK(em);
+    EmTorchWork* w = EMTORCH_WK(pEm);
 
-    switch (em->type) {
+    switch (pEm->type) {
     case 0:
     case 4:
     default:
-        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     case 1:
-        YarareInitCube((cEmHit*) em, 0.0f, -w->size.y, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, -w->size.y, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     case 2:
     case 3:
         break;
     case 5:
-        YarareInitCube((cEmHit*) em, 0.0f, -w->size.y - 100.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
+        YarareInitCube((cEmHit*) pEm, 0.0f, -w->size.y - 100.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, YAT_FLAG_ON);
         break;
     }
 }
@@ -584,11 +584,11 @@ void cEmTorch::setDelete()
 
 // Sets the est id of the flame / break effects and lights the flame (est parameter 0, Core_kind
 // EffKindId) on an intact torch.
-void cEmTorch::setEff(u8 eff)
+void cEmTorch::setEff(u8 eff_id)
 {
     EmTorchWork* w = EMTORCH_WK(this);
 
-    w->Eff_id = eff;
+    w->Eff_id = eff_id;
     if (hp > 0) {
         EstSet(this, -1, 0, 0, w->Eff_id, 0, 1, w->EffKindId, this, 0);
     }

@@ -29,14 +29,14 @@ public:
     int isAlive();
     int isActive();
     void destroy();
-    void setTrans(int on);
+    void setTrans(int on_off);
     int isTrans();
     void setMove(int on);
     int isMove();
     void setBeFlag(u32 bit, int on);
     int isBeFlag(u32 bit);
     int isDamage();
-    void setNoSuspend(int on);
+    void setNoSuspend(int onoff);
     int isNoSuspend();
     void setRno(u8 r0, u8 r1);
     int ckRno01(int r0, int r1);
@@ -48,9 +48,9 @@ public:
     f32 getGuard_r();
     void setGuard_r(f32 r);
     int checkStatus(int stat);
-    void setPos(Vec* pos);
+    void setPos(Vec* newPos);
     void setAng(Vec* ang);
-    void setSca(Vec* sca);
+    void setSca(Vec* newSca);
     void setFlag(u32 bit);
     int ckFlag(u32 bit);
     void getPos(Vec* pos);
@@ -64,7 +64,7 @@ public:
     void motionSet(void* mot, u8 hokan, u16 frame, u16 stat, void* seq);
     void motionMove();
     void motionPause(int on);
-    void addModel(cModelInfo* info);
+    void addModel(cModelInfo* pInfo);
     void setParent(cModel* parent);
     void beginEvent();
     void endEvent();

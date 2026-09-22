@@ -60,7 +60,7 @@ void Filter03RoomInit()
 
 // Requests the glow this frame: passes = level + 2 (min 0), colour r,g,b; a request only replaces a
 // pending one of lower priority (pri 0xFF = locked); flag != 0 raises Status_flg[1] 0x80.
-void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag)
+void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int bUse_AlphaDraw2)
 {
     if (flt03.on == 1) {
         if (flt03.pri == 0xFF) {
@@ -79,8 +79,8 @@ void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag)
     flt03.r = r;
     flt03.g = g;
     flt03.b = b;
-    flt03.flag = flag;
-    if (flag) {
+    flt03.flag = bUse_AlphaDraw2;
+    if (bUse_AlphaDraw2) {
         StaFlagOn(pG, STA_ALPHA_DRAW2);
     }
 }

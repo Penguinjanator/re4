@@ -6,10 +6,10 @@
 // LightFuncTbl[3]: rotates l->normal by the work angles (re-seeding a degenerate normal to +z) and
 // copies Col to DispCol.
 // Directional light whose direction is rotated by the work angles every frame.
-void Light03_Move(cLight* l)
+void Light03_Move(cLight* pLi)
 {
-    Vec* n = &l->normal;
-    Vec* rot = (Vec*)l->work;
+    Vec* n = &pLi->normal;
+    Vec* rot = (Vec*)pLi->work;
     Mtx m;
 
     if (PSVECMag(n) < 0.9f) {
@@ -21,5 +21,5 @@ void Light03_Move(cLight* l)
     PSMTXMultVec(m, n, n);
 #line 48 "D:/Bio4/Prog/light03.cpp"
     VECNormalize(n, n);
-    l->DispCol = l->Col;
+    pLi->DispCol = pLi->Col;
 }

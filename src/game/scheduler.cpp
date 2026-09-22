@@ -64,12 +64,12 @@ void TaskAllClear()
 }
 
 // Stack bytes for slot `no`: 0x3000 for slot 2 (the main game task), 0x2000 for 0..4, 0x1800 above.
-u32 GetStackSize(int no)
+u32 GetStackSize(int level)
 {
-    if (no == 2) {
+    if (level == 2) {
         return 0x3000;
     }
-    if ((u32) no > 4) {
+    if ((u32) level > 4) {
         return 0x1800;
     }
     return 0x2000;
@@ -103,32 +103,32 @@ void TaskScheduler()
 // 0x10000000 vs flag bit1) or the sub screen holds (Status_flg[0] 0x100000 vs bit2); TASK_EXEC
 // creates and starts its thread, TASK_SLEEP counts down and wakes it, TASK_RUN resumes it; the
 // main thread then waits (semaphore for priority > 0xF tasks) until the task sleeps / exits.
-void TaskSchedulerMain(TASK* t)
+void TaskSchedulerMain(TASK* pT)
 {
-    if (StaFlagChk(pG, STA_SUSPEND) && !(t->flag & 2)) {
+    if (StaFlagChk(pG, STA_SUSPEND) && !(pT->flag & 2)) {
         return;
     }
-    if (StaFlagChk(pG, STA_DIEDEMO) && !(t->flag & 4)) {
+    if (StaFlagChk(pG, STA_DIEDEMO) && !(pT->flag & 4)) {
         return;
     }
-    switch (t->Status) {
+    switch (pT->Status) {
     case TASK_EXEC:
-        OSCreateThread(&t->Thread, t->hook, (void*) t->arg, t->pStack, t->StackSize, t->Priority, 1);
-        t->Status = TASK_RUN;
-        OSResumeThread(&t->Thread);
+        OSCreateThread(&pT->Thread, pT->hook, (void*) pT->arg, pT->pStack, pT->StackSize, pT->Priority, 1);
+        pT->Status = TASK_RUN;
+        OSResumeThread(&pT->Thread);
         GXSetCurrentGXThread();
         break;
     case TASK_SLEEP:
-        t->SleepCtr--;
-        if (t->SleepCtr != 0) {
+        pT->SleepCtr--;
+        if (pT->SleepCtr != 0) {
             return;
         }
-        t->Status = TASK_RUN;
-        OSWakeupThread(&t->Queue);
+        pT->Status = TASK_RUN;
+        OSWakeupThread(&pT->Queue);
         GXSetCurrentGXThread();
         break;
     case TASK_RUN:
-        OSResumeThread(&t->Thread);
+        OSResumeThread(&pT->Thread);
         GXSetCurrentGXThread();
         break;
     default:
@@ -138,7 +138,7 @@ void TaskSchedulerMain(TASK* t)
         OSWaitSemaphore(&Sema);
         GXSetCurrentGXThread();
     }
-    StackOverflowCheck(t);
+    StackOverflowCheck(pT);
 }
 
 // Debug: prints how much of each task stack has been touched (bytes no longer 0xB3).
@@ -162,11 +162,11 @@ void stackUsedCheck()
 }
 
 // Panics when the guard word at the bottom of the task's stack was overwritten.
-void StackOverflowCheck(TASK* t)
+void StackOverflowCheck(TASK* pTask)
 {
-    if (*(u32*) (t->pStack - t->StackSize) != 0xDEADBABE) {
+    if (*(u32*) (pTask->pStack - pTask->StackSize) != 0xDEADBABE) {
         OSReport("***************************************\n");
-        OSReport("Stack overflow in Thread %d !!\n", t->Task_no);
+        OSReport("Stack overflow in Thread %d !!\n", pTask->Task_no);
         OSReport("***************************************\n");
         OSPanic("D:/Bio4/Prog/scheduler.cpp", 217, "End of biohazard4");
     }
@@ -221,12 +221,12 @@ TASK* TaskExec(int prio, TaskFunc func, int arg)
 
 // Called from a task: yields for `frames` frames — the scheduler thread resumes, the task thread
 // sleeps on its queue until TaskSchedulerMain wakes it.
-void TaskSleep(int frames)
+void TaskSleep(int ctr)
 {
-    if (frames == 0) {
+    if (ctr == 0) {
         return;
     }
-    pCTask->SleepCtr = frames;
+    pCTask->SleepCtr = ctr;
     pCTask->Status = (pCTask->Status & TASK_SUSPEND) | TASK_SLEEP;
     if (pParentThread != NULL) {
         OSResumeThread(pParentThread);
@@ -307,18 +307,18 @@ void TaskKill(TASK* t)
 }
 
 // Suspends slot `task` (counted; TASK_SUSPEND bit).
-void TaskSuspend(int task)
+void TaskSuspend(int level)
 {
-    TASK* t = &Task[task];
+    TASK* t = &Task[level];
 
     t->suspend_cnt++;
     t->Status |= TASK_SUSPEND;
 }
 
 // Undoes one TaskSuspend; the task runs again when the count reaches 0.
-void TaskSignal(int task)
+void TaskSignal(int level)
 {
-    TASK* t = &Task[task];
+    TASK* t = &Task[level];
 
     if (t->suspend_cnt == 0) {
         return;
@@ -331,9 +331,9 @@ void TaskSignal(int task)
 }
 
 // Status of slot `prio` (0 = free).
-u8 TaskStatus(int prio)
+u8 TaskStatus(int level)
 {
-    return Task[prio].Status;
+    return Task[level].Status;
 }
 
 // The model a task works on (the current task when t is NULL) — read by the scenario / camera.

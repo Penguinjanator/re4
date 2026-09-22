@@ -265,9 +265,9 @@ inline void cModel::move()
 }
 
 // be_flag 0x800: the model keeps moving while the game is suspended (events, pause).
-inline void cModel::setNoSuspend(int on)
+inline void cModel::setNoSuspend(int onoff)
 {
-    if (on) {
+    if (onoff) {
         be_flag |= 0x800;
     } else {
         be_flag &= ~0x800;
@@ -287,21 +287,21 @@ inline int cModel::isTrans()
 
 // Parts `no` (-1: the model itself); NULL and a log when the chain is shorter. Defined here so
 // that the callers below inline it while setPartsParent above calls it.
-inline cModel* cModel::getPartsPtr(int no)
+inline cModel* cModel::getPartsPtr(int idx)
 {
     cModel* p = pParts;
     int cnt;
 
-    if (no < 0) {
+    if (idx < 0) {
         return this;
     }
-    cnt = no;
+    cnt = idx;
     if (!VALID_PTR(p)) {
         return 0;
     }
     if (be_flag & 0x2000) {
-        p = (cModel*) ((cParts*) p + no);
-    } else if (no--) {
+        p = (cModel*) ((cParts*) p + idx);
+    } else if (idx--) {
         do {
             cModel* next = p->pParts;
             if (!VALID_PTR(next)) {
@@ -309,7 +309,7 @@ inline cModel* cModel::getPartsPtr(int no)
                 return 0;
             }
             p = next;
-        } while (no--);
+        } while (idx--);
     }
     return p;
 }
@@ -399,10 +399,10 @@ void cModel::matBlend(f32 rate)
 }
 
 // Places the model at pos/rot, clears its motion and rebuilds the matrices (player after events).
-void cModel::zeroPartsPosInit(Vec* pos, Vec* rot)
+void cModel::zeroPartsPosInit(Vec* vPos, Vec* vAng)
 {
-    setPos(pos);
-    setAng(rot);
+    setPos(vPos);
+    setAng(vAng);
     MotionClear(this, 0);
     matUpdate();
 }
@@ -471,19 +471,19 @@ void cModel::partsWorldCalc()
 }
 
 // Attaches the root parts to another model (parent coordinate) with an offset and rotation.
-void cModel::setParent(cModel* parent, Vec* pos, Vec* rot)
+void cModel::setParent(cModel* pCoord, Vec* pos0, Vec* ang0)
 {
     cParts* p = pList;
 
-    p->pParent = parent;
-    p->pos = *pos;
-    p->ang = *rot;
+    p->pParent = pCoord;
+    p->pos = *pos0;
+    p->ang = *ang0;
 }
 
 // Attaches the root parts to parts partsNo of another model.
-void cModel::setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot)
+void cModel::setParent(cModel* pMod, int pno, Vec* pos0, Vec* ang0)
 {
-    setParent(parent->getPartsPtr(partsNo), pos, rot);
+    setParent(pMod->getPartsPtr(pno), pos0, ang0);
 }
 
 // End of frame: pos_old and each parts' world_old/world_old2 history (used for motion trails and
@@ -501,12 +501,12 @@ void cModel::updateOldPos()
 
 // Moves the model and every parts by the delta without recomputing the pose; updates the light
 // volume matrix and flags the collision as moved.
-void cModel::setPos(Vec* pos)
+void cModel::setPos(Vec* newPos)
 {
     Vec d;
     cParts* p;
 
-    PSVECSubtract(pos, &this->pos, &d);
+    PSVECSubtract(newPos, &this->pos, &d);
     p = pList;
     if (PSVECMag(&d) != 0.0f) {
         PSVECAdd(&this->pos, &d, &this->pos);
@@ -534,9 +534,9 @@ void cModel::setAng(Vec* ang)
 }
 
 // Sets the scale and rebuilds all matrices.
-void cModel::setSca(Vec* sca)
+void cModel::setSca(Vec* newSca)
 {
-    scale = *sca;
+    scale = *newSca;
     matUpdate();
 }
 
@@ -673,21 +673,21 @@ void cModel::debugSkeletonDisp()
 }
 
 // Appends a model info (extra parts model: weapon, head, clothes) to the model's chain.
-void cModel::addModel(cModelInfo* info)
+void cModel::addModel(cModelInfo* pInfo)
 {
     cModelInfo* p;
 
     if (pModelInfo == NULL) {
-        pModelInfo = info;
+        pModelInfo = pInfo;
         return;
     }
     for (p = pModelInfo; p->pList; p = p->pList) {
     }
-    p->pList = info;
+    p->pList = pInfo;
 }
 
 // Remembers parts `no`'s world position so partsFixAdjust can keep it planted (foot lock).
-void cModel::partsFixMemory(int no)
+void cModel::partsFixMemory(int fix_parts)
 {
     cModel* p;
 
@@ -695,9 +695,9 @@ void cModel::partsFixMemory(int no)
         Fix_parts = 0;
         return;
     }
-    p = getPartsPtr(no);
+    p = getPartsPtr(fix_parts);
     Fix_pos = p->world;
-    Fix_parts = no + 1;
+    Fix_parts = fix_parts + 1;
 }
 
 // Moves the model in XZ so the remembered parts stays where it was, then recomputes the parts
@@ -730,10 +730,10 @@ void cModel::push()
 }
 
 // Debug: draws the bounding box of every model info in the chain.
-void cModel::drawAllBoundingBox(cModelInfo* info)
+void cModel::drawAllBoundingBox(cModelInfo* pModelInfo)
 {
-    for (; info; info = info->pList) {
-        drawBoundingBox(mat, &info->bound);
+    for (; pModelInfo; pModelInfo = pModelInfo->pList) {
+        drawBoundingBox(mat, &pModelInfo->bound);
     }
 }
 
@@ -766,9 +766,9 @@ void cModelInfo::addTplAddr(void* tpl)
 
 // Installs a texture blend table (per material texture replacement, e.g. tex-render / damage
 // textures) and marks it active (flagsDC bit 2).
-void cModelInfo::setTexBlendTbl(void* tbl)
+void cModelInfo::setTexBlendTbl(void* pTbl)
 {
-    texBlendTbl = tbl;
+    texBlendTbl = pTbl;
     flagsDC |= 4;
 }
 
@@ -843,18 +843,18 @@ static void AddShadowModel(int em, int sh)
 }
 
 // Removes (and destroys) the model info whose data is `data` from the chain; 0 when absent.
-int cModel::deleteModelData(cModelData* data)
+int cModel::deleteModelData(cModelData* addr)
 {
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
 
-    if (info->model_addr == data) {
+    if (info->model_addr == addr) {
         pModelInfo = info->pList;
         cModel::mm->destroy(info);
         return 1;
     }
     while (info) {
-        if (info->model_addr == data) {
+        if (info->model_addr == addr) {
             prev->pList = info->pList;
             cModel::mm->destroy(info);
             return 1;
@@ -866,18 +866,18 @@ int cModel::deleteModelData(cModelData* data)
 }
 
 // Removes and destroys a model info from the chain; 0 when absent.
-int cModel::deleteModelInfo(cModelInfo* target)
+int cModel::deleteModelInfo(cModelInfo* addr)
 {
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
 
-    if (info == target) {
+    if (info == addr) {
         pModelInfo = info->pList;
         cModel::mm->destroy(info);
         return 1;
     }
     while (info) {
-        if (info == target) {
+        if (info == addr) {
             prev->pList = info->pList;
             cModel::mm->destroy(info);
             return 1;
@@ -889,21 +889,21 @@ int cModel::deleteModelInfo(cModelInfo* target)
 }
 
 // Replaces the model info holding `data` by newInfo in place (costume/damage model swaps).
-int cModel::swapModelInfo(cModelData* data, cModelInfo* newInfo)
+int cModel::swapModelInfo(cModelData* addr, cModelInfo* pSwapInfo)
 {
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
 
-    if (info->model_addr == data) {
+    if (info->model_addr == addr) {
         pModelInfo = info->pList;
         cModel::mm->destroy(info);
-        addModel(newInfo);
+        addModel(pSwapInfo);
         return 1;
     }
     while (info) {
-        if (info->model_addr == data) {
-            prev->pList = newInfo;
-            newInfo->pList = info->pList;
+        if (info->model_addr == addr) {
+            prev->pList = pSwapInfo;
+            pSwapInfo->pList = info->pList;
             cModel::mm->destroy(info);
             return 1;
         }
@@ -915,7 +915,7 @@ int cModel::swapModelInfo(cModelData* data, cModelInfo* newInfo)
 
 // After the owning archive moved in memory by ofs (be_flag 0x80000 models): shifts the data/tpl
 // pointers of every model info and reconverts them to offsets for the next relocation.
-void cModel::moveDataAddr(int ofs)
+void cModel::moveDataAddr(int ofsAddr)
 {
     cModelInfo* info;
 
@@ -923,9 +923,9 @@ void cModel::moveDataAddr(int ofs)
         return;
     }
     for (info = pModelInfo; info; info = info->pList) {
-        if (ofs != 0) {
-            info->model_addr = (cModelData*) ((u8*) info->model_addr + ofs);
-            info->tpl_addr = (u8*) info->tpl_addr + ofs;
+        if (ofsAddr != 0) {
+            info->model_addr = (cModelData*) ((u8*) info->model_addr + ofsAddr);
+            info->tpl_addr = (u8*) info->tpl_addr + ofsAddr;
         } else {
             calcModelOffset(info->model_addr);
             calcTplOffset((TEXPalette*) info->tpl_addr);
@@ -1121,9 +1121,9 @@ int cModel::makePartsList(int n)
 }
 
 // Binds the motion blend table and flip table of a version 0x20030818 model file to the MotionWork.
-void cModel::setJointInfo(void* bin)
+void cModel::setJointInfo(void* pHead)
 {
-    cModelData* d = (cModelData*) bin;
+    cModelData* d = (cModelData*) pHead;
 
     if (d->version == 0x20030818) {
         if (d->blendTbl != 0) {
@@ -1143,15 +1143,15 @@ void cModel::setJointInfo(void* bin)
 }
 
 // Frees the parts from index `no` to the end (0 = all, clearing pParts/nParts).
-void cModel::releasePartsList(int no)
+void cModel::releasePartsList(int idx)
 {
     cParts* p;
     cParts* prev;
 
-    p = (cParts*) getPartsPtr(no);
+    p = (cParts*) getPartsPtr(idx);
     if (!VALID_PTR(p)) {
-        if (no != 0) {
-            pLog->err(0, 0, "releasePartsList() idx INVALID. %d", no);
+        if (idx != 0) {
+            pLog->err(0, 0, "releasePartsList() idx INVALID. %d", idx);
         }
         return;
     }
@@ -1160,12 +1160,12 @@ void cModel::releasePartsList(int no)
         p = p->pList;
         pm->destroy(dead);
     }
-    if (no == 0) {
+    if (idx == 0) {
         pParts = 0;
         nParts = 0;
         return;
     }
-    prev = (cParts*) getPartsPtr(no - 1);
+    prev = (cParts*) getPartsPtr(idx - 1);
     prev->pList = 0;
 }
 
@@ -1260,12 +1260,12 @@ cPartsMgr::cPartsMgr() : cManager<cParts>(sizeof(cParts), 0)
 }
 
 // Manager warnings to the log.
-void cPartsMgr::log(const char* fmt, ...)
+void cPartsMgr::log(const char* pStr, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
-    pLog->vwarn(6, 0, fmt, ap);
+    va_start(ap, pStr);
+    pLog->vwarn(6, 0, pStr, ap);
 }
 
 // Unit construction: placement-new of cParts.
@@ -1333,12 +1333,12 @@ cModInfoMgr::cModInfoMgr() : cManager<cModelInfo>(sizeof(cModelInfo), 0)
 }
 
 // Manager warnings to the log.
-void cModInfoMgr::log(const char* fmt, ...)
+void cModInfoMgr::log(const char* pStr, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
-    pLog->vwarn(6, 0, fmt, ap);
+    va_start(ap, pStr);
+    pLog->vwarn(6, 0, pStr, ap);
 }
 
 // Unit construction: placement-new of cModelInfo.
@@ -1375,25 +1375,25 @@ cModelInfo* cModInfoMgr::create(void* bin, void* tpl)
 cModInfoMgr ModInfoMgr;
 
 // Parts `no` by walking the pParts chain from `parts`.
-cModel* GetPartsAddr(cModel* parts, int no)
+cModel* GetPartsAddr(cModel* pList, int idx)
 {
-    int cnt = no;
+    int cnt = idx;
 
-    if (!VALID_PTR(parts)) {
-        pLog->err(0, 0, "GetPartsAddr() PTR ERROR %08X", parts);
+    if (!VALID_PTR(pList)) {
+        pLog->err(0, 0, "GetPartsAddr() PTR ERROR %08X", pList);
         return 0;
     }
-    if (no--) {
+    if (idx--) {
         do {
-            cModel* next = parts->pParts;
+            cModel* next = pList->pParts;
             if (!VALID_PTR(next)) {
                 pLog->err(0, 0, "GetPartsAddr() cParts NO ERROR %d", cnt);
                 break;
             }
-            parts = next;
-        } while (no--);
+            pList = next;
+        } while (idx--);
     }
-    return parts;
+    return pList;
 }
 
 // Model info `no` of a chain.
@@ -1441,18 +1441,18 @@ int GetModelInfoNum(cModelInfo* info)
 }
 
 // Excludes every model info of m from the reflection (mirror/water) render (be_flag 4).
-void ModelInfoRefrectOffAll(cModel* m)
+void ModelInfoRefrectOffAll(cModel* pMod)
 {
     int n;
     int i;
 
-    if (m == NULL) {
+    if (pMod == NULL) {
         pLog->err(0, 0, "ModelInfoRefrectOffAll() : failed!!");
         return;
     }
-    n = GetModelInfoNum(m->pModelInfo);
+    n = GetModelInfoNum(pMod->pModelInfo);
     for (i = 0; i < n; i++) {
-        cModelInfo* info = GetModelInfoAddr(m->pModelInfo, i);
+        cModelInfo* info = GetModelInfoAddr(pMod->pModelInfo, i);
         if (info) {
             info->be_flag |= 4;
         }
@@ -1460,27 +1460,27 @@ void ModelInfoRefrectOffAll(cModel* m)
 }
 
 // Re-includes model info `no` in the reflection render.
-void ModelInfoRefrectOn(cModel* m, int no)
+void ModelInfoRefrectOn(cModel* pMod, int modelInfoNo)
 {
     cModelInfo* info;
 
-    if (m == NULL) {
+    if (pMod == NULL) {
         pLog->err(0, 0, "ModelInfoRefrectOn() : failed!!");
         return;
     }
-    info = GetModelInfoAddr(m->pModelInfo, no);
+    info = GetModelInfoAddr(pMod->pModelInfo, modelInfoNo);
     if (info) {
         info->be_flag &= ~4;
     }
 }
 
 // Shows/hides model info `no` (be_flag 8).
-void ModelInfoSetTrans(cModel* m, int no, int on)
+void ModelInfoSetTrans(cModel* pMod, int modelInfoNo, int flag)
 {
-    cModelInfo* info = GetModelInfoAddr(m->pModelInfo, no);
+    cModelInfo* info = GetModelInfoAddr(pMod->pModelInfo, modelInfoNo);
 
     if (info) {
-        if (on == 1) {
+        if (flag == 1) {
             info->be_flag |= 8;
         } else {
             info->be_flag &= ~8;
@@ -1489,7 +1489,7 @@ void ModelInfoSetTrans(cModel* m, int no, int on)
 }
 
 // Debug: draws a bounding box transformed by m as 12 lines.
-void drawBoundingBox(Mtx m, ModelBound* bound)
+void drawBoundingBox(Mtx m, ModelBound* pBox)
 {
     static u8 ptbl[6][4] = {
         {0, 1, 3, 2}, {4, 5, 7, 6}, {0, 1, 5, 4}, {3, 2, 6, 7}, {1, 3, 7, 5}, {2, 0, 4, 6},
@@ -1499,9 +1499,9 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     Vec* c;
     int i;
     u32 j;
-    f32 sx = bound->size.x;
-    f32 sy = bound->size.y;
-    f32 sz = bound->size.z;
+    f32 sx = pBox->size.x;
+    f32 sy = pBox->size.y;
+    f32 sz = pBox->size.z;
 
     c = v;
     c->x = -sx; c->y = -sy; c->z = -sz;
@@ -1524,7 +1524,7 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     // compares the stepped pointer against `&v[7]` (`cmplw; ble`), which the do-while form with an
     // explicit end pointer gave as well but with the copy issued before the addis.
     for (j = 0; j < 8; j++) {
-        PSVECAdd(&v[j], &bound->center, &v[j]);
+        PSVECAdd(&v[j], &pBox->center, &v[j]);
     }
     PSMTXMultVecArray(m, v, v, 8);
     for (i = 0; i < 6; i++) {

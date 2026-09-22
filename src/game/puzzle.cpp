@@ -94,30 +94,30 @@ PieceInfo piece_info[] = {
 };
 
 // Shape record of item `id` in the piece table (ends with id 0xFFFF); 0 when the item has none.
-PieceData* searchItemPieceData(int id, PieceInfo* tbl)
+PieceData* searchItemPieceData(int item_id, PieceInfo* p_info)
 {
     int i;
 
     for (i = 0;; i++) {
-        if (tbl[i].id == id) {
-            return &tbl[i].data;
+        if (p_info[i].id == item_id) {
+            return &p_info[i].data;
         }
-        if (tbl[i].id == 0xFFFF) {
+        if (p_info[i].id == 0xFFFF) {
             return 0;
         }
     }
 }
 
 // Model record of item `id` in the piece table; 0 when none.
-u8* searchItemModelData(int id, PieceInfo* tbl)
+u8* searchItemModelData(int item_id, PieceInfo* p_info)
 {
     int i;
 
     for (i = 0;; i++) {
-        if (tbl[i].id == id) {
-            return tbl[i].model;
+        if (p_info[i].id == item_id) {
+            return p_info[i].model;
         }
-        if (tbl[i].id == 0xFFFF) {
+        if (p_info[i].id == 0xFFFF) {
             return 0;
         }
     }
@@ -127,24 +127,24 @@ u8* searchItemModelData(int id, PieceInfo* tbl)
 // before the entry test (`addic. r0,r29,-4; ble`), check_dbra_loop reverses the compare-only biv
 // with that count, and the count temp takes the ctrsi pattern's CTR preference (`mtctr r0; mfctr
 // r31`; the loop body's call keeps the biv itself in r31).
-void pzlPiece::orientation(int o)
+void pzlPiece::orientation(int orientation_no)
 {
     int i;
 
     m_center_x = m_p_data->center_x;
     m_center_y = m_p_data->center_y;
     m_orientation = 0;
-    if (o <= 3) {
-        for (i = 0; i < o; i++) {
+    if (orientation_no <= 3) {
+        for (i = 0; i < orientation_no; i++) {
             rotate(0);
         }
     } else {
         mirror(0);
-        for (i = 0; i < o - 4; i++) {
+        for (i = 0; i < orientation_no - 4; i++) {
             rotate(0);
         }
     }
-    if (o != m_orientation) {
+    if (orientation_no != m_orientation) {
         pLog->err(0, 0, "pzlPiece::orientation() failed.");
     }
 }
@@ -197,9 +197,9 @@ void pzlPiece::rotate(int dir)
 
 // Mirrors the piece (axis 0 horizontal: flips cx, 1 vertical: flips the centre y) — moves between
 // the normal and mirrored orientation groups.
-void pzlPiece::mirror(int axis)
+void pzlPiece::mirror(int dir)
 {
-    switch (axis) {
+    switch (dir) {
     case 0:
         switch (m_orientation) {
         case 0:
@@ -379,7 +379,7 @@ void pzlPiece::snap()
 // convert_to_integer narrows the multiplies to QImode (the low byte of the word is used raw,
 // byte 2 comes out as `extsh; srawi 8`); the negated sine goes through an s8 local (its
 // `extsb; neg`); the mirror test is a `case 4..7` range (`cmpwi 7; bgt` then `cmpwi 4; blt`).
-int pzlPiece::shape(int px, int py)
+int pzlPiece::shape(int x, int y)
 {
     s8 rot[2][2];
     f32 ang;
@@ -412,9 +412,9 @@ int pzlPiece::shape(int px, int py)
     rot[0][1] = -s;
     rot[1][0] = sinf(ang);
     rot[1][1] = cosf(ang);
-    w.v = px;
-    rx = (s8) (w.v * rot[0][0] + (s8) py * rot[0][1]);
-    ry = (s8) (w.v * rot[1][0] + (s8) py * rot[1][1]);
+    w.v = x;
+    rx = (s8) (w.v * rot[0][0] + (s8) y * rot[0][1]);
+    ry = (s8) (w.v * rot[1][0] + (s8) y * rot[1][1]);
     switch (m_orientation) {
     case 4:
     case 5:
@@ -447,30 +447,30 @@ static void dispShape(pzlPiece* p, int px, int py)
 
 #line 540 "D:/Bio4/Prog/puzzle.cpp"
 // Allocates a w x h cell board (all cells free) and a table for `pieceMax_` pieces; 0 on failure.
-int pzlBoard::init(int w_, int h_, int pieceMax_)
+int pzlBoard::init(int w, int h, int piece_max)
 {
     int i;
 
 #line 543 "D:/Bio4/Prog/puzzle.cpp"
-    m_cell = (u8*) MEM_ALLOC(w_ * h_, 1, 13);
+    m_cell = (u8*) MEM_ALLOC(w * h, 1, 13);
     if (m_cell == 0) {
         m_size_x = 0;
         m_size_y = 0;
         return 0;
     }
-    m_size_x = w_;
-    m_size_y = h_;
+    m_size_x = w;
+    m_size_y = h;
     clearState(0xFF);
 #line 560 "D:/Bio4/Prog/puzzle.cpp"
-    m_p_piece = (pzlPiece**) MEM_ALLOC(pieceMax_ * 4, 1, 13);
+    m_p_piece = (pzlPiece**) MEM_ALLOC(piece_max * 4, 1, 13);
     if (m_p_piece == 0) {
         Mem_free(m_cell);
         return 0;
     }
     // Guarded count-down (`cmpwi n,0; beq` + `mtctr n` after the guard): the counter is a local set
     // inside the guard, so its CTR copy is initialised after the branch, not before it.
-    if (pieceMax_ != 0) {
-        int n = pieceMax_;
+    if (piece_max != 0) {
+        int n = piece_max;
         i = 0;
         do {
             m_p_piece[i] = 0;
@@ -478,7 +478,7 @@ int pzlBoard::init(int w_, int h_, int pieceMax_)
             n--;
         } while (n != 0);
     }
-    m_piece_max = pieceMax_;
+    m_piece_max = piece_max;
     return 1;
 }
 
@@ -522,7 +522,7 @@ int pzlBoard::search(pzlPiece* p)
 
 // 1 when every filled cell of `p` is on the board or in the one-cell border ring around it; else
 // 0 with m_wall_miss_flag = the side it left (1 left, 2 right, 3 up, 4 down).
-int pzlBoard::ckInsideWall(pzlPiece* p)
+int pzlBoard::ckInsideWall(pzlPiece* p_piece)
 {
     int sx;
     int sy;
@@ -532,14 +532,14 @@ int pzlBoard::ckInsideWall(pzlPiece* p)
     int j;
 
     m_wall_miss_flag = 0;
-    sx = p->size_x();
-    sy = p->size_y();
-    vx = p->ver0_x();
-    vy = p->ver0_y();
+    sx = p_piece->size_x();
+    sy = p_piece->size_y();
+    vx = p_piece->ver0_x();
+    vy = p_piece->ver0_y();
     m_wall_miss_flag = 0;
     for (i = 0; i != sx; sx > 0 ? i++ : i--) {
         for (j = 0; j != sy; sy > 0 ? j++ : j--) {
-            if (p->shape((s8) i, (s8) j)) {
+            if (p_piece->shape((s8) i, (s8) j)) {
                 int cx_ = vx + i;
                 int cy_ = vy + j;
                 if ((cellState((s8) cx_, (s8) cy_) & 2) && !(cellState((s8) cx_, (s8) cy_) & 0x40)) {
@@ -565,7 +565,7 @@ int pzlBoard::ckInsideWall(pzlPiece* p)
 
 // 1 when the piece is entirely off the board (m_out_miss_flag = the side it is beyond, or 0 when
 // it straddles the ring), 0 when any of its cells is on the board.
-int pzlBoard::outPiece(pzlPiece* p)
+int pzlBoard::outPiece(pzlPiece* p_piece)
 {
     int sx;
     int sy;
@@ -579,13 +579,13 @@ int pzlBoard::outPiece(pzlPiece* p)
     int down = 1;
 
     m_out_miss_flag = 0;
-    sx = p->size_x();
-    sy = p->size_y();
-    vx = p->ver0_x();
-    vy = p->ver0_y();
+    sx = p_piece->size_x();
+    sy = p_piece->size_y();
+    vx = p_piece->ver0_x();
+    vy = p_piece->ver0_y();
     for (i = 0; i != sx; sx > 0 ? i++ : i--) {
         for (j = 0; j != sy; sy > 0 ? j++ : j--) {
-            if (p->shape((s8) i, (s8) j)) {
+            if (p_piece->shape((s8) i, (s8) j)) {
                 int cx_ = vx + i;
                 int cy_ = vy + j;
                 if (!(cellState((s8) cx_, (s8) cy_) & 2)) {
@@ -623,7 +623,7 @@ int pzlBoard::outPiece(pzlPiece* p)
 
 // Places `p` (snapped) if none of its cells is occupied or off the board: marks the cells (bit0),
 // registers it, state 1. Returns 1 on success.
-int pzlBoard::putPiece(pzlPiece* p)
+int pzlBoard::putPiece(pzlPiece* p_piece)
 {
     int sx;
     int sy;
@@ -632,14 +632,14 @@ int pzlBoard::putPiece(pzlPiece* p)
     int i;
     int j;
 
-    p->snap();
-    sx = p->size_x();
-    sy = p->size_y();
-    vx = p->ver0_x();
-    vy = p->ver0_y();
+    p_piece->snap();
+    sx = p_piece->size_x();
+    sy = p_piece->size_y();
+    vx = p_piece->ver0_x();
+    vy = p_piece->ver0_y();
     for (i = 0; i != sx; sx > 0 ? i++ : i--) {
         for (j = 0; j != sy; sy > 0 ? j++ : j--) {
-            if (p->shape((s8) i, (s8) j)) {
+            if (p_piece->shape((s8) i, (s8) j)) {
                 if (cellState((s8) (vx + i), (s8) (vy + j)) & 1) {
                     return 0;
                 }
@@ -650,10 +650,10 @@ int pzlBoard::putPiece(pzlPiece* p)
     // which then conflict with the cx_/cy_ temps (r31/r30) and take r28/r29 in both nests.
     for (int n = 0; n < m_piece_max; n++) {
         if (m_p_piece[n] == 0) {
-            m_p_piece[n] = p;
+            m_p_piece[n] = p_piece;
             for (i = 0; i != sx; sx > 0 ? i++ : i--) {
                 for (j = 0; j != sy; sy > 0 ? j++ : j--) {
-                    if (p->shape((s8) i, (s8) j)) {
+                    if (p_piece->shape((s8) i, (s8) j)) {
                         s8 cx_ = vx + i;
                         s8 cy_ = vy + j;
                         if (!(cellState(cx_, cy_) & 1)) {
@@ -662,7 +662,7 @@ int pzlBoard::putPiece(pzlPiece* p)
                     }
                 }
             }
-            p->m_place = 1;
+            p_piece->m_place = 1;
             return 1;
         }
     }
@@ -671,7 +671,7 @@ int pzlBoard::putPiece(pzlPiece* p)
 
 // The single placed piece that `p` (snapped) overlaps; 0 when it overlaps none, more than one, or
 // leaves the board.
-pzlPiece* pzlBoard::lapPiece(pzlPiece* p)
+pzlPiece* pzlBoard::lapPiece(pzlPiece* p_piece)
 {
     pzlPiece* hit = 0;
     int sx;
@@ -681,14 +681,14 @@ pzlPiece* pzlBoard::lapPiece(pzlPiece* p)
     int i;
     int j;
 
-    p->snap();
-    sx = p->size_x();
-    sy = p->size_y();
-    vx = p->ver0_x();
-    vy = p->ver0_y();
+    p_piece->snap();
+    sx = p_piece->size_x();
+    sy = p_piece->size_y();
+    vx = p_piece->ver0_x();
+    vy = p_piece->ver0_y();
     for (i = 0; i != sx; sx > 0 ? i++ : i--) {
         for (j = 0; j != sy; sy > 0 ? j++ : j--) {
-            if (p->shape((s8) i, (s8) j)) {
+            if (p_piece->shape((s8) i, (s8) j)) {
                 s8 cx_ = vx + i;
                 s8 cy_ = vy + j;
                 pzlPiece* q;
@@ -732,7 +732,7 @@ pzlPiece* pzlBoard::getPiece(int x, int y)
 }
 
 // Removes `p` from the board: frees its cells and table slot, state 0. Always 1.
-int pzlBoard::rmPiece(pzlPiece* p)
+int pzlBoard::rmPiece(pzlPiece* p_piece)
 {
     s8 vx;
     s8 vy;
@@ -741,25 +741,25 @@ int pzlBoard::rmPiece(pzlPiece* p)
     int i;
     int j;
 
-    vx = p->ver0_x();
-    vy = p->ver0_y();
-    sx = p->size_x();
-    sy = p->size_y();
+    vx = p_piece->ver0_x();
+    vy = p_piece->ver0_y();
+    sx = p_piece->size_x();
+    sy = p_piece->size_y();
     for (i = 0; i != sx; sx > 0 ? i++ : i--) {
         for (j = 0; j != sy; sy > 0 ? j++ : j--) {
-            if (p->shape((s8) i, (s8) j)) {
+            if (p_piece->shape((s8) i, (s8) j)) {
                 *cell((s8) (vx + i), (s8) (vy + j)) &= ~1;
             }
         }
     }
     // Own counter for the slot search (r11, no call crossed: sy then takes r30 and i r29).
     for (int n = 0; n < m_piece_max; n++) {
-        if (p == m_p_piece[n]) {
+        if (p_piece == m_p_piece[n]) {
             m_p_piece[n] = 0;
             break;
         }
     }
-    p->m_place = 0;
+    p_piece->m_place = 0;
     return 1;
 }
 
@@ -797,14 +797,14 @@ int pzlBoard::cellState(int x, int y)
 }
 
 // Clears `mask` bits in every cell.
-void pzlBoard::clearState(u8 mask)
+void pzlBoard::clearState(u8 state)
 {
     int i;
     int j;
 
     for (i = 0; i < m_size_x; i++) {
         for (j = 0; j < m_size_y; j++) {
-            *cell((s8) i, (s8) j) &= ~mask;
+            *cell((s8) i, (s8) j) &= ~state;
         }
     }
 }
@@ -821,7 +821,7 @@ static void dispCell(pzlBoard* b, int x, int y)
 // One `p` for both piece loops (its priority then beats `item`'s: p r31, item r30); the flag
 // clear loop has its own counter (r10, no call crossed); item positions are stored halved
 // (save() doubles them back).
-int pzlPlayer::init(int type)
+int pzlPlayer::init(int size)
 {
     int w;
     int h;
@@ -830,7 +830,7 @@ int pzlPlayer::init(int type)
     pzlPiece* p;
 
     extraGame = pG->pl_type == 1;
-    switch ((u32) type) {
+    switch ((u32) size) {
     case 3:
         w = 0xF;
         h = 8;
@@ -1022,16 +1022,16 @@ void pzlPlayer::save()
 
 // Adds a new piece for `item` (a picked-up item not yet in the case) in a free slot at (0, 0) as
 // m_extra. 0 when the item has no shape or no slot is free.
-int pzlPlayer::appendExtraPiece(ItemWork* item)
+int pzlPlayer::appendExtraPiece(ItemWork* pItem)
 {
     pzlPiece* p = 0;
     PieceData* d;
     int i;
 
-    if (item == 0) {
+    if (pItem == 0) {
         return 0;
     }
-    d = searchItemPieceData(item->id, piece_info);
+    d = searchItemPieceData(pItem->id, piece_info);
     if (d == 0) {
         return 0;
     }
@@ -1046,7 +1046,7 @@ int pzlPlayer::appendExtraPiece(ItemWork* item)
         return 0;
     }
     p->init(d);
-    p->item = item;
+    p->item = pItem;
     p->m_pos_x = 0.0f;
     p->m_pos_y = 0.0f;
     m_extra = p;
@@ -1655,7 +1655,7 @@ void pzlPlayer::salvCursor()
 // placement nests share i/j); the fill-up loop is a guarded do-while (`cmpwi nOrder,0; ble`).
 // `last` is r31 in the target = an allocno that crosses a call; the three COMPILER-DIFF lines below
 // give it a codeless def before get() (see docs/research/ "DOL puzzle final closer").
-int PutInCase(ITEM_ID id, u16 num, int type)
+int PutInCase(ITEM_ID item_id, u16 item_num, int size)
 {
     ItemWork item;
     ItemInfo info;
@@ -1668,29 +1668,29 @@ int PutInCase(ITEM_ID id, u16 num, int type)
     pzlPiece* p;
     ItemWork* last;
 
-    itemInfo(id, &info);
+    itemInfo(item_id, &info);
     if (info.type == 1 || info.type == 9) {
-        if (num == 0) {
-            num = 1;
+        if (item_num == 0) {
+            item_num = 1;
         }
         max = 1;
     } else {
-        if (num == 0) {
-            num = info.defNum;
+        if (item_num == 0) {
+            item_num = info.defNum;
         }
         max = info.maxNum;
     }
-    if (num > max) {
-        num = max;
-        pLog->err(0, 0, "PutInCase(): Volume of ITEM(0x%02x) is OOL.", id);
+    if (item_num > max) {
+        item_num = max;
+        pLog->err(0, 0, "PutInCase(): Volume of ITEM(0x%02x) is OOL.", item_id);
     }
-    ItemMgr.ordering(id);
+    ItemMgr.ordering(item_id);
     total = 0;
     for (int i = 0; i < ItemMgr.m_order_tbl_num; i++) {
         total += max - ItemMgr.m_p_order_tbl[i].p_item->num;
     }
-    if (total >= num) {
-        u16 rest = num;
+    if (total >= item_num) {
+        u16 rest = item_num;
         for (int i = 0; i < ItemMgr.m_order_tbl_num; i++) {
             ItemWork* w = ItemMgr.m_p_order_tbl[i].p_item;
             u16 room = max - w->num;
@@ -1707,12 +1707,12 @@ int PutInCase(ITEM_ID id, u16 num, int type)
     if (pl == 0) {
         return 0;
     }
-    if (pl->init(type) == 0) {
+    if (pl->init(size) == 0) {
         __builtin_delete(pl);
         return 0;
     }
-    ItemMgr.construct(&item, id);
-    item.num = num;
+    ItemMgr.construct(&item, item_id);
+    item.num = item_num;
     item.flags |= 1;
     pl->appendExtraPiece(&item);
     pl->inHandExtraPiece();
@@ -1749,8 +1749,8 @@ placed:
     if (ok) {
         u16 rest;
         int n;
-        ItemMgr.ordering(id);
-        rest = num;
+        ItemMgr.ordering(item_id);
+        rest = item_num;
         n = 0;
         if (ItemMgr.m_order_tbl_num > 0) {
             do {
@@ -1761,7 +1761,7 @@ placed:
                 n++;
             } while (n < ItemMgr.m_order_tbl_num);
         }
-        ItemMgr.get(id, rest);
+        ItemMgr.get(item_id, rest);
         asm("" : "=m"(item.x) : "r"(last)); // COMPILER-DIFF: keeps the copy live across the call (an output-less asm is volatile and flushes cse's ItemMgr high)
         last = ItemMgr.pLast;
         if (last) {

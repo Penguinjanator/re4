@@ -34,21 +34,21 @@ struct RtpData {
 extern "C" {
 void RouteCk();
 // Next position for `em` on its way to `target`; returns 1 when the target itself is reachable.
-int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag);
+int RouteCkToEm(cEm* pMy, cEm* pTo, Vec* pDest, int mode);
 // Position away from `from` along the nearest point's links.
-void RouteCkEscEm(cEm* em, cEm* from, Vec* out);
-int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist);
-int RouteCkPosToPos(Vec* from, Vec* to, Vec* out);
+void RouteCkEscEm(cEm* pMy, cEm* pTo, Vec* pDest);
+int RouteCkToPos(cEm* pMy, Vec* pPos, Vec* pDest, int mode, f32* pMax);
+int RouteCkPosToPos(Vec* pPos1, Vec* pPos2, Vec* pDest);
 int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2);
-f32 RouteCkPosToPosDis(Vec* from, Vec* to);
+f32 RouteCkPosToPosDis(Vec* pPos1, Vec* pPos2);
 void RouteCkGetPoint(int no, Vec* out);
 int RouteCkGetPointNumber();
 f32 RouteCkGetDist(int n0, int n1);
 int RouteCkGetNearPoint(Vec* pos);
 // Nearest way point of `em`, cached in rckNear for the frame.
-int getNearInfo(cEm* em, int mode, int mask);
+int getNearInfo(cEm* pEm, int mode, int flag);
 // Nearest way point to `pos` that the position can reach (a != 0: nearest regardless), -1 = none.
-s8 getNearPoint(Vec* pos, int mode, int mask);
+s8 getNearPoint(Vec* pPos, int mode, int flag);
 void Draw_rtp();
 void Draw_eminfo();
 }

@@ -72,14 +72,14 @@ void cEsp41::move()
 }
 
 // Range / strength from Work8[0..1], target offset from Vec0, Type from WorkSp8[0] (only 0 valid).
-int cEsp41::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp41::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp41Work* w = &m_Free;
 
-    w->Dist = (f32)(s8)gen->Work8[0] * 100.0f;
-    w->Pow = (f32)(s8)gen->Work8[1] * 0.00005f;
-    w->Type = gen->WorkSp8[0];
-    w->Offset = *(Vec*)&gen->Vec0.x;
+    w->Dist = (f32)(s8)pSeq->Work8[0] * 100.0f;
+    w->Pow = (f32)(s8)pSeq->Work8[1] * 0.00005f;
+    w->Type = pSeq->WorkSp8[0];
+    w->Offset = *(Vec*)&pSeq->Vec0.x;
     if (w->Type != 0) {
         pLog->err(0, 0, "ESP41 : Type[%x] invalid.", w->Type);
         return 0;

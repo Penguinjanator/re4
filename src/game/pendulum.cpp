@@ -136,7 +136,7 @@ static inline void penWindScale(Vec* wind, f32 rate)
 
 // Set up the links of a chain: the rest direction / length of every link and the half distances
 // to its side neighbours.
-void PenClothSet(cModel* m, PenCloth* c, f32 len)
+void PenClothSet(cModel* m, PenCloth* c, f32 min_len)
 {
     Vec v;
     cModel* parts;
@@ -156,9 +156,9 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
         w = PEN_WORK(parts);
         if (c->pChild[i] == 0xFF) {
             if (c->pParent[i] == 0xFF) {
-                w->len = len;
+                w->len = min_len;
                 w->dir.x = 0.0f;
-                w->dir.y = -len;
+                w->dir.y = -min_len;
                 w->dir.z = 0.0f;
                 w->nrm.x = 0.0f;
                 w->nrm.y = -1.0f;

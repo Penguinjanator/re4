@@ -28,7 +28,7 @@ extern "C" {
 void CoreDataRead();
 void OptionDataRead();
 // Loads enemy module `id` (the rooms preload the enemies of their events); the read address
-void* EmReadSearch(int id, void* addr, u32 size);
+void* EmReadSearch(int id, void* data_addr, u32 malloc_size);
 // Runs the module's prolog (the rooms re-link an enemy module after swapping event data into it).
 void InitModule(ReadModule* m);
 // Room archive, player and weapon module reads / releases (game.cpp, main.cpp, the player units).

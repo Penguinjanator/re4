@@ -44,9 +44,9 @@ public:
     ItemWork* item;   // 0x24
     cModel* model;    // 0x28
 
-    void orientation(int o);
+    void orientation(int orientation_no);
     void rotate(int dir);
-    void mirror(int axis);
+    void mirror(int dir);
     void init(PieceData* p_data);
     f32 ver0_x();
     f32 ver0_y();
@@ -74,16 +74,16 @@ public:
     void quit();
     int getPieceNum();
     int search(pzlPiece* p);
-    int ckInsideWall(pzlPiece* p);
-    int outPiece(pzlPiece* p);
-    int putPiece(pzlPiece* p);
-    pzlPiece* lapPiece(pzlPiece* p);
+    int ckInsideWall(pzlPiece* p_piece);
+    int outPiece(pzlPiece* p_piece);
+    int putPiece(pzlPiece* p_piece);
+    pzlPiece* lapPiece(pzlPiece* p_piece);
     pzlPiece* getPiece(int x, int y);
-    int rmPiece(pzlPiece* p);
+    int rmPiece(pzlPiece* p_piece);
     pzlPiece* rmPiece(int x, int y);
     u8* cell(int x, int y);
     int cellState(int x, int y);
-    void clearState(u8 mask);
+    void clearState(u8 state);
 };
 
 class pzlPlayer {
@@ -106,13 +106,13 @@ public:
     u8 pad_2E[2];
     pzlBoard* m_p_active_board;         // 0x30
 
-    int init(int type);
+    int init(int size);
     void quit();
     int pieceNum();
     pzlPiece* piecePtr(int no);
     pzlPiece* piecePtr(ItemWork* item);
     void save();
-    int appendExtraPiece(ItemWork* item);
+    int appendExtraPiece(ItemWork* pItem);
     int removeExtraPiece();
     void inHandExtraPiece();
     void giveupExtraPiece();
@@ -133,9 +133,9 @@ public:
 extern PieceInfo piece_info[];
 
 extern "C" {
-PieceData* searchItemPieceData(int id, PieceInfo* tbl);
-u8* searchItemModelData(int id, PieceInfo* tbl);
-int PutInCase(ITEM_ID id, u16 num, int type);
+PieceData* searchItemPieceData(int item_id, PieceInfo* p_info);
+u8* searchItemModelData(int item_id, PieceInfo* p_info);
+int PutInCase(ITEM_ID item_id, u16 item_num, int size);
 }
 
 #endif

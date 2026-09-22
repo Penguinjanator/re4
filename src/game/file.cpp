@@ -56,12 +56,12 @@ int file_open(const char* name, int mode)
 }
 
 // Closes a host fd; 0 ok, -1 failure.
-int file_close(int fd)
+int file_close(int hFile)
 {
     int ret;
 
     if (SysFlagChk(pG, SYS_SN_PC_READ)) {
-        if (PCclose(fd) != 0) {
+        if (PCclose(hFile) != 0) {
             ret = -1;
             return ret;
         }
@@ -73,34 +73,34 @@ int file_close(int fd)
 }
 
 // Reads size bytes; returns the count.
-int file_read(int fd, void* buf, int size)
+int file_read(int hFile, void* addr, int len)
 {
     int ret = 0;
 
     if (SysFlagChk(pG, SYS_SN_PC_READ)) {
-        ret = PCread(fd, buf, size);
+        ret = PCread(hFile, addr, len);
     }
     return ret;
 }
 
 // Writes size bytes; returns the count.
-int file_write(int fd, const void* buf, int size)
+int file_write(int hFile, const void* addr, int len)
 {
     int ret = 0;
 
     if (SysFlagChk(pG, SYS_SN_PC_READ)) {
-        ret = PCwrite(fd, buf, size);
+        ret = PCwrite(hFile, addr, len);
     }
     return ret;
 }
 
 // Seeks (whence 0 set, 1 cur, 2 end); returns the new position, -1 without host.
-int file_seek(int fd, int offset, int whence)
+int file_seek(int hFile, int offset, int mode)
 {
     int ret = -1;
 
     if (SysFlagChk(pG, SYS_SN_PC_READ)) {
-        ret = PClseek(fd, offset, whence);
+        ret = PClseek(hFile, offset, mode);
     }
     return ret;
 }
@@ -122,14 +122,14 @@ int file_exist(const char* name)
 }
 
 // Changes the host root directory ("SETROOT:dir").
-int file_path(const char* dir)
+int file_path(const char* name)
 {
     char buf[64];
 
     if (!SysFlagChk(pG, SYS_SN_PC_READ)) {
         return 0;
     }
-    sprintf(buf, "SETROOT:%s", dir);
+    sprintf(buf, "SETROOT:%s", name);
     PCopen(buf, 0, 0);
     return 1;
 }

@@ -105,12 +105,12 @@ static void exit(struct test* t);
 void move(struct test* t);
 
 // Menu index of the tool called `name`; -1 when unknown.
-int dbMenuGetMenuNo(const char* name)
+int dbMenuGetMenuNo(const char* menu_name)
 {
     int i;
     int n = sizeof(menu) / sizeof(menu[0]);
     for (i = 0; i < n; i++) {
-        if (strcmp(menu[i].name, name) == 0) {
+        if (strcmp(menu[i].name, menu_name) == 0) {
             return i;
         }
     }

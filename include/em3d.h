@@ -43,7 +43,7 @@ class cEm3d : public cEm {
 public:
     u8 free[0xDE0 - 0x3E0];   // 0x3E0  this class's own work (EM3D_WK)
     virtual void move();
-    virtual void setNoSuspend(int on);
+    virtual void setNoSuspend(int onoff);
     virtual int ckSelectEnable();
     virtual void setTarget(u32 no, f32 range);
     virtual void setTargetPos(u32 no, Vec* pos, f32 rotY, f32 range);

@@ -16,21 +16,21 @@ Vec BoxTmp[16];
 
 // Segment point1 -> point2 against the plane through `a` with normal `n`: 1 and the crossing
 // point in *out when the ends lie on opposite sides; else *out = point2 and 0.
-int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* point1, Vec* point2)
+int At_surface_line_ck(Vec* cross, Vec* a, Vec* norm, Vec* point1, Vec* point2)
 {
     f32 d0;
     f32 d1;
 
-    d0 = At_surface_point_rel(a, n, point1);
-    d1 = At_surface_point_rel(a, n, point2);
+    d0 = At_surface_point_rel(a, norm, point1);
+    d1 = At_surface_point_rel(a, norm, point2);
     if (d0 * d1 < 0.0f) {
         f32 a0 = fabsf(d0);
         f32 a1 = fabsf(d1);
-        InterVectorXYZ(out, point1, point2, a1 / (a0 + a1));
+        InterVectorXYZ(cross, point1, point2, a1 / (a0 + a1));
         return 1;
     }
-    if (out) {
-        *out = *point2;
+    if (cross) {
+        *cross = *point2;
     }
     return 0;
 }
@@ -56,7 +56,7 @@ int At_poly_point_rel(Vec* poly, Vec* nrm, Vec* p)
 }
 
 // 1 when the sphere (p, r) touches the axis-aligned box given by its min / max corners.
-int At_box_sphere_ck(Vec* box, Vec* p, f32 r)
+int At_box_sphere_ck(Vec* pBoxVec, Vec* pPos, f32 r)
 {
     static int ptbl[6][3] = {
         { 0, 2, 1 }, { 4, 5, 6 }, { 2, 6, 3 }, { 0, 1, 4 }, { 1, 3, 5 }, { 2, 0, 6 },
@@ -67,11 +67,11 @@ int At_box_sphere_ck(Vec* box, Vec* p, f32 r)
     int i;
 
     for (i = 0; i < 6; i++) {
-        tri[0] = box[ptbl[i][0]];
-        tri[1] = box[ptbl[i][1]];
-        tri[2] = box[ptbl[i][2]];
+        tri[0] = pBoxVec[ptbl[i][0]];
+        tri[1] = pBoxVec[ptbl[i][1]];
+        tri[2] = pBoxVec[ptbl[i][2]];
         Get_normal(tri, &n);
-        d = PSVECDotProduct(&n, p) - PSVECDotProduct(&n, &tri[0]);
+        d = PSVECDotProduct(&n, pPos) - PSVECDotProduct(&n, &tri[0]);
         if (d > r) {
             return 0;
         }
@@ -80,15 +80,15 @@ int At_box_sphere_ck(Vec* box, Vec* p, f32 r)
 }
 
 // Unit normal of triangle `tri` (cross of its two edges).
-void Get_normal(Vec* tri, Vec* out)
+void Get_normal(Vec* pv, Vec* norm)
 {
     Vec a;
     Vec b;
 
-    PSVECSubtract(&tri[2], &tri[0], &a);
-    PSVECSubtract(&tri[1], &tri[0], &b);
-    PSVECCrossProduct(&a, &b, out);
-    PSVECNormalize(out, out);
+    PSVECSubtract(&pv[2], &pv[0], &a);
+    PSVECSubtract(&pv[1], &pv[0], &b);
+    PSVECCrossProduct(&a, &b, norm);
+    PSVECNormalize(norm, norm);
 }
 
 // Dead-stripped by the original linker (only its constant pool survives in .rodata).
@@ -99,17 +99,17 @@ static f32 At_half(f32 v)
 
 // Capsule (p0 - p1, radius r) vs axis box: samples spheres along the segment every 2r; 1 on
 // any overlap.
-u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r)
+u32 AtBoxCapsuleCk3(Vec* pBox, Vec* p0, Vec* p1, f32 r)
 {
     Vec dir;
     Vec p;
     f32 len;
     u32 n;
 
-    if (At_box_sphere_ck(box, p0, r)) {
+    if (At_box_sphere_ck(pBox, p0, r)) {
         return 1;
     }
-    if (At_box_sphere_ck(box, p1, r)) {
+    if (At_box_sphere_ck(pBox, p1, r)) {
         return 1;
     }
     PSVECSubtract(p0, p1, &dir);
@@ -126,7 +126,7 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r)
     n--;
     while (n-- != 0) {
         PSVECAdd(&p, &dir, &p);
-        if (At_box_sphere_ck(box, &p, r)) {
+        if (At_box_sphere_ck(pBox, &p, r)) {
             return 1;
         }
     }
@@ -134,7 +134,7 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r)
 }
 
 // Capsule (p0 - p1, radius r) vs sphere (c, r2): sampled spheres along the segment; 1 on overlap.
-u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2)
+u32 AtSphereCapsuleCk(Vec* c, f32 sph_r, Vec* p0, Vec* p1, f32 cap_r)
 {
     Vec dir;
     Vec p;
@@ -143,7 +143,7 @@ u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2)
     f32 d;   // the two end-point distances through one twice-set local: not tied to the dz chain
     u32 n;
 
-    rr = (r + r2) * (r + r2);
+    rr = (sph_r + cap_r) * (sph_r + cap_r);
     d = SQ_DIST(c, p0);
     if (d < rr) {
         return 1;
@@ -154,7 +154,7 @@ u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2)
     }
     PSVECSubtract(p0, p1, &dir);
     len = RootSumSquare3(&dir);
-    n = (u32) (len / (r2 + r2)) + 2;
+    n = (u32) (len / (cap_r + cap_r)) + 2;
     len = len / (f32) n;
     if (len < 0.01f) {
         return 0;
@@ -162,7 +162,7 @@ u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2)
 #line 366 "D:/Bio4/Prog/at_sub.cpp"
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, len);
-    if (r2 < 0.01f) {
+    if (cap_r < 0.01f) {
         n = 2;
     }
     p = *p1;
@@ -177,15 +177,15 @@ u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2)
 }
 
 // Debug draw of a capsule: spheres at both ends and 4 side lines.
-void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color)
+void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 rgba)
 {
     Vec dir;
     Vec p;
     f32 len;
     u32 n;
 
-    Draw_sphere(pPosTop, r, color, 1, 1);
-    Draw_sphere(pPosBot, r, color, 1, 1);
+    Draw_sphere(pPosTop, r, rgba, 1, 1);
+    Draw_sphere(pPosBot, r, rgba, 1, 1);
     PSVECSubtract(pPosTop, pPosBot, &dir);
     len = RootSumSquare3(&dir);
     n = (u32) (len / (r + r)) + 2;
@@ -200,7 +200,7 @@ void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color)
     n--;
     while (n-- != 0) {
         PSVECAdd(&p, &dir, &p);
-        Draw_sphere(&p, r, color, 1, 1);
+        Draw_sphere(&p, r, rgba, 1, 1);
     }
 }
 
@@ -265,18 +265,18 @@ void AtCubeDisp(Mtx m, Vec* pos, f32 sx, f32 sy, f32 sz, u32 color)
 // tests, then the attribute filter (flag bits 0x400..0x8000 skip polygon classes 0x40 / 0x400 /
 // 0x4000 / 0x8000 / 0x400000 / 0x800000, `mask` bits skip directly). Returns the polygon's
 // attribute word (never 0 on a hit) and the hit point in *out; 0 when missed.
-u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* vert1, u32 flag, u32 mask)
+u32 At_poly_line_ck(AtPolyData* atp, Vec* cross, AtPoly* polygon, Vec* vert0, Vec* vert1, u32 flag, u32 mask)
 {
     Vec d0;
     Vec d1;
     Vec c;
     Vec a;
     Vec b;
-    Vec* vtx = pd->vtx;
-    Vec* v0 = &vtx[poly->v[0]];
+    Vec* vtx = atp->vtx;
+    Vec* v0 = &vtx[polygon->v[0]];
     Vec* v1;
     Vec* v2;
-    Vec* nrm = &pd->nrm[poly->n];
+    Vec* nrm = &atp->nrm[polygon->n];
     f32 dp0;
     f32 dp1;
     f32 t;
@@ -297,21 +297,21 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* ver
     if (dp0 * dp1 > 0.0f) {
         return 0;
     }
-    v1 = &vtx[poly->v[1]];
+    v1 = &vtx[polygon->v[1]];
     PSVECSubtract(vert1, vert0, &a);
     PSVECSubtract(vert0, v0, &b);
-    PSVECCrossProduct(&pd->edge[poly->e[0]], &a, &c);
+    PSVECCrossProduct(&atp->edge[polygon->e[0]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
-    v2 = &vtx[poly->v[2]];
+    v2 = &vtx[polygon->v[2]];
     PSVECSubtract(vert0, v1, &b);
-    PSVECCrossProduct(&pd->edge[poly->e[1]], &a, &c);
+    PSVECCrossProduct(&atp->edge[polygon->e[1]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
     PSVECSubtract(vert0, v2, &b);
-    PSVECCrossProduct(&pd->edge[poly->e[2]], &a, &c);
+    PSVECCrossProduct(&atp->edge[polygon->e[2]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
@@ -324,11 +324,11 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* ver
     if (s0 * s1 < 0.0f) {
         f32 a0 = fabsf(s0);
         f32 a1 = fabsf(s1);
-        InterVectorXYZ(out, vert0, vert1, a1 / (a0 + a1));
-    } else if (out) {
-        *out = *vert1;
+        InterVectorXYZ(cross, vert0, vert1, a1 / (a0 + a1));
+    } else if (cross) {
+        *cross = *vert1;
     }
-    attr = Get_poly_attr(poly);
+    attr = Get_poly_attr(polygon);
     if (SEck == 0) {
         if ((flag & SAT_TYPE_PL) && (attr & SAT_ATTR_PL_NOHIT)) {
             return 0;
@@ -372,26 +372,26 @@ static f32 At_line_rate(f32 a, f32 b)
 }
 
 // Gathers the triangle's vertices / normal / attribute and runs At_poly_sphere_ck2.
-u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask)
+u32 At_poly_sphere_ck(AtPolyData* atp, AtPoly* polygon, Vec* pos0, Vec* pos1, f32 r, u32 flag, u32 mask)
 {
     Vec tri[3];
     Vec n;
     u32 attr;
 
-    tri[0].x = pd->vtx[poly->v[0]].x;
-    tri[0].y = pd->vtx[poly->v[0]].y;
-    tri[0].z = pd->vtx[poly->v[0]].z;
-    tri[1].x = pd->vtx[poly->v[1]].x;
-    tri[1].y = pd->vtx[poly->v[1]].y;
-    tri[1].z = pd->vtx[poly->v[1]].z;
-    tri[2].x = pd->vtx[poly->v[2]].x;
-    tri[2].y = pd->vtx[poly->v[2]].y;
-    tri[2].z = pd->vtx[poly->v[2]].z;
-    n.x = pd->nrm[poly->n].x;
-    n.y = pd->nrm[poly->n].y;
-    n.z = pd->nrm[poly->n].z;
-    attr = Get_poly_attr(poly);
-    return At_poly_sphere_ck2(tri, &n, attr, oldPos, pos, r, flag, mask);
+    tri[0].x = atp->vtx[polygon->v[0]].x;
+    tri[0].y = atp->vtx[polygon->v[0]].y;
+    tri[0].z = atp->vtx[polygon->v[0]].z;
+    tri[1].x = atp->vtx[polygon->v[1]].x;
+    tri[1].y = atp->vtx[polygon->v[1]].y;
+    tri[1].z = atp->vtx[polygon->v[1]].z;
+    tri[2].x = atp->vtx[polygon->v[2]].x;
+    tri[2].y = atp->vtx[polygon->v[2]].y;
+    tri[2].z = atp->vtx[polygon->v[2]].z;
+    n.x = atp->nrm[polygon->n].x;
+    n.y = atp->nrm[polygon->n].y;
+    n.z = atp->nrm[polygon->n].z;
+    attr = Get_poly_attr(polygon);
+    return At_poly_sphere_ck2(tri, &n, attr, pos0, pos1, r, flag, mask);
 }
 
 // Swept sphere (oldPos -> pos, radius r) against a front-facing triangle: a sphere ending
@@ -538,12 +538,12 @@ u32 Get_poly_attr(AtPoly* poly)
 }
 
 // 1 when `p` is inside the XZ quadrilateral rect[0..3] (edge cross products from corners 0 and 2).
-int At_rect_point_ck(Vec* rect, Vec* p)
+int At_rect_point_ck(Vec* rect, Vec* pnt)
 {
     f32 x0 = rect[0].x;
     f32 z0 = rect[0].z;
-    f32 px = p->x;
-    f32 pz = p->z;
+    f32 px = pnt->x;
+    f32 pz = pnt->z;
     f32 x1 = rect[1].x;
     f32 z1 = rect[1].z;
     f32 x3 = rect[3].x;
@@ -579,18 +579,18 @@ int At_rect_point_ck(Vec* rect, Vec* p)
 }
 
 // 1 when two XZ quads overlap: a corner of either inside the other, or ra's centre inside rb.
-int At_rect_rect_ck(Vec* ra, Vec* rb)
+int At_rect_rect_ck(Vec* rect0, Vec* rect1)
 {
     Vec c;
     int i;
 
     for (i = 0; i < 4; i++) {
-        if (At_rect_point_ck(ra, &rb[i])) {
+        if (At_rect_point_ck(rect0, &rect1[i])) {
             return 1;
         }
     }
     for (i = 0; i < 4; i++) {
-        if (At_rect_point_ck(rb, &ra[i])) {
+        if (At_rect_point_ck(rect1, &rect0[i])) {
             return 1;
         }
     }
@@ -598,29 +598,29 @@ int At_rect_rect_ck(Vec* ra, Vec* rb)
     c.y = 0.0f;
     c.z = 0.0f;
     for (i = 0; i < 4; i++) {
-        PSVECAdd(&c, ra, &c);
+        PSVECAdd(&c, rect0, &c);
     }
     PSVECScale(&c, &c, 0.25f);
-    if (At_rect_point_ck(rb, &c)) {
+    if (At_rect_point_ck(rect1, &c)) {
         return 1;
     }
     return 0;
 }
 
 // Quadrant of a relative angle: 0 front (|ang| <= 45 degrees), 1 left, 3 right, 2 behind.
-int Get_ang_dir(f32 ang)
+int Get_ang_dir(f32 ay)
 {
-    if (ang > 2.3561945f || ang < -2.3561945f) {
+    if (ay > 2.3561945f || ay < -2.3561945f) {
         return 2;
     }
-    if (ang > 0.78539819f) {
+    if (ay > 0.78539819f) {
         return 1;
     }
-    if (ang > 0.78539819f) {
+    if (ay > 0.78539819f) {
         return 1;
     } else {
         int dir = 0;
-        if (ang < -0.78539819f) {
+        if (ay < -0.78539819f) {
             dir = 3;
         }
         return dir;
@@ -640,36 +640,36 @@ static int At_rect_default_ck(Vec* p)
 }
 
 // Linear blend: out = a * t + b * (1 - t).
-void InterVectorXYZ(Vec* out, Vec* a, Vec* b, f32 t)
+void InterVectorXYZ(Vec* cross, Vec* a, Vec* b, f32 rate)
 {
     Vec tmp;
-    f32 s = 1.0f - t;
+    f32 s = 1.0f - rate;
 
-    PSVECScale(a, &tmp, t);
-    PSVECScale(b, out, s);
-    PSVECAdd(out, &tmp, out);
+    PSVECScale(a, &tmp, rate);
+    PSVECScale(b, cross, s);
+    PSVECAdd(cross, &tmp, cross);
 }
 
 // Surface effect type 0..7 of an attribute word from its bits 0x800000 (1), 0x8000 (2) and
 // 0x80 (4): indexes the room's AtEffInfo table.
-int EatGetEffectType(u32 attr)
+int EatGetEffectType(u32 rgba)
 {
     int type = 0;
 
-    if (attr & EAT_ATTR_EFF_BIT0) {
+    if (rgba & EAT_ATTR_EFF_BIT0) {
         type = 1;
     }
-    if (attr & EAT_ATTR_EFF_BIT1) {
+    if (rgba & EAT_ATTR_EFF_BIT1) {
         type += 2;
     }
-    if (attr & EAT_ATTR_EFF_BIT2) {
+    if (rgba & EAT_ATTR_EFF_BIT2) {
         type += 4;
     }
     return type;
 }
 
 // Signed distance of `p` from the plane through `a` with unit normal `n`.
-f32 At_surface_point_rel(Vec* a, Vec* n, Vec* p)
+f32 At_surface_point_rel(Vec* a, Vec* norm, Vec* point)
 {
-    return PSVECDotProduct(n, p) - PSVECDotProduct(n, a);
+    return PSVECDotProduct(norm, point) - PSVECDotProduct(norm, a);
 }

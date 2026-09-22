@@ -28,7 +28,7 @@ public:
     virtual void init(cModel* parent) { setAbility(5.73f, 2.86f, 0.2864f, 0.2864f); }
     virtual void setMotion(cPlayer* pl) {}    // pl_sub PlReloadBullet: the launcher fills the player's motion table
     virtual void interrupt();
-    virtual void endReload(int noReload);
+    virtual void endReload(int motOnly);
     // Aim sway ranges / per-frame steps in degrees (stored in radians) — each weapon module's
     // init() calls it (pl_wep PlWepLockRand).
     void setAbility(f32 pitch, f32 yaw, f32 pitchStep, f32 yawStep) {
@@ -41,15 +41,15 @@ public:
     virtual void fire() {}
     virtual void beginReload() {}
 
-    void setDisp(int type, int on);
-    void parentSet(cModel* parent, int partsNo, Vec* pos, Vec* rot);
+    void setDisp(int level, int onoff);
+    void parentSet(cModel* pMod, int parts_no, Vec* pOffset, Vec* pAng);
     void parentRelease();
     void resetMotion();
     void trigger();
     int bulletNum();
     int reloadable();
     void drawLaserSight(int draw, int noCalc);
-    void getMarkerPos(Vec* pos, Vec* at);
+    void getMarkerPos(Vec* lpos, Vec* lcross);
     void satCheck();
 };
 
@@ -58,7 +58,7 @@ public:
 class cObjRocket : public cObj {
 public:
     virtual ~cObjRocket() {}
-    virtual void beginEvent(u32 mode);
+    virtual void beginEvent(u32 flag);
     virtual void move();
 
     void init();
@@ -86,8 +86,8 @@ public:
     }
     virtual void moveFire();
     virtual void moveDrop();
-    virtual void init(cModel* parent);
-    virtual void setMotion(cPlayer* pl);
+    virtual void init(cModel* pMod);
+    virtual void setMotion(cPlayer* pEm);
     virtual void interrupt();
     virtual int keyKamae();
 
@@ -124,11 +124,11 @@ public:
     f32 getAngle();
     f32 getPitch();
     void move();
-    int getMarkerPos(Vec* out);
+    int getMarkerPos(Vec* pPos);
     cEm* lockInit();
     void lockMove();
     cModel* lockNext();
-    void setTrans(int on, int type);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
+    void setTrans(int on_off, int flag);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
 };
 
 // The weapon object of player `pl` and its own cAtariInfo (the object's collision with enemies
@@ -137,19 +137,19 @@ public:
 #define WEP_ATARI(pl) (&WEP_OBJ(pl)->sub2B4.atari)
 
 // knife/weapon collision (pl, top, bottom, type, flags, length)
-u32 PlWepHitCheck2(cModel* pl, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len);
+u32 PlWepHitCheck2(cModel* pl, Vec* pPos, Vec* pPos2, int weapon_no, u32 flag, f32 radius);
 void PlWepLockCtrl(cModel* pl);
 
 extern "C" {
 u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len);
 void PlWepAutoTrack(cModel* pl, int mode, f32 rate);
 void PlWepLockRandInit();
-void PlWepLockRand(cModel* pl, int flag, f32* pitch, f32* yaw);
+void PlWepLockRand(cModel* pl, int mflag, f32* ang_x, f32* ang_y);
 void PlSetLockPitch(cModel* pl);
-int GetWepSizeGroup(int no);
+int GetWepSizeGroup(int wepId);
 int PlCornerCheck();
-cEm* SearchLockEm(Vec* pos, cEm* skip);
-cEm* SearchTargetEm(Vec* pos, cEm* skip, f32 range);
+cEm* SearchLockEm(Vec* pPos, cEm* pEm_now);
+cEm* SearchTargetEm(Vec* pPos, cEm* pEm_now, f32 range_limit);
 }
 
 extern u8 lockCtr;

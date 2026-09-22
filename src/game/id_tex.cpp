@@ -30,9 +30,9 @@ void IdTexRoomInit()
 }
 
 // Releases the textures registered by owner `id`.
-void IdTexRelease(int id)
+void IdTexRelease(int owner)
 {
-    g_pIdTexSys->TexRelease(id);
+    g_pIdTexSys->TexRelease(owner);
 }
 
 // Effect texture pack: version 0xB, id table at 0x04, TPL table at 0x18, animation table at 0x1C.
@@ -111,28 +111,28 @@ void IdTexSet(u8 id, u8 no)
 }
 
 // Texture animation record of id texture `id`; 0 when unknown.
-int IdGetAnmAddr(u8 id, TexAnm** out)
+int IdGetAnmAddr(u8 id, TexAnm** ppAnm)
 {
-    return g_pIdTexSys->GetAnmAddr(id, out);
+    return g_pIdTexSys->GetAnmAddr(id, ppAnm);
 }
 
 // Sets the material colour channel from the unit's current col[] (0..255 floats).
-void IdChannelSet(IdUnit* u)
+void IdChannelSet(IdUnit* pIdUnit)
 {
     GXColor c;
 
     GXSetTevOp(0, 0);
     GXSetNumChans(1);
     GXSetChanCtrl(4, 0, 0, 0, 0, 0, 2);
-    c.r = (u8) u->col[0];
-    c.g = (u8) u->col[1];
-    c.b = (u8) u->col[2];
-    c.a = (u8) u->col[3];
+    c.r = (u8) pIdUnit->col[0];
+    c.g = (u8) pIdUnit->col[1];
+    c.b = (u8) pIdUnit->col[2];
+    c.a = (u8) pIdUnit->col[3];
     GXSetChanMatColor(4, c);
 }
 
 // Texture work (TPL + animation) of id texture `id`; quiet suppresses the not-found log.
-TexWk* IdGetTexWk(u8 id, int quiet)
+TexWk* IdGetTexWk(u8 id, int bNoDispErrMsg)
 {
-    return g_pIdTexSys->GetTexWk(id, quiet);
+    return g_pIdTexSys->GetTexWk(id, bNoDispErrMsg);
 }

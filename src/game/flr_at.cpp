@@ -45,7 +45,7 @@ void FlrAtInit()
 // Returns the enabled floor attribute of `type` whose area contains pos (+300 y) and whose group
 // matches the current group (0xFF = any); NULL outside the main game step (Rno0 != 3), during
 // Status_flg[0] 0x10000000, or when none hits.
-FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
+FlrAt* FlrAtCheck(int id, Vec* pos, int flag)
 {
     Vec p;
     FlrAt* at;
@@ -75,13 +75,13 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
         if (at->group != pFlrSys->group && pFlrSys->group != 0xFF) {
             continue;
         }
-        if (at->type != type) {
+        if (at->type != id) {
             continue;
         }
         if (AreaHitCheck(at->area, &p) != 1) {
             continue;
         }
-        if (type != 0) {
+        if (id != 0) {
             hit = 1;
         } else if (at->se.use_kind & flag) {
             hit = 1;
@@ -117,14 +117,14 @@ static int FlrAtSetDisable(int no)
 }
 
 // Sets the default footstep SE set and effect number for group `no` (0..0x3F; 0xFF = the default slot 0x40).
-int FlrAtSetDefVal(u32 no, u8 foot_se_set, u8 eff_no)
+int FlrAtSetDefVal(u32 group, u8 foot_se_set, u8 eff_no)
 {
-    if (no != 0xFF && no > 0x3F) {
-        pLog->err(0, 0, "FlrAt : group %d Illegal No.", no);
+    if (group != 0xFF && group > 0x3F) {
+        pLog->err(0, 0, "FlrAt : group %d Illegal No.", group);
         return 0;
     }
-    no = no == 0xFF ? 0x40 : no;
-    pFlrSys->foot_se[no] = foot_se_set;
-    pFlrSys->foot_esp[no] = eff_no;
+    group = group == 0xFF ? 0x40 : group;
+    pFlrSys->foot_se[group] = foot_se_set;
+    pFlrSys->foot_esp[group] = eff_no;
     return 1;
 }

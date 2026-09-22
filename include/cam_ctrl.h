@@ -117,7 +117,7 @@ public:
     s32 frame;         // 0x20
 
     void set(int frame, CameraParam* p);
-    void move(CameraParam* p);
+    void move(CameraParam* arg);
 };
 
 class CameraSmooth {
@@ -129,7 +129,7 @@ public:
     u8 pad_120[0x12C - 0x120];
 
     void init(CameraParam* p);
-    void move(CameraParam* p);
+    void move(CameraParam* arg);
     CameraParam* getParam() { return &param; }
 };
 
@@ -184,29 +184,29 @@ public:
     Vec campos_ofs;                  // 0x6EC
     Vec target_ofs;                   // 0x6F8
 
-    int HermiteExport(CameraCut* cut, u8* buf);
+    int HermiteExport(CameraCut* pCdat, u8* buf);
     int IsChangeCamera();
     void Comeback(int);
     void Disable();
-    void AreaCheckOnOff(int mode);
+    void AreaCheckOnOff(int sw);
     u8 AreaNum();
     int CurrentAreaNo();
     int CurrentCameraNo();
-    CameraCut* DataSearch(int no);
-    CameraLerp* LerpDataSearch(int area_from, int cam_from, int area_to, int cam_to);
-    CameraDataHeader* calcAddr(CameraDataHeader* data);
-    void RoomDataRead(CameraDataHeader* room);
+    CameraCut* DataSearch(int cameraNo);
+    CameraLerp* LerpDataSearch(int srcNo, int srcSuf, int dstNo, int dstSuf);
+    CameraDataHeader* calcAddr(CameraDataHeader* head);
+    void RoomDataRead(CameraDataHeader* pBuff);
     void CoreDataRead(CameraDataHeader* data);
-    void AreaOnOff(int area_no, int camera_no, int on);
-    void SetAreaAttr(int area_no, int camera_no, u8 attr);
-    void UnsetAreaAttr(int area_no, int camera_no, u8 attr);
-    void CutCall(int no);
+    void AreaOnOff(int No, int Suffix, int OnOff);
+    void SetAreaAttr(int No, int Suffix, u8 attr);
+    void UnsetAreaAttr(int No, int Suffix, u8 attr);
+    void CutCall(int cutNo);
     void switchCamera(CameraAreaRec* rec);
     void areaHitCheck();
     void roomInit();
     void Check();
     void Move();
-    void CalcAim(CameraCut* cut);
+    void CalcAim(CameraCut* pCdat);
     f32 getCameraPitch();
     void r0_Wait();
     void r0_Debug();
@@ -219,15 +219,15 @@ public:
     void r0_Free();
     void resetCameraAngle();
     f32 getCameraDirection();
-    void debugDrawRail(CameraCut* cut);
-    void UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int data_sel);
+    void debugDrawRail(CameraCut* pCdat);
+    void UpCutCall(int cutNo, Vec* pos, Vec* ang, Vec* scale, int data_sel);
     void startPushObject();
     void endPushObject();
-    void StartLookDownEm(void* em);
+    void StartLookDownEm(void* pEm);
     void EndLookDownEm();
-    void startScope(Vec* pos, Vec* at);
+    void startScope(Vec* campos, Vec* target);
     void endScope();
-    void getTrajectory(Vec* pos, Vec* at);
+    void getTrajectory(Vec* p_pos0, Vec* p_pos1);
     void saveScopeParam();
     void loadScopeParam();
     void SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
@@ -237,13 +237,13 @@ public:
     void MotionSet(void* motion, int frame, f32 speed);
     int IsMotionSet();
     int IsMotionEnd();
-    void setMotionBaseMatPtr(Mtx* mat);
+    void setMotionBaseMatPtr(Mtx* p_mat);
     void* getMotionInfoPtr();
     void clearAttachCamera();
-    void registAttachCamera(AttachCamera* cam, cModel* model);
-    void deleteAttachCamera(AttachCamera* cam, cModel* model);
-    cModel* getAttachModel(cModel* model);
-    AttachCamera* getAttachCamera(cModel* model);
+    void registAttachCamera(AttachCamera* p_attach, cModel* p_model);
+    void deleteAttachCamera(AttachCamera* p_attach, cModel* p_model);
+    cModel* getAttachModel(cModel* p_model);
+    AttachCamera* getAttachCamera(cModel* p_model);
     void checkAttachCamera();
 
     // Empty ctor/dtor: cam_ctrl's `__static_initialization_and_destruction_0` and the
@@ -256,16 +256,16 @@ extern CameraControl CamCtrl;
 extern CameraSmooth CamSmth;
 extern void* g_pToolCamData;
 
-int cameraDataVersion(char* data);
+int cameraDataVersion(char* verStr);
 int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to);
-void CameraSetCutData(Camera* cam, CameraCut* cut);
-int areaAttr(CameraAreaInfo* area, u8 attr, u8 attr2);
-int areaHit(Vec* pos, CameraAreaInfo* area, f32 dir);
-int area_hit_p3(Vec* pos, CameraAreaInfo* area);
-int area_hit_pN(Vec* pos, CameraAreaInfo* area);
+void CameraSetCutData(Camera* pCam, CameraCut* pData);
+int areaAttr(CameraAreaInfo* p_area, u8 cut_attr, u8 char_type);
+int areaHit(Vec* pPos, CameraAreaInfo* pArea, f32 dir_y);
+int area_hit_p3(Vec* pPos, CameraAreaInfo* pArea);
+int area_hit_pN(Vec* pPos, CameraAreaInfo* pArea);
 void CamCtrlShoulderSetSearchFrame(s16 frame);
-void CamCtrlShoulderSetAim(Vec* aim);
-void Parametrize(CameraCut* cut, CameraBSpline* bs);
+void CamCtrlShoulderSetAim(Vec* pos);
+void Parametrize(CameraCut* pCdat, CameraBSpline* pB);
 void BSpline(CameraBSpline* bs, Camera* cam, int mode);
 void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int mode);
 

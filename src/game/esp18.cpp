@@ -56,12 +56,12 @@ void cEsp18::move()
 }
 
 // Remembers the spawn position and takes the blur strength from -Vec0.x.
-int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp18::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp18Work* w = &m_Free;
 
     w->base_pos = m_Pos;
-    w->blur_rate = -gen->Vec0.x;
+    w->blur_rate = -pSeq->Vec0.x;
     return 1;
 }
 

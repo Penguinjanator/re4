@@ -52,24 +52,24 @@ cEsp* Esp09_Create()
 }
 
 // Fill the whole history with the current position.
-void Esp09_ClearPrevPos(cEsp09* esp)
+void Esp09_ClearPrevPos(cEsp09* pEsp)
 {
-    Esp09Work* w = &esp->m_Free;
+    Esp09Work* w = &pEsp->m_Free;
     Camera* cam = &pG->Camera;
     Vec* p = &w->Pos[0];
     Vec tmp;
     f32 len;
     int i;
 
-    if (esp->m_Id != 9 || w->maxPoints <= 1 || w->maxPoints > 6) {
-        pLog->err(0, 0, "Esp09:ERROR![ID:%d / nPnt:%d]", esp->m_Id, w->maxPoints);
+    if (pEsp->m_Id != 9 || w->maxPoints <= 1 || w->maxPoints > 6) {
+        pLog->err(0, 0, "Esp09:ERROR![ID:%d / nPnt:%d]", pEsp->m_Id, w->maxPoints);
         return;
     }
     for (i = 0; i < w->maxPoints; i++) {
-        if (esp->parent == pEffParentWorld) {
-            *p = esp->m_Pos;
+        if (pEsp->parent == pEffParentWorld) {
+            *p = pEsp->m_Pos;
         } else {
-            PSMTXMultVec(esp->parent->mat, &esp->m_Pos, p);
+            PSMTXMultVec(pEsp->parent->mat, &pEsp->m_Pos, p);
         }
         len = GetVecLen(p, &cam->param.pos);
         if (w->flg & 1) {
@@ -224,12 +224,12 @@ void Esp09_Trans_Setup(cEsp09* esp)
 
 // Screen-space line strip through the ring buffer, newest first, alpha stepping down to 0 at
 // the tail; skipped while the trail is hidden behind geometry.
-void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
+void Esp09_2DTrans(cEsp09* pEsp, u8 r, u8 g, u8 b, u8 a)
 {
-    Esp09Work* w = &esp->m_Free;
+    Esp09Work* w = &pEsp->m_Free;
     Vec p;
     s8 n1 = w->maxPoints - 1;
-    u8 step = (u8)(esp->m_Col_a / (f32)n1);
+    u8 step = (u8)(pEsp->m_Col_a / (f32)n1);
     int idx = w->nPos;
     int i;
 
@@ -251,12 +251,12 @@ void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 }
 
 // World-space line strip through the ring buffer, newest first, alpha fading toward the tail.
-void Esp09_3DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
+void Esp09_3DTrans(cEsp09* pEsp, u8 r, u8 g, u8 b, u8 a)
 {
-    Esp09Work* w = &esp->m_Free;
+    Esp09Work* w = &pEsp->m_Free;
     Vec* p;
     s8 n1 = w->maxPoints - 1;
-    u8 step = (u8)(esp->m_Col_a / (f32)n1);
+    u8 step = (u8)(pEsp->m_Col_a / (f32)n1);
     int idx = w->nPos;
     int i;
 
@@ -468,12 +468,12 @@ void Esp09_HideCheck(cEsp* esp0)
 }
 
 // Point count 4 - Work8[0] clamped to 2..6, flags from Work8[1].
-int cEsp09::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp09::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp09Work* w = &m_Free;
 
-    w->maxPoints = 4 - gen->Work8[0];
-    w->flg = gen->Work8[1];
+    w->maxPoints = 4 - pSeq->Work8[0];
+    w->flg = pSeq->Work8[1];
     if (w->maxPoints <= 1) {
         w->maxPoints = 2;
     } else if (w->maxPoints > 6) {

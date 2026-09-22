@@ -14,7 +14,7 @@ public:
     void move();
     void dispEm();
     void dispObj();
-    void dispModel(cModel* m, int x, int y);  // x in 8-pixel columns, y in 14-pixel lines
+    void dispModel(cModel* pMod, int x, int y);  // x in 8-pixel columns, y in 14-pixel lines
     void dispLit();
 };
 

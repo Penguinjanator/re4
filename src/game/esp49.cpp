@@ -71,18 +71,18 @@ void cEsp49::move()
 
 // Depth thresholds from Vec0.x / Vec0.z (fade never below delete), est owner/id from Work8[0..1],
 // est enable Work8[2] (0/1, else fails); remembers the initial alpha.
-int cEsp49::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp49::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp49Work* w = &m_Free;
 
-    w->del_height = gen->Vec0.x;
-    w->fade_height = gen->Vec0.z;
+    w->del_height = pSeq->Vec0.x;
+    w->fade_height = pSeq->Vec0.z;
     if (w->del_height > w->fade_height) {
         w->fade_height = w->del_height;
     }
-    w->EstNo = gen->Work8[0];
-    w->estPrm = gen->Work8[1];
-    w->EstOwner = gen->Work8[2];
+    w->EstNo = pSeq->Work8[0];
+    w->estPrm = pSeq->Work8[1];
+    w->EstOwner = pSeq->Work8[2];
     if (w->EstOwner > 1) {
         pLog->err(0, 0, "ESP_49 : FLAG[%d] invalid.", w->EstOwner);
         return 0;

@@ -130,78 +130,78 @@ void cObjPillar::move()
 }
 
 // Rno0 == 0: standing (Be_flg 1): matrices and the eat collision quad placed.
-void objPillar_R0_Set(cObjPillar* obj)
+void objPillar_R0_Set(cObjPillar* pObj)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
 
     w->Be_flg |= 1;
-    w->St_pos = obj->pos;
-    obj->matUpdate();
-    obj->partsWorldCalc();
-    objPillarEatSet(obj);
+    w->St_pos = pObj->pos;
+    pObj->matUpdate();
+    pObj->partsWorldCalc();
+    objPillarEatSet(pObj);
 }
 
 // Rno0 == 1 (setBreak): the pillar topples with motBreak towards the player: creak sound when he
 // is near, crushing hit tests on parts 1/2 (objPillarAtkCk), the escape action button (0x25)
 // offered while he stands in front, fade-out 10 frames before the end; removed when Scenario_flg[1]
 // 0x200 (the boss died).
-void objPillar_R0_Break(cObjPillar* obj)
+void objPillar_R0_Break(cObjPillar* pObj)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
     Mtx inv;
     Vec v;
-    u8 step = obj->r_no_2;
+    u8 step = pObj->r_no_2;
 
     switch (step) {
     case 0:
         w->Timer = (*(u16*) w->Mot & 0x3FFF) - 10;
-        MotionSetCore(obj, &obj->Motion, w->Mot, 0, 0, 0x8001, 0);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot, 0, 0, 0x8001, 0);
         w->TmpU32 = Rnd() & 1;
         w->Act_ck = step;
         w->Seid = step;
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        if (MotionMove(obj, 0)) {
-            obj->be_flag &= ~2;
-            obj->r_no_2++;
+        if (MotionMove(pObj, 0)) {
+            pObj->be_flag &= ~2;
+            pObj->r_no_2++;
         } else {
-            objPillarAtkCk(obj, &obj->getPartsPtr(1)->world);
-            objPillarAtkCk(obj, &obj->getPartsPtr(2)->world);
+            objPillarAtkCk(pObj, &pObj->getPartsPtr(1)->world);
+            objPillarAtkCk(pObj, &pObj->getPartsPtr(2)->world);
             if (w->Seid == 0) {
-                cModel* parts = obj->getPartsPtr(1);
+                cModel* parts = pObj->getPartsPtr(1);
 
                 if ((parts->world.x - pPL->pos.x) * (parts->world.x - pPL->pos.x) +
                     (parts->world.y - pPL->pos.y) * (parts->world.y - pPL->pos.y) +
                     (parts->world.z - pPL->pos.z) * (parts->world.z - pPL->pos.z) < 16000000.0f) {
-                    w->Seid = SndCall(8, 0x2C, &parts->world, 0x31, 0, obj);
+                    w->Seid = SndCall(8, 0x2C, &parts->world, 0x31, 0, pObj);
                 }
             }
             if (w->Timer) {
                 w->Timer--;
             } else {
-                obj->invisible_factor -= 0.1f;
-                if (obj->invisible_factor < 0.0f) {
-                    obj->invisible_factor = 0.0f;
-                    obj->be_flag &= ~2;
+                pObj->invisible_factor -= 0.1f;
+                if (pObj->invisible_factor < 0.0f) {
+                    pObj->invisible_factor = 0.0f;
+                    pObj->be_flag &= ~2;
                 }
             }
         }
         break;
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
     if (ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
-        ObjMgr.destroy(obj);
+        ObjMgr.destroy(pObj);
         return;
     }
     step = w->Act_ck;
     if (step == 0) {
-        PSMTXInverse(obj->mat, inv);
+        PSMTXInverse(pObj->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &v);
         if (v.x > -2000.0f && v.x < 2000.0f && v.z > -1000.0f) {
             if (w->TmpU32) {
-                ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, pObj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
             } else {
-                ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
+                ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, pObj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
             }
         }
     }
@@ -210,209 +210,209 @@ void objPillar_R0_Break(cObjPillar* obj)
 // Rno0 == 2 (setThrow): lifted (motThrow0 from frame 31, dust effect), then flies at 500 units/frame
 // towards the player (motThrow1, trail effect) for 90 frames with crushing hit tests along its
 // length; the escape button is offered once it is within 1000 units.
-void objPillar_R0_Throw(cObjPillar* obj)
+void objPillar_R0_Throw(cObjPillar* pObj)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
     Vec d;
     Vec v;
     Mtx m;
     cModel* parts;
     f32 len;
-    u8 step = obj->r_no_2;
+    u8 step = pObj->r_no_2;
     u8 esc;
 
     switch (step) {
     case 0:
-        MotionSetCore(obj, &obj->Motion, w->Mot_catch, 0, 0, 0x8001, 0x1F);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_catch, 0, 0, 0x8001, 0x1F);
         w->TmpU32 = Rnd() & 1;
         w->Act_ck = 1;
-        EstSet(obj, -1, 0, 0, EFF_EM31, 0x22, 0, ESP_CORE_KIND_NONE, obj, (void*) step);
+        EstSet(pObj, -1, 0, 0, EFF_EM31, 0x22, 0, ESP_CORE_KIND_NONE, pObj, (void*) step);
         w->Seid = step;
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        if (MotionMove(obj, 0)) {
-            obj->r_no_2++;
+        if (MotionMove(pObj, 0)) {
+            pObj->r_no_2++;
         }
         break;
     case 2:
-        parts = obj->getPartsPtr(0);
-        obj->pos = parts->world;
+        parts = pObj->getPartsPtr(0);
+        pObj->pos = parts->world;
         w->Spd.x = 0.0f;
         w->Spd.y = 0.0f;
         w->Spd.z = 500.0f;
         v = pPL->pos;
         v.y += 1000.0f;
-        PSVECSubtract(&v, &obj->pos, &d);
+        PSVECSubtract(&v, &pObj->pos, &d);
         len = SQRTF(d.x * d.x + d.z * d.z) / 500.0f;
         if (len == 0.0f) {
             w->Spd.y = 0.0f;
         } else {
             w->Spd.y = d.y / len;
         }
-        PSMTXMultVecSR(obj->mat, &w->Spd, &w->Spd);
-        MotionSetCore(obj, &obj->Motion, w->Mot_throw, 0, 0, 0x8005, 0);
+        PSMTXMultVecSR(pObj->mat, &w->Spd, &w->Spd);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_throw, 0, 0, 0x8005, 0);
         w->TmpU32 = Rnd() & 1;
         w->Act_ck = 0;
         w->Timer = 90;
-        EstSet(obj, -1, 0, 0, EFF_EM31, 0x23, 1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
-        obj->r_no_2++;
+        EstSet(pObj, -1, 0, 0, EFF_EM31, 0x23, 1, ESP_CORE_KIND_OBJPILLAR, pObj, 0);
+        pObj->r_no_2++;
     case 3:
-        PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
-        MotionMove(obj, 0);
+        PSVECAdd(&pObj->pos, &w->Spd, &pObj->pos);
+        MotionMove(pObj, 0);
         if (w->Seid == 0) {
-            parts = obj->getPartsPtr(0);
+            parts = pObj->getPartsPtr(0);
             len = (parts->world.x - pPL->pos.x) * (parts->world.x - pPL->pos.x) +
                   (parts->world.y - pPL->pos.y) * (parts->world.y - pPL->pos.y) +
                   (parts->world.z - pPL->pos.z) * (parts->world.z - pPL->pos.z);
             if (len < 16000000.0f) {
-                w->Seid = SndCall(8, 0x2C, &parts->world, 0x31, 0, obj);
+                w->Seid = SndCall(8, 0x2C, &parts->world, 0x31, 0, pObj);
             }
         }
         if (w->Timer == 0) {
-            obj->invisible_factor -= 0.1f;
-            if (obj->invisible_factor < 0.0f) {
-                EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
-                EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
-                EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
-                obj->invisible_factor = 0.0f;
-                ObjMgr.destroy(obj);
+            pObj->invisible_factor -= 0.1f;
+            if (pObj->invisible_factor < 0.0f) {
+                EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj, 0);
+                EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj);
+                EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj);
+                pObj->invisible_factor = 0.0f;
+                ObjMgr.destroy(pObj);
                 return;
             }
         } else {
             w->Timer--;
         }
-        parts = obj->getPartsPtr(0);
+        parts = pObj->getPartsPtr(0);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 0.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 1000.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 2000.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 3000.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = -1000.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = -2000.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = -3000.0f;
-        PSMTXMultVec(obj->mat, &v, &v);
-        objPillarAtkCk(obj, &v);
+        PSMTXMultVec(pObj->mat, &v, &v);
+        objPillarAtkCk(pObj, &v);
         break;
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
     if (ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
-        ObjMgr.destroy(obj);
+        ObjMgr.destroy(pObj);
         return;
     }
     esc = w->Act_ck;
     if (esc == 0) {
-        PSMTXRotRad(m, 'y', GetXZAngle(&obj->pos_old, &obj->pos));
-        TransMatrix(m, &obj->pos);
+        PSMTXRotRad(m, 'y', GetXZAngle(&pObj->pos_old, &pObj->pos));
+        TransMatrix(m, &pObj->pos);
         PSMTXInverse(m, m);
         PSMTXMultVec(m, &pPL->pos, &d);
         if (d.z < 1000.0f) {
             w->Act_ck = 1;
         }
         if (w->TmpU32) {
-            ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, pObj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
         } else {
-            ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, obj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
+            ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, pObj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
         }
     }
 }
 
 // Rno0 == 3 (escape succeeded): the pillar plays Mot_escape from the player's position/heading
 // (it passes over him), then is removed.
-void objPillar_R0_Escape(cObjPillar* obj)
+void objPillar_R0_Escape(cObjPillar* pObj)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
 
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
-        memcpy((u8*) obj + ((u32) &((cObj*) 0)->pos), &pPL->pos, sizeof(Vec));
-        memcpy((u8*) obj + ((u32) &((cObj*) 0)->ang), &pPL->ang, sizeof(Vec));
-        MotionSetCore(obj, &obj->Motion, w->Mot_escape, 0, 0, 0x8001, 0);
+        memcpy((u8*) pObj + ((u32) &((cObj*) 0)->pos), &pPL->pos, sizeof(Vec));
+        memcpy((u8*) pObj + ((u32) &((cObj*) 0)->ang), &pPL->ang, sizeof(Vec));
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_escape, 0, 0, 0x8001, 0);
         SndStop(w->Seid, 0);
-        w->Seid = SndCall(8, 0x2C, &obj->getPartsPtr(0)->world, 0x31, 0, obj);
-        obj->r_no_2++;
+        w->Seid = SndCall(8, 0x2C, &pObj->getPartsPtr(0)->world, 0x31, 0, pObj);
+        pObj->r_no_2++;
     case 1:
-        if (MotionMove(obj, 0)) {
-            EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
-            EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
-            EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
-            obj->invisible_factor = 0.0f;
-            ObjMgr.destroy(obj);
+        if (MotionMove(pObj, 0)) {
+            EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj, 0);
+            EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj);
+            EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj);
+            pObj->invisible_factor = 0.0f;
+            ObjMgr.destroy(pObj);
             return;
         }
         break;
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
     if (ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
-        ObjMgr.destroy(obj);
+        ObjMgr.destroy(pObj);
     }
 }
 
 // Rno0 == 4 (setFall): drops from parts 0's position (gravity 15/frame), lands on the floor with
 // motFall1 and a sound, fades out after 30 frames.
-void objPillar_R0_Fall(cObjPillar* obj)
+void objPillar_R0_Fall(cObjPillar* pObj)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
     f32 floor;
 
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->Motion, w->Mot_fall, 0, 0, 0x8004, 0);
+        MotionSetCore(pObj, &pObj->Motion, w->Mot_fall, 0, 0, 0x8004, 0);
         w->Spd.x = 0.0f;
         w->Spd.y = -100.0f;
         w->Spd.z = 0.0f;
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
+        PSVECAdd(&pObj->pos, &w->Spd, &pObj->pos);
         w->Spd.y -= 15.0f;
-        floor = EatMgr.getFloor(&obj->pos_old, 0, 600.0f, 100000.0f, 0);
-        if (obj->pos.y < floor) {
-            obj->pos.y = floor;
-            SndCall(8, 0x26, &obj->pos, 0x31, 0, obj);
-            MotionSetCore(obj, &obj->Motion, w->Mot_landing, 0, 0, 0x8001, 0);
-            MotionMove(obj, 0);
-            obj->r_no_2++;
+        floor = EatMgr.getFloor(&pObj->pos_old, 0, 600.0f, 100000.0f, 0);
+        if (pObj->pos.y < floor) {
+            pObj->pos.y = floor;
+            SndCall(8, 0x26, &pObj->pos, 0x31, 0, pObj);
+            MotionSetCore(pObj, &pObj->Motion, w->Mot_landing, 0, 0, 0x8001, 0);
+            MotionMove(pObj, 0);
+            pObj->r_no_2++;
         } else {
-            MotionMove(obj, 0);
+            MotionMove(pObj, 0);
         }
         break;
     case 2:
-        obj->r_no_2++;
+        pObj->r_no_2++;
         w->Timer = 30;
     case 3:
-        MotionMove(obj, 0);
+        MotionMove(pObj, 0);
         if (w->Timer == 0) {
-            obj->invisible_factor -= 0.1f;
-            if (obj->invisible_factor < 0.0f) {
-                EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
-                EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
-                EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, obj);
-                obj->invisible_factor = 0.0f;
-                ObjMgr.destroy(obj);
+            pObj->invisible_factor -= 0.1f;
+            if (pObj->invisible_factor < 0.0f) {
+                EffectEspDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj, 0);
+                EffectEspgenDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj);
+                EffectEfmDelete(1, ESP_CORE_KIND_OBJPILLAR, pObj);
+                pObj->invisible_factor = 0.0f;
+                ObjMgr.destroy(pObj);
                 return;
             }
         } else {
@@ -420,9 +420,9 @@ void objPillar_R0_Fall(cObjPillar* obj)
         }
         break;
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
     if (ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
-        ObjMgr.destroy(obj);
+        ObjMgr.destroy(pObj);
     }
 }
 
@@ -503,9 +503,9 @@ void cObjPillar::setFall(void* mot0, void* mot1)
 // Crushing hit test at pos with ObjPillar_atk_info (fatal flag 4 only when the player has more than
 // 500 life): on the player damage type 8, blood, death effects when killed, quake, sound,
 // vibration; on the partner quake + vibration.
-void objPillarAtkCk(cObjPillar* obj, Vec* pos)
+void objPillarAtkCk(cObjPillar* pObj, Vec* pPos)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
     EmAtkInfo* atk = &ObjPillar_atk_info;
     int hit;
 
@@ -514,12 +514,12 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
     } else {
         atk->flag &= ~4;
     }
-    hit = EmAtkHitCk(atk, pos, &w->St_pos, 1);
+    hit = EmAtkHitCk(atk, pPos, &w->St_pos, 1);
     if (hit) {
         if (hit & 1) {
             pPL->ang.y = GetXZAngle(&pPL->pos, &w->St_pos);
             PlSetDamage(PL_DM_AUTO, 0, 0);
-            EmPlBloodSet2(obj, pos, 1, 0x29, 0x3D);
+            EmPlBloodSet2(pObj, pPos, 1, 0x29, 0x3D);
             if ((s16) pG->pl_life <= 0) {
                 EstSet(pPL, -1, 0, 0, EFF_EM31, 0x3A, 0, ESP_CORE_KIND_NONE, pPL, 0);
             } else {
@@ -538,14 +538,14 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
 }
 
 // Action button 0x25 during Break: the player dives out of the way (plemEscape), difficulty points.
-void EscapeAction(cObjPillar* obj)
+void EscapeAction(cObjPillar* ptr)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &ptr->pillar;
     u8 one = 1;
 
     if (!ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
         w->Act_ck = one;
-        SetPlDamage((cEm*) obj, plemEscape);
+        SetPlDamage((cEm*) ptr, plemEscape);
         GameAddPoint(9);
     }
 }
@@ -553,9 +553,9 @@ void EscapeAction(cObjPillar* obj)
 // Player escape routine: turns towards the fall point, plays the dive motion (mirrored when the
 // pillar comes from the left) with a custom camera (EscapeCamMove), dust and sounds, then
 // EndPlDamage.
-static void plemEscape(cPlayer* pl)
+static void plemEscape(cPlayer* pEm)
 {
-    cEm* em = (cEm*) pl;
+    cEm* em = (cEm*) pEm;
     cObjPillar* obj = (cObjPillar*) em->pEmCatch;
     PillarWork* w = &obj->pillar;
     f32 ang;
@@ -643,25 +643,25 @@ void EscapeCamMove()
 }
 
 // Action button 0x25 during Throw: the player ducks (plemEscape2) and the pillar goes to Escape.
-void EscapeAction2(cObjPillar* obj)
+void EscapeAction2(cObjPillar* ptr)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &ptr->pillar;
 
     if (!ScfFlagChk(pG, SCF_R332_BOSS_DIE)) {
         w->Act_ck = 1;
-        SetPlDamage((cEm*) obj, plemEscape2);
-        obj->r_no_0 = 3;
-        obj->r_no_1 = 0;
-        obj->r_no_2 = 0;
-        obj->r_no_3 = 0;
+        SetPlDamage((cEm*) ptr, plemEscape2);
+        ptr->r_no_0 = 3;
+        ptr->r_no_1 = 0;
+        ptr->r_no_2 = 0;
+        ptr->r_no_3 = 0;
     }
 }
 
 // Player duck routine: faces the pillar's start, plays the escape motion with effect and sounds,
 // then EndPlDamage.
-void plemEscape2(cPlayer* pl)
+void plemEscape2(cPlayer* pEm)
 {
-    cEm* em = (cEm*) pl;
+    cEm* em = (cEm*) pEm;
     cObjPillar* obj = (cObjPillar*) em->pEmCatch;
     PillarWork* w = &obj->pillar;
     u8 step;
@@ -685,9 +685,9 @@ void plemEscape2(cPlayer* pl)
 }
 
 // Places the pillar's eat collision quad (created on first use) at its base.
-void objPillarEatSet(cObjPillar* obj)
+void objPillarEatSet(cObjPillar* pObj)
 {
-    PillarWork* w = &obj->pillar;
+    PillarWork* w = &pObj->pillar;
     Vec poly[4];
     f32 r = 400.0f;
     f32 h = 5000.0f;
@@ -705,9 +705,9 @@ void objPillarEatSet(cObjPillar* obj)
         poly[3].x = -r;
         poly[3].y = 0.0f;
         poly[3].z = r;
-        w->pEat = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0, 0);
+        w->pEat = EatMgr.create(&pObj->pos, &pObj->ang, poly, h, 0, 0);
     } else {
         w->pEat->m_Flag |= 4;
-        w->pEat->setCoord(&obj->pos, &obj->ang);
+        w->pEat->setCoord(&pObj->pos, &pObj->ang);
     }
 }

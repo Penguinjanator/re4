@@ -47,17 +47,17 @@ void TprimInitEnv2D3D(TprimView* view, MtxPtr proj, MtxPtr view_mtx)
 }
 
 // GX state for 3D debug lines / points: current projection, view matrix, blend mode, vertex format.
-void TprimDraw3D(u32 blend)
+void TprimDraw3D(u32 mode)
 {
     CameraCurrentProjection();
     GXSetCurrentMtx(0);
     GXLoadPosMtxImm(ViewMtx, 0);
-    TprimSetBlend(blend);
+    TprimSetBlend(mode);
     set_attr_common();
 }
 
 // Blend mode 0 opaque, 1 alpha blend, 2 additive.
-void TprimSetBlend(u32 blend)
+void TprimSetBlend(u32 mode)
 {
     static u32 bl[3][4] = {
         {0, 1, 0, 0},
@@ -65,8 +65,8 @@ void TprimSetBlend(u32 blend)
         {1, 0, 2, 0},
     };
 
-    if (blend <= 2) {
-        GXSetBlendMode(bl[blend][0], bl[blend][1], bl[blend][2], bl[blend][3]);
+    if (mode <= 2) {
+        GXSetBlendMode(bl[mode][0], bl[mode][1], bl[mode][2], bl[mode][3]);
         GXSetColorUpdate(1);
     }
 }

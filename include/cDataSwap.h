@@ -16,7 +16,7 @@ public:
 
     cDataSwap();
     ~cDataSwap();
-    int SwapOut(u32 addr, u32 size, u32 aram);
+    int SwapOut(u32 maddr, u32 size, u32 aaddr);
     void SwapIn();
 };
 

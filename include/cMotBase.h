@@ -18,12 +18,12 @@ public:
     u8 pad_35[3];
 
     cMotBase();
-    void set(cMotModel* m, Vec* pos, Vec* rot, u8 cnt);
+    void set(cMotModel* pMod0, Vec* pos, Vec* rot, u8 cnt);
     void adjust();
     void move();
 
 private:
-    void set(cMotModel* m, MotionData* data, Vec* pos, Vec* rot, u8 cnt);
+    void set(cMotModel* m, MotionData* data, Vec* pPos, Vec* rot, u8 cnt);
 };
 
 #endif

@@ -29,8 +29,8 @@ public:
     int m_Time;   // 0x14  frames left
 
     virtual ~cDmg() {}
-    virtual void beginEvent(u32 mode);
-    virtual int hitCheck(Vec* pos, Vec* out) = 0;
+    virtual void beginEvent(u32 flag);
+    virtual int hitCheck(Vec* pPos, Vec* pFrom) = 0;
 };
 
 class cDmgCyl : public cDmg {
@@ -39,7 +39,7 @@ public:
     f32 m_Radius;    // 0x24
     f32 m_Height;    // 0x28  half height
 
-    virtual int hitCheck(Vec* pos, Vec* out);
+    virtual int hitCheck(Vec* pPos, Vec* pFrom);
 };
 
 class cDmgP4 : public cDmg {
@@ -47,7 +47,7 @@ public:
     Vec m_Pos[4];  // 0x18
     f32 m_Height;      // 0x48
 
-    virtual int hitCheck(Vec* pos, Vec* out);
+    virtual int hitCheck(Vec* pPos, Vec* pFrom);
 };
 
 // Damage volume manager (game/dmg.cpp `DmgMgr`, 0x34 bytes, work size 0x118).
@@ -64,17 +64,17 @@ public:
         ID_POINT4 = 1
     };
 
-    virtual int construct(cDmg* p, u32 id);
-    int construct(cDmg* p, int id);
+    virtual int construct(cDmg* pSat, u32 room_no);
+    int construct(cDmg* pSat, int room_no);
 
     void move();
     // Registers a cylinder volume: kind, frames, centre, radius, half height. Returns 1 when a
     // volume was created (int result: the call's set of r3 changes the haifa depend counts, obj10 dmgSet).
-    int set(int kind, int time, Vec* pos, f32 r, f32 h);
+    int set(int type, int time, Vec* pPos, f32 radius, f32 height);
     // Registers a quad volume: kind, frames, the 4 XZ corners, half height.
-    int set(int kind, int time, Vec* pt, f32 h);
+    int set(int type, int time, Vec* pPos4, f32 height);
     // Damage volume containing `pos`: its kind, 0 when none; `out` gets the volume's centre.
-    int hitCheck(Vec* pos, Vec* out);
+    int hitCheck(Vec* pPos, Vec* pFrom);
 };
 
 extern cDmgMgr DmgMgr;

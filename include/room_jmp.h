@@ -34,12 +34,12 @@ public:
     cRoomJmp(void* tbl);
     s8 getIndexNum(s8 stage);
     s8 getPointNum(s8 stage, s8 room);
-    CRoomInfo* getRoomInfo(u8 stage, u8 idx);
-    u8 getRoomIdx(u8 stage, u8 room);
-    void setNextPos(u8 stage, u8 room);
-    s8 getNextStageNo(s8 stage, int dir);
-    s8 getNextRoomNo(s8 stage, s8 idx, int dir);
-    s8 getNextPointNo(s8 stage, s8 room, s8 point, s8 dir);
+    CRoomInfo* getRoomInfo(u8 st, u8 idx);
+    u8 getRoomIdx(u8 st, u8 room);
+    void setNextPos(u8 Stage, u8 Room);
+    s8 getNextStageNo(s8 stage, int add);
+    s8 getNextRoomNo(s8 stage, s8 idx, int add);
+    s8 getNextPointNo(s8 stage, s8 room, s8 point, s8 add);
     s8 checkRoomNo(s8 stage, s8 room);
 };
 

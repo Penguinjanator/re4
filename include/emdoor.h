@@ -59,19 +59,19 @@ public:
     void setLock(void* bin, void* tpl, int side, int strong);
     int ckLock();
     void setChain(void* bin, void* tpl);
-    void setEff(u8 eff);
+    void setEff(u8 eff_id);
     void setYarare();
     u32 ckOpen();           // 0 can be opened, 1 open / broken, 2 an object blocks it, 3 locked
-    int ckKick(Vec* pos);
-    void setOpen(Vec* pos, int mode, int se_off, int down_ck);
+    int ckKick(Vec* pPos);
+    void setOpen(Vec* pPos, int mode, int se_off, int down_ck);
     void setOpen2(int type);
-    void setShock(int mode, Vec* pos, int se_off);
-    void setBreak(Vec* pos);
+    void setShock(int mode, Vec* pPos, int se_off);
+    void setBreak(Vec* pPos);
     int ckObj();            // 0 when a cEm 0x45 object stands in the door
     void setOpenLock(int type);
     void setCloseLock();
     void setClose();
-    void setDowned(int dir);
+    void setDowned(int type);
     void setNormal();
     void setKey(int no);
     void setDoor(cEmDoor* other);
@@ -80,43 +80,43 @@ public:
 
 extern "C" {
 cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo);
-void emDoorDmCkWood(cEmDoor* em);
-void emDoorDmCkIron(cEmDoor* em);
-void emDoorDmCkIron2(cEmDoor* em);
-void emDoorDmCkIronDown(cEmDoor* em);
-void emDoorSetDmgLock_L(cEmDoor* em, int mode);
-void emDoorSetDmgLock_R(cEmDoor* em, int mode);
-void emDoorSetDmgChain(cEmDoor* em, u32 no);
-void emDoorSetDmgDoor(cEmDoor* em);
-void emDoorSetBrkDoor(cEmDoor* em, Vec* pos);
-int emDoorBrkCk(cEmDoor* em);
-void emDoor_R0_Init(cEmDoor* em);
-void emDoor_R0_Move(cEmDoor* em);
-void emDoor_R1_Set(cEmDoor* em);
-void emDoor_R1_Open(cEmDoor* em);
-void emDoor_R1_Down(cEmDoor* em);
-void emDoor_R1_Downed(cEmDoor* em);
-void emDoor_R1_Close(cEmDoor* em);
-void emDoor_R1_Break(cEmDoor* em);
-void emDoor_R1_Shock(cEmDoor* em);
-void emDoor_R1_OpenLock(cEmDoor* em);
-void emDoor_R1_CloseLock(cEmDoor* em);
-void emDoorLockBendMove(cEmDoor* em);
-void emDoorSatSet(cEmDoor* em);
-void emDoorSatClear(cEmDoor* em);
-void emDoorLockMove(cEmDoor* em);
-int emDoorDoorAutoCloseCk(cEmDoor* em);
-void emDoorYarareInit(cEmDoor* em);
-void emDoorActEvtCk(cEmDoor* em);
-void emDoorAction(cEmDoor* em);
-void emDoorAction2(cEmDoor* em);
-void plemDoorKick(class cPlayer* pl);
-void plemDoorOpen(class cPlayer* pl);
+void emDoorDmCkWood(cEmDoor* pEm);
+void emDoorDmCkIron(cEmDoor* pEm);
+void emDoorDmCkIron2(cEmDoor* pEm);
+void emDoorDmCkIronDown(cEmDoor* pEm);
+void emDoorSetDmgLock_L(cEmDoor* pEm, int type);
+void emDoorSetDmgLock_R(cEmDoor* pEm, int type);
+void emDoorSetDmgChain(cEmDoor* pEm, u32 no);
+void emDoorSetDmgDoor(cEmDoor* pEm);
+void emDoorSetBrkDoor(cEmDoor* pEm, Vec* pPos);
+int emDoorBrkCk(cEmDoor* pEm);
+void emDoor_R0_Init(cEmDoor* pEm);
+void emDoor_R0_Move(cEmDoor* pEm);
+void emDoor_R1_Set(cEmDoor* pEm);
+void emDoor_R1_Open(cEmDoor* pEm);
+void emDoor_R1_Down(cEmDoor* pEm);
+void emDoor_R1_Downed(cEmDoor* pEm);
+void emDoor_R1_Close(cEmDoor* pEm);
+void emDoor_R1_Break(cEmDoor* pEm);
+void emDoor_R1_Shock(cEmDoor* pEm);
+void emDoor_R1_OpenLock(cEmDoor* pEm);
+void emDoor_R1_CloseLock(cEmDoor* pEm);
+void emDoorLockBendMove(cEmDoor* pEm);
+void emDoorSatSet(cEmDoor* pEm);
+void emDoorSatClear(cEmDoor* pEm);
+void emDoorLockMove(cEmDoor* pEm);
+int emDoorDoorAutoCloseCk(cEmDoor* pEm);
+void emDoorYarareInit(cEmDoor* pEm);
+void emDoorActEvtCk(cEmDoor* pEm);
+void emDoorAction(cEmDoor* ptr);
+void emDoorAction2(cEmDoor* ptr);
+void plemDoorKick(class cPlayer* pEm);
+void plemDoorOpen(class cPlayer* pEm);
 // The door in front of `m` that it may open (pl_npc cSubChar::doorCheck), NULL when none.
 cEmDoor* DoorOpenCk(cModel* m);
-void SubOpenDoorSet(cEmDoor* door);
+void SubOpenDoorSet(cEmDoor* pDoor);
 void subDoorKick();
-void emDoorDropWeapon(cEmDoor* em);
+void emDoorDropWeapon(cEmDoor* pEm);
 }
 
 #endif

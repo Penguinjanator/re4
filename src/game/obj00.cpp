@@ -286,9 +286,9 @@ void obj00FallMove(cObj00* obj)
 // Parent follow: takes the parent parts' matrix (axes normalised), and while be_flag bit 3 (catch-up)
 // is set blends position/rotation from hokan_mat towards it by oya_hokan (advancing by rateSpd);
 // copies the parent's light class 2.
-void obj00SetOya(cObj00* obj)
+void obj00SetOya(cObj00* pObj)
 {
-    Obj00Work* w = &obj->o0;
+    Obj00Work* w = &pObj->o0;
     Mtx m;
     Vec v0;
     Vec v1;
@@ -338,7 +338,7 @@ void obj00SetOya(cObj00* obj)
     m[0][2] = v2.x;
     m[1][2] = v2.y;
     m[2][2] = v2.z;
-    PSMTXConcat(m, obj->mat, m);
+    PSMTXConcat(m, pObj->mat, m);
     if (w->oya_hokan < 1.0f) {
         w->oya_hokan += w->oya_hokan_add;
         if (w->oya_hokan >= 1.0f) {
@@ -356,23 +356,23 @@ void obj00SetOya(cObj00* obj)
         C_QUATMtx(&q0, m);
         C_QUATMtx(&q1, w->hokan_mat);
         C_QUATSlerp(&q0, &q1, &q, w->oya_hokan);
-        PSMTXQuat(obj->mat, &q);
-        TransMatrix(obj->mat, &p);
-        PSMTXCopy(obj->mat, w->hokan_mat);
+        PSMTXQuat(pObj->mat, &q);
+        TransMatrix(pObj->mat, &p);
+        PSMTXCopy(pObj->mat, w->hokan_mat);
     } else {
-        PSMTXCopy(m, obj->mat);
+        PSMTXCopy(m, pObj->mat);
     }
     if (w->pEm_oya) {
         if (w->pEm_oya->LightInfo.EnableMask & 2) {
-            obj->LightInfo.EnableMask &= ~0x10;
-            obj->LightInfo.EnableMask |= 2;
+            pObj->LightInfo.EnableMask &= ~0x10;
+            pObj->LightInfo.EnableMask |= 2;
         }
     }
 }
 
 // Gives the object a scenario collision sphere of radius r.
-void cObj00::setScrAtari(f32 r)
+void cObj00::setScrAtari(f32 radius)
 {
-    sub2B4.atari.init(0.0f, 0.0f, 0.0f, r, r, r * 0.8f, r, 1, 0x2000, 10);
+    sub2B4.atari.init(0.0f, 0.0f, 0.0f, radius, radius, radius * 0.8f, radius, 1, 0x2000, 10);
     sub2B4.atari.scrOn();
 }

@@ -66,28 +66,28 @@ void LightSetInit()
 // self-lit models (data flags 0x40000000) use their colour as ambient; else the environment
 // ambient chosen by EnableMask (0x10 scenery, 8 effects, else enemies) plus AddAmb (be_flag 8),
 // material = the model colour.
-void LightSetModel(cModel* m)
+void LightSetModel(cModel* pMod)
 {
     LIGHT_FUNC_TABLE;
     GXLightObj lobj[8];
     Vec p;
     GXColor mat;
     GXColor amb;
-    cModelInfo* info = m->pModelInfo;
+    cModelInfo* info = pMod->pModelInfo;
     cModelData* data = info->model_addr;
-    cLight** list = m->LightInfo.pLight;
-    int n = (m->be_flag & 0x8000) ? 0 : 8;
+    cLight** list = pMod->LightInfo.pLight;
+    int n = (pMod->be_flag & 0x8000) ? 0 : 8;
     u32 mask;
     int i;
     cLightEnv* env;
 
-    if (m->LightInfo.Flag & 4) {
+    if (pMod->LightInfo.Flag & 4) {
         LightDisable();
         return;
     }
-    obj_pos = m->pParts->world;
-    obj_size = m->LightInfo.Size.x > m->LightInfo.Size.y ? m->LightInfo.Size.x : m->LightInfo.Size.y;
-    if ((m->LightInfo.Flag & 3) == 2) {
+    obj_pos = pMod->pParts->world;
+    obj_size = pMod->LightInfo.Size.x > pMod->LightInfo.Size.y ? pMod->LightInfo.Size.x : pMod->LightInfo.Size.y;
+    if ((pMod->LightInfo.Flag & 3) == 2) {
         obj_flag = 0;
     } else {
         obj_flag = 1;
@@ -108,7 +108,7 @@ void LightSetModel(cModel* m)
         mask |= 1 << i;
         PSMTXMultVec(pG->Camera.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
-        lightSetColor(&lobj[i], l, (cEm*) m);
+        lightSetColor(&lobj[i], l, (cEm*) pMod);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
         if (l->xD > 7) {
             pLog->err(0, 0, "LIGHT() INVALIED TYPE %d", l->xD);
@@ -131,11 +131,11 @@ void LightSetModel(cModel* m)
     }
     GXSetChanCtrl(0, 1, 0, 0, mask, 2, 1);
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
-    if (m->LightInfo.EnableMask & 0x10) {
+    if (pMod->LightInfo.EnableMask & 0x10) {
         amb.r = MAX(LightMgr.getEnvPtr()->AmbientScr.r, amb.r);
         amb.g = MAX(LightMgr.getEnvPtr()->AmbientScr.g, amb.g);
         amb.b = MAX(LightMgr.getEnvPtr()->AmbientScr.b, amb.b);
-    } else if (m->LightInfo.EnableMask & 8) {
+    } else if (pMod->LightInfo.EnableMask & 8) {
         amb.r = MAX(LightMgr.getEnvPtr()->AmbientEsp.r, amb.r);
         amb.g = MAX(LightMgr.getEnvPtr()->AmbientEsp.g, amb.g);
         amb.b = MAX(LightMgr.getEnvPtr()->AmbientEsp.b, amb.b);
@@ -144,10 +144,10 @@ void LightSetModel(cModel* m)
         amb.g = MAX(LightMgr.getEnvPtr()->AmbientEm.g, amb.g);
         amb.b = MAX(LightMgr.getEnvPtr()->AmbientEm.b, amb.b);
     }
-    if (m->be_flag & 8) {
-        amb.r += m->AddAmb_r;
-        amb.g += m->AddAmb_g;
-        amb.b += m->AddAmb_b;
+    if (pMod->be_flag & 8) {
+        amb.r += pMod->AddAmb_r;
+        amb.g += pMod->AddAmb_g;
+        amb.b += pMod->AddAmb_b;
     }
     lightSetAmbient(&amb);
     mat = *(GXColor*) info->color;
@@ -211,7 +211,7 @@ void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
 
 // Lighting for the water surface: the lights with their alpha scaled by `alpha` / 256, scenery
 // ambient, white material.
-void commonWaterLightSet(cLight** list, int n, u32 alpha)
+void commonWaterLightSet(cLight** pLightData, int data_num, u32 pow)
 {
     LIGHT_FUNC_TABLE;
     GXLightObj lobj[8];
@@ -223,8 +223,8 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
     obj_flag = 0;
     mask = 0;
     amb.a = amb.b = amb.g = amb.r = 0;
-    for (i = 0; i < n; i++) {
-        cLight* l = list[i];
+    for (i = 0; i < data_num; i++) {
+        cLight* l = pLightData[i];
         u8 a;
 
         if (l == NULL) {
@@ -239,7 +239,7 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
         PSMTXMultVec(pG->Camera.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         a = l->DispCol.a;
-        l->DispCol.a = (a * alpha) >> 8;
+        l->DispCol.a = (a * pow) >> 8;
         lightSetColor(&lobj[i], l, NULL);
         l->DispCol.a = a;
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -307,114 +307,114 @@ void commonEspLightSet(cLight** list, int n)
 
 // Type 0: constant brightness Intensity, fading to 0 over the last normal.x units of the light's
 // radius + object size (when obj_flag).
-void lightSetConstant(cLight* l, GXLightObj* obj)
+void lightSetConstant(cLight* pLi, GXLightObj* pLo)
 {
-    Vec p = l->World;
+    Vec p = pLi->World;
     f32 d = GetDistance3(&obj_pos, &p);
-    f32 range = l->Radius + obj_size;
+    f32 range = pLi->Radius + obj_size;
     f32 br;
 
-    if (d < range - l->normal.x || !(obj_flag & 1) || l->Radius == 0.0f) {
-        br = l->Intensity;
+    if (d < range - pLi->normal.x || !(obj_flag & 1) || pLi->Radius == 0.0f) {
+        br = pLi->Intensity;
     } else if (d < range) {
-        br = l->Intensity * (range - d) / l->normal.x;
+        br = pLi->Intensity * (range - d) / pLi->normal.x;
     } else {
         br = 0.0f;
     }
-    GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+    GXInitLightAttn(pLo, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
 // Type 1: brightness falls linearly to 0 at the radius.
-void lightSetLinear(cLight* l, GXLightObj* obj)
+void lightSetLinear(cLight* pLi, GXLightObj* pLo)
 {
-    Vec p = l->World;
+    Vec p = pLi->World;
     f32 br;
 
-    if (l->Radius != 0.0f) {
+    if (pLi->Radius != 0.0f) {
         f32 d = GetDistance3(&obj_pos, &p);
 
-        br = l->Intensity * (l->Radius - d) / l->Radius;
+        br = pLi->Intensity * (pLi->Radius - d) / pLi->Radius;
     } else {
-        br = l->Intensity;
+        br = pLi->Intensity;
     }
-    GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+    GXInitLightAttn(pLo, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
 // Type 2: constant brightness with a quadratic distance attenuation k2 that reaches 0.1 at the radius.
-static void lightSetQuadratic(cLight* l, GXLightObj* obj)
+static void lightSetQuadratic(cLight* pLi, GXLightObj* pLo)
 {
-    Vec p = l->World;
+    Vec p = pLi->World;
     f32 k2 = 0.1f;
     f32 d = GetDistance3(&obj_pos, &p);
-    f32 range = l->Radius + obj_size;
+    f32 range = pLi->Radius + obj_size;
     f32 br;
 
-    if (d < range - l->normal.x || !(obj_flag & 1) || l->Radius == 0.0f) {
-        br = l->Intensity;
+    if (d < range - pLi->normal.x || !(obj_flag & 1) || pLi->Radius == 0.0f) {
+        br = pLi->Intensity;
     } else if (d < range) {
-        br = l->Intensity * (range - d) / l->normal.x;
+        br = pLi->Intensity * (range - d) / pLi->normal.x;
     } else {
         br = 0.001f;
     }
     f32 zero = 0.0f;
     f32 one = 1.0f;
-    if (l->Radius != zero) {
-        k2 = (l->Intensity - 0.1f) / 0.1f / (l->Radius * l->Radius);
+    if (pLi->Radius != zero) {
+        k2 = (pLi->Intensity - 0.1f) / 0.1f / (pLi->Radius * pLi->Radius);
     } else {
         k2 = zero;
     }
-    GXInitLightAttn(obj, br, zero, zero, one, zero, k2);
+    GXInitLightAttn(pLo, br, zero, zero, one, zero, k2);
 }
 
 // Type 3: spot light along the light's normal, cone angle A0, brightness with the radius fade
 // (A1 = fade width), GX distance attenuation over 5000.
-void lightSetSpotlight(cLight* l, GXLightObj* obj)
+void lightSetSpotlight(cLight* pLi, GXLightObj* pLo)
 {
     Vec cdir;
     Vec dir;
     Vec p;
-    LightSpot* sp = &l->spot;
+    LightSpot* sp = &pLi->spot;
     f32 refDist = 5000.0f;
     f32 d;
     f32 range;
     f32 br;
 
-    l->getPos(&p);
-    l->getNormal(&sp->Normal, &dir);
+    pLi->getPos(&p);
+    pLi->getNormal(&sp->Normal, &dir);
     PSMTXMultVecSR(pG->Camera.v_mat, &dir, &cdir);
-    GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
+    GXInitLightDir(pLo, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
-    range = l->Radius + obj_size;
-    if (d < range - sp->A1 || !(obj_flag & 1) || l->Radius == 0.0f) {
-        br = l->Intensity;
+    range = pLi->Radius + obj_size;
+    if (d < range - sp->A1 || !(obj_flag & 1) || pLi->Radius == 0.0f) {
+        br = pLi->Intensity;
     } else if (d < range) {
-        br = l->Intensity * (range - d) / sp->A1;
+        br = pLi->Intensity * (range - d) / sp->A1;
     } else {
         br = 0.001f;
     }
-    GXInitLightSpot(obj, sp->A0, 2);
-    GXInitLightDistAttn(obj, 5000.0f, br, 2);
+    GXInitLightSpot(pLo, sp->A0, 2);
+    GXInitLightDistAttn(pLo, 5000.0f, br, 2);
 }
 
 // Type 4: direction from the normal, the raw GX attenuation coefficients A0..A2 / K0..K2.
-void lightSetCustom(cLight* l, GXLightObj* obj)
+void lightSetCustom(cLight* pLi, GXLightObj* pLo)
 {
     Vec cdir;
     Vec dir;
-    LightSpot* sp = &l->spot;
+    LightSpot* sp = &pLi->spot;
 
-    l->getNormal(&sp->Normal, &dir);
+    pLi->getNormal(&sp->Normal, &dir);
     PSMTXMultVecSR(pG->Camera.v_mat, &dir, &cdir);
-    GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
-    GXInitLightAttn(obj, sp->A0, sp->A1, sp->A2, sp->K0, sp->K1, sp->K2);
+    GXInitLightDir(pLo, cdir.x, cdir.y, cdir.z);
+    GXInitLightAttn(pLo, sp->A0, sp->A1, sp->A2, sp->K0, sp->K1, sp->K2);
 }
 
 // Type 5: directional light — placed at the object + the normal (in camera space when flags
 // bit0), brightness with the radius fade.
-void lightSetParallel(cLight* l, GXLightObj* obj)
+void lightSetParallel(cLight* pLi, GXLightObj* pLo)
 {
     Vec p;
-    LightSpot* sp = &l->spot;
+    LightSpot* sp = &pLi->spot;
     f32 d;
     f32 range;
     f32 br;
@@ -429,97 +429,97 @@ void lightSetParallel(cLight* l, GXLightObj* obj)
     }
     PSVECAdd(&obj_pos, &p, &p);
     PSMTXMultVec(pG->Camera.v_mat, &p, &p);
-    GXInitLightPos(obj, p.x, p.y, p.z);
+    GXInitLightPos(pLo, p.x, p.y, p.z);
     Vec q;
-    l->getPos(&q);
+    pLi->getPos(&q);
     d = GetDistance3(&obj_pos, &q);
-    range = l->Radius + obj_size;
-    if (d < range - sp->A1 || !(obj_flag & 1) || l->Radius == 0.0f) {
-        br = l->Intensity;
+    range = pLi->Radius + obj_size;
+    if (d < range - sp->A1 || !(obj_flag & 1) || pLi->Radius == 0.0f) {
+        br = pLi->Intensity;
     } else if (d < range) {
-        br = l->Intensity * (range - d) / sp->A1;
+        br = pLi->Intensity * (range - d) / sp->A1;
     } else {
         br = 0.001f;
     }
-    GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+    GXInitLightAttn(pLo, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
 // Type 6: spot light with a quadratic distance attenuation scaled by the brightness.
-void lightSetSpotQuad(cLight* l, GXLightObj* obj)
+void lightSetSpotQuad(cLight* pLi, GXLightObj* pLo)
 {
     Vec cdir;
     Vec dir;
     Vec p;
-    LightSpot* sp = &l->spot;
+    LightSpot* sp = &pLi->spot;
     f32 k2 = 0.1f;
     f32 d;
     f32 range;
     f32 br;
 
-    l->getPos(&p);
-    l->getNormal(&sp->Normal, &dir);
+    pLi->getPos(&p);
+    pLi->getNormal(&sp->Normal, &dir);
     PSMTXMultVecSR(pG->Camera.v_mat, &dir, &cdir);
-    GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
+    GXInitLightDir(pLo, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
-    range = l->Radius + obj_size;
-    if (d < range - sp->A1 || !(obj_flag & 1) || l->Radius == 0.0f) {
-        br = l->Intensity;
+    range = pLi->Radius + obj_size;
+    if (d < range - sp->A1 || !(obj_flag & 1) || pLi->Radius == 0.0f) {
+        br = pLi->Intensity;
     } else if (d < range) {
-        br = l->Intensity * (range - d) / sp->A1;
+        br = pLi->Intensity * (range - d) / sp->A1;
     } else {
         br = 0.001f;
     }
-    GXInitLightSpot(obj, sp->A0, 2);
-    if (l->Radius != 0.0f) {
-        k2 = (l->Intensity - 0.1f) / 0.1f / (l->Radius * l->Radius) / br;
+    GXInitLightSpot(pLo, sp->A0, 2);
+    if (pLi->Radius != 0.0f) {
+        k2 = (pLi->Intensity - 0.1f) / 0.1f / (pLi->Radius * pLi->Radius) / br;
     } else {
         k2 = 0.0f;
     }
-    GXInitLightAttnK(obj, 1.0f / br, 0.0f, k2);
+    GXInitLightAttnK(pLo, 1.0f / br, 0.0f, k2);
 }
 
 // Type 7: a local ambient light — raises the ambient colour to its colour within the radius
 // (faded over the last normal.x units).
-void lightSetLocalAmb(cLight* l, GXColor* amb)
+void lightSetLocalAmb(cLight* pLi, GXColor* lamb)
 {
-    Vec p = l->World;
+    Vec p = pLi->World;
     f32 d = GetDistance3(&obj_pos, &p);
-    f32 range = l->Radius + obj_size;
+    f32 range = pLi->Radius + obj_size;
     GXColor c;
 
-    if (d < range - l->normal.x || !(obj_flag & 1) || l->Radius == 0.0f) {
-        c = l->DispCol;
+    if (d < range - pLi->normal.x || !(obj_flag & 1) || pLi->Radius == 0.0f) {
+        c = pLi->DispCol;
     } else if (d < range) {
-        d = (range - d) / l->normal.x;
-        c.r = (u8) (d * (f32) (int) l->DispCol.r);
-        c.g = (u8) (d * (f32) (int) l->DispCol.g);
-        c.b = (u8) (d * (f32) (int) l->DispCol.b);
+        d = (range - d) / pLi->normal.x;
+        c.r = (u8) (d * (f32) (int) pLi->DispCol.r);
+        c.g = (u8) (d * (f32) (int) pLi->DispCol.g);
+        c.b = (u8) (d * (f32) (int) pLi->DispCol.b);
     } else {
         c.a = c.b = c.g = c.r = 0;
     }
-    amb->r = MAX(amb->r, c.r);
-    amb->g = MAX(amb->g, c.g);
-    amb->b = MAX(amb->b, c.b);
+    lamb->r = MAX(lamb->r, c.r);
+    lamb->g = MAX(lamb->g, c.g);
+    lamb->b = MAX(lamb->b, c.b);
 }
 
 // GX light colour = DispCol.rgb x alpha / 128 (x the enemy's light-area scale when this is the
 // area's light), clamped, alpha 0x80.
-void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
+void lightSetColor(GXLightObj* lobj, cLight* pLi, cEm* pMod)
 {
     f32 col[3];
     GXColor c;
-    f32 r = (f32) l->DispCol.r;
-    f32 g = (f32) l->DispCol.g;
-    f32 b = (f32) l->DispCol.b;
-    f32 a = (f32) (int) l->DispCol.a;
+    f32 r = (f32) pLi->DispCol.r;
+    f32 g = (f32) pLi->DispCol.g;
+    f32 b = (f32) pLi->DispCol.b;
+    f32 a = (f32) (int) pLi->DispCol.a;
 
     col[0] = r * a * 0.0078125f;
     col[1] = g * a * 0.0078125f;
     col[2] = b * a * 0.0078125f;
-    if (em != NULL) {
-        EmLightArea* la = &em->litArea;
+    if (pMod != NULL) {
+        EmLightArea* la = &pMod->litArea;
 
-        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == l->LitIndex) {
+        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == pLi->LitIndex) {
             col[0] *= la->scale;
             col[1] *= la->scale;
             col[2] *= la->scale;
@@ -532,7 +532,7 @@ void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
     c.g = (u8) col[1];
     c.b = (u8) col[2];
     c.a = 0x80;
-    GXInitLightColor(obj, c);
+    GXInitLightColor(lobj, c);
 }
 
 // Ambient colour of both colour channels.

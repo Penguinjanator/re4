@@ -84,10 +84,10 @@ void cString::clear()
 }
 
 // Takes a fresh heap copy of `s` (the previous buffer must already be cleared).
-void cString::copy(const char* s)
+void cString::copy(const char* str)
 {
-    char* p = new char[strlen(s) + 1];
+    char* p = new char[strlen(str) + 1];
 
-    strcpy(p, s);
+    strcpy(p, str);
     m_str = p;
 }

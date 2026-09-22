@@ -69,8 +69,8 @@ void cEsp43::move()
 }
 
 // Remembers the est id (Work8[0], 0xFF = none) to spawn on start.
-int cEsp43::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp43::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
-    m_Free.EstNo = gen->Work8[0];
+    m_Free.EstNo = pSeq->Work8[0];
     return 1;
 }

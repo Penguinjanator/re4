@@ -67,63 +67,63 @@ void cObj26::move()
 }
 
 // Rno1 == 0: eases the scale to tgtScale (10% per frame) and plays the motion.
-void obj26_R1_Set(cObj26* obj)
+void obj26_R1_Set(cObj26* pObj)
 {
-    Obj26Work* w = &obj->obj26;
+    Obj26Work* w = &pObj->obj26;
 
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        obj->scale.x = obj->scale.x * 0.9f + w->Scale.x * 0.1f;
-        obj->scale.y = obj->scale.y * 0.9f + w->Scale.y * 0.1f;
-        obj->scale.z = obj->scale.z * 0.9f + w->Scale.z * 0.1f;
-        if (obj->Motion.pMot) {
-            MotionMove(obj, 0);
+        pObj->scale.x = pObj->scale.x * 0.9f + w->Scale.x * 0.1f;
+        pObj->scale.y = pObj->scale.y * 0.9f + w->Scale.y * 0.1f;
+        pObj->scale.z = pObj->scale.z * 0.9f + w->Scale.z * 0.1f;
+        if (pObj->Motion.pMot) {
+            MotionMove(pObj, 0);
         }
         break;
     }
-    obj26MatCalc(obj);
+    obj26MatCalc(pObj);
 }
 
 // Rno1 == 1: shrinks by 10% and fades by 10% per frame until invisible.
-void obj26_R1_Die(cObj26* obj)
+void obj26_R1_Die(cObj26* pObj)
 {
-    switch (obj->r_no_2) {
+    switch (pObj->r_no_2) {
     case 0:
-        obj->r_no_2++;
+        pObj->r_no_2++;
     case 1:
-        obj->scale.y = obj->scale.z = obj->scale.x = obj->scale.x * 0.9f;
-        obj->invisible_factor *= 0.9f;
-        if (obj->invisible_factor <= 0.01f) {
-            obj->invisible_factor = 0.0f;
-            obj->r_no_2++;
-        } else if (obj->Motion.pMot) {
-            MotionMove(obj, 0);
+        pObj->scale.y = pObj->scale.z = pObj->scale.x = pObj->scale.x * 0.9f;
+        pObj->invisible_factor *= 0.9f;
+        if (pObj->invisible_factor <= 0.01f) {
+            pObj->invisible_factor = 0.0f;
+            pObj->r_no_2++;
+        } else if (pObj->Motion.pMot) {
+            MotionMove(pObj, 0);
         }
         break;
     case 2:
         break;
     }
-    obj26MatCalc(obj);
+    obj26MatCalc(pObj);
 }
 
 // Places the object under parts 2 of the parent (or free) and updates its parts.
-void obj26MatCalc(cObj26* obj)
+void obj26MatCalc(cObj26* pObj)
 {
-    if (obj->obj26.parent) {
-        cModel* parts = obj->obj26.parent->getPartsPtr(2);
-        RotMatrix(obj->mat, &obj->ang);
-        TransMatrix(obj->mat, &obj->pos);
-        ScaleMatrix(obj->mat, &obj->scale);
-        PSMTXConcat(parts->mat, obj->mat, obj->mat);
-        obj->Motion.Mot_flag |= 0x40000000;
+    if (pObj->obj26.parent) {
+        cModel* parts = pObj->obj26.parent->getPartsPtr(2);
+        RotMatrix(pObj->mat, &pObj->ang);
+        TransMatrix(pObj->mat, &pObj->pos);
+        ScaleMatrix(pObj->mat, &pObj->scale);
+        PSMTXConcat(parts->mat, pObj->mat, pObj->mat);
+        pObj->Motion.Mot_flag |= 0x40000000;
     } else {
-        RotMatrix(obj->l_mat, &obj->ang);
-        TransMatrix(obj->l_mat, &obj->pos);
-        ScaleMatrix(obj->l_mat, &obj->scale);
-        PSMTXCopy(obj->l_mat, obj->mat);
+        RotMatrix(pObj->l_mat, &pObj->ang);
+        TransMatrix(pObj->l_mat, &pObj->pos);
+        ScaleMatrix(pObj->l_mat, &pObj->scale);
+        PSMTXCopy(pObj->l_mat, pObj->mat);
     }
-    obj->partsMatCalc();
-    obj->partsWorldCalc();
+    pObj->partsMatCalc();
+    pObj->partsWorldCalc();
 }

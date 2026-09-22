@@ -46,26 +46,26 @@ extern TASK* pCTask;      // task currently being scheduled
 extern OSThread* pParentThread;  // thread to return to from the scheduler
 extern TASK Task[TASK_NUM];
 
-void TaskSleep(int frames);
+void TaskSleep(int ctr);
 void TaskExit();
-void TaskSuspend(int task);
-void TaskSignal(int task);
+void TaskSuspend(int level);
+void TaskSignal(int level);
 extern "C" {
 // Inside extern "C" GCC 2.95 reads `void (*)()` as `void (*)(...)` and then mangles a function
 // taking it by value; the same type through a typedef keeps C linkage.
 typedef void (*TaskFunc)();
 void TaskSchedulerInit();
 void TaskAllClear();
-u32 GetStackSize(int no);
+u32 GetStackSize(int level);
 void TaskScheduler();
-void TaskSchedulerMain(TASK* t);
+void TaskSchedulerMain(TASK* pT);
 void stackUsedCheck();
-void StackOverflowCheck(TASK* t);
+void StackOverflowCheck(TASK* pTask);
 void* TaskExec_hook(void* value);
 TASK* TaskExec(int prio, TaskFunc func, int arg);
 void TaskChain(TaskFunc func, int arg);
 void TaskKill(int prio);
-u8 TaskStatus(int prio);
+u8 TaskStatus(int level);
 void SetTaskModelPtr(void* model, TASK* t);
 // interrupt-level task variants (dvd.cpp uses them for reads flagged 0x100)
 void iTaskScheduler();

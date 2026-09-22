@@ -16,37 +16,37 @@ cCtrlMgr::cCtrlMgr() : cManager<cCtrl>(sizeof(cCtrl), 2)
 
 // Places the cCtrl subclass for `id` into the fresh work (unknown ids get the base class) and
 // marks it live.
-int cCtrlMgr::construct(cCtrl* p, u32 id)
+int cCtrlMgr::construct(cCtrl* pCtrl, u32 id)
 {
-    p->Id = id;
+    pCtrl->Id = id;
     switch (id) {
     case 0:
-        new (p) cCtrl00;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl00;
+        pCtrl->be_flag = 1;
         break;
     case 1:
-        new (p) cCtrl01;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl01;
+        pCtrl->be_flag = 1;
         break;
     case 0x10:
-        new (p) cCtrl10;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl10;
+        pCtrl->be_flag = 1;
         break;
     case 0x11:
-        new (p) cCtrl11;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl11;
+        pCtrl->be_flag = 1;
         break;
     case 0x12:
-        new (p) cCtrl12;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl12;
+        pCtrl->be_flag = 1;
         break;
     case 0x14:
-        new (p) cCtrl14;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl14;
+        pCtrl->be_flag = 1;
         break;
     default:
-        new (p) cCtrl;
-        p->be_flag = 1;
+        new (pCtrl) cCtrl;
+        pCtrl->be_flag = 1;
         break;
     }
     return 1;

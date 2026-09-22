@@ -285,60 +285,60 @@ CLOTH_AT_SET adaRibbonAt[10] = {
 };
 
 // The callers pass (&leonHair, &leonJacket, &leonHolster); the works are used as jacket, holster, hair.
-void PlClothSetLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hair)
+void PlClothSetLeon(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3)
 {
-    testJacketSetLeon(pl, jacket);
-    testHolsterSetLeon(pl, holster);
-    testHairSetLeon(pl, hair);
+    testJacketSetLeon(pl, pCloth1);
+    testHolsterSetLeon(pl, pCloth2);
+    testHairSetLeon(pl, pCloth3);
 }
 
 // Per frame (cPlLeon::moveCloth): simulates the jacket, holster and hair, then clears the model's
 // warp / no-cloth flags (be_flag 0x00E00000) that reset the chains this frame.
-void PlClothMoveLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hair)
+void PlClothMoveLeon(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3)
 {
-    testJacketMoveLeon(pl, jacket);
-    testHolsterMoveLeon(pl, holster);
-    testHairMoveLeon(pl, hair);
+    testJacketMoveLeon(pl, pCloth1);
+    testHolsterMoveLeon(pl, pCloth2);
+    testHairMoveLeon(pl, pCloth3);
     pl->be_flag &= ~0x00E00000;
 }
 
 // Likewise (&girlHair, &girlSkirt, &girlSweater) are used as skirt, hair, sweater (or ribbon).
-void PlClothSetGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater, int evt)
+void PlClothSetGirl(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3, int mode)
 {
-    testHairSetGirl(pl, hair, evt);
+    testHairSetGirl(pl, pCloth2, mode);
     if (pG->game_costume == 1) {
-        testRibbonSetGirl(pl, sweater);
+        testRibbonSetGirl(pl, pCloth3);
     } else {
-        testSkirtSetGirl(pl, skirt, evt);
-        testSweaterSetGirl(pl, sweater);
+        testSkirtSetGirl(pl, pCloth1, mode);
+        testSweaterSetGirl(pl, pCloth3);
     }
 }
 
 // Per frame (cPlAshley::moveCloth / the Ashley NPC): hair, then skirt + sweater, or ribbon + lapels
 // for the alternate costume (game_costume 1); clears be_flag 0x00E00000.
-void PlClothMoveGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater)
+void PlClothMoveGirl(cModel* pl, PlCloth* pCloth1, PlCloth* pCloth2, PlCloth* pCloth3)
 {
-    testHairMoveGirl(pl, hair);
+    testHairMoveGirl(pl, pCloth2);
     if (pG->game_costume == 1) {
-        testRibbonMoveGirl(pl, sweater);
+        testRibbonMoveGirl(pl, pCloth3);
         girlLapelMove(pl);
     } else {
-        testSkirtMoveGirl(pl, skirt);
-        testSweaterMoveGirl(pl, sweater);
+        testSkirtMoveGirl(pl, pCloth1);
+        testSweaterMoveGirl(pl, pCloth3);
     }
     pl->be_flag &= ~0x00E00000;
 }
 
 // Luis: hair chain only.
-void PlClothSetLuis(cModel* pl, PlCloth* hair)
+void PlClothSetLuis(cModel* pl, PlCloth* pCloth1)
 {
-    testHairSetLuis(pl, hair);
+    testHairSetLuis(pl, pCloth1);
 }
 
 // Luis per frame: hair; clears be_flag 0x00E00000.
-void PlClothMoveLuis(cModel* pl, PlCloth* hair)
+void PlClothMoveLuis(cModel* pl, PlCloth* pCloth1)
 {
-    testHairMoveLuis(pl, hair);
+    testHairMoveLuis(pl, pCloth1);
     pl->be_flag &= ~0x00E00000;
 }
 
@@ -476,7 +476,7 @@ void testHolsterMoveLeon(cModel* pl, PlCloth* pCloth)
 }
 
 // Ashley's hair: 21 links, 7 collision spheres in events (evt) else 5, Flag 0x302.
-void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
+void testHairSetGirl(cModel* pl, PlCloth* pCloth, int mode)
 {
     pCloth->Num = 21;
     pCloth->pCloth = girlHairP;
@@ -488,7 +488,7 @@ void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     pCloth->pChild = girlHairDp;
     pCloth->pWindSin = girlHairWindS;
     pCloth->pWindRate = girlHairWindR;
-    if (evt) {
+    if (mode) {
         pCloth->pMax = girlHairMaxEvt;
         pCloth->pAtset = girlHairAtEvt;
         pCloth->At_num = 7;
@@ -518,7 +518,7 @@ void testHairMoveGirl(cModel* pl, PlCloth* pCloth)
 }
 
 // Ashley's skirt: 48 links (a ring of 4 x 12) with 11 volumes (a different set in events).
-void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
+void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int mode)
 {
     pCloth->Num = 48;
     pCloth->pCloth = girlSkirtP;
@@ -528,7 +528,7 @@ void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     pCloth->pUpRight = 0;
     pCloth->pParent = girlSkirtUp;
     pCloth->pChild = girlSkirtDp;
-    if (evt) {
+    if (mode) {
         pCloth->pMax = girlSkirtMaxEvt;
         pCloth->pAtset = girlSkirtAtEvt;
         pCloth->At_num = 11;

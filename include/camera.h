@@ -37,35 +37,35 @@ struct Camera {
 
 extern "C" {
 // game/cam_sys.cpp
-void CameraSetOrientationUp(Camera* cam);
-void CameraSetOrientationRoll(Camera* cam);
-void CameraSetOrientationZeroRoll(Camera* cam);
-f32 CameraGetRoll(Camera* cam);
+void CameraSetOrientationUp(Camera* pCam);
+void CameraSetOrientationRoll(Camera* pCam);
+void CameraSetOrientationZeroRoll(Camera* pCam);
+f32 CameraGetRoll(Camera* pCam);
 void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad);
-void CameraTargetRot(Camera* cam, char axis, f32 rad);
-void CameraCamposRot(Camera* cam, char axis, f32 rad);
-void CameraDolly(Camera* cam, Vec* speed);
-void CameraCamposDistance(Camera* cam, f32 dist);
-void CameraSetWithRoll(Camera* cam, Vec* pos, Vec* at, f32 roll, f32 fovy);
+void CameraTargetRot(Camera* pCam, char axis, f32 rad);
+void CameraCamposRot(Camera* pCam, char axis, f32 rad);
+void CameraDolly(Camera* pCam, Vec* speed);
+void CameraCamposDistance(Camera* pCam, f32 distance);
+void CameraSetWithRoll(Camera* pCam, Vec* campos, Vec* target, f32 roll, f32 fovy);
 // game/camera.cpp
-void CameraSetProjection(int type);
+void CameraSetProjection(int projType);
 int CameraGetProjection();
 void CameraGameInit();
 void CameraRoomInit();
 void CameraMove();
 struct ViewFrustum* CameraViewFrustumPtr(Camera* cam);
-void CameraGetUpVec(Camera* cam, Vec* up);
-void CameraGetLookVec(Camera* cam, Vec* look);
-void CameraGetLookVecInverse(Camera* cam, Vec* look);
-void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out);
+void CameraGetUpVec(Camera* pCam, Vec* up);
+void CameraGetLookVec(Camera* pCam, Vec* look);
+void CameraGetLookVecInverse(Camera* pCam, Vec* look_inv);
+void CamPos2ScrnVec(f32 sX, f32 sY, Vec* vec);
 }
 // game/camera.cpp (C++ linkage): loads the current projection matrix into GX
 void CameraCurrentProjection();
 extern int ProjType;   // current projection type (db_cam.cpp toggles it)
 // game/cam_sys.cpp, C++ linkage (`CameraTargetDistance__FP6Cameraf` in Bio4.sym, marked local there;
 // the t_camera REL imports it, so cam_sys.cpp defines it non-static)
-void CameraTargetDistance(Camera* cam, f32 dist);
+void CameraTargetDistance(Camera* pCam, f32 distance);
 struct JOY;
-void CamStick2World(Camera* cam, JOY* joy, Vec* out);
+void CamStick2World(Camera* pCam, JOY* pJoy, Vec* pVec);
 
 #endif

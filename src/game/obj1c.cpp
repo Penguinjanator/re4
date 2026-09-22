@@ -111,86 +111,86 @@ void cObj1c::move()
 }
 
 // Rno1 == 0: drift, a water effect (est 1/0) every 30 frames while visible, idle motion.
-void obj1c_R1_Set(cObj1c* obj)
+void obj1c_R1_Set(cObj1c* pObj)
 {
-    IslandWork* w = &obj->island;
+    IslandWork* w = &pObj->island;
 
-    obj1cSpdMove(obj);
+    obj1cSpdMove(pObj);
     if (w->estTimer) {
         w->estTimer--;
     } else {
         w->estTimer = 30;
-        if (obj->be_flag & 2) {
-            EstSet(obj, -1, 0, 0, EFF_ROOM, 0, 0, w->espKind, obj, 0);
+        if (pObj->be_flag & 2) {
+            EstSet(pObj, -1, 0, 0, EFF_ROOM, 0, 0, w->espKind, pObj, 0);
         }
     }
-    if (obj->Motion.pMot) {
-        MotionMove(obj, 0);
+    if (pObj->Motion.pMot) {
+        MotionMove(pObj, 0);
     } else {
-        RotMatrix(obj->mat, &obj->ang);
-        TransMatrix(obj->mat, &obj->pos);
-        ScaleMatrix(obj->mat, &obj->scale);
-        obj->partsMatCalc();
+        RotMatrix(pObj->mat, &pObj->ang);
+        TransMatrix(pObj->mat, &pObj->pos);
+        ScaleMatrix(pObj->mat, &pObj->scale);
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Rno1 == 1: crash motion, then back to the idle motion (big variant when scale >= 1.5).
-void obj1c_R1_Crash(cObj1c* obj)
+void obj1c_R1_Crash(cObj1c* pObj)
 {
-    IslandWork* w = &obj->island;
+    IslandWork* w = &pObj->island;
 
-    obj1cSpdMove(obj);
-    if (obj->Motion.pMot) {
-        if (MotionMove(obj, 0)) {
+    obj1cSpdMove(pObj);
+    if (pObj->Motion.pMot) {
+        if (MotionMove(pObj, 0)) {
             if (w->motIdle) {
-                if (obj->scale.x >= 1.5f) {
-                    MotionSetCore(obj, &obj->Motion, w->motIdleBig, 0, 0, 5, 0);
+                if (pObj->scale.x >= 1.5f) {
+                    MotionSetCore(pObj, &pObj->Motion, w->motIdleBig, 0, 0, 5, 0);
                 } else {
-                    MotionSetCore(obj, &obj->Motion, w->motIdle, 0, 0, 5, 0);
+                    MotionSetCore(pObj, &pObj->Motion, w->motIdle, 0, 0, 5, 0);
                 }
-                obj->r_no_0 = 1;
-                obj->r_no_1 = 0;
-                obj->r_no_2 = 0;
-                obj->r_no_3 = 0;
+                pObj->r_no_0 = 1;
+                pObj->r_no_1 = 0;
+                pObj->r_no_2 = 0;
+                pObj->r_no_3 = 0;
             }
         }
     } else {
-        RotMatrix(obj->mat, &obj->ang);
-        TransMatrix(obj->mat, &obj->pos);
-        ScaleMatrix(obj->mat, &obj->scale);
-        obj->partsMatCalc();
+        RotMatrix(pObj->mat, &pObj->ang);
+        TransMatrix(pObj->mat, &pObj->pos);
+        ScaleMatrix(pObj->mat, &pObj->scale);
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Rno1 == 2: same as Crash (the big crash entry).
-void obj1c_R1_CrashBig(cObj1c* obj)
+void obj1c_R1_CrashBig(cObj1c* pObj)
 {
-    IslandWork* w = &obj->island;
+    IslandWork* w = &pObj->island;
 
-    obj1cSpdMove(obj);
-    if (obj->Motion.pMot) {
-        if (MotionMove(obj, 0)) {
+    obj1cSpdMove(pObj);
+    if (pObj->Motion.pMot) {
+        if (MotionMove(pObj, 0)) {
             if (w->motIdle) {
-                if (obj->scale.x >= 1.5f) {
-                    MotionSetCore(obj, &obj->Motion, w->motIdleBig, 0, 0, 5, 0);
+                if (pObj->scale.x >= 1.5f) {
+                    MotionSetCore(pObj, &pObj->Motion, w->motIdleBig, 0, 0, 5, 0);
                 } else {
-                    MotionSetCore(obj, &obj->Motion, w->motIdle, 0, 0, 5, 0);
+                    MotionSetCore(pObj, &pObj->Motion, w->motIdle, 0, 0, 5, 0);
                 }
-                obj->r_no_0 = 1;
-                obj->r_no_1 = 0;
-                obj->r_no_2 = 0;
-                obj->r_no_3 = 0;
+                pObj->r_no_0 = 1;
+                pObj->r_no_1 = 0;
+                pObj->r_no_2 = 0;
+                pObj->r_no_3 = 0;
             }
         }
     } else {
-        RotMatrix(obj->mat, &obj->ang);
-        TransMatrix(obj->mat, &obj->pos);
-        ScaleMatrix(obj->mat, &obj->scale);
-        obj->partsMatCalc();
+        RotMatrix(pObj->mat, &pObj->ang);
+        TransMatrix(pObj->mat, &pObj->pos);
+        ScaleMatrix(pObj->mat, &pObj->scale);
+        pObj->partsMatCalc();
     }
-    obj->partsWorldCalc();
+    pObj->partsWorldCalc();
 }
 
 // Installs the idle/crash motions (normal and big-scale variants) and starts the idle.
@@ -233,12 +233,12 @@ void cObj1c::setCrash()
 
 // Big hit: pushes the island away from `from` at 300 units/frame, crash motion + splash, and opens
 // the 15-frame crash window (ckCrash).
-void cObj1c::setCrashBig(Vec* from)
+void cObj1c::setCrashBig(Vec* pPos)
 {
     IslandWork* w = &island;
     Vec dir;
 
-    PSVECSubtract(&pos, from, &dir);
+    PSVECSubtract(&pos, pPos, &dir);
     dir.y = 0.0f;
     if (dir.x == 0.0f && dir.z == 0.0f) {
         dir.z = 1.0f;
@@ -276,25 +276,25 @@ int cObj1c::ckCrash()
 
 // Drift: with no push speed moves 50/frame towards home (outside 50 units); a push speed moves the
 // island and decays by 10% per frame until below 50.
-void obj1cSpdMove(cObj1c* obj)
+void obj1cSpdMove(cObj1c* pObj)
 {
-    IslandWork* w = &obj->island;
+    IslandWork* w = &pObj->island;
     Vec d;
 
     if (w->spd.x == 0.0f || w->spd.z == 0.0f) {
-        PSVECSubtract(&w->home, &obj->pos, &d);
+        PSVECSubtract(&w->home, &pObj->pos, &d);
         if (d.x * d.x + d.z * d.z > 2500.0f) {
 #line 408 "D:/Bio4/Prog/obj1c.cpp"
             VECNormalize(&d, &d);
             PSVECScale(&d, &d, 50.0f);
-            PSVECAdd(&obj->pos, &d, &obj->pos);
+            PSVECAdd(&pObj->pos, &d, &pObj->pos);
         }
     } else {
         if (w->spd.x * w->spd.x + w->spd.z * w->spd.z < 2500.0f) {
             w->spd.x = 0.0f;
             w->spd.z = 0.0f;
         } else {
-            PSVECAdd(&obj->pos, &w->spd, &obj->pos);
+            PSVECAdd(&pObj->pos, &w->spd, &pObj->pos);
             PSVECScale(&w->spd, &w->spd, 0.9f);
         }
     }

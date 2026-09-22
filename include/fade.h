@@ -32,8 +32,8 @@ enum FADE_NO {
 
 void FadeKill(int no);
 void FadeInit();
-void FadeControl(int late);
-void fadeDraw(FadeWork* f);
+void FadeControl(int flag);
+void fadeDraw(FadeWork* pF);
 }
 
 // Full-screen fade between black and clear (every game-side FadeSet call). The colour pair is a

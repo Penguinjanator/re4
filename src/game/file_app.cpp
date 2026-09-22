@@ -27,14 +27,14 @@ int hdWrite_main(const char* path, void* buf, int size);
 void createBackupFile(const char* path);
 
 // Reads the whole host file into buf; returns the byte count (0 = not found / empty).
-int HDRead(const char* path, void* buf)
+int HDRead(const char* fname, void* addr)
 {
     int fd;
     int size;
     int ret = 0;
 
-    OSReport("HDread : \"%s\"  ", path);
-    fd = file_open(path, FILE_OPEN_READ);
+    OSReport("HDread : \"%s\"  ", fname);
+    fd = file_open(fname, FILE_OPEN_READ);
     if (fd == 0) {
         OSReport("not found!!!\n");
         return 0;
@@ -42,7 +42,7 @@ int HDRead(const char* path, void* buf)
     size = file_seek(fd, 0, 2);
     if (size != 0) {
         file_seek(fd, 0, 0);
-        ret = file_read(fd, buf, size);
+        ret = file_read(fd, addr, size);
         OSReport("read complete...\n");
     } else {
         OSReport("size 0\n");
@@ -52,20 +52,20 @@ int HDRead(const char* path, void* buf)
 }
 
 // Reads len bytes from offset ofs of a host file into buf; returns the byte count.
-int HDReadSeekLen(const char* path, void* buf, u32 ofs, int len)
+int HDReadSeekLen(const char* fname, void* addr, u32 seeksize, int len)
 {
     int fd;
     int ret = 0;
 
-    OSReport("HDread : \"%s\"  ", path);
-    fd = file_open(path, FILE_OPEN_READ);
+    OSReport("HDread : \"%s\"  ", fname);
+    fd = file_open(fname, FILE_OPEN_READ);
     if (fd == 0) {
         OSReport("not found!!!\n");
         return 0;
     }
-    if ((u32) file_seek(fd, 0, 2) > ofs) {
-        file_seek(fd, ofs, 0);
-        ret = file_read(fd, buf, len);
+    if ((u32) file_seek(fd, 0, 2) > seeksize) {
+        file_seek(fd, seeksize, 0);
+        ret = file_read(fd, addr, len);
         OSReport("read complete...\n");
     } else {
         OSReport("size 0\n");
@@ -75,51 +75,51 @@ int HDReadSeekLen(const char* path, void* buf, u32 ofs, int len)
 }
 
 // Reads a host file into a new game-heap block (group 13); *buf receives it. Returns the size.
-int HDReadMemAlloc(const char* path, void** buf)
+int HDReadMemAlloc(const char* fname, void** addr)
 {
-    return hdRead_malloc(path, buf, 0, 0);
+    return hdRead_malloc(fname, addr, 0, 0);
 }
 
 // Reads a host file into a new debug-heap block (Debug_alloc flag). Returns the size.
-int HDReadDebugAlloc(const char* path, void** buf, int flag)
+int HDReadDebugAlloc(const char* fname, void** addr, int release_flag)
 {
-    return hdRead_malloc(path, buf, 1, flag);
+    return hdRead_malloc(fname, addr, 1, release_flag);
 }
 
 // Shared body: opens, measures, allocates (mode 0 game heap, 1 debug heap), reads and closes.
-int hdRead_malloc(const char* path, void** buf, int mode, int flag)
+int hdRead_malloc(const char* fname, void** addr, int malloc_mode, int release_flag)
 {
     int fd;
     int size;
     int ret = 0;
 
-    *buf = NULL;
-    OSReport("HDread : \"%s\"  ", path);
-    fd = file_open(path, FILE_OPEN_READ);
+    *addr = NULL;
+    OSReport("HDread : \"%s\"  ", fname);
+    fd = file_open(fname, FILE_OPEN_READ);
     if (fd == 0) {
         OSReport("not found!!!\n");
         return 0;
     }
     size = file_seek(fd, 0, 2);
     if (size != 0) {
-        switch (mode) {
+        switch (malloc_mode) {
         case 0:
 #line 165 "D:/Bio4/Prog/file_app.cpp"
-            *buf = MEM_ALLOC(size, 1, 13);
+            *addr = MEM_ALLOC(size, 1, 13);
             break;
         case 1:
-            *buf = Debug_alloc(size, flag);
+            *addr = Debug_alloc(size, release_flag);
             break;
         default:
             return 0;
         }
-        if (*buf == NULL) {
+        if (*addr == NULL) {
             OSReport("malloc failed!!!\n");
             file_close(fd);
             return 0;
         }
         file_seek(fd, 0, 0);
-        ret = file_read(fd, *buf, size);
+        ret = file_read(fd, *addr, size);
         OSReport("read complete...\n");
     } else {
         OSReport("size 0\n");
@@ -130,44 +130,44 @@ int hdRead_malloc(const char* path, void** buf, int mode, int flag)
 
 // Writes a host file after checking the lock (refuses when another user holds it and the user
 // declines to overwrite) and saving the old contents as path.bak.
-int HDWrite(const char* path, void* buf, int size)
+int HDWrite(const char* fname, void* addr, int size)
 {
-    if (file_lock_check(path) == 1) {
+    if (file_lock_check(fname) == 1) {
         OSReport("not write...\n");
         return 0;
     }
-    createBackupFile(path);
-    return hdWrite_main(path, buf, size);
+    createBackupFile(fname);
+    return hdWrite_main(fname, addr, size);
 }
 
 // Writes a host file without lock check or backup.
-int HDWrite_only(const char* path, void* buf, int size)
+int HDWrite_only(const char* fname, void* addr, int size)
 {
-    return hdWrite_main(path, buf, size);
+    return hdWrite_main(fname, addr, size);
 }
 
 // Shared body: creates (size 0 -> truncates) or rewrites the file. Returns bytes written.
-int hdWrite_main(const char* path, void* buf, int size)
+int hdWrite_main(const char* fname, void* addr, int size)
 {
     int fd;
     int ret;
 
-    OSReport("HDwrite: \"%s\"  ", path);
+    OSReport("HDwrite: \"%s\"  ", fname);
     ret = 0;
     if (size == 0) {
-        fd = file_open(path, FILE_OPEN_WRITE);
+        fd = file_open(fname, FILE_OPEN_WRITE);
         if (fd == 0) {
             OSReport("write failed!\n");
             return 0;
         }
         OSReport("write complete...\n");
     } else {
-        fd = file_open(path, FILE_OPEN_RDWR);
+        fd = file_open(fname, FILE_OPEN_RDWR);
         if (fd == 0) {
             OSReport("write failed!\n");
             return 0;
         }
-        ret = file_write(fd, buf, size);
+        ret = file_write(fd, addr, size);
         OSReport("write complete...\n");
     }
     file_close(fd);
@@ -175,19 +175,19 @@ int hdWrite_main(const char* path, void* buf, int size)
 }
 
 // Copies the current contents of path to path.bak (debug heap temporaries).
-void createBackupFile(const char* path)
+void createBackupFile(const char* fname)
 {
     void* data;
     int size;
     char* bak;
     int fd;
 
-    size = HDReadDebugAlloc(path, &data, 1);
+    size = HDReadDebugAlloc(fname, &data, 1);
     if (size == 0) {
         return;
     }
-    bak = (char*) Debug_alloc(strlen(path) + 5, 1);
-    strcpy(bak, path);
+    bak = (char*) Debug_alloc(strlen(fname) + 5, 1);
+    strcpy(bak, fname);
     strcat(bak, ".bak");
     OSReport("HDwrite: \"%s\"  ", bak);
     fd = file_open(bak, FILE_OPEN_RDWR);
@@ -205,19 +205,19 @@ void createBackupFile(const char* path)
 }
 
 // 1 when the file's .lock exists, names another user and that user declined the overwrite prompt.
-int file_lock_check(const char* path)
+int file_lock_check(const char* name)
 {
     char lock[64];
     char* user;
 
-    strcpy(lock, path);
+    strcpy(lock, name);
     if (get_lock_file(lock) == NULL) {
         return 0;
     }
     if (file_exist(lock) == 1) {
         if (HDReadDebugAlloc(lock, (void**) &user, 1) != 0) {
             if (strcmp(user, pUser_name) != 0) {
-                if (file_lock_msg(1, path, user) == 1) {
+                if (file_lock_msg(1, name, user) == 1) {
                     Debug_free(user);
                     return 1;
                 }
@@ -230,12 +230,12 @@ int file_lock_check(const char* path)
 
 // Takes the lock for the current user (writes pUser_name into the .lock), asking before taking it
 // over from another user; returns 1 when held.
-int file_lock(const char* path)
+int file_lock(const char* name)
 {
     char lock[64];
     char* user;
 
-    strcpy(lock, path);
+    strcpy(lock, name);
     if (get_lock_file(lock) == NULL) {
         return 0;
     }
@@ -246,7 +246,7 @@ int file_lock(const char* path)
             HDWrite_only(lock, (void*) pUser_name, (strlen(pUser_name) + 32) & ~31);
         } else {
             if (strcmp(user, pUser_name) != 0) {
-                if (file_lock_msg(0, path, user) != 0) {
+                if (file_lock_msg(0, name, user) != 0) {
                     Debug_free(user);
                     return 0;
                 }
@@ -261,12 +261,12 @@ int file_lock(const char* path)
 }
 
 // Releases the lock when it is held by the current user (truncates the .lock). Returns 1 on success.
-int file_unlock(const char* path)
+int file_unlock(const char* name)
 {
     char lock[64];
     char* user;
 
-    strcpy(lock, path);
+    strcpy(lock, name);
     if (get_lock_file(lock) == NULL) {
         return 0;
     }
@@ -285,45 +285,45 @@ int file_unlock(const char* path)
 
 // Turns a room data path into its lock file name: the "room"/"Room"/"ROOM" directory component
 // becomes "lock" and ".lock" is appended (in place). NULL when the path has no room component.
-char* get_lock_file(char* path)
+char* get_lock_file(char* name)
 {
     char* p;
 
-    p = strstr(path, "room");
+    p = strstr(name, "room");
     if (p == NULL) {
-        p = strstr(path, "Room");
+        p = strstr(name, "Room");
         if (p == NULL) {
-            p = strstr(path, "ROOM");
+            p = strstr(name, "ROOM");
         }
     }
     if (p == NULL) {
         return NULL;
     }
     strncpy(p, "lock", 4);
-    strcat(path, ".lock");
-    return path;
+    strcat(name, ".lock");
+    return name;
 }
 
 // Blocking on-screen YES/NO prompt (mode 0 "UNLOCKED?", 1 "OVER WRITE?") driven by the pad; returns
 // the cursor (0 yes, 1 no).
-int file_lock_msg(int mode, const char* path, const char* user)
+int file_lock_msg(int msg_no, const char* name, const char* id)
 {
     int cur = 1;
     int n;
     int y = 80;
 
     while (1) {
-        switch (mode) {
+        switch (msg_no) {
         case 0:
-            eprintf2(10, 20, 30, 100, 6, 0, "(%s)", path);
+            eprintf2(10, 20, 30, 100, 6, 0, "(%s)", name);
             y = 160;
-            eprintf2(10, 20, 30, 120, 22, 0, " is locked by the other user [%s].", user);
+            eprintf2(10, 20, 30, 120, 22, 0, " is locked by the other user [%s].", id);
             eprintf2(10, 20, 30, 160, 2, 0, " UNLOCKED?");
             break;
         case 1:
-            eprintf2(10, 20, 30, 100, 6, 0, "(%s)", path);
+            eprintf2(10, 20, 30, 100, 6, 0, "(%s)", name);
             y = 160;
-            eprintf2(10, 20, 30, 120, 22, 0, " is locked by the other user [%s].", user);
+            eprintf2(10, 20, 30, 120, 22, 0, " is locked by the other user [%s].", id);
             eprintf2(10, 20, 30, 160, 2, 0, " OVER WRITE?");
             break;
         }

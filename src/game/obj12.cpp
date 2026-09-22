@@ -248,7 +248,7 @@ static void obj12SetRate(cObj* obj, u32 rate)
 
 // Starts the rope fall (be_flag bit 2, parent dropped): node speeds from spd with random spread
 // (or a random upward toss when spd is NULL), fall_type selects the bounce factors.
-void cObj12::setFall(Vec* spd, u8 type)
+void cObj12::setFall(Vec* pSpd, u8 type)
 {
     Obj12Work* w = &o12;
     u32 i;
@@ -257,21 +257,21 @@ void cObj12::setFall(Vec* spd, u8 type)
     w->be_flag |= 4;
     w->pEm_oya = 0;
     for (i = 0; i < 3; i++) {
-        if (spd) {
+        if (pSpd) {
             if (i == 0) {
                 r = fRand0_1();
-                w->fallSpd[i][0] = (s16) ((spd->x * 0.5f + spd->x * r) * 10.0f);
+                w->fallSpd[i][0] = (s16) ((pSpd->x * 0.5f + pSpd->x * r) * 10.0f);
                 r = fRand0_1();
-                w->fallSpd[i][1] = (s16) ((spd->y * 0.5f + spd->y * r) * 10.0f);
+                w->fallSpd[i][1] = (s16) ((pSpd->y * 0.5f + pSpd->y * r) * 10.0f);
                 r = fRand0_1();
-                w->fallSpd[i][2] = (s16) ((spd->z * 0.5f + spd->z * r) * 10.0f);
+                w->fallSpd[i][2] = (s16) ((pSpd->z * 0.5f + pSpd->z * r) * 10.0f);
             } else {
                 r = fRand0_1();
-                w->fallSpd[i][0] = (s16) ((spd->x * 0.5f + spd->x * r * 2.0f) * 10.0f);
+                w->fallSpd[i][0] = (s16) ((pSpd->x * 0.5f + pSpd->x * r * 2.0f) * 10.0f);
                 r = fRand0_1();
-                w->fallSpd[i][1] = (s16) ((spd->y * 0.5f + spd->y * r * 2.0f) * 10.0f);
+                w->fallSpd[i][1] = (s16) ((pSpd->y * 0.5f + pSpd->y * r * 2.0f) * 10.0f);
                 r = fRand0_1();
-                w->fallSpd[i][2] = (s16) ((spd->z * 0.5f + spd->z * r * 2.0f) * 10.0f);
+                w->fallSpd[i][2] = (s16) ((pSpd->z * 0.5f + pSpd->z * r * 2.0f) * 10.0f);
             }
         } else {
             w->fallSpd[i][0] = (s16) (fRand1_1() * 100.0f);
@@ -289,13 +289,13 @@ void cObj12::setFall(Vec* spd, u8 type)
 }
 
 // Sets the landing sound (block, number, enemy id; block 0xFF = none).
-void cObj12::setFallSe(u8 blk, u8 no, u8 id)
+void cObj12::setFallSe(u8 se_id, u8 se_no, u8 em_id)
 {
     Obj12Work* w = &o12;
 
-    w->fall_se_id = blk;
-    w->fall_se_no = no;
-    w->fall_em_id = id;
+    w->fall_se_id = se_id;
+    w->fall_se_no = se_no;
+    w->fall_em_id = em_id;
     w->fall_se_ck = 0;
 }
 

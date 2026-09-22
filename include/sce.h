@@ -11,15 +11,15 @@ class cEm;
 extern "C" {
 void SceEventStart(int mode);
 void SceEventEnd(int mode);
-void SceSleep(int frames);
+void SceSleep(int ctr);
 void SceUpCutStart();
 void SceUpCutEnd();
 int SceCheckEventStart();
 void SceSetRoomExitFunc(TaskFunc pFunc, void* param);
-void SetFree(int no, u32 v);
+void SetFree(int no, u32 val);
 u32 GetFree(int no);
 void SceMesSet(int no, u32 flags, int sel, int x, int y);
-void SceMesCamSndSet(int no, int cut, int se, int flags);
+void SceMesCamSndSet(int mes_no, int cam_no, int se_no, int attr);
 enum UP_CUT_ATTR {
     UP_CUT_ATTR_NONE = 0,
     UP_CUT_ATTR_MES_COMMON = 1,
@@ -27,16 +27,16 @@ enum UP_CUT_ATTR {
     UP_CUT_ATTR_CUT_FIX = 4
 };
 
-void SceUpCut(int mes_no, int cam_no, int se_no, int flags);
+void SceUpCut(int mes_no, int cam_no, int se_no, int attr);
 int SceMesGetSelection();
 void SceMesWait();
 void SceSndCallThunder();
-int SceCheckEmAlive(cEm* em);
-int SceCountEmAlive(int lo, int hi);
-void SceDestroyEm(int lo, int hi);
+int SceCheckEmAlive(cEm* pEm);
+int SceCountEmAlive(int em_id, int em_id_end);
+void SceDestroyEm(int em_id, int em_id_end);
 void SceInitItemEvent();
 void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), void (*doneFunc)(int), int arg, int enable);
-void getChapterSection(int chapter, int* chap, int* sec);
+void getChapterSection(int no, int* chap, int* sect);
 void SceChapterEnd();
 enum CHAPTER_NO {
     CHAPTER_1_1 = 0,
@@ -66,8 +66,8 @@ enum CHAPTER_NO {
     ADA_MISSION_5 = 24
 };
 
-void SceSetChapterEnd(int chapter, int doorAt);
-void SceCamMove(Vec* pos, Vec* at, f32 fovy);
+void SceSetChapterEnd(int ChapterNo, int door_at_no);
+void SceCamMove(Vec* pCamPos, Vec* pTarget, f32 fovy);
 enum OpenBoxType {
     OpenBoxLR = 0,
     OpenBoxL = 1,

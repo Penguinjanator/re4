@@ -90,9 +90,9 @@ void cEsp0a::move()
 
 // EspTransTbl[0x0A]: Type 1 pulls a scratch copy, steps it with CommonMove 50 times and queues a
 // one-frame id-0 ghost sprite (Esp0a_Trans2) at each position, Z-sorted by world position.
-void Esp0a_Trans(cEsp0a* esp)
+void Esp0a_Trans(cEsp0a* pEsp)
 {
-    Esp0aWork* w = &esp->m_Free;
+    Esp0aWork* w = &pEsp->m_Free;
 
     switch (w->Type) {
     case 0:
@@ -103,7 +103,7 @@ void Esp0a_Trans(cEsp0a* esp)
         u32 i = 0;
 
         if (PullEsp(&base, 0)) {
-            *base = *esp;
+            *base = *pEsp;
             base->m_Id = 0;
             for (; i < 50; i++) {
                 if (PullEsp(&e, 0)) {
@@ -150,14 +150,14 @@ void Esp0a_Trans2(cEsp* esp)
 
 // Type 0: pulls a scratch copy and lays down up to 50 frozen id-0 sprites (life Work8[0]) along
 // its simulated path. Type 1: Tool_flg 0x400 (pre-world layer) and m_Flg bit1. Work8[1] must be 0.
-int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp0a::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp0aWork* w = &m_Free;
 
-    if (gen->Work8[1] != 0) {
+    if (pSeq->Work8[1] != 0) {
         pLog->err(0, 0, "ESP0a : WK1 not 0!!");
     }
-    w->Type = gen->Work8[2];
+    w->Type = pSeq->Work8[2];
     w->Base_alpha = m_Col_start_a;
     switch (w->Type) {
     case 0: {
@@ -182,7 +182,7 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
                     p->m_Pos_start_cnt = 0;
                     p->m_Size_start_cnt = 0;
                     p->m_Life_time = 0;
-                    p->m_Life_max = (s8)gen->Work8[0];
+                    p->m_Life_max = (s8)pSeq->Work8[0];
                 }
                 if (!base->CommonMove()) {
                     break;

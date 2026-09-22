@@ -40,7 +40,7 @@ void cEsp17::move()
 }
 
 // Takes the generator position as the initial view-space position.
-int cEsp17::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp17::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     work = m_Pos;
     return 1;

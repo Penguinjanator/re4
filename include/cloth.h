@@ -41,10 +41,10 @@ public:
              int flag);
     void SetPosAng(Vec ang, Vec pos);
     void Destroy();
-    void calcSpeed(f32 damping);
+    void calcSpeed(f32 mul);
     void move();
     void calcNormal();
-    void disturbance(u32 x, u32 y, f32 power);
+    void disturbance(u32 w, u32 h, f32 pow);
 };
 
 extern "C" {
@@ -52,7 +52,7 @@ void ClothInit();
 void ClothRoomInit();
 void ClothCalcTplAddr(void* tpl);
 int ClothTexSetUp(void* tpl, GXTexObj* tex, int no, GXTlutObj* tlut);
-int PullCloth(Cloth** out);
+int PullCloth(Cloth** ppCl);
 void ClothDraw();
 void clothTrans(Cloth* pCL);
 }

@@ -271,7 +271,7 @@ static SceAtFuncTbl sceAtFunc_tbl[21] = {
 // Room start: resets the area system (ordering table, hit / exec flags, reservations) and links the
 // room's AEV records (version 0x104) and ITA item records (version 0x105, numbered +0x80) into the
 // ordering table by their otNo.
-void SceAtInit(void* atData, void* itemData)
+void SceAtInit(void* pHeader, void* pHeader_i)
 {
     int i;
 
@@ -289,14 +289,14 @@ void SceAtInit(void* atData, void* itemData)
     SceAtWorkLoopInit();
     pS->m_use_tool_data = 0;
     pS->m_use_tool_data_i = 0;
-    if (atData != 0) {
-        if (strcmp((char*) atData, "AEV") != 0) {
+    if (pHeader != 0) {
+        if (strcmp((char*) pHeader, "AEV") != 0) {
             pLog->err(0, 0, "THIS DATA IS NOT SCENARIO ATARI DATA");
-        } else if (((SceAtFileHead*) atData)->version != 0x104) {
+        } else if (((SceAtFileHead*) pHeader)->version != 0x104) {
             pLog->err(0, 0, "SceAt DATA IS OLD VERSION");
         } else {
-            pS->pAtData = atData;
-            pS->pAtWork = (u32) ((u8*) atData + 0x10);
+            pS->pAtData = pHeader;
+            pS->pAtWork = (u32) ((u8*) pHeader + 0x10);
             for (i = ((SceAtFileHead*) pS->pAtData)->num - 1; i >= 0; i--) {
                 SceAtWork* w = (SceAtWork*) (i * sizeof(SceAtWork) + pS->pAtWork);
 
@@ -304,14 +304,14 @@ void SceAtInit(void* atData, void* itemData)
             }
         }
     }
-    if (itemData != 0) {
-        if (strcmp((char*) itemData, "ITA") != 0) {
+    if (pHeader_i != 0) {
+        if (strcmp((char*) pHeader_i, "ITA") != 0) {
             pLog->err(0, 0, "THIS DATA IS NOT ITEM SET DATA");
-        } else if (((SceAtFileHead*) itemData)->version != 0x105) {
+        } else if (((SceAtFileHead*) pHeader_i)->version != 0x105) {
             pLog->err(0, 0, "SceItem DATA IS OLD VERSION");
         } else {
-            pS->pItemData = itemData;
-            pS->pItemWork = (u32) ((u8*) itemData + 0x10);
+            pS->pItemData = pHeader_i;
+            pS->pItemWork = (u32) ((u8*) pHeader_i + 0x10);
             for (i = ((SceAtFileHead*) pS->pItemData)->num - 1; i >= 0; i--) {
                 SceAtWork* w;
 
@@ -350,11 +350,11 @@ void SceAtClearHitFlg()
 }
 
 // Marks area `no` as hit this frame (SceAtHitCheck reads it).
-void SceAtSetHitFlg(u32 no)
+void SceAtSetHitFlg(u32 at_no)
 {
     u32* f = pS->hitFlg;
 
-    FlagOn(f, no);
+    FlagOn(f, at_no);
 }
 
 // Clears the "executed this frame" bits.
@@ -364,11 +364,11 @@ void SceAtClearExecFlg()
 }
 
 // Marks area `no` as executed this frame.
-void SceAtSetExecFlg(u32 no)
+void SceAtSetExecFlg(u32 at_no)
 {
     u32* f = pS->execFlg;
 
-    FlagOn(f, no);
+    FlagOn(f, at_no);
 }
 
 // Per frame: clears Room_flg[2..3] (per-frame event flags) and the hit / exec bits.
@@ -477,7 +477,7 @@ void SceAtCheck()
 // fires the area's handler when its trigger bits match the key state (flag: 1 in area, 2 action
 // pressed, 4 action held); exclusive handlers run only once per frame; trigger bit7 disables the
 // area after it fired. Returns 1 when a handler fired.
-int sceAtCheck_main(cEm* em, int type)
+int sceAtCheck_main(cEm* em, int target_type)
 {
     Vec pos;
     Vec front;
@@ -500,7 +500,7 @@ int sceAtCheck_main(cEm* em, int type)
     front.y = 250.0f;
     front.z = 550.0f;
     PSMTXMultVec(em->mat, &front, &front);
-    if (type & 1) {
+    if (target_type & 1) {
         if (StaFlagChk(pG, STA_PL_CHECK)) {
             flag = 3;
         }
@@ -515,7 +515,7 @@ int sceAtCheck_main(cEm* em, int type)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (!(w->checkType & type)) {
+        if (!(w->checkType & target_type)) {
             continue;
         }
         if (sceAtHitCheck(w, em, &front, &pos) == 0) {
@@ -612,12 +612,12 @@ int sceAtCheck_main(cEm* em, int type)
 // The area of `w` in world space: its parent's matrix applied (rotation ignored with flag bit3).
 // The area in world space: the record's area moved (and rotated unless flag bit3) by the parent
 // model / parts matrix when the area follows a parent.
-void sceAtGetArea(AreaData* out, SceAtWork* w)
+void sceAtGetArea(AreaData* ret_area, SceAtWork* w)
 {
     Mtx mat;
     Mtx pmat;
 
-    *out = w->area;
+    *ret_area = w->area;
     if (w->pParent == 0) {
         return;
     }
@@ -636,40 +636,40 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
         MTX_COPY_LATE_DST(pmat, mat);
     }
     Vec p[4];
-    switch (out->type) {
+    switch (ret_area->type) {
     case 1:
-        p[0].y = p[1].y = p[2].y = p[3].y = out->u.xz4.floor;
-        p[0].x = out->u.xz4.p[0].x;
-        p[0].z = out->u.xz4.p[0].z;
-        p[1].x = out->u.xz4.p[1].x;
-        p[1].z = out->u.xz4.p[1].z;
-        p[2].x = out->u.xz4.p[2].x;
-        p[2].z = out->u.xz4.p[2].z;
-        p[3].x = out->u.xz4.p[3].x;
-        p[3].z = out->u.xz4.p[3].z;
+        p[0].y = p[1].y = p[2].y = p[3].y = ret_area->u.xz4.floor;
+        p[0].x = ret_area->u.xz4.p[0].x;
+        p[0].z = ret_area->u.xz4.p[0].z;
+        p[1].x = ret_area->u.xz4.p[1].x;
+        p[1].z = ret_area->u.xz4.p[1].z;
+        p[2].x = ret_area->u.xz4.p[2].x;
+        p[2].z = ret_area->u.xz4.p[2].z;
+        p[3].x = ret_area->u.xz4.p[3].x;
+        p[3].z = ret_area->u.xz4.p[3].z;
         PSMTXMultVec(mat, &p[0], &p[0]);
         PSMTXMultVec(mat, &p[1], &p[1]);
         PSMTXMultVec(mat, &p[2], &p[2]);
         PSMTXMultVec(mat, &p[3], &p[3]);
-        out->u.xz4.floor = p[0].y;
-        out->u.xz4.p[0].x = p[0].x;
-        out->u.xz4.p[0].z = p[0].z;
-        out->u.xz4.p[1].x = p[1].x;
-        out->u.xz4.p[1].z = p[1].z;
-        out->u.xz4.p[2].x = p[2].x;
-        out->u.xz4.p[2].z = p[2].z;
-        out->u.xz4.p[3].x = p[3].x;
-        out->u.xz4.p[3].z = p[3].z;
+        ret_area->u.xz4.floor = p[0].y;
+        ret_area->u.xz4.p[0].x = p[0].x;
+        ret_area->u.xz4.p[0].z = p[0].z;
+        ret_area->u.xz4.p[1].x = p[1].x;
+        ret_area->u.xz4.p[1].z = p[1].z;
+        ret_area->u.xz4.p[2].x = p[2].x;
+        ret_area->u.xz4.p[2].z = p[2].z;
+        ret_area->u.xz4.p[3].x = p[3].x;
+        ret_area->u.xz4.p[3].z = p[3].z;
         break;
     case 2:
     case 3:
-        p[0].x = out->u.cyl.x;
-        p[0].y = out->u.cyl.floor;
-        p[0].z = out->u.cyl.z;
+        p[0].x = ret_area->u.cyl.x;
+        p[0].y = ret_area->u.cyl.floor;
+        p[0].z = ret_area->u.cyl.z;
         PSMTXMultVec(mat, &p[0], &p[0]);
-        out->u.cyl.x = p[0].x;
-        out->u.cyl.floor = p[0].y;
-        out->u.cyl.z = p[0].z;
+        ret_area->u.cyl.x = p[0].x;
+        ret_area->u.cyl.floor = p[0].y;
+        ret_area->u.cyl.z = p[0].z;
         break;
     }
 }
@@ -677,7 +677,7 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
 // Is `m` in area `w`? Eye areas (area type 3) test the view cone and the screen; the others test
 // `front` (checkFlag bit0) or `pos`, then the facing angle within angleRange (checkFlag bit1) and,
 // for item areas, the item's own hit box.
-int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
+int sceAtHitCheck(SceAtWork* w, cModel* pModel, Vec* pos_f, Vec* pos)
 {
     AreaData area;
     f32 ang;
@@ -713,7 +713,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
     } else {
         // Both arms written out (cross-jumped `AreaHitCheck` tail, the null test stays per arm).
         if (w->checkFlag & 1) {
-            if (front != 0 && AreaHitCheck(&area, front) == 1) {
+            if (pos_f != 0 && AreaHitCheck(&area, pos_f) == 1) {
                 ret = 1;
             }
         } else {
@@ -721,8 +721,8 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
                 ret = 1;
             }
         }
-        if (m != 0 && (w->checkFlag & 2) && ret == 1) {
-            f32 d = LIMIT_ANGLE(ang - m->ang.y);
+        if (pModel != 0 && (w->checkFlag & 2) && ret == 1) {
+            f32 d = LIMIT_ANGLE(ang - pModel->ang.y);
             int r = w->angleRange;
 
             if (d < (f32) (-r * 2) * (PI / 180.0f) || d > (f32) (r * 2) * (PI / 180.0f)) {
@@ -739,13 +739,13 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
 }
 
 // Type 0 / 6 / 7 / 0xC / 0x14 handler: records `m` in the area's hitModel list (SceAtCheckHitModel).
-int sceAtFunc_normal(SceAtWork* w, cModel* m)
+int sceAtFunc_normal(SceAtWork* w, cModel* pModel)
 {
     u32 i;
 
     for (i = 0; i < 16; i++) {
         if (w->hitModel[i] == 0) {
-            w->hitModel[i] = m;
+            w->hitModel[i] = pModel;
             break;
         }
     }
@@ -809,7 +809,7 @@ int CheckDoorJumpWithAshley()
 // its unlock bit clear) runs sceInLock; else hands the door function to SceSys and sets the next
 // room (NextPos / NextY, next_stage / next_room_no / next_point, door_no) and the game routine 4
 // (room change).
-int sceAtFunc_door(SceAtWork* w, cModel* m)
+int sceAtFunc_door(SceAtWork* w, cModel* pModel)
 {
     u8 lt;
 
@@ -860,16 +860,16 @@ int sceAtFunc_door(SceAtWork* w, cModel* m)
 
 // Type 2 handler: runs the area's func — directly with `arg` when prio is 0, else as a scenario
 // task (SceExec at prio / otNo with the model).
-static int sceAtFunc_exec(SceAtWork* w, cModel* m)
+static int sceAtFunc_exec(SceAtWork* w, cModel* pModel)
 {
     if (w->func == 0) {
         return 0;
     }
     if (w->prio == 0) {
-        SetTaskModelPtr(m, 0);
+        SetTaskModelPtr(pModel, 0);
         ((void (*)(int)) w->func)(w->arg);
     } else {
-        SceExec(w->prio, w->func, w->arg, w->execFlag, w->otNo, m);
+        SceExec(w->prio, w->func, w->arg, w->execFlag, w->otNo, pModel);
     }
     return 1;
 }
@@ -982,7 +982,7 @@ int itemZoom(SceAtWork* w)
 
 // Undoes itemZoom: destroys the zoom model (its buffers freed later) and restores a replaced model
 // (hidden unless `keep`).
-void releaseModel(SceAtWork* w, int keep)
+void releaseModel(SceAtWork* w, int disp_flg)
 {
     if ((w->item.flag & 2) && w->item.pModel != 0) {
         cObj* obj = (cObj*) w->item.pModel;
@@ -998,7 +998,7 @@ void releaseModel(SceAtWork* w, int keep)
         w->item.pModel = p_imodel_bak;
         p_imodel_bak = 0;
         w->item.flag &= ~8;
-        if (keep == 0) {
+        if (disp_flg == 0) {
             w->item.pModel->be_flag &= ~2;
         }
     }
@@ -1560,7 +1560,7 @@ static inline void RsfClear(u16 room, int no)
 
 // Type 4 handler (flag): sets or clears (flg.off) flag `no` of kind 0 event flags (Room_flg),
 // 1 room save flags, 2 Scenario_flg[0].
-int sceAtFunc_flg(SceAtWork* w, cModel* m)
+int sceAtFunc_flg(SceAtWork* w, cModel* pModel)
 {
     SceAtFlg* f = &w->flg;
 
@@ -1601,7 +1601,7 @@ int sceAtFunc_flg(SceAtWork* w, cModel* m)
 
 // Type 5 handler (message): shows the message at once, or as a scenario task when a camera cut is
 // requested.
-int sceAtFunc_mes(SceAtWork* w, cModel* m)
+int sceAtFunc_mes(SceAtWork* w, cModel* pModel)
 {
     SceAtMesData* d = &w->mes;
 
@@ -1616,34 +1616,34 @@ int sceAtFunc_mes(SceAtWork* w, cModel* m)
 // Shows a message request: optional up-cut camera (camCut - 1), message `no` (type 0 plain, else
 // flag bit0), optional SE (block 6 or 0), then waits for the message and returns the camera unless
 // flag bit2.
-void SceAtSetMes(SceAtMesData* m)
+void SceAtSetMes(SceAtMesData* pMes)
 {
     u32 flags = 0x10;
 
-    if (m->camCut != 0) {
+    if (pMes->camCut != 0) {
         SceUpCutStart();
-        CamCtrl.CutCall((s8) (m->camCut - 1));
+        CamCtrl.CutCall((s8) (pMes->camCut - 1));
         flags = 0x30;
     }
-    if (m->no >= 0) {
-        if (m->type == 0) {
-            SceMesSet(m->no, flags, 1, 0x64, MES_Y(cMes.getWork()));
+    if (pMes->no >= 0) {
+        if (pMes->type == 0) {
+            SceMesSet(pMes->no, flags, 1, 0x64, MES_Y(cMes.getWork()));
         } else {
-            SceMesSet(m->no, flags | 1, 1, 0x64, MES_Y(cMes.getWork()));
+            SceMesSet(pMes->no, flags | 1, 1, 0x64, MES_Y(cMes.getWork()));
         }
     }
-    if (m->se != 0) {
-        if (m->seBlk == 0) {
-            SndCall(6, m->se - 1, 0, 0, 0, 0);
+    if (pMes->se != 0) {
+        if (pMes->seBlk == 0) {
+            SndCall(6, pMes->se - 1, 0, 0, 0, 0);
         } else {
-            SndCall(0, m->se - 1, 0, 0, 0, 0);
+            SndCall(0, pMes->se - 1, 0, 0, 0, 0);
         }
     }
-    if (m->camCut != 0) {
-        if (m->no >= 0) {
+    if (pMes->camCut != 0) {
+        if (pMes->no >= 0) {
             SceMesWait();
         }
-        if (!(m->flag & 4)) {
+        if (!(pMes->flag & 4)) {
             CamCtrl.Comeback(0);
         }
         SceUpCutEnd();
@@ -1652,7 +1652,7 @@ void SceAtSetMes(SceAtMesData* m)
 
 // Type 8 handler (typewriter): saves to the memory card (CardSave, slot `value`), refused with
 // message 0x97 while Ashley is carried / away.
-int sceAtFunc_save(SceAtWork* w, cModel* m)
+int sceAtFunc_save(SceAtWork* w, cModel* pModel)
 {
     if (pSUB != 0 && (StaFlagChk(pG, STA_SUB_CATCHED) || (SubCharGetStatus() & 0x02000000))) {
         cMes.MesSet(0x97, 0x64, MES_Y(cMes.getWork()), 1, 0, 0, 4);
@@ -1664,7 +1664,7 @@ int sceAtFunc_save(SceAtWork* w, cModel* m)
 
 // Type 9 handler (shadow display): turns shadow object `no` on / off (be_flag 0x80) once while the
 // model is inside (`done`).
-static int sceAtFunc_shd_disp(SceAtWork* w, cModel* m)
+static int sceAtFunc_shd_disp(SceAtWork* w, cModel* pModel)
 {
     SceAtShdDisp* s = &w->shd;
 
@@ -1698,7 +1698,7 @@ void sceAtFunc_shd_disp_reverse(SceAtWork* w)
 // Type 0xA handler (damage area): damages the player (checkType bit0) / partner (bit3) through
 // setDamage(kind, arg, power or 123 = no direction, flags bit0, time) when alive and not already
 // dying, and registers a DmgMgr area of the same shape for the enemies (bit1).
-int sceAtFunc_damage(SceAtWork* w, cModel* m)
+int sceAtFunc_damage(SceAtWork* w, cModel* pModel)
 {
     Vec pt[4];
     Vec c;
@@ -1786,29 +1786,29 @@ int sceAtFunc_damage(SceAtWork* w, cModel* m)
 }
 
 // Type 0xB (runtime scenario collision) has no trigger action.
-int sceAtFunc_scr_at(SceAtWork* w, cModel* m)
+int sceAtFunc_scr_at(SceAtWork* w, cModel* pModel)
 {
     return 0;
 }
 
 // Type 0xD handler (field info): value 0 flags the model inside (litArea.x0 bit0, dark area).
-int sceAtFunc_field_info(SceAtWork* w, cModel* m)
+int sceAtFunc_field_info(SceAtWork* w, cModel* pModel)
 {
     if (w->field.value == 0) {
-        ((cEm*) m)->litArea.x0 |= 1;
+        ((cEm*) pModel)->litArea.x0 |= 1;
     }
     return 0;
 }
 
 // Type 0xE handler (stoop): the player crouches (low passage).
-int sceAtFunc_stoop(SceAtWork* w, cModel* m)
+int sceAtFunc_stoop(SceAtWork* w, cModel* pModel)
 {
     PlSetCrouch();
     return 0;
 }
 
 // Type 0xF handler (special key): stops the game and shows the "needs a key" message task.
-int sceAtFunc_skey(SceAtWork* w, cModel* m)
+int sceAtFunc_skey(SceAtWork* w, cModel* pModel)
 {
     pS->m_stop_flag_backup = pG->Stop_flg;
     KeyStop(0xEFCF0000);
@@ -1857,7 +1857,7 @@ void sceAtLadder(SceAtWork* w)
 
 // Type 0x10 handler (ladder): puts the player on the ladder (PlSetLadder at the area's foot
 // position / angle / level) and starts the camera task when cut1 is set.
-int sceAtFunc_ladder(SceAtWork* w, cModel* m)
+int sceAtFunc_ladder(SceAtWork* w, cModel* pModel)
 {
     Vec pos;
     f32 ang;
@@ -1871,36 +1871,36 @@ int sceAtFunc_ladder(SceAtWork* w, cModel* m)
 }
 
 // Where the player stands to use the ladder: 300 in front of the ladder record, facing it.
-void sceAtGetLadderPos(SceAtLadder* l, Vec* pos, f32* ang)
+void sceAtGetLadderPos(SceAtLadder* ladder, Vec* pos, f32* ladder_ang)
 {
     Vec ofs = {0.0f, 0.0f, 300.0f};
     Vec rot;
     Vec tmp = {0.0f, 0.0f, 0.0f};
     Mtx mat;
 
-    tmp.y = l->angle;
+    tmp.y = ladder->angle;
     rot = tmp;
     low_RotMatrix(mat, &rot);
-    TransMatrix(mat, &l->pos);
+    TransMatrix(mat, &ladder->pos);
     PSMTXMultVec(mat, &ofs, pos);
-    *ang = l->angle + PI;
-    *ang = LIMIT_ANGLE(*ang);
+    *ladder_ang = ladder->angle + PI;
+    *ladder_ang = LIMIT_ANGLE(*ladder_ang);
 }
 
 // 1 when another enemy (id <= 0x20) stands within 500 of the ladder's foot (someone is using it).
-int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
+int sceAtCheckLadderUp(SceAtLadder* ladder, cModel* pEm)
 {
     AreaData area;
     Vec pos;
     f32 ang;
     u32 i;
 
-    sceAtGetLadderPos(l, &pos, &ang);
+    sceAtGetLadderPos(ladder, &pos, &ang);
     AreaDataInit(&area, &pos, 2, 500.0f, 2000.0f);
     for (i = 0; i < EmMgr.getArrayNum(); i++) {
         cEm* em = EmMgr.fastAt(i);
 
-        if (em->id <= 0x20 && m != em) {
+        if (em->id <= 0x20 && pEm != em) {
             if (AreaHitCheck(&area, &em->pos) == 1) {
                 return 0;
             }
@@ -1911,7 +1911,7 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
 
 // Type 0x11 handler (use item): the item useItem[1] becomes usable from the inventory while the
 // player stands here (ItemMgr.available).
-int sceAtFunc_use(SceAtWork* w, cModel* m)
+int sceAtFunc_use(SceAtWork* w, cModel* pModel)
 {
     ItemMgr.available(w->useItem[1]);
     return 0;
@@ -1919,7 +1919,7 @@ int sceAtFunc_use(SceAtWork* w, cModel* m)
 
 // Type 0x12 handler (hide spot, action button): sends Ashley to hide at hide.pos (SubCharCtrlHide
 // with hide.mode), starts the hide sequence (step 1) with its SE.
-int sceAtFunc_hide(SceAtWork* w, cModel* m)
+int sceAtFunc_hide(SceAtWork* w, cModel* pModel)
 {
     SubCharCtrlHide(&w->hide.pos, w->hide.mode);
     w->hide.step = 1;
@@ -2040,7 +2040,7 @@ FOUND:
 // swapped: local-alloc qty priority); store orders, chains and a zero local tried.
 // Type 0x13 handler (position jump): teleports the player to jumpPos / dstAngle and re-seats the
 // quasi-FPS camera.
-int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
+int sceAtFunc_pos_jump(SceAtWork* w, cModel* pModel)
 {
     Vec rot;
     // COMPILER-DIFF: #13. The original's 0.0 is a reload-materialised constant (f13, the FPR after
@@ -2263,12 +2263,12 @@ void SceAtCheckMoveScrAt()
 }
 
 // The area record numbered `no` (ITA items are 0x80 + index), or 0.
-SceAtWork* SceAtPtr(int no)
+SceAtWork* SceAtPtr(int at_no)
 {
     SceAtWork* w = sceAtSetOtStart();
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (w->no == no) {
+        if (w->no == at_no) {
             return w;
         }
     }
@@ -2349,9 +2349,9 @@ void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
 }
 
 // Undoes SceAtDataSet_exec: trigger restored, no function.
-void SceAtDataReset(int no)
+void SceAtDataReset(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtDataReset(): AT NOT FOUND");
@@ -2367,29 +2367,29 @@ void SceAtDataReset(int no)
 
 // Enables / disables area `no` (flag bit0); item areas create / remove their model and effect,
 // collision areas their pieces.
-void SceAtSetEnable(int no, int on)
+void SceAtSetEnable(int at_no, int sw)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtSetEnable(): AT NOT FOUND");
         return;
     }
-    if (on == 1) {
+    if (sw == 1) {
         w->flag |= 1;
     } else {
         w->flag &= ~1;
     }
     switch (w->type) {
     case SCEAT_ID_ITEM:
-        if (on == 1) {
+        if (sw == 1) {
             sceAtSetItem(w);
         } else {
             sceAtDeleteItem(w);
         }
         break;
     case SCEAT_ID_SCR_AT:
-        if (on == 1) {
+        if (sw == 1) {
             sceAtSetScrAt(w);
         } else {
             sceAtDeleteScrAt(w);
@@ -2399,9 +2399,9 @@ void SceAtSetEnable(int no, int on)
 }
 
 // Never-called inline the original kept the string of.
-static inline int SceAtCheckEnable(int no)
+static inline int SceAtCheckEnable(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtCheckEnable(): AT NOT FOUND");
@@ -2411,20 +2411,20 @@ static inline int SceAtCheckEnable(int no)
 }
 
 // 1 when area `no` was hit (someone inside) this frame.
-int SceAtHitCheck(u32 no)
+int SceAtHitCheck(u32 at_no)
 {
     u32* f = pS->hitFlg;
 
-    if (f[no >> 5] & (0x80000000 >> (no & 31))) {
+    if (f[at_no >> 5] & (0x80000000 >> (at_no & 31))) {
         return 1;
     }
     return 0;
 }
 
 // Fires area `no` now (its type handler with no model).
-void SceAtExecute(int no)
+void SceAtExecute(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtExecute(): AT NOT FOUND");
@@ -2434,9 +2434,9 @@ void SceAtExecute(int no)
 }
 
 // 1 when model `m` is inside normal area `no` this frame (hitModel list).
-int SceAtCheckHitModel(int no, cModel* m)
+int SceAtCheckHitModel(int at_no, cModel* pModel)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
     int i;
 
     if (w == 0) {
@@ -2444,7 +2444,7 @@ int SceAtCheckHitModel(int no, cModel* m)
         return 0;
     }
     for (i = 0; i < 16; i++) {
-        if (w->hitModel[i] == m) {
+        if (w->hitModel[i] == pModel) {
             return 1;
         }
     }
@@ -2452,9 +2452,9 @@ int SceAtCheckHitModel(int no, cModel* m)
 }
 
 // Action button colour of area `no` (1 = the alternate colour).
-void SceAtSetActColor(int no, int col)
+void SceAtSetActColor(int at_no, int col)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtSetActColor(): AT NOT FOUND");
@@ -2464,16 +2464,16 @@ void SceAtSetActColor(int no, int col)
 }
 
 // World centre of area `no`.
-void SceAtGetCenterPos(Vec* out, int no)
+void SceAtGetCenterPos(Vec* ret_pos, int at_no)
 {
     AreaData area;
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtGetCenterPos(): AT NOT FOUND");
     } else {
         sceAtGetArea(&area, w);
-        AreaGetCenterPos(out, &area);
+        AreaGetCenterPos(ret_pos, &area);
     }
 }
 
@@ -2645,7 +2645,7 @@ SceAtField* SceAtCheckFieldInfo(Vec* pos)
 
 // Is `m` in an enabled ladder area that nobody else is using? Returns 1 with the ladder's foot
 // position / facing / level (enemies climbing).
-int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
+int SceAtCheckLadder(cModel* pEm, Vec* pos, f32* ladder_ang, u8* ladder_height)
 {
     SceAtWork* w;
     SceAtLadder* l;
@@ -2654,11 +2654,11 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     if (pS == 0) {
         return 0;
     }
-    if (m == 0) {
+    if (pEm == 0) {
         return 0;
     }
     w = sceAtSetOtStart();
-    mp = &m->pos;
+    mp = &pEm->pos;
     while ((w = sceAtGetOtAddr(w)) != 0) {
         if (bitOff(w->flag)) {
             continue;
@@ -2670,9 +2670,9 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
             continue;
         }
         l = &w->ladder;
-        if (sceAtCheckLadderUp(l, m) == 1) {
-            sceAtGetLadderPos(l, pos, ang);
-            *level = w->ladder.level;
+        if (sceAtCheckLadderUp(l, pEm) == 1) {
+            sceAtGetLadderPos(l, pos, ladder_ang);
+            *ladder_height = w->ladder.level;
             return 1;
         }
     }
@@ -2680,7 +2680,7 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
 }
 
 // Nearest free ladder within 2000 of `m`; returns 1 with its foot position / facing / level.
-int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
+int SceAtSearchLadder(cModel* pEm, Vec* pos, f32* ladder_ang, u8* ladder_height)
 {
     SceAtWork* w;
     SceAtLadder* l;
@@ -2688,7 +2688,7 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     f32 best;
     f32 d;
 
-    if (pS == 0 || m == 0) {
+    if (pS == 0 || pEm == 0) {
         return 0;
     }
     best = 4000000.0f;
@@ -2702,10 +2702,10 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
             continue;
         }
         l = &w->ladder;
-        if (sceAtCheckLadderUp(l, m) != 1) {
+        if (sceAtCheckLadderUp(l, pEm) != 1) {
             continue;
         }
-        d = PSVECSquareDistance(&m->pos, &l->pos);
+        d = PSVECSquareDistance(&pEm->pos, &l->pos);
         if (best > d) {
             best = d;
             found = l;
@@ -2714,8 +2714,8 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     if (found == 0) {
         return 0;
     }
-    sceAtGetLadderPos(found, pos, ang);
-    *level = found->level;
+    sceAtGetLadderPos(found, pos, ladder_ang);
+    *ladder_height = found->level;
     return 1;
 }
 
@@ -2878,23 +2878,23 @@ void sceAtDebugDisp()
 
 // Builds the eye (view cone) area of an item: 100 radius at the item position, cone from its rot
 // (x / y angles, z = opening).
-void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
+void SceAtDataEyeTriggreCopy(AreaData* area, SceAtWork* w)
 {
     SceAtItem* it;
 
-    out->Be_flag = 1;
-    out->type = 3;
+    area->Be_flag = 1;
+    area->type = 3;
     if (w->type != SCEAT_ID_ITEM) {
         return;
     }
     it = &w->item;
-    out->u.eye.floor = it->pos.y;
-    out->u.eye.radius = 100.0f;
-    out->u.eye.xz = w->item.pos.x;
-    out->u.eye.z = it->pos.z;
-    out->u.eye.ang_x = it->rot.x;
-    out->u.eye.ang_y = it->rot.y;
-    out->u.eye.open_ang = it->rot.z;
+    area->u.eye.floor = it->pos.y;
+    area->u.eye.radius = 100.0f;
+    area->u.eye.xz = w->item.pos.x;
+    area->u.eye.z = it->pos.z;
+    area->u.eye.ang_x = it->rot.x;
+    area->u.eye.ang_y = it->rot.y;
+    area->u.eye.open_ang = it->rot.z;
 }
 
 // Per frame: for each enabled item area — a shoot-down item (flag2 bit4) that was hit plays its
@@ -3008,27 +3008,27 @@ void sceAtItemFindCheck()
 }
 
 // Marks an item taken: global ITEM_SET flag `flagNo`, or room save item flag `saveNo` when flagNo is 0.
-void SceAtItemFlgOn(u16 flagNo, u16 saveNo)
+void SceAtItemFlgOn(u16 item_flg, u16 auto_item_flg)
 {
-    if (flagNo != 0) {
-        FlagOn(itemFlags(), flagNo);
-    } else if (saveNo != 0) {
+    if (item_flg != 0) {
+        FlagOn(itemFlags(), item_flg);
+    } else if (auto_item_flg != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            FlagOn(roomItemFlags(), saveNo);
+            FlagOn(roomItemFlags(), auto_item_flg);
         }
     }
 }
 
 // 1 when the item (global flag, or the room save flag) has been taken.
-int SceAtItemFlgCk(u16 flagNo, u16 saveNo)
+int SceAtItemFlgCk(u16 item_flg, u16 auto_item_flg)
 {
     u32 r = 0;
 
-    if (flagNo != 0) {
-        r = itemFlags()[flagNo >> 5] & (0x80000000 >> (flagNo & 31));
-    } else if (saveNo != 0) {
+    if (item_flg != 0) {
+        r = itemFlags()[item_flg >> 5] & (0x80000000 >> (item_flg & 31));
+    } else if (auto_item_flg != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            r = roomItemFlags()[saveNo >> 5] & (0x80000000 >> (saveNo & 31));
+            r = roomItemFlags()[auto_item_flg >> 5] & (0x80000000 >> (auto_item_flg & 31));
         }
     }
     if (r != 0) {
@@ -3038,9 +3038,9 @@ int SceAtItemFlgCk(u16 flagNo, u16 saveNo)
 }
 
 // 1 when item area `no` has been taken.
-int SceAtItemFlgCk(int no)
+int SceAtItemFlgCk(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w != 0 && w->type == SCEAT_ID_ITEM) {
         return sceAtItemFlgCk(&w->item);
@@ -3049,9 +3049,9 @@ int SceAtItemFlgCk(int no)
 }
 
 // 1 when item area `no` has been found (seen / knocked down).
-int SceAtItemFindFlgCk(int no)
+int SceAtItemFindFlgCk(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w != 0 && w->type == SCEAT_ID_ITEM) {
         return sceAtItemFindFlgCk(&w->item);
@@ -3126,9 +3126,9 @@ int sceAtItemFindFlgCk(SceAtItem* it)
 }
 
 // Removes area `no`: disabled, unlinked from the ordering table, freed if it was created at run time.
-int SceAtDestroy(int no)
+int SceAtDestroy(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtDestroy(): AT NOT FOUND");
@@ -3332,18 +3332,18 @@ int SceAtCreateItemAt(Vec* pos, ITEM_ID id, int num, int effType, int saveNo, cM
 
 // Pre-allocates a save_item record for a persistent item that an enemy / event will drop later
 // (`key` identifies the reservation), so the drop cannot be lost to a room change.
-void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, int saveNo)
+void SceAtReserveItemAt(cEm* pEm, Vec* pos, ITEM_ID item_id, int item_num, int item_eff, int save_no)
 {
     int i;
 
-    if (saveNo >= 0) {
+    if (save_no >= 0) {
         return;
     }
-    if (sceAtCheckSaveItem(id) != 1) {
+    if (sceAtCheckSaveItem(item_id) != 1) {
         return;
     }
     for (i = 0; i < 16; i++) {
-        if (SceAtSys.reserve[i].key == key) {
+        if (SceAtSys.reserve[i].key == pEm) {
             return;
         }
     }
@@ -3356,31 +3356,31 @@ void SceAtReserveItemAt(cEm* key, Vec* pos, ITEM_ID id, int num, int effType, in
         pLog->err(0, 0, "SceAtReserveItemAt(): reserve work over");
         return;
     }
-    saveNo = sceAtPullItemSaveWork();
-    SceAtSys.reserve[i].saveNo = saveNo;
-    SceAtSys.reserve[i].key = key;
-    if (saveNo >= 0) {
-        SAVE_ITEM_ROOM(saveNo) = pG->room_id;
-        SAVE_ITEM_TYPE(saveNo) = 0;
-        SAVE_ITEM_ATNO(saveNo) = 0;
-        SAVE_ITEM_ID(saveNo) = id;
-        SAVE_ITEM_NUM(saveNo) = num;
-        SAVE_ITEM_EFF(saveNo) = effType;
-        SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
-        SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
-        pG->item_save[saveNo].pos[2] = (s16) (pos->z / 10.0f);
+    save_no = sceAtPullItemSaveWork();
+    SceAtSys.reserve[i].saveNo = save_no;
+    SceAtSys.reserve[i].key = pEm;
+    if (save_no >= 0) {
+        SAVE_ITEM_ROOM(save_no) = pG->room_id;
+        SAVE_ITEM_TYPE(save_no) = 0;
+        SAVE_ITEM_ATNO(save_no) = 0;
+        SAVE_ITEM_ID(save_no) = item_id;
+        SAVE_ITEM_NUM(save_no) = item_num;
+        SAVE_ITEM_EFF(save_no) = item_eff;
+        SAVE_ITEM_POS(save_no, 0) = (s16) (pos->x / 10.0f);
+        SAVE_ITEM_POS(save_no, 1) = (s16) (pos->y / 10.0f);
+        pG->item_save[save_no].pos[2] = (s16) (pos->z / 10.0f);
     } else {
         pLog->err(0, 0, "SceAtReserveItemAt(): save work over");
     }
 }
 
 // Releases a reservation made by SceAtReserveItemAt (the item was not dropped after all).
-void SceAtCancelItemAt(cEm* key)
+void SceAtCancelItemAt(cEm* pEm)
 {
     int i;
 
     for (i = 0; i <= 15; i++) {
-        if (SceAtSys.reserve[i].key == key) {
+        if (SceAtSys.reserve[i].key == pEm) {
             memclr_asm(&pG->item_save[SceAtSys.reserve[i].saveNo], sizeof(ITEM_SAVE_WORK));
             SceAtSys.reserve[i].key = 0;
             SceAtSys.reserve[i].saveNo = 0;
@@ -3391,14 +3391,14 @@ void SceAtCancelItemAt(cEm* key)
 
 // Item glow colour by item type: 5 ammo / weapons (types 1-4), 4 treasure (6), 2 recovery /
 // key / money (0, 5, 7), 3 the rest; 8 for item 0x8C.
-int sceAtCheckItemEffectCol(ITEM_ID id)
+int sceAtCheckItemEffectCol(ITEM_ID item_id)
 {
     ItemInfo info;
 
-    if (id == 0x8C) {
+    if (item_id == 0x8C) {
         return 8;
     }
-    itemInfo(id, &info);
+    itemInfo(item_id, &info);
     switch (info.type) {
     case 1:
     case 2:
@@ -3443,37 +3443,37 @@ static inline void SceAtLinkEmFlag(int no)
 // Links area `no` to breakable etc model `etcNo`: while it is intact the area is (on == 1)
 // disabled / (0) enabled, and sceAtLink_check flips it when the model breaks. No link when the
 // model is already broken.
-void SceAtLinkEtcDead(int no, int etcNo, int on)
+void SceAtLinkEtcDead(int at_no, int etc_no, int on_off)
 {
     cEm* em;
     SceAtWork* w;
 
     if (0) {
-        SceAtLinkEmFlag(no);
+        SceAtLinkEmFlag(at_no);
     }
-    w = SceAtPtr(no);
+    w = SceAtPtr(at_no);
     if (w == 0) {
         pLog->err(0, 0, "SceAtLinkEtcDead(): AT NOT FOUND");
         return;
     }
-    if (getRoomEtcBreak(etcNo, &em, 1) != 1) {
+    if (getRoomEtcBreak(etc_no, &em, 1) != 1) {
         return;
     }
-    if (bitOff(*GetEtcFlgPtr(etcNo, pG->room_id))) {
-        w->linkNo = etcNo;
+    if (bitOff(*GetEtcFlgPtr(etc_no, pG->room_id))) {
+        w->linkNo = etc_no;
         w->linkType = 2;
-        if (on == 1) {
-            SceAtSetEnable(no, 0);
+        if (on_off == 1) {
+            SceAtSetEnable(at_no, 0);
         } else {
-            SceAtSetEnable(no, 1);
+            SceAtSetEnable(at_no, 1);
         }
     } else {
         w->linkType = 0;
         w->linkNo = 0;
-        if (on == 1) {
-            SceAtSetEnable(no, 1);
+        if (on_off == 1) {
+            SceAtSetEnable(at_no, 1);
         } else {
-            SceAtSetEnable(no, 0);
+            SceAtSetEnable(at_no, 0);
         }
     }
 }
@@ -3772,9 +3772,9 @@ int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl)
 }
 
 // The model of item area `no` (0 when missing or not an item area).
-cModel* SceAtItemModelPtr(int no)
+cModel* SceAtItemModelPtr(int at_no)
 {
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w = SceAtPtr(at_no);
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtItemModelPtr(): AT NOT FOUND");
@@ -4190,7 +4190,7 @@ disable:
 
 // The pick-up area of an item: a cylinder of radius 2 * size (1500 default) and height 3000 from
 // 2000 below `pos`.
-void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size)
+void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 radius)
 {
     Vec p = *pos;
 
@@ -4198,10 +4198,10 @@ void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size)
     {
         f32 h = 3000.0f;
 
-        if (size == 0.0f) {
-            size = 1500.0f;
+        if (radius == 0.0f) {
+            radius = 1500.0f;
         }
-        AreaDataInit(area, &p, 2, size + size, h);
+        AreaDataInit(area, &p, 2, radius + radius, h);
     }
 }
 
@@ -4231,7 +4231,7 @@ void sceAtItemEffDelete(SceAtItem* it)
 // 0x33 + glow, 3 0x2C, 4 treasure 0x31, 5 ammo 0x2F, 7 0x46, 8 falling 0x33 800 below, 9 0x4D) at
 // item.pos + ofs (or on model `m`); items on a parent get the parts-relative variants (only the
 // parts 2 / 4 / 8 cases of rooms 30F / 21B). Nothing in shooting-range mode.
-void sceAtItemEffSet(SceAtWork* w, cModel* m)
+void sceAtItemEffSet(SceAtWork* w, cModel* pModel)
 {
     Vec p;
     Vec q;
@@ -4253,7 +4253,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
     }
     parent = w->pParent;
     if (parent == 0) {
-        if (m == 0) {
+        if (pModel == 0) {
             p.x = w->item.pos.x + it->ofs.x;
             p.y = it->pos.y + it->ofs.y;
             p.z = it->pos.z + it->ofs.z;
@@ -4296,13 +4296,13 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
                 p.y = it->ofs.y;
                 p.z = it->ofs.z;
             } else {
-                p.x = m->pos.x + it->ofs.x;
-                p.y = m->pos.y + it->ofs.y;
-                p.z = m->pos.z + it->ofs.z;
+                p.x = pModel->pos.x + it->ofs.x;
+                p.y = pModel->pos.y + it->ofs.y;
+                p.z = pModel->pos.z + it->ofs.z;
             }
             switch (it->effType) {
             case 1:
-                EstSet(m, -1, &p, 0, EFF_CORE, 0x2D, 0xC00, it->effNo, 0, 0);
+                EstSet(pModel, -1, &p, 0, EFF_CORE, 0x2D, 0xC00, it->effNo, 0, 0);
                 break;
             case 3:
                 EstSet(0, -1, &p, 0, EFF_CORE, 0x2C, 0xC00, it->effNo, 0, 0);
@@ -4453,7 +4453,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
 
 // Starts the fade-out variant of the glow (0x2E / 0x30 / 0x32 / 0x34 / 0x47 by effType) when a
 // dropped item is about to disappear.
-void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
+void sceAtItemDisappearEffSet(SceAtWork* w, cModel* pModel)
 {
     Vec p;
     SceAtItem* it = &w->item;
@@ -4472,29 +4472,29 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
         return;
     }
     if (w->pParent == 0) {
-        if (m == 0) {
+        if (pModel == 0) {
             p.x = w->item.pos.x + it->ofs.x;
             p.y = it->pos.y + it->ofs.y;
             p.z = it->pos.z + it->ofs.z;
             switch (it->effType) {
             case 3:
-                EstSet(0, -1, &p, 0, EFF_CORE, 0x2E, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x2E, 0xC00, it->effNo, pModel, pModel);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, EFF_CORE, 0x30, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x30, 0xC00, it->effNo, pModel, pModel);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, EFF_CORE, 0x32, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x32, 0xC00, it->effNo, pModel, pModel);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, pModel, pModel);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, EFF_CORE, 0x47, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x47, 0xC00, it->effNo, pModel, pModel);
                 break;
             case 8:
                 p.y -= 800.0f;
-                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, m, m);
+                EstSet(0, -1, &p, 0, EFF_CORE, 0x34, 0xC00, it->effNo, pModel, pModel);
                 break;
             case 1:
             case 6:
@@ -4502,9 +4502,9 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
                 break;
             }
         } else {
-            p.x = m->pos.x + it->ofs.x;
-            p.y = m->pos.x + it->ofs.y;
-            p.z = m->pos.x + it->ofs.z;
+            p.x = pModel->pos.x + it->ofs.x;
+            p.y = pModel->pos.x + it->ofs.y;
+            p.z = pModel->pos.x + it->ofs.z;
             switch (it->effType) {
             case 3:
                 EstSet(0, -1, &p, 0, EFF_CORE, 0x2E, 0xC00, it->effNo, 0, 0);
@@ -4556,7 +4556,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
     p.z = it->pos.z + it->ofs.z;
     kind = 0;
     c = 0;
-    m = w->pParent;
+    pModel = w->pParent;
     switch (it->effType) {
     case 3:
         switch (w->parentParts) {
@@ -4577,7 +4577,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             kind = 0xD;
             break;
         }
-        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(pModel, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 5:
         switch (w->parentParts) {
@@ -4598,7 +4598,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             kind = 0xF;
             break;
         }
-        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(pModel, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 4:
         switch (w->parentParts) {
@@ -4619,7 +4619,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
             kind = 0x11;
             break;
         }
-        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(pModel, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 2:
         switch (w->parentParts) {
@@ -4634,7 +4634,7 @@ void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
         default:
             return;
         }
-        EstSet(m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        EstSet(pModel, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
         break;
     case 1:
     case 6:

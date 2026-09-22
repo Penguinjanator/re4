@@ -220,9 +220,9 @@ void cSubWep::scrAdjust()
 
 // Damage area for the explosion: kind 1 (incendiary) = DmgMgr type 1 for 75 frames, radius 2500 x
 // 1500; kind 8 = types 2 and 8 (unused here).
-void cSubWep::dmgSet(int kind)
+void cSubWep::dmgSet(int dmtype)
 {
-    switch (kind) {
+    switch (dmtype) {
     case 8:
         DmgMgr.set(DMG_TYPE_GRENADE_BLAST, 2, &pos, 3000.0f, 3000.0f);
         DmgMgr.set(DMG_TYPE_GRENADE, 2, &pos, 15000.0f, 3000.0f);
@@ -370,7 +370,7 @@ void cSubWep::addSpeed()
 // Reflects the speed on the hit normal at half the speed, reverses the spin; on a floor
 // (nrm.y > 0.7) the fire / flash grenades (flags bit0) explode, the others play a bounce SE (4
 // max); on a wall the egg (flags bit1) breaks with flags 0x10 set (wall splat effect).
-void cSubWep::bounce(Vec* nrm)
+void cSubWep::bounce(Vec* norm)
 {
     Vec ref;
     f32 len;
@@ -380,15 +380,15 @@ void cSubWep::bounce(Vec* nrm)
     const f32 rotRate = -0.8f;
 
     len = RootSumSquare3(&subWep.spd);
-    C_VECReflect(&subWep.spd, nrm, &ref);
+    C_VECReflect(&subWep.spd, norm, &ref);
     PSVECScale(&ref, &subWep.spd, len * rate);
-    if (nrm->y > 0.0f && nrm->y < lim) {
+    if (norm->y > 0.0f && norm->y < lim) {
         if (subWep.spd.y < minSpd) {
             subWep.spd.y = minSpd;
         }
     }
     PSVECScale(&subWep.rotSpd, &subWep.rotSpd, rotRate);
-    if (nrm->y > lim) {
+    if (norm->y > lim) {
         if (fabsf(subWep.spd.y) > 10.0f) {
             if (subWep.flags & 1) {
                 scrAdjust();
@@ -399,7 +399,7 @@ void cSubWep::bounce(Vec* nrm)
                 subWep.seCnt0++;
             }
         }
-    } else if ((subWep.flags & 2) || (type == 1 && nrm->y > lim)) {
+    } else if ((subWep.flags & 2) || (type == 1 && norm->y > lim)) {
         subWep.flags |= 0x10;
         explode();
         ObjMgr.destroy(this);
@@ -456,7 +456,7 @@ cSubWep::cSubWep()
 // the player archive, starts it at the player's hand (parts 10, pulled back 500 from a wall
 // between the body and the hand), throw speed from `power` (-1..1 stick tilt), life 45 frames for
 // the hand grenade / 300 for the rest. Returns 0 when the model failed (object destroyed).
-int cSubWep::init(Vec* rot, f32 power)
+int cSubWep::init(Vec* angS, f32 rx)
 {
     Vec p;
     Vec d;
@@ -508,8 +508,8 @@ int cSubWep::init(Vec* rot, f32 power)
         PSVECAdd(&p, &d, &p);
     }
     setPos(&p);
-    this->ang = *rot;
-    setThrowSpeed(&subWep.spd, power);
+    this->ang = *angS;
+    setThrowSpeed(&subWep.spd, rx);
     switch (type) {
     case 0:
         subWep.life = 45;
@@ -536,7 +536,7 @@ int cSubWep::init(Vec* rot, f32 power)
 // Throw velocity in world space: base speed (grenade 283 forward / 30 up; eggs 500 / 5), scaled up
 // for a forward tilt (power > 0.1), down for a back tilt, pitched by -power * 45 degrees with a
 // small random sideways component, plus the hand's own motion this frame.
-void setThrowSpeed(Vec* spd, f32 power)
+void setThrowSpeed(Vec* spd, f32 rx)
 {
     static const Vec speedGre = { 0.0f, 30.000002f, 283.5f };
     static const Vec speedEgg = { 0.0f, 5.0f, 500.0f };
@@ -556,17 +556,17 @@ void setThrowSpeed(Vec* spd, f32 power)
         v = speedEgg;
         break;
     }
-    if (power > 0.1f) {
-        PSVECScale(&v, &v, power + 1.0f);
-    } else if (power < -0.2f) {
-        PSVECScale(&v, &v, power * 0.4f + 1.0f);
+    if (rx > 0.1f) {
+        PSVECScale(&v, &v, rx + 1.0f);
+    } else if (rx < -0.2f) {
+        PSVECScale(&v, &v, rx * 0.4f + 1.0f);
     } else {
         RotVector(&v, &h_ang, &v);
     }
     v.x = fRand1_1() * 15.0f;
     ang.z = 0.0f;
     ang.y = 0.0f;
-    ang.x = power * -0.7853982f;
+    ang.x = rx * -0.7853982f;
     RotVector(&v, &ang, &v);
     PSMTXMultVecSR(pPL->mat, &v, spd);
     parts = pPL->getPartsPtr(0);
@@ -575,7 +575,7 @@ void setThrowSpeed(Vec* spd, f32 power)
 }
 
 // A thrown sub weapon is dropped when an event starts.
-void cSubWep::beginEvent(u32 mode)
+void cSubWep::beginEvent(u32 flag)
 {
     ObjMgr.destroy(this);
 }

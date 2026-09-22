@@ -87,7 +87,7 @@ public:
 
     MerchantCharacter() {}
     ~MerchantCharacter() {}
-    void setChar(MerchantInfo* info, MerchantData* data, PriceEntry* sell, PriceEntry* exer, LevelPrice* level);
+    void setChar(MerchantInfo* info, MerchantData* data, PriceEntry* sell, PriceEntry* exer, LevelPrice* lvup);
 };                           // 0x14
 
 // Shop session: a working copy of the merchant data plus the item lists shown in the shop.
@@ -122,9 +122,9 @@ public:
     int levelNew();
     s8 levelMax(u16 id, int type);
     int stockSpecial(ITEM_ID id);
-    int specialTunable(ItemWork* item);
-    int specialTuned(ItemWork* item);
-    int tunable(ItemWork* item);
+    int specialTunable(ItemWork* p_item);
+    int specialTuned(ItemWork* p_item);
+    int tunable(ItemWork* p_item);
     void makeList();
     int makeSellingList();
     u8 sellingItemNum();
@@ -137,10 +137,10 @@ public:
     PriceEntry* exerciseItemId(u16 id);
     int buyupPrice(u16 id, int num);
     int buyupPrice(ItemWork* item, int num);
-    int buyup(ItemWork* item, int num, int* money);
+    int buyup(ItemWork* p_item, int num, int* pocket);
     int sellPrice(u16 id, int num);
     int sellUnit(u16 id);
-    int sell(u16 id, int num, int* money);
+    int sell(u16 id, int num, int* pocket);
     int levelupItemNum();
     LevelEntry* levelupItemNo(int no);
     ItemWork* levelupItemPtr(int no);

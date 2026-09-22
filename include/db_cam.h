@@ -32,22 +32,22 @@ public:
     u8 pad_19[3];
     f32 m_move_gain;          // 0x1C  stick gain (CameraRoomInit resets it)
 
-    void move(Camera* cam, JOY* joy, int flag);
-    void camera_type_00(Camera* cam, JOY* joy);
-    void camera_type_01(Camera* cam, JOY* joy);
-    void menu(Camera* cam, JOY* joy);
-    int menuCamera(JOY* joy);
-    int menuFlag(JOY* joy);
-    int menuHitDisp(JOY* joy);
-    int menuAdjust(JOY* joy);
+    void move(Camera* pCam, JOY* pJoy, int attr);
+    void camera_type_00(Camera* pCam, JOY* pJoy);
+    void camera_type_01(Camera* pCam, JOY* pJoy);
+    void menu(Camera* pCam, JOY* pJoy);
+    int menuCamera(JOY* pJoy);
+    int menuFlag(JOY* pJoy);
+    int menuHitDisp(JOY* pJoy);
+    int menuAdjust(JOY* pJoy);
 };
 
 extern debugCamera CamDbg;
 
-void CameraDrawTarget(Camera* cam, int flag);
+void CameraDrawTarget(Camera* pCam, int attr);
 void CameraDebugInformation();
-void moveOnPlaneXZ(Vec* in, Vec* out);
-void drawGround(int big);
+void moveOnPlaneXZ(Vec* src, Vec* dst);
+void drawGround(int flag);
 int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out);
 
 // shoulder-camera edit buffers of adjust_qFPS (t_camera's tcEdit_camera_qfps copies them into the cut;

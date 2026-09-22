@@ -134,34 +134,34 @@ extern "C" {
 extern int SEck;   // game/atari.cpp: scenario-effect check mode (skips the attribute filters)
 
 // Signed distance of `p` from the plane through `a` with normal `n`.
-f32 At_surface_point_rel(Vec* vert, Vec* n, Vec* p);
+f32 At_surface_point_rel(Vec* vert, Vec* norm, Vec* point);
 // Segment p0-p1 against that plane; the crossing point goes to `out` (p1 when it does not cross).
-int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* point1, Vec* point2);
+int At_surface_line_ck(Vec* cross, Vec* a, Vec* norm, Vec* point1, Vec* point2);
 // Point `p` (on the plane) inside the triangle `poly` with normal `nrm`.
 int At_poly_point_rel(Vec* poly, Vec* nrm, Vec* p);
 // Sphere against a box given as 8 vertices.
-int At_box_sphere_ck(Vec* box, Vec* p, f32 r);
+int At_box_sphere_ck(Vec* pBoxVec, Vec* pPos, f32 r);
 // Normal of a triangle.
-void Get_normal(Vec* tri, Vec* out);
-u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, Vec* p1, f32 r);
-u32 AtSphereCapsuleCk(Vec* c, f32 r, Vec* p0, Vec* p1, f32 r2);
-void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color);
+void Get_normal(Vec* pv, Vec* norm);
+u32 AtBoxCapsuleCk3(Vec* pBox, Vec* p0, Vec* p1, f32 r);
+u32 AtSphereCapsuleCk(Vec* c, f32 sph_r, Vec* p0, Vec* p1, f32 cap_r);
+void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 rgba);
 void AtCubeDisp(Mtx m, Vec* pos, f32 sx, f32 sy, f32 sz, u32 color);
 // Segment p0-p1 against one polygon; returns the attribute | SAT_ATTR_HIT or 0.
-u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* vert1, u32 flag, u32 mask);
+u32 At_poly_line_ck(AtPolyData* atp, Vec* cross, AtPoly* polygon, Vec* vert0, Vec* vert1, u32 flag, u32 mask);
 // Sphere moving from `oldPos` to `pos` against one polygon; `pos` is pushed out. Returns the hit
 // kind (1 crossed the plane, 2 touching) or 0.
-u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask);
+u32 At_poly_sphere_ck(AtPolyData* atp, AtPoly* polygon, Vec* pos0, Vec* pos1, f32 r, u32 flag, u32 mask);
 u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask);
 u32 Get_poly_attr(AtPoly* poly);
 // XZ rectangles of 4 corners.
-int At_rect_point_ck(Vec* rect, Vec* p);
-int At_rect_rect_ck(Vec* ra, Vec* rb);
+int At_rect_point_ck(Vec* rect, Vec* pnt);
+int At_rect_rect_ck(Vec* rect0, Vec* rect1);
 // Quadrant of an angle: 0 front (|a| <= pi/4), 1 right, 2 back, 3 left.
-int Get_ang_dir(f32 ang);
+int Get_ang_dir(f32 ay);
 // out = a * t + b * (1 - t)
-void InterVectorXYZ(Vec* out, Vec* p0, Vec* p1, f32 t);
-int EatGetEffectType(u32 attr);
+void InterVectorXYZ(Vec* cross, Vec* p0, Vec* p1, f32 rate);
+int EatGetEffectType(u32 rgba);
 }
 
 #endif

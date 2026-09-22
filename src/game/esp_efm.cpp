@@ -61,12 +61,12 @@ u32 GetEfmMoveIdMax()
 }
 
 // Maps the Efm move kind (0..3) to the ObjMgr object id (4, 5, 9, 4); out of range reads entry 0.
-u8 GetEfmMoveId(u32 no)
+u8 GetEfmMoveId(u32 id)
 {
-    if (no >= GetEfmMoveIdMax()) {
-        no = 0;
+    if (id >= GetEfmMoveIdMax()) {
+        id = 0;
     }
-    return EfmIdTbl[no];
+    return EfmIdTbl[id];
 }
 
 // Destroys every Efm object whose EfmCore matches: flg == a, kind == b, pEm == c (each test skipped
@@ -86,27 +86,27 @@ void EfmDelete(int a, int b, void* c)
 }
 
 // Per-object test for EfmDelete: destroys obj04/05/09 works whose core matches the g_Core_* filter.
-void EfmDeleteSub(cObj* obj)
+void EfmDeleteSub(cObj* pObj)
 {
-    if (obj->id == 4) {
-        Efm04Work* w = &obj->efm04;
+    if (pObj->id == 4) {
+        Efm04Work* w = &pObj->efm04;
         if ((g_Core_flg == 0 || w->core.flg == g_Core_flg) && (g_Core_kind == 0 || w->core.kind == g_Core_kind) &&
             (g_Core_pEm == 0 || w->core.pEm == g_Core_pEm)) {
-            ObjMgr.destroy(obj);
+            ObjMgr.destroy(pObj);
         }
     }
-    if (obj->id == 5) {
-        Efm05Work* w = &obj->efm05;
+    if (pObj->id == 5) {
+        Efm05Work* w = &pObj->efm05;
         if ((g_Core_flg == 0 || w->core.flg == g_Core_flg) && (g_Core_kind == 0 || w->core.kind == g_Core_kind) &&
             (g_Core_pEm == 0 || w->core.pEm == g_Core_pEm)) {
-            ObjMgr.destroy(obj);
+            ObjMgr.destroy(pObj);
         }
     }
-    if (obj->id == 9) {
-        Efm09Work* w = &obj->efm09;
+    if (pObj->id == 9) {
+        Efm09Work* w = &pObj->efm09;
         if ((g_Core_flg == 0 || w->core.flg == g_Core_flg) && (g_Core_kind == 0 || w->core.kind == g_Core_kind) &&
             (g_Core_pEm == 0 || w->core.pEm == g_Core_pEm)) {
-            ObjMgr.destroy(obj);
+            ObjMgr.destroy(pObj);
         }
     }
 }
@@ -125,24 +125,24 @@ void EfmDeleteEvent()
 }
 
 // Per-object test for EfmDeleteEvent.
-void EfmDeleteEventSub(cObj* obj)
+void EfmDeleteEventSub(cObj* pObj)
 {
-    if (obj->id == 4) {
-        Efm04Work* w = &obj->efm04;
+    if (pObj->id == 4) {
+        Efm04Work* w = &pObj->efm04;
         if (!(w->core.flg & 1) && !(w->core.flg & 0x800)) {
-            ObjMgr.destroy(obj);
+            ObjMgr.destroy(pObj);
         }
     }
-    if (obj->id == 5) {
-        Efm05Work* w = &obj->efm05;
+    if (pObj->id == 5) {
+        Efm05Work* w = &pObj->efm05;
         if (!(w->core.flg & 1) && !(w->core.flg & 0x800)) {
-            ObjMgr.destroy(obj);
+            ObjMgr.destroy(pObj);
         }
     }
-    if (obj->id == 9) {
-        Efm09Work* w = &obj->efm09;
+    if (pObj->id == 9) {
+        Efm09Work* w = &pObj->efm09;
         if (!(w->core.flg & 1) && !(w->core.flg & 0x800)) {
-            ObjMgr.destroy(obj);
+            ObjMgr.destroy(pObj);
         }
     }
 }
@@ -682,58 +682,58 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
 // Fills an obj09 (rigid body) work: start position/velocity with spreads, box size = Vec0*100+250
 // (1/1000 units), mass = volume/1e9 * mass_mul, moments of inertia of the box * moment_mul, scale
 // from the size (Efm 0x7C and 0x21 use a smaller visual scale).
-cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate)
+cObj* EfmSetObj09(cObj* pObj, EspGenWork* pSeq, EfmCore* pCore, u32* pRand_seed, cModel* pMod, Mtx pMat, int flg, f32 ang)
 {
-    Efm09Work* w = &obj->efm09;
+    Efm09Work* w = &pObj->efm09;
     static f32 mass_mul = 1.0f;
     static f32 moment_mul = 2.0f;
 
-    obj->be_flag |= 0x10;
+    pObj->be_flag |= 0x10;
     if (DbgFlagChk(pG, DBG_IN_ESP_TOOL)) {
         DpfFlagOff(pG, DPF_SHADOW);
     }
-    w->core = *info;
-    w->basePos = gen->Pos;
-    w->basePos.x += gen->R_pos.x * fRandSeed1_1(seed);
-    w->basePos.y += gen->R_pos.y * fRandSeed1_1(seed);
-    w->basePos.z += gen->R_pos.z * fRandSeed1_1(seed);
+    w->core = *pCore;
+    w->basePos = pSeq->Pos;
+    w->basePos.x += pSeq->R_pos.x * fRandSeed1_1(pRand_seed);
+    w->basePos.y += pSeq->R_pos.y * fRandSeed1_1(pRand_seed);
+    w->basePos.z += pSeq->R_pos.z * fRandSeed1_1(pRand_seed);
     w->basePos.y += 0.0001f;
     w->pos = w->basePos;
-    w->spd = gen->Speed;
-    w->spd.x += gen->R_speed.x * fRandSeed1_1(seed);
-    w->spd.y += gen->R_speed.y * fRandSeed1_1(seed);
-    w->spd.z += gen->R_speed.z * fRandSeed1_1(seed);
+    w->spd = pSeq->Speed;
+    w->spd.x += pSeq->R_speed.x * fRandSeed1_1(pRand_seed);
+    w->spd.y += pSeq->R_speed.y * fRandSeed1_1(pRand_seed);
+    w->spd.z += pSeq->R_speed.z * fRandSeed1_1(pRand_seed);
     PSMTXIdentity(w->mat);
     w->w.x = 0.0f;
     w->w.y = 0.0f;
     w->w.z = 0.0f;
-    w->rotSpd = gen->Ang_plus;
-    w->rotSpd.x += gen->R_ang_plus.x * fRandSeed1_1(seed);
-    w->rotSpd.y += gen->R_ang_plus.y * fRandSeed1_1(seed);
-    w->rotSpd.z += gen->R_ang_plus.z * fRandSeed1_1(seed);
-    w->size.x = gen->Vec0.x * 100.0f + 250.0f;
-    w->size.y = gen->Vec0.y * 100.0f + 250.0f;
-    w->size.z = gen->Vec0.z * 100.0f + 250.0f;
+    w->rotSpd = pSeq->Ang_plus;
+    w->rotSpd.x += pSeq->R_ang_plus.x * fRandSeed1_1(pRand_seed);
+    w->rotSpd.y += pSeq->R_ang_plus.y * fRandSeed1_1(pRand_seed);
+    w->rotSpd.z += pSeq->R_ang_plus.z * fRandSeed1_1(pRand_seed);
+    w->size.x = pSeq->Vec0.x * 100.0f + 250.0f;
+    w->size.y = pSeq->Vec0.y * 100.0f + 250.0f;
+    w->size.z = pSeq->Vec0.z * 100.0f + 250.0f;
     w->mass = w->size.x * w->size.y * w->size.z / 1000000000.0f;
     w->mass *= mass_mul;
     PSVECScale(&w->spd, &w->spd, w->mass * 100.0f);
     w->moment.x = moment_mul * w->mass * (w->size.y * w->size.y + w->size.z * w->size.z) / 12.0f;
     w->moment.y = moment_mul * w->mass * (w->size.x * w->size.x + w->size.z * w->size.z) / 12.0f;
     w->moment.z = moment_mul * w->mass * (w->size.x * w->size.x + w->size.y * w->size.y) / 12.0f;
-    obj->scale = w->size;
-    PSVECScale(&obj->scale, &obj->scale, 0.01f);
-    if (gen->Tex_id == 0x7C) {
-        obj->scale.x *= 0.05f;
-        obj->scale.y *= 0.05f;
-        obj->scale.z *= 0.05f;
+    pObj->scale = w->size;
+    PSVECScale(&pObj->scale, &pObj->scale, 0.01f);
+    if (pSeq->Tex_id == 0x7C) {
+        pObj->scale.x *= 0.05f;
+        pObj->scale.y *= 0.05f;
+        pObj->scale.z *= 0.05f;
     }
-    if (gen->Tex_id == 0x21) {
-        obj->scale.x *= 0.5f;
-        obj->scale.y *= 0.5f;
-        obj->scale.z *= 0.5f;
+    if (pSeq->Tex_id == 0x21) {
+        pObj->scale.x *= 0.5f;
+        pObj->scale.y *= 0.5f;
+        pObj->scale.z *= 0.5f;
     }
-    obj->move();
-    return obj;
+    pObj->move();
+    return pObj;
 }
 
 // Creates a permanent, world-parented obj04 for a plain model (bin/tpl) at pos/rot with white colour,
@@ -797,7 +797,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
 
 // Makes the object draw with texture-render buffer `no` (refraction shader: Shader_type 1,
 // Refract_pow 0xF, Refract_ratio 0xB4) when that buffer is in use.
-void setModTexRender(cObj* obj, int no)
+void setModTexRender(cObj* pMod, int no)
 {
     static u8 buf[0x20];
     u8* tbl = buf;
@@ -810,11 +810,11 @@ void setModTexRender(cObj* obj, int no)
     tbl[1] = 0;
     tbl[4] = 0xF7;
     tbl[5] = mgr->m_Tex_no;
-    obj->pModelInfo->setTexBlendTbl(tbl);
-    obj->pModelInfo->setBlendRatio(0xFF);
-    obj->Shader_type = 1;
-    obj->Refract_pow = 0xF;
-    obj->Refract_ratio = 0xB4;
+    pMod->pModelInfo->setTexBlendTbl(tbl);
+    pMod->pModelInfo->setBlendRatio(0xFF);
+    pMod->Shader_type = 1;
+    pMod->Refract_pow = 0xF;
+    pMod->Refract_ratio = 0xB4;
 }
 
 // .sdata alignment padding of the split object

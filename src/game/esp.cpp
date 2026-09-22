@@ -36,10 +36,10 @@ int EspArrayPop();
 
 // Default EspTransTbl entry: an effect whose id has no registered trans function is reported and
 // released.
-void EspDummyTrans(cEsp* esp)
+void EspDummyTrans(cEsp* pEsp)
 {
-    pLog->err(0, 0, "ESP_TRANS : ESP_ID[%x] invalid.", esp->m_Id);
-    PushEsp(esp);
+    pLog->err(0, 0, "ESP_TRANS : ESP_ID[%x] invalid.", pEsp->m_Id);
+    PushEsp(pEsp);
 }
 
 // Resets both per-id tables (0xFF ids) to "unregistered"; called once from the effect system init
@@ -64,17 +64,17 @@ void EspFuncTblSet(int id, EspCreateFunc create, EspTransFunc trans)
 // 1 when `esp` is in use and should move/draw this frame. Under Status_flg[1] 0x10000000
 // (event pause) only effects with Core_flg bit0 count, and an effect attached to a model only
 // when that model carries be_flag 0x800 (moves during events, see emMove).
-int ESP_IsActive(cEsp* esp)
+int ESP_IsActive(cEsp* pEsp)
 {
-    if (!(esp->m_Be_flg & 1)) {
+    if (!(pEsp->m_Be_flg & 1)) {
         return 0;
     }
     if (StaFlagChk(pG, STA_SUSPEND)) {
-        if (!(esp->info.Core_flg & 1)) {
+        if (!(pEsp->info.Core_flg & 1)) {
             return 0;
         }
-        if (esp->parent != pEffParentWorld) {
-            cModel* m = esp->m_pMod;
+        if (pEsp->parent != pEffParentWorld) {
+            cModel* m = pEsp->m_pMod;
             if (m != NULL) {
                 int off = !(m->be_flag & 0x800);
                 if (off) {
@@ -89,7 +89,7 @@ int ESP_IsActive(cEsp* esp)
 // Allocates an effect of id `id`: runs its registered create (operator new picks a free slot),
 // marks it live (m_Be_flg bit0), stores the id and bumps ActiveEspNum. Returns 1 on success;
 // on a bad id or a full pool *out is the dummy esp (pDmyEsp) and 0 is returned.
-int PullEsp(cEsp** out, int id)
+int PullEsp(cEsp** ppEsp, int id)
 {
     cEspSystem* sys = g_pEspSys;
     EspCreateFunc create = EspCreateTbl[id];
@@ -98,16 +98,16 @@ int PullEsp(cEsp** out, int id)
 
     if (create == NULL) {
         pLog->err(0, 0, "ESP : EspID[%x] is invalid.", id);
-        *out = sys->pDmyEsp;
+        *ppEsp = sys->pDmyEsp;
         return 0;
     }
     esp = create();
-    *out = esp;
+    *ppEsp = esp;
     if (esp != sys->pDmyEsp) {
         esp->m_Be_flg |= 1;
         ret = 1;
         sys->ActiveEspNum++;
-        (*out)->m_Id = id;
+        (*ppEsp)->m_Id = id;
     } else {
         pLog->warn(6, 0, "ESP : ESP work full!!");
     }
@@ -205,12 +205,12 @@ u32 tubo_amb = 0;
 
 // Releases a live effect: clears m_Be_flg bits 0-1, decrements ActiveEspNum and runs Destruct().
 // Pushing a slot that is not live only warns.
-void PushEsp(cEsp* esp)
+void PushEsp(cEsp* pEsp)
 {
-    if (esp->m_Be_flg & 1) {
-        esp->m_Be_flg &= ~3;
+    if (pEsp->m_Be_flg & 1) {
+        pEsp->m_Be_flg &= ~3;
         g_pEspSys->ActiveEspNum--;
-        esp->Destruct();
+        pEsp->Destruct();
     } else {
         pLog->warn(0, 0, "PushEsp() : No alive work is pushed.");
     }
@@ -537,24 +537,24 @@ u32 esp_dmy_amb = 0;
 
 // Allocates the esp pool with `n` slots (game.cpp room start, count from the cons table); frees
 // the previous pool first. Returns 1 on success.
-int EspArrayAlloc(u32 n)
+int EspArrayAlloc(u32 workNum)
 {
     cEspSystem* sys = g_pEspSys;
     u32 size;
     u8* p;
 
     EspArrayFree();
-    if (n == 0) {
+    if (workNum == 0) {
         return 0;
     }
-    size = n * 0x150;
+    size = workNum * 0x150;
 #line 879 "D:/Bio4/Prog/esp.cpp"
     p = (u8*) MEM_ALLOC(size, 1, 0xD);
     sys->EspArray = p;
     if (p == NULL) {
         return 0;
     }
-    sys->nEsp = n;
+    sys->nEsp = workNum;
     memclr_asm(p, size);
     return 1;
 }
@@ -574,7 +574,7 @@ int EspArrayFree()
 
 // Debug tools: swaps in a Debug_alloc'd pool of `n` slots, saving the game pool. 0 if one is
 // already pushed.
-int EspArrayPush(u32 n)
+int EspArrayPush(u32 esp_num)
 {
     cEspSystem* sys = g_pEspSys;
 
@@ -582,9 +582,9 @@ int EspArrayPush(u32 n)
         return 0;
     }
     sys->pEspBufSave = sys->EspArray;
-    sys->EspArray = (u8*) Debug_alloc(n * 0x150, 1);
+    sys->EspArray = (u8*) Debug_alloc(esp_num * 0x150, 1);
     sys->nEspBack = sys->nEsp;
-    sys->nEsp = n;
+    sys->nEsp = esp_num;
     return 1;
 }
 

@@ -43,14 +43,14 @@ int ShapeSet(void* work, int frame, void* data, int flags)
 }
 
 // Advance the shape animations of a parts list.
-int ShapeMove(cModelInfo* info)
+int ShapeMove(cModelInfo* i_pModelInfo)
 {
     cModelInfo* p;
 
-    if (info == NULL) {
+    if (i_pModelInfo == NULL) {
         return 0;
     }
-    for (p = info; p != NULL; p = p->pList) {
+    for (p = i_pModelInfo; p != NULL; p = p->pList) {
         if (p->pShape != NULL) {
             u32 flags;
             ShapeData* sd;
@@ -89,9 +89,9 @@ int ShapeMove(cModelInfo* info)
 }
 
 // Stops the shape animation of a model info and restores the neutral shape.
-void ShapeEnd(void* work)
+void ShapeEnd(void* pModelInfo)
 {
-    cModelInfo* info = (cModelInfo*) work;
+    cModelInfo* info = (cModelInfo*) pModelInfo;
 
     info->shape_frame = 0;
     info->pShape = NULL;
@@ -99,21 +99,21 @@ void ShapeEnd(void* work)
 }
 
 // Clears the five shape slots (neutral face).
-void SetOriginalShape(cModelInfo* info)
+void SetOriginalShape(cModelInfo* pModelInfo)
 {
     int i;
 
     for (i = 0; i < 5; i++) {
-        memclr_asm(&info->shape[i], sizeof(ShapeKey));
+        memclr_asm(&pModelInfo->shape[i], sizeof(ShapeKey));
     }
 }
 
 // Stop the shape animations of every part of a model.
-void ClrShape(cModel* m)
+void ClrShape(cModel* pMod)
 {
     cModelInfo* info;
 
-    for (info = m->pModelInfo; info != NULL; info = info->pList) {
+    for (info = pMod->pModelInfo; info != NULL; info = info->pList) {
         if (info->be_flag & 2) {
             info->shape_frame = 0;
             info->pShape = NULL;

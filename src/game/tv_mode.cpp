@@ -26,26 +26,26 @@ u8 tv_mode_cnt;
 // Boot: sets the render mode's VI / XFB mode for the console's TV format (progressive when saved
 // in pRK) and starts the mode-check task in slot 1.
 #line 26
-void SetTvMode(GXRenderModeObj* rmode)
+void SetTvMode(GXRenderModeObj* pRmode)
 {
     pTv = (TvModeWork*) MEM_CALLOC(sizeof(TvModeWork), 1, 0xD);
-    pTv->rmode = rmode;
+    pTv->rmode = pRmode;
     switch (VIGetTvFormat()) {
     case 0:
     case 2:
         if (pRK->tv_mode == 0) {
-            rmode->viTVmode = 0;
-            rmode->xFBmode = 1;
+            pRmode->viTVmode = 0;
+            pRmode->xFBmode = 1;
         } else {
-            rmode->viTVmode = 2;
-            rmode->xFBmode = 0;
+            pRmode->viTVmode = 2;
+            pRmode->xFBmode = 0;
         }
         break;
     case 1:
-        rmode->viTVmode = 4;
+        pRmode->viTVmode = 4;
         break;
     case 5:
-        rmode->viTVmode = 0x14;
+        pRmode->viTVmode = 0x14;
         break;
     default:
 #line 46
@@ -74,7 +74,7 @@ void tvModeCheckTask()
 
 // State 0: with a progressive TV and the check not done yet (waits up to 30 frames for the pad),
 // B held or progressive already on opens the menu; else straight to exit. Marks the check done.
-void tvModeTrigger(TvModeWork* tv)
+void tvModeTrigger(TvModeWork* pTv)
 {
     if (VIGetDTVStatus() != 0 && pRK->tv_mode_select == 0) {
         if (Joy[0].err == -3 || Joy[0].err == -2) {
@@ -85,12 +85,12 @@ void tvModeTrigger(TvModeWork* tv)
         }
         if (OSGetProgressiveMode() == 1 || (Joy[0].on & JOY_B)) {
             systemVISetBlack(0);
-            tv->state = 1;
+            pTv->state = 1;
         } else {
-            tv->state = 2;
+            pTv->state = 2;
         }
     } else {
-        tv->state = 2;
+        pTv->state = 2;
     }
     pRK->tv_mode_select = 1;
 }
@@ -98,7 +98,7 @@ void tvModeTrigger(TvModeWork* tv)
 // State 1: the yes / no message (system layout, message 0; the cursor's choice after 300 idle
 // frames), applies the mode (VI reconfigured behind a black screen), then the confirmation
 // message (1 progressive / 2 interlaced) until A.
-void tvModeMenu_progressive(TvModeWork* tv)
+void tvModeMenu_progressive(TvModeWork* pTv)
 {
     int i;
     u32 timer;
@@ -107,9 +107,9 @@ void tvModeMenu_progressive(TvModeWork* tv)
     MesWork* w;
     MessageControl* mes;
 
-    switch (tv->sub) {
+    switch (pTv->sub) {
     case 0:
-        MesData.ptr[tv->sub] = (u8*) (pG->pCore->ofs_70 + (u32) pG->pCore);
+        MesData.ptr[pTv->sub] = (u8*) (pG->pCore->ofs_70 + (u32) pG->pCore);
         cMes.setLayout(0, LAYOUT_SYSTEM);
         cMes.MesSet(0, 100, 220, 0x1000051, 0, 0, 1);
         timer = 0;
@@ -137,20 +137,20 @@ void tvModeMenu_progressive(TvModeWork* tv)
         }
         if (pRK->tv_mode != old) {
             if (pRK->tv_mode == 1) {
-                tv->rmode->viTVmode = 2;
-                tv->rmode->xFBmode = 0;
+                pTv->rmode->viTVmode = 2;
+                pTv->rmode->xFBmode = 0;
             } else {
-                tv->rmode->viTVmode = 0;
-                tv->rmode->xFBmode = 1;
+                pTv->rmode->viTVmode = 0;
+                pTv->rmode->xFBmode = 1;
             }
             systemVISetBlack(1);
             VIFlush();
-            VIConfigure(tv->rmode);
+            VIConfigure(pTv->rmode);
             VIFlush();
             TaskSleep(100);
             systemVISetBlack(0);
         }
-        tv->sub++;
+        pTv->sub++;
         break;
     case 1:
         if (OSGetProgressiveMode() == 1) {
@@ -163,16 +163,16 @@ void tvModeMenu_progressive(TvModeWork* tv)
             for (i = 0; i < 16; i++) {
                 mes->Delete(i);
             }
-            tv->state = 2;
-            tv->sub = 0;
+            pTv->state = 2;
+            pTv->sub = 0;
         }
         break;
     }
 }
 
 // State 2: done — runs the memory card first check and ends the task.
-void tvModeExit(TvModeWork* tv)
+void tvModeExit(TvModeWork* pTv)
 {
-    tv->active = 0;
+    pTv->active = 0;
     CardFirstCheck();
 }

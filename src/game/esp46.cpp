@@ -47,16 +47,16 @@ void Esp46_Trans(cEsp46* pEsp)
 
 // Reads the filter type (Work8[0]), priority (Work8[1]) and special flag (Work8[2], 0/1) and puts
 // the effect on the screen-first layer (m_Parts_no 0xF8).
-int cEsp46::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp46::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp46Work* w = &m_Free;
 
-    w->level = (s8)gen->Work8[0];
-    w->priority = gen->Work8[1];
-    if ((s8)gen->Work8[2] <= 1) {
-        w->sp_flag = gen->Work8[2];
+    w->level = (s8)pSeq->Work8[0];
+    w->priority = pSeq->Work8[1];
+    if ((s8)pSeq->Work8[2] <= 1) {
+        w->sp_flag = pSeq->Work8[2];
     } else {
-        pLog->err(0, 0, "ESP46 : WK2[%x] invalid.", (s8)gen->Work8[2]);
+        pLog->err(0, 0, "ESP46 : WK2[%x] invalid.", (s8)pSeq->Work8[2]);
     }
     m_Parts_no = 0xf8;
     return 1;

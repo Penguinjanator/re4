@@ -121,138 +121,138 @@ f32 WeaponLevelTblShotGun[3][7] = {
 // multiplier (pG->weapon_lv_power, 0..7). flag == 0 is a body hit (shotguns 7 / 8 / 0x21 use
 // their own pellet rate table), non-zero a head / special hit. Weapon 0x14 (knife) gets x2 / x5
 // / x10 for the mercenary player types 2 / 3 / 4-5. Unknown weapons count as id 2.
-int GetWepDmVal(cEm* em, u32 wep, int flag)
+int GetWepDmVal(cEm* pEm, u32 wep_no, int near)
 {
     int val;
     u32 lv;
     f32 rate;
 
-    if (wep > 0x2D) {
-        wep = 2;
+    if (wep_no > 0x2D) {
+        wep_no = 2;
     }
-    switch (em->id) {
+    switch (pEm->id) {
     case 0x10:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x11:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x12:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x13:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x14:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x15:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x16:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x17:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x18:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x19:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x1A:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x1B:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x1C:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x1D:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x1E:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x1F:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x20:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x22:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x25:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x3A:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     case 0x23:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x24:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x27:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x28:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x29:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x2A:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x2B:
-        val = Dmg_tbl_em2b[wep];
+        val = Dmg_tbl_em2b[wep_no];
         break;
     case 0x2C:
-        val = Dmg_tbl_em2c[wep];
+        val = Dmg_tbl_em2c[wep_no];
         break;
     case 0x2D:
-        val = Dmg_tbl_em2d[wep];
+        val = Dmg_tbl_em2d[wep_no];
         break;
     case 0x2E:
-        val = Dmg_tbl_sml[wep];
+        val = Dmg_tbl_sml[wep_no];
         break;
     case 0x31:
-        val = Dmg_tbl_em31[wep];
+        val = Dmg_tbl_em31[wep_no];
         break;
     case 0x32:
-        val = Dmg_tbl_em3c[wep];
+        val = Dmg_tbl_em3c[wep_no];
         break;
     case 0x35:
-        val = Dmg_tbl_em3c[wep];
+        val = Dmg_tbl_em3c[wep_no];
         break;
     case 0x36:
-        val = Dmg_tbl_em36[wep];
+        val = Dmg_tbl_em36[wep_no];
         break;
     case 0x38:
-        val = Dmg_tbl_em3c[wep];
+        val = Dmg_tbl_em3c[wep_no];
         break;
     case 0x39:
-        val = Dmg_tbl_em39[wep];
+        val = Dmg_tbl_em39[wep_no];
         break;
     case 0x3C:
-        val = Dmg_tbl_em3c[wep];
+        val = Dmg_tbl_em3c[wep_no];
         break;
     default:
-        val = Dmg_tbl_em10[wep];
+        val = Dmg_tbl_em10[wep_no];
         break;
     }
     lv = pG->weapon_lv_power;
     if (lv > 7) {
         lv = 7;
     }
-    rate = WeaponLevelTbl[wep][lv];
-    if (flag == 0) {
-        switch (wep) {
+    rate = WeaponLevelTbl[wep_no][lv];
+    if (near == 0) {
+        switch (wep_no) {
         case 7:
             rate = WeaponLevelTblShotGun[0][lv];
             break;
@@ -264,16 +264,16 @@ int GetWepDmVal(cEm* em, u32 wep, int flag)
             break;
         }
     }
-    if (pG->pl_type == 4 && wep == 0x14) {
+    if (pG->pl_type == 4 && wep_no == 0x14) {
         val *= 10;
     }
-    if (pG->pl_type == 5 && wep == 0x14) {
+    if (pG->pl_type == 5 && wep_no == 0x14) {
         val *= 10;
     }
-    if (pG->pl_type == 3 && wep == 0x14) {
+    if (pG->pl_type == 3 && wep_no == 0x14) {
         val *= 5;
     }
-    if (pG->pl_type == 2 && wep == 0x14) {
+    if (pG->pl_type == 2 && wep_no == 0x14) {
         val *= 2;
     }
     return (int) ((f32) val * rate);

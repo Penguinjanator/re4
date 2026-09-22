@@ -31,22 +31,22 @@ void cEsp42::move()
 
 // Stores GX_BM_BLEND with the source factor bl1[Work8[0]] and destination factor bl2[Work8[1]] in
 // m_Blend_mode..m_Logic_op (read by EspCommonTrans). Fails when either index is above 8.
-int cEsp42::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp42::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     static u32 bl1[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     static u32 bl2[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    if ((s8)gen->Work8[0] > 8) {
-        pLog->err(0, 0, "ESP42 : WK0[%d] invalid", (s8)gen->Work8[0]);
+    if ((s8)pSeq->Work8[0] > 8) {
+        pLog->err(0, 0, "ESP42 : WK0[%d] invalid", (s8)pSeq->Work8[0]);
         return 0;
     }
-    if ((s8)gen->Work8[1] > 8) {
-        pLog->err(0, 0, "ESP42 : WK1[%d] invalid", (s8)gen->Work8[1]);
+    if ((s8)pSeq->Work8[1] > 8) {
+        pLog->err(0, 0, "ESP42 : WK1[%d] invalid", (s8)pSeq->Work8[1]);
         return 0;
     }
     m_Blend_mode = 1;
-    m_Src_factor = bl1[(s8)gen->Work8[0]];
-    m_Dst_factor = bl2[(s8)gen->Work8[1]];
+    m_Src_factor = bl1[(s8)pSeq->Work8[0]];
+    m_Dst_factor = bl2[(s8)pSeq->Work8[1]];
     m_Logic_op = 0;
     return 1;
 }

@@ -333,24 +333,24 @@ void Esp0e_HideCheck(cEsp* esp0)
 // Builds dir_vec / dir_ang from Vec2 (enables the direction test), the centre and size ratios
 // from Vec0, the distance fade Vec0.z and the visibility radius Vec1.x; m_Flg bit3 marks the
 // screen-glow OT layer. Attached effects with Release_time 0 are kept attached forever.
-int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp0e::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp0eWork* w = &m_Free;
 
     m_Flg |= 8;
     w->flg = 0;
-    if (gen->Vec2.z != 0.0f) {
+    if (pSeq->Vec2.z != 0.0f) {
         Mtx mx;
         Mtx my;
         f32 rx;
         f32 ry;
 
-        w->dir_ang = gen->Vec2.z * PI * 2.0f / 360.0f * 0.5f;
+        w->dir_ang = pSeq->Vec2.z * PI * 2.0f / 360.0f * 0.5f;
         w->dir_vec.x = 0.0f;
         w->dir_vec.y = 0.0f;
         w->dir_vec.z = 1.0f;
-        rx = gen->Vec2.x * PI * 2.0f / 360.0f;
-        ry = gen->Vec2.y * PI * 2.0f / 360.0f;
+        rx = pSeq->Vec2.x * PI * 2.0f / 360.0f;
+        ry = pSeq->Vec2.y * PI * 2.0f / 360.0f;
         rx = LIMIT_ANGLE(rx);
         ry = LIMIT_ANGLE(ry);
         PSMTXRotRad(mx, 'Y', ry);
@@ -361,18 +361,18 @@ int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
         VECNormalize(&w->dir_vec, &w->dir_vec);
         w->flg |= 1;
     }
-    w->center_dist_ratio = 1.0f - gen->Vec0.x * 0.01f;
+    w->center_dist_ratio = 1.0f - pSeq->Vec0.x * 0.01f;
     if (w->center_dist_ratio > 1.0f) {
         w->center_dist_ratio = 1.0f;
     }
-    w->size_ratio = gen->Vec0.y * 0.01f;
-    w->del_dist = gen->Vec0.z;
-    if (gen->Vec1.x != 0.0f) {
-        w->hide_r = gen->Vec1.x;
+    w->size_ratio = pSeq->Vec0.y * 0.01f;
+    w->del_dist = pSeq->Vec0.z;
+    if (pSeq->Vec1.x != 0.0f) {
+        w->hide_r = pSeq->Vec1.x;
         w->flg |= 2;
     }
     w->Rand_seed = 0x12345678;
-    w->gen = gen;
+    w->gen = pSeq;
     if (m_Parts_no != ESP_PARTS_WORLD && m_Release_time == 0) {
         m_Release_time = 0xFF;
     }

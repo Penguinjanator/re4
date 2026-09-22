@@ -318,9 +318,9 @@ QfpsOfs g_transOfs[TRANS_DATA_NUM][2][3] = {
 
 // ---------------------------------------------------------------------------
 
-void CameraQuasiFPS::LRinfo(void* p)
+void CameraQuasiFPS::LRinfo(void* pInfo)
 {
-    m_LR_info = p;
+    m_LR_info = pInfo;
 }
 
 // Left / right shoulder check placeholder: always 0 (right shoulder).
@@ -365,10 +365,10 @@ void CameraQuasiFPS::calcDepressionRatio()
 }
 
 // Stores the player matrix and floor normal pointer the base matrix is built from.
-void CameraQuasiFPS::setPlayerLocation(Mtx m, Vec* nrm)
+void CameraQuasiFPS::setPlayerLocation(Mtx mat, Vec* p_norm)
 {
-    PSMTXCopy(m, m_pl_mat);
-    m_p_floor_norm = nrm;
+    PSMTXCopy(mat, m_pl_mat);
+    m_p_floor_norm = p_norm;
 }
 
 
@@ -383,7 +383,7 @@ static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)
 // stored one after the search delay), one-shot translation / look-direction overrides, the up
 // axis tilted toward the floor normal by the floor ratio while not aiming, and the crouch drop
 // (g_crouch_cam_y_down / z_back) when the player is crouching.
-void CameraQuasiFPS::calcBaseMatrix(Mtx m)
+void CameraQuasiFPS::calcBaseMatrix(Mtx mat)
 {
     static f32 s_ratio = 0.33333334f;
     static f32 f = 0.9f;
@@ -406,26 +406,26 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
         v2.x = 0.0f;
         v2.y = atan2f(v1.x, v1.z);
         v2.z = 0.0f;
-        PSMTXIdentity(m);
-        RotMatrix(m, &v2);
-        TransMatrix(m, &v0);
+        PSMTXIdentity(mat);
+        RotMatrix(mat, &v2);
+        TransMatrix(mat, &v0);
     }
     if (m_state & 1) {
-        PSMTXCopy(m_pl_mat, m);
+        PSMTXCopy(m_pl_mat, mat);
     }
     if (m_pl_ofs.x != 0.0f || m_pl_ofs.y != 0.0f || m_pl_ofs.z != 0.0f) {
-        PSMTXMultVec(m, &m_pl_ofs, &v0);
-        TransMatrix(m, &v0);
+        PSMTXMultVec(mat, &m_pl_ofs, &v0);
+        TransMatrix(mat, &v0);
         memclr_asm(&m_pl_ofs, sizeof(Vec));
     }
     if (m_pl_dir.x != 0.0f || m_pl_dir.y != 0.0f || m_pl_dir.z != 0.0f) {
-        getColumn(m, 1, &v1);
-        getColumn(m, 3, &v4);
+        getColumn(mat, 1, &v1);
+        getColumn(mat, 3, &v4);
         PSVECCrossProduct(&v1, &m_pl_dir, &v0);
 #line 650 "D:/Bio4/Prog/cam_qfps.cpp"
         VECNormalize(&v0, &v0);
         PSVECCrossProduct(&v0, &v1, &v3);
-        setColumns(m, &v0, &v1, &v3, &v4);
+        setColumns(mat, &v0, &v1, &v3, &v4);
         memclr_asm(&m_pl_dir, sizeof(Vec));
     }
     if (!pl->isKamae() && m_p_floor_norm != NULL && !StaFlagChk(pG, STA_SUB_SCRN)) {
@@ -434,8 +434,8 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
         v5 = *m_p_floor_norm;
         s_ratio = f * s_ratio + (1.0f - f) * m_floor_ratio;
         VecInternalDivisionAngle(&up, s_ratio, &v5, 1.0f - s_ratio, &v1);
-        getColumn(m, 0, &v0);
-        getColumn(m, 3, &v3);
+        getColumn(mat, 0, &v0);
+        getColumn(mat, 3, &v3);
         PSVECCrossProduct(&v0, &v1, &v2);
         PSVECCrossProduct(&v1, &v2, &v0);
         switch (PlGetStatus()) {
@@ -452,7 +452,7 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
             break;
         }
         }
-        setColumns(m, &v0, &v1, &v2, &v3);
+        setColumns(mat, &v0, &v1, &v2, &v3);
     }
 }
 
@@ -479,16 +479,16 @@ int CameraQuasiFPS::checkFBLR()
 }
 
 // Sets the offset blend ratio directly (1 = old offsets, 0 = current).
-void CameraQuasiFPS::setBlendRatio(f32 r)
+void CameraQuasiFPS::setBlendRatio(f32 ratio)
 {
-    m_blend_ratio = r;
+    m_blend_ratio = ratio;
 }
 
 // Starts a blend from the old offsets to the current ones over `n` frames (m_state bit2).
-void CameraQuasiFPS::setBlendCount(int n)
+void CameraQuasiFPS::setBlendCount(int counter)
 {
-    m_blend_count = n;
-    m_blend_frame = n;
+    m_blend_count = counter;
+    m_blend_frame = counter;
     m_state |= 4;
 }
 
@@ -625,7 +625,7 @@ void CameraQuasiFPS::checkCameraType()
 // The frame's shoulder offset: blends old -> current tables by blend_ratio (counting the blend
 // down), picks the up / mid / down site by the pitch ratio angle_y (interpolating toward the
 // up or down entry), copies roll / fov, and rotates the result about y by the yaw angle_x.
-void CameraQuasiFPS::calcOffset(QfpsOfs* out)
+void CameraQuasiFPS::calcOffset(QfpsOfs* p_offset)
 {
     Vec a;
     Vec b;
@@ -702,16 +702,16 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
             d = a;
         }
     }
-    out->Campos = d;
-    out->campos2 = b;
-    out->Target = c;
-    out->Roll = o[1].Roll;
-    out->Fovy = o[1].Fovy;
+    p_offset->Campos = d;
+    p_offset->campos2 = b;
+    p_offset->Target = c;
+    p_offset->Roll = o[1].Roll;
+    p_offset->Fovy = o[1].Fovy;
     if (m_direction_ratio != 0.0f) {
         PSMTXRotRad(m, 'y', m_direction_ratio);
-        PSMTXMultVecSR(m, &out->Campos, &out->Campos);
-        PSMTXMultVecSR(m, &out->campos2, &out->campos2);
-        PSMTXMultVecSR(m, &out->Target, &out->Target);
+        PSMTXMultVecSR(m, &p_offset->Campos, &p_offset->Campos);
+        PSMTXMultVecSR(m, &p_offset->campos2, &p_offset->campos2);
+        PSMTXMultVecSR(m, &p_offset->Target, &p_offset->Target);
     }
 }
 
@@ -967,39 +967,39 @@ void CameraQuasiFPS::setAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
 // Loads a camera area cut's shoulder offsets into the override tables: starts from the defaults,
 // takes the cut's floor ratio, then per left / right x up / mid / down entry the ready (flags
 // 0x30) and transition (not 0x20) camera / target / roll / fov and close points.
-void CameraQuasiFPS::setAreaData(CameraCut* cut)
+void CameraQuasiFPS::setAreaData(CameraCut* pCdat)
 {
     int i;
     int j;
     int k = 0;
     QfpsOfs* p;
 
-    if (cut == NULL) {
+    if (pCdat == NULL) {
         return;
     }
     OFS_COPY(g_readyOfs[0], g_readyOfs[14]);
     OFS_COPY(g_transOfs[TRANS_DATA_LEON], g_transOfs[TRANS_DATA_AREA]);
-    m_floor_ratio = cut->floor_ratio;
-    if (cut->num == 0) {
+    m_floor_ratio = pCdat->floor_ratio;
+    if (pCdat->num == 0) {
         return;
     }
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 3; j++, k++) {
             if (i <= 1) {
                 p = &g_readyOfs[14][i][j];
-                if (cut->flags & 0x30) {
-                    p->Campos = cut->pos[k];
-                    p->Target = cut->at[k];
-                    p->Roll = cut->roll[k];
-                    p->Fovy = cut->fovy[k];
+                if (pCdat->flags & 0x30) {
+                    p->Campos = pCdat->pos[k];
+                    p->Target = pCdat->at[k];
+                    p->Roll = pCdat->roll[k];
+                    p->Fovy = pCdat->fovy[k];
                 }
             } else {
                 p = &g_transOfs[TRANS_DATA_AREA][i - 2][j];
-                if (!(cut->flags & 0x20)) {
-                    p->Campos = cut->pos[k];
-                    p->Target = cut->at[k];
-                    p->Roll = cut->roll[k];
-                    p->Fovy = cut->fovy[k];
+                if (!(pCdat->flags & 0x20)) {
+                    p->Campos = pCdat->pos[k];
+                    p->Target = pCdat->at[k];
+                    p->Roll = pCdat->roll[k];
+                    p->Fovy = pCdat->fovy[k];
                 }
             }
         }
@@ -1008,13 +1008,13 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
         for (j = 0; j < 3; j++, k++) {
             if (i <= 1) {
                 p = &g_readyOfs[14][i][j];
-                if (cut->flags & 0x30) {
-                    p->campos2 = cut->pos[k];
+                if (pCdat->flags & 0x30) {
+                    p->campos2 = pCdat->pos[k];
                 }
             } else {
                 p = &g_transOfs[TRANS_DATA_AREA][i - 2][j];
-                if (!(cut->flags & 0x20)) {
-                    p->campos2 = cut->pos[k];
+                if (!(pCdat->flags & 0x20)) {
+                    p->campos2 = pCdat->pos[k];
                 }
             }
         }
@@ -1023,21 +1023,21 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
 
 // Keeps the close point at least 320 units behind the player along the camera direction so the
 // shoulder camera cannot start inside the model.
-void offsetCorrection(QfpsOfs* o)
+void offsetCorrection(QfpsOfs* p_offset)
 {
     static f32 GAIN = 0.8f;
     Vec d;
     f32 len;
     f32 t;
 
-    PSVECSubtract(&o->campos2, &o->Campos, &d);
+    PSVECSubtract(&p_offset->campos2, &p_offset->Campos, &d);
     len = PSVECMag(&d);
 #line 1518 "D:/Bio4/Prog/cam_qfps.cpp"
     VECNormalize(&d, &d);
-    t = (-GAIN * 400.0f - o->Campos.z) / d.z;
+    t = (-GAIN * 400.0f - p_offset->Campos.z) / d.z;
     if (t > len) {
         PSVECScale(&d, &d, t);
-        PSVECAdd(&o->Campos, &d, &o->campos2);
+        PSVECAdd(&p_offset->Campos, &d, &p_offset->campos2);
     }
 }
 
@@ -1092,19 +1092,19 @@ void CameraQuasiFPS::bindDefaultCamera()
 // Points the type slots at the area override table (g_readyOfs[14]) for the types the area cut
 // overrides (its flags decide the normal and the partner-carry type separately), the defaults
 // for the rest.
-void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
+void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* pCut)
 {
     CameraCut* cut;
     CameraAreaInfo* area;
 
-    if (rec == NULL) {
+    if (pCut == NULL) {
         return;
     }
-    cut = rec->cut;
+    cut = pCut->cut;
     if (cut != NULL && cut->num == 0) {
         return;
     }
-    area = rec->area;
+    area = pCut->area;
     if (cut->flags & 0x30) {
         offsetArrayCorrection(g_readyOfs[14]);
         if (area->attr2 & 0x5D) {

@@ -125,8 +125,8 @@ public:
     u8 _rno2;
     u8 _rno3;
 
-    int init(MercSysWork* wk);
-    int move(MercSysWork* wk);
+    int init(MercSysWork* pWk);
+    int move(MercSysWork* pWk);
     void quit();
 };
 
@@ -143,7 +143,7 @@ public:
     u8 _rno3;
 
     void init();
-    int move(int mesNo);
+    int move(int messNo);
     void quit();
 };
 
@@ -173,23 +173,23 @@ extern "C" {
 int MercSysInitStage();
 int MercSysInitRoom(MercInit* pMInit);
 int MercSysMoveStart(MercSysWork* wk);
-int MercSysMoveScore(MercSysWork* wk);
-int MercSysMoveMain(MercSysWork* wk);
-int MercSysResultInit(MercSysWork* wk);
-int MercSysResultMove(MercSysWork* wk);
-void MercSysGetSaveWork(MercSaveWork* save);
-void MercSysSetSaveWork(MercSaveWork* save);
-int MercSysSetPoint(int kind, int pt);   // kind: MERCE_TYPE
-int MercSysSetAddTime(int sec);
-int MercSysSetBonusTime(int frames);
+int MercSysMoveScore(MercSysWork* pWk);
+int MercSysMoveMain(MercSysWork* pWk);
+int MercSysResultInit(MercSysWork* pWk);
+int MercSysResultMove(MercSysWork* pWk);
+void MercSysGetSaveWork(MercSaveWork* pSaveWk);
+void MercSysSetSaveWork(MercSaveWork* pSaveWk);
+int MercSysSetPoint(int type, int point);   // kind: MERCE_TYPE
+int MercSysSetAddTime(int time);
+int MercSysSetBonusTime(int time);
 // id unit helpers (IDSystem `id`, unit `no` of table `type`)
-void IdSetTrans(IDSystem* id, int no, u8 type, int on);
-void IdSetAnmStart(IDSystem* id, int no, u8 type, int on);
-void IdSetColInit(IDSystem* id, int no, u8 type);
-void IdSetColStart(IDSystem* id, int no, int src, u8 type);
-void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int mode);
-void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo);
-int IdIsAnimEnd(IDSystem* id, int no, u8 type);
+void IdSetTrans(IDSystem* pIdSys, int idmNo, u8 idcNo, int flag);
+void IdSetAnmStart(IDSystem* pIdSys, int idmNo, u8 idcNo, int flag);
+void IdSetColInit(IDSystem* pIdSys, int idmNo, u8 idcNo);
+void IdSetColStart(IDSystem* pIdSys, int idmNo0, int idmNo1, u8 idcNo);
+void IdSetNum(IDSystem* pIdSys, int idmNo, u8 idcNo, int num, int max, int keta, int mode);
+void IdSetTexNo(IDSystem* pIdSys, int idmNo, u8 idcNo, int texNo);
+int IdIsAnimEnd(IDSystem* pIdSys, int idmNo, u8 idcNo);
 }
 
 #endif

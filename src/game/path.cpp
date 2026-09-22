@@ -9,9 +9,9 @@
 
 // 1 when any vertex of the path follows model parts (nWeight != 0), i.e. the path moves with an
 // enemy and the *Em variants must be used.
-int PathHasWeight(void* path)
+int PathHasWeight(void* pPdat)
 {
-    Path* p = (Path*)path;
+    Path* p = (Path*)pPdat;
     PathVtx* v = p->vtx;
     int i;
     int w = 0;
@@ -25,18 +25,18 @@ int PathHasWeight(void* path)
 }
 
 // Total length: the last vertex's distance from the start.
-f32 PathGetLength(void* path)
+f32 PathGetLength(void* pPdat)
 {
-    Path* p = (Path*)path;
+    Path* p = (Path*)pPdat;
     PathVtx* v = p->vtx;
     return v[p->num - 1].dist;
 }
 
 // Point at `dist` along a fixed path, linear between vertices; `seg` caches the segment and is
 // searched from there in either direction. Returns 0 (out = 0) when dist is outside 0..length.
-int PathGetPos(void* path, f32 dist, u16* seg, Vec* out)
+int PathGetPos(void* pPdat, f32 dist, u16* pPntNo, Vec* pPos)
 {
-    Path* p = (Path*)path;
+    Path* p = (Path*)pPdat;
     PathVtx* v = p->vtx;
     PathVtx* prev;
     int step;
@@ -44,34 +44,34 @@ int PathGetPos(void* path, f32 dist, u16* seg, Vec* out)
     f32 len;
     Vec tmp;
 
-    len = PathGetLength(path);
+    len = PathGetLength(pPdat);
     if (dist >= len || dist < 0.0f) {
-        out->x = out->y = out->z = 0.0f;
+        pPos->x = pPos->y = pPos->z = 0.0f;
         return 0;
     }
     step = -1;
-    v += *seg;
+    v += *pPntNo;
     if (dist >= v->dist) step = 1;
     fstep = (f32)step;
     do {
-        *seg += step;
+        *pPntNo += step;
         v += step;
     } while (fstep * v->dist < fstep * dist);
-    *seg -= step;
+    *pPntNo -= step;
     prev = v - step;
     dist -= prev->dist;
     dist /= v->dist - prev->dist;
     PSVECSubtract(&v->pos, &prev->pos, &tmp);
     PSVECScale(&tmp, &tmp, dist);
-    PSVECAdd(&prev->pos, &tmp, out);
+    PSVECAdd(&prev->pos, &tmp, pPos);
     return 1;
 }
 
 // PathGetPos for a path attached to `model`: both segment vertices are first moved by their
 // weighted parts matrices (PathGetVtxMat).
-int PathGetPosEm(void* path, cModel* model, f32 dist, u16* seg, Vec* out)
+int PathGetPosEm(void* pPdat, cModel* pMod, f32 dist, u16* pPntNo, Vec* pPos)
 {
-    Path* p = (Path*)path;
+    Path* p = (Path*)pPdat;
     PathVtx* v = p->vtx;
     PathVtx* prev;
     int step;
@@ -83,32 +83,32 @@ int PathGetPosEm(void* path, cModel* model, f32 dist, u16* seg, Vec* out)
     Mtx m0;
     Mtx m1;
 
-    len = PathGetLength(path);
+    len = PathGetLength(pPdat);
     if (dist >= len || dist < 0.0f) {
-        out->x = out->y = out->z = 0.0f;
+        pPos->x = pPos->y = pPos->z = 0.0f;
         return 0;
     }
     step = -1;
-    v += *seg;
+    v += *pPntNo;
     if (dist >= v->dist) step = 1;
     fstep = (f32)step;
     do {
-        *seg += step;
+        *pPntNo += step;
         v += step;
     } while (fstep * v->dist < fstep * dist);
-    *seg -= step;
+    *pPntNo -= step;
     prev = v - step;
     dist -= prev->dist;
     dist /= v->dist - prev->dist;
-    PathGetVtxMat(m0, model, prev);
-    PathGetVtxMat(m1, model, v);
+    PathGetVtxMat(m0, pMod, prev);
+    PathGetVtxMat(m1, pMod, v);
     PSMTXMultVec(m0, &prev->pos, &p0);
     PSMTXMultVec(m1, &v->pos, &p1);
     {
         Vec* pp = &p0;
         PSVECSubtract(&p1, pp, &tmp);
         PSVECScale(&tmp, &tmp, dist);
-        PSVECAdd(pp, &tmp, out);
+        PSVECAdd(pp, &tmp, pPos);
     }
     return 1;
 }
@@ -116,9 +116,9 @@ int PathGetPosEm(void* path, cModel* model, f32 dist, u16* seg, Vec* out)
 // Full matrix at `dist` along a path on `model`: position from a Hermite curve through the segment
 // (tangents from the neighbour vertices), forward from the curve tangent, up from the vertices'
 // interpolated nrm. Returns 0 (identity) when dist is outside the path.
-int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
+int PathGetMatEm(void* pPdat, cModel* pMod, f32 dist, u16* pPntNo, Mtx pMat)
 {
-    Path* p = (Path*)path;
+    Path* p = (Path*)pPdat;
     PathVtx* vtx;
     PathVtx* v;
     PathVtx* prev;
@@ -156,26 +156,26 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     static int dbg_tangent_base = 1;
     static int inter_flag = 1;
 
-    len = PathGetLength(path);
+    len = PathGetLength(pPdat);
     vtx = p->vtx;
     if (dist >= len || dist < 0.0f) {
-        PSMTXIdentity(out);
+        PSMTXIdentity(pMat);
         return 0;
     }
     step = -1;
-    v = &vtx[*seg];
+    v = &vtx[*pPntNo];
     if (dist >= v->dist) step = 1;
     fstep = (f32)step;
     do {
-        *seg += step;
+        *pPntNo += step;
         v += step;
     } while (fstep * v->dist < fstep * dist);
-    *seg -= step;
+    *pPntNo -= step;
     prev = v - step;
     t = (dist - prev->dist) / (v->dist - prev->dist);
 
-    PathGetVtxMat(m0, model, prev);
-    PathGetVtxMat(m1, model, v);
+    PathGetVtxMat(m0, pMod, prev);
+    PathGetVtxMat(m1, pMod, v);
     PSMTXMultVec(m0, &prev->pos, &p0);
     PSMTXMultVec(m1, &v->pos, &p1);
     {
@@ -248,31 +248,31 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     }
 
     if (inter_flag) {
-        out[0][0] = side.x;
-        out[1][0] = side.y;
-        out[2][0] = side.z;
-        out[0][1] = up.x;
-        out[1][1] = up.y;
-        out[2][1] = up.z;
-        out[0][2] = fwd.x;
-        out[1][2] = fwd.y;
-        out[2][2] = fwd.z;
-        out[0][3] = hpos.x;
-        out[1][3] = hpos.y;
-        out[2][3] = hpos.z;
+        pMat[0][0] = side.x;
+        pMat[1][0] = side.y;
+        pMat[2][0] = side.z;
+        pMat[0][1] = up.x;
+        pMat[1][1] = up.y;
+        pMat[2][1] = up.z;
+        pMat[0][2] = fwd.x;
+        pMat[1][2] = fwd.y;
+        pMat[2][2] = fwd.z;
+        pMat[0][3] = hpos.x;
+        pMat[1][3] = hpos.y;
+        pMat[2][3] = hpos.z;
     } else {
-        out[0][0] = side.x;
-        out[1][0] = side.y;
-        out[2][0] = side.z;
-        out[0][1] = up.x;
-        out[1][1] = up.y;
-        out[2][1] = up.z;
-        out[0][2] = fwd.x;
-        out[1][2] = fwd.y;
-        out[2][2] = fwd.z;
-        out[0][3] = lpos.x;
-        out[1][3] = lpos.y;
-        out[2][3] = lpos.z;
+        pMat[0][0] = side.x;
+        pMat[1][0] = side.y;
+        pMat[2][0] = side.z;
+        pMat[0][1] = up.x;
+        pMat[1][1] = up.y;
+        pMat[2][1] = up.z;
+        pMat[0][2] = fwd.x;
+        pMat[1][2] = fwd.y;
+        pMat[2][2] = fwd.z;
+        pMat[0][3] = lpos.x;
+        pMat[1][3] = lpos.y;
+        pMat[2][3] = lpos.z;
     }
     return 1;
 }
@@ -293,7 +293,7 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
 
 // Skinning matrix of a path vertex: sum of the parts' matrices weighted by weight[] percent
 // (the last weight takes the remainder), concatenated with the same blend of their bind matrices.
-void PathGetVtxMat(Mtx out, cModel* model, PathVtx* v)
+void PathGetVtxMat(Mtx pMat, cModel* pMod, PathVtx* pPunit)
 {
     Mtx m;
     Mtx m2;
@@ -305,29 +305,29 @@ void PathGetVtxMat(Mtx out, cModel* model, PathVtx* v)
     memclr_asm(m, sizeof(Mtx));
     memclr_asm(m2, sizeof(Mtx));
     wsum = 0.0f;
-    for (i = 0; i < v->nWeight; i++) {
-        if (v->partsNo[i] > model->nParts) {
-            PSMTXIdentity(out);
-            pLog->err(0, 0, "PathGetVtxMat(): Invalid Parts Number %d.\n", v->partsNo[i]);
+    for (i = 0; i < pPunit->nWeight; i++) {
+        if (pPunit->partsNo[i] > pMod->nParts) {
+            PSMTXIdentity(pMat);
+            pLog->err(0, 0, "PathGetVtxMat(): Invalid Parts Number %d.\n", pPunit->partsNo[i]);
             return;
         }
-        p = model->getPartsPtr(v->partsNo[i]);
-        w = (f32)v->weight[i] * 0.01f;
-        if (i == v->nWeight - 1) w = 1.0f - wsum;
+        p = pMod->getPartsPtr(pPunit->partsNo[i]);
+        w = (f32)pPunit->weight[i] * 0.01f;
+        if (i == pPunit->nWeight - 1) w = 1.0f - wsum;
         wsum += w;
         MAT_ACC(m, p->mat, w);
         MAT_ACC(m2, IK_PARTS(p)->bindMat, w);
     }
-    PSMTXConcat(m, m2, out);
+    PSMTXConcat(m, m2, pMat);
 }
 
 // Turns the n B-spline control points of order k (id_sys path0) into the interpolation
 // coefficients `alpha` (solves the de Boor-Cox basis matrix by Gaussian inversion); temporary
 // matrices from MEM_ALLOC. Returns 1 on success.
-int FuncPathParametrize(void* path, void* data)
+int FuncPathParametrize(void* pPath, void* pB)
 {
-    FuncPathData* d = (FuncPathData*)path;
-    FuncPathWork* w = (FuncPathWork*)data;
+    FuncPathData* d = (FuncPathData*)pPath;
+    FuncPathWork* w = (FuncPathWork*)pB;
     f32* A;
     f32* Ainv;
     f32* x;
@@ -428,9 +428,9 @@ int FuncPathParametrize(void* path, void* data)
 
 // Point on the parametrised B-spline at t in 0..1: sum of the basis values times alpha. Returns 0
 // on an allocation / basis failure.
-int FuncPathCalc(void* path, void* data, f32 t, Vec* out)
+int FuncPathCalc(void* pPath, void* pB, f32 t, Vec* p)
 {
-    FuncPathWork* w = (FuncPathWork*)data;
+    FuncPathWork* w = (FuncPathWork*)pB;
     f32* B;
     int i;
 
@@ -445,20 +445,20 @@ int FuncPathCalc(void* path, void* data, f32 t, Vec* out)
         Mem_free(B);
         return 0;
     }
-    out->x = out->y = out->z = 0.0f;
+    p->x = p->y = p->z = 0.0f;
     for (i = 0; i < w->n; i++) {
-        out->x += B[i] * w->alpha[i].x;
-        out->y += B[i] * w->alpha[i].y;
-        out->z += B[i] * w->alpha[i].z;
+        p->x += B[i] * w->alpha[i].x;
+        p->y += B[i] * w->alpha[i].y;
+        p->z += B[i] * w->alpha[i].z;
     }
     Mem_free(B);
     return 1;
 }
 
 // Empties the control point list (n = 0).
-void FuncPathClear(void* path)
+void FuncPathClear(void* pPath)
 {
-    FuncPathData* d = (FuncPathData*)path;
+    FuncPathData* d = (FuncPathData*)pPath;
     int i;
 
     for (i = 0; i < d->n; i++) {

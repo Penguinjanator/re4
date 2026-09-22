@@ -53,19 +53,19 @@ cEsp* Esp06_Create()
 
 // Samples the path at Dist into m_Pos (weighted paths attached to a model use PathGetPosEm).
 // Returns 0 when Dist is past either end.
-int Esp06GetPathPos(cEsp06* esp)
+int Esp06GetPathPos(cEsp06* pEsp)
 {
-    Esp06Work* w = &esp->m_Free;
+    Esp06Work* w = &pEsp->m_Free;
     int ret;
 
     if (PathHasWeight(w->pPath)) {
-        if (esp->m_pMod != NULL) {
-            ret = PathGetPosEm(w->pPath, esp->m_pMod, w->Dist, &w->seg, &esp->m_Pos);
+        if (pEsp->m_pMod != NULL) {
+            ret = PathGetPosEm(w->pPath, pEsp->m_pMod, w->Dist, &w->seg, &pEsp->m_Pos);
         } else {
-            ret = PathGetPos(w->pPath, w->Dist, &w->seg, &esp->m_Pos);
+            ret = PathGetPos(w->pPath, w->Dist, &w->seg, &pEsp->m_Pos);
         }
     } else {
-        ret = PathGetPos(w->pPath, w->Dist, &w->seg, &esp->m_Pos);
+        ret = PathGetPos(w->pPath, w->Dist, &w->seg, &pEsp->m_Pos);
     }
     return ret;
 }
@@ -74,47 +74,47 @@ int Esp06GetPathPos(cEsp06* esp)
 // speeds, angles and PathMat; integrates LocalPos (the path origin) with the base speed, applies
 // scale / colour / life / animation, advances Dist (or counts down `wait`), handles the path end
 // (loop / stop / die) and sets m_Pos = PathMat * path point + LocalPos.
-void esp06_CommonMove(cEsp06* esp)
+void esp06_CommonMove(cEsp06* pEsp)
 {
-    Esp06Work* w = &esp->m_Free;
+    Esp06Work* w = &pEsp->m_Free;
     Mtx m;
 
-    if (esp->parent != pEffParentWorld && esp->m_Release_time != 0xFF && esp->m_Release_time <= esp->m_Life_time) {
-        PSMTXMultVecSR(esp->parent->mat, &w->LocalPos, &w->LocalPos);
-        PSMTXMultVecSR(esp->parent->mat, &esp->m_Speed, &esp->m_Speed);
-        PSMTXMultVecSR(esp->parent->mat, &esp->m_Speed_plus, &esp->m_Speed_plus);
-        if (esp->m_Tool_flg & 1) {
-            RotMatrix(m, &esp->m_Ang);
-            PSMTXConcat(esp->parent->mat, m, m);
-            Matrix2AxisAngle(m, &esp->m_Ang);
+    if (pEsp->parent != pEffParentWorld && pEsp->m_Release_time != 0xFF && pEsp->m_Release_time <= pEsp->m_Life_time) {
+        PSMTXMultVecSR(pEsp->parent->mat, &w->LocalPos, &w->LocalPos);
+        PSMTXMultVecSR(pEsp->parent->mat, &pEsp->m_Speed, &pEsp->m_Speed);
+        PSMTXMultVecSR(pEsp->parent->mat, &pEsp->m_Speed_plus, &pEsp->m_Speed_plus);
+        if (pEsp->m_Tool_flg & 1) {
+            RotMatrix(m, &pEsp->m_Ang);
+            PSMTXConcat(pEsp->parent->mat, m, m);
+            Matrix2AxisAngle(m, &pEsp->m_Ang);
         }
-        PSMTXConcat(esp->parent->mat, w->PathMat, w->PathMat);
+        PSMTXConcat(pEsp->parent->mat, w->PathMat, w->PathMat);
         w->Flg |= 0x80;
-        esp->parent = pEffParentWorld;
+        pEsp->parent = pEffParentWorld;
     }
-    if (esp->m_Pos_start_cnt <= esp->m_Life_time) {
-        PSVECAdd(&w->LocalPos, &esp->m_Speed, &w->LocalPos);
+    if (pEsp->m_Pos_start_cnt <= pEsp->m_Life_time) {
+        PSVECAdd(&w->LocalPos, &pEsp->m_Speed, &w->LocalPos);
         w->PathSpeed += w->PathAccele;
-        PSVECAdd(&esp->m_Speed, &esp->m_Speed_plus, &esp->m_Speed);
-        PSVECScale(&esp->m_Speed, &esp->m_Speed, esp->m_D_speed);
+        PSVECAdd(&pEsp->m_Speed, &pEsp->m_Speed_plus, &pEsp->m_Speed);
+        PSVECScale(&pEsp->m_Speed, &pEsp->m_Speed, pEsp->m_D_speed);
     }
-    if (esp->m_Size_start_cnt <= esp->m_Life_time) {
-        esp->m_Size_mul += esp->m_Size_plus;
-        esp->m_Size_plus *= esp->m_D_size_plus;
-        if (esp->m_Size_mul <= 0.0f) {
-            PushEsp(esp);
+    if (pEsp->m_Size_start_cnt <= pEsp->m_Life_time) {
+        pEsp->m_Size_mul += pEsp->m_Size_plus;
+        pEsp->m_Size_plus *= pEsp->m_D_size_plus;
+        if (pEsp->m_Size_mul <= 0.0f) {
+            PushEsp(pEsp);
             return;
         }
     }
-    PSVECAdd(&esp->m_Ang, &esp->m_Ang_plus, &esp->m_Ang);
-    if (esp->ColorUpdate()) {
-        if (esp->m_Life_max != 0 && esp->m_Life_max <= esp->m_Life_time) {
-            PushEsp(esp);
+    PSVECAdd(&pEsp->m_Ang, &pEsp->m_Ang_plus, &pEsp->m_Ang);
+    if (pEsp->ColorUpdate()) {
+        if (pEsp->m_Life_max != 0 && pEsp->m_Life_max <= pEsp->m_Life_time) {
+            PushEsp(pEsp);
             return;
         }
-        esp->m_Life_time++;
-        if (!esp->AnmMove()) {
-            PushEsp(esp);
+        pEsp->m_Life_time++;
+        if (!pEsp->AnmMove()) {
+            PushEsp(pEsp);
             return;
         }
         {
@@ -123,14 +123,14 @@ void esp06_CommonMove(cEsp06* esp)
             } else {
                 w->wait--;
             }
-            if (!Esp06GetPathPos(esp)) {
+            if (!Esp06GetPathPos(pEsp)) {
                 if (w->Flg & 1) {
                     if (w->PathSpeed > 0.0f) {
                         w->Dist -= PathGetLength(w->pPath);
                     } else {
                         w->Dist += PathGetLength(w->pPath);
                     }
-                    Esp06GetPathPos(esp);
+                    Esp06GetPathPos(pEsp);
                     w->wait = w->StopFrame;
                     if (w->StopFrameRnd != 0) {
                         w->StopFrame += (u32)Rnd() % w->StopFrameRnd;
@@ -141,17 +141,17 @@ void esp06_CommonMove(cEsp06* esp)
                     } else {
                         w->Dist = 0.0f;
                     }
-                    Esp06GetPathPos(esp);
+                    Esp06GetPathPos(pEsp);
                     w->Flg |= 4;
                 } else {
-                    PushEsp(esp);
+                    PushEsp(pEsp);
                     return;
                 }
             }
             if (w->Flg & 0x80) {
-                PSMTXMultVec(w->PathMat, &esp->m_Pos, &esp->m_Pos);
+                PSMTXMultVec(w->PathMat, &pEsp->m_Pos, &pEsp->m_Pos);
             }
-            PSVECAdd(&esp->m_Pos, &w->LocalPos, &esp->m_Pos);
+            PSVECAdd(&pEsp->m_Pos, &w->LocalPos, &pEsp->m_Pos);
         }
     }
 }
@@ -179,21 +179,21 @@ void cEsp06::move()
 // the speed sign to match prm 0xCC, builds PathMat from Vec1 rotation and Vec0 scale, and picks
 // the start distance from Vec2 (percent + random percent, wrapped) or the far end for a negative
 // speed.
-int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp06::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp06Work* w = &m_Free;
     f32 t;
 
-    w->pathId = gen->Work8[0];
-    w->PathId = gen->Work8[1];
-    w->Flg = gen->Work8[2];
-    w->PathSpeed = (f32)(s32)gen->prm.w.xCC;
-    w->PathAccele = (f32)(s32)gen->prm.w.xD0 * 0.1f;
-    w->PathSpeed += (f32)(s32)gen->xD4 * fRandSeed1_1(seed);
-    w->StopFrame = gen->WorkSp8[0];
-    w->StopFrameRnd = gen->WorkSp8[1];
-    if ((f32)(s32)gen->prm.w.xCC != 0.0f) {
-        if ((f32)(s32)gen->prm.w.xCC > 0.0f) {
+    w->pathId = pSeq->Work8[0];
+    w->PathId = pSeq->Work8[1];
+    w->Flg = pSeq->Work8[2];
+    w->PathSpeed = (f32)(s32)pSeq->prm.w.xCC;
+    w->PathAccele = (f32)(s32)pSeq->prm.w.xD0 * 0.1f;
+    w->PathSpeed += (f32)(s32)pSeq->xD4 * fRandSeed1_1(pRand_seed);
+    w->StopFrame = pSeq->WorkSp8[0];
+    w->StopFrameRnd = pSeq->WorkSp8[1];
+    if ((f32)(s32)pSeq->prm.w.xCC != 0.0f) {
+        if ((f32)(s32)pSeq->prm.w.xCC > 0.0f) {
             if (w->PathSpeed < 0.0f) {
                 w->PathSpeed = -w->PathSpeed;
             }
@@ -208,21 +208,21 @@ int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
         return 0;
     }
     w->LocalPos = m_Pos;
-    if (gen->Vec1.x != 0.0f || gen->Vec1.y != 0.0f || gen->Vec1.z != 0.0f) {
+    if (pSeq->Vec1.x != 0.0f || pSeq->Vec1.y != 0.0f || pSeq->Vec1.z != 0.0f) {
         Vec r;
 
-        r = *(Vec*)&gen->Vec1.x;
+        r = *(Vec*)&pSeq->Vec1.x;
         w->Flg |= 0x80;
         PSVECScale(&r, &r, 0.017453292f);
         RotMatrix(w->PathMat, &r);
     } else {
         PSMTXIdentity(w->PathMat);
     }
-    if (gen->Vec0.x != 0.0f || gen->Vec0.y != 0.0f || gen->Vec0.z != 0.0f) {
+    if (pSeq->Vec0.x != 0.0f || pSeq->Vec0.y != 0.0f || pSeq->Vec0.z != 0.0f) {
         Vec s;
         Mtx sm;
 
-        s = *(Vec*)&gen->Vec0.x;
+        s = *(Vec*)&pSeq->Vec0.x;
         w->Flg |= 0x80;
         PSVECScale(&s, &s, 0.1f);
         s.x += 1.0f;
@@ -231,9 +231,9 @@ int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
         PSMTXScale(sm, s.x, s.y, s.z);
         PSMTXConcat(w->PathMat, sm, w->PathMat);
     }
-    if (gen->Vec2.x != 0.0f || gen->Vec2.y != 0.0f) {
-        t = gen->Vec2.x * 0.01f;
-        t += gen->Vec2.y * 0.01f * fRandSeed0_1(seed);
+    if (pSeq->Vec2.x != 0.0f || pSeq->Vec2.y != 0.0f) {
+        t = pSeq->Vec2.x * 0.01f;
+        t += pSeq->Vec2.y * 0.01f * fRandSeed0_1(pRand_seed);
         if (t > 1.0f) {
             t -= (f32)(u32)t;
         }

@@ -84,31 +84,31 @@ extern "C" void Esp02_Trans(cEsp02* esp)
 
 // Builds the view-space matrix (view * parent * ParMat * local) into m_Mat, binds the texture
 // pattern, blend mode and vertex formats for the strip. Screen-mode Parts_no is an error.
-void EspStrip02_setup(cEsp02* esp)
+void EspStrip02_setup(cEsp02* pEsp)
 {
-    Esp02Work* w = &esp->m_Free;
+    Esp02Work* w = &pEsp->m_Free;
     Mtx id;
     Mtx m;
 
     CameraCurrentProjection();
-    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
+    if ((s8)pEsp->m_Parts_no >= -8 && (s8)pEsp->m_Parts_no <= -3) {
         pLog->err(0, 0, "EspStrip_Trans():SCREEN MODE is invalid.");
-        PushEsp(esp);
+        PushEsp(pEsp);
         return;
     }
-    PSMTXIdentity(esp->m_Mat);
-    RotMatrix(esp->m_Mat, &esp->m_Ang);
-    TransMatrix(esp->m_Mat, &w->BasePos);
-    PSMTXConcat(w->ParMat, esp->m_Mat, esp->m_Mat);
-    PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
-    PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
+    PSMTXIdentity(pEsp->m_Mat);
+    RotMatrix(pEsp->m_Mat, &pEsp->m_Ang);
+    TransMatrix(pEsp->m_Mat, &w->BasePos);
+    PSMTXConcat(w->ParMat, pEsp->m_Mat, pEsp->m_Mat);
+    PSMTXConcat(pG->Camera.v_mat, pEsp->parent->mat, m);
+    PSMTXConcat(m, pEsp->m_Mat, pEsp->m_Mat);
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
-    esp->ChannelSet();
-    GXSetBlendMode(esp->m_Blend_mode, esp->m_Src_factor, esp->m_Dst_factor, esp->m_Logic_op);
-    esp->CommonStateSet();
+    EspTexSet(pEsp->m_Tex_id, pEsp->m_Ptn_no);
+    pEsp->ChannelSet();
+    GXSetBlendMode(pEsp->m_Blend_mode, pEsp->m_Src_factor, pEsp->m_Dst_factor, pEsp->m_Logic_op);
+    pEsp->CommonStateSet();
     GXClearVtxDesc();
     GXSetVtxDesc(0, 1);
     GXSetVtxDesc(9, 1);
@@ -120,7 +120,7 @@ void EspStrip02_setup(cEsp02* esp)
 // Builds the segment from the origin to -Size_base_x in m_Mat space, widens it by Size_base_y / 2
 // perpendicular to the view, sets the material colour with alpha x (1 - |dir.z|^8) and draws it
 // through EspStrip_draw_poly.
-void esp02Trans_sub(cEsp02* esp)
+void esp02Trans_sub(cEsp02* pEsp)
 {
     Vec dir;
     Vec org;
@@ -135,14 +135,14 @@ void esp02Trans_sub(cEsp02* esp)
     f32 nz;
     u32 i;
 
-    dir.x = -esp->m_Size_base_x;
+    dir.x = -pEsp->m_Size_base_x;
     dir.y = 0.0f;
     dir.z = 0.0f;
-    PSMTXMultVecSR(esp->m_Mat, &dir, &dir);
+    PSMTXMultVecSR(pEsp->m_Mat, &dir, &dir);
     org.x = 0.0f;
     org.y = 0.0f;
     org.z = 0.0f;
-    PSMTXMultVec(esp->m_Mat, &org, &org);
+    PSMTXMultVec(pEsp->m_Mat, &org, &org);
     pts[0] = org;
     pts[0].x += dir.x;
     pts[0].y += dir.y;
@@ -157,7 +157,7 @@ void esp02Trans_sub(cEsp02* esp)
         }
 #line 243 "D:/Bio4/Prog/esp02.cpp"
         VECNormalize(&cross, &cross);
-        half = esp->m_Size_base_y * 0.5f;
+        half = pEsp->m_Size_base_y * 0.5f;
         PSVECScale(&cross, &q[0], half);
         PSVECScale(&cross, &q[1], -half);
         if (i == 0) {
@@ -182,18 +182,18 @@ void esp02Trans_sub(cEsp02* esp)
         {
             GXColor c;
 
-            c.r = (u8)esp->m_Col_r;
-            c.g = (u8)esp->m_Col_g;
-            c.b = (u8)esp->m_Col_b;
-            c.a = (u8)(esp->m_Col_a * nz);
+            c.r = (u8)pEsp->m_Col_r;
+            c.g = (u8)pEsp->m_Col_g;
+            c.b = (u8)pEsp->m_Col_b;
+            c.a = (u8)(pEsp->m_Col_a * nz);
             GXSetChanMatColor(4, c);
         }
-        EspStrip_draw_poly(esp, i, v, 1, 1);
+        EspStrip_draw_poly(pEsp, i, v, 1, 1);
     }
 }
 
 // Records the base position and an identity ParMat; screen-mode Parts_no is rejected.
-int cEsp02::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp02::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp02Work* w = &m_Free;
 

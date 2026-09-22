@@ -44,8 +44,8 @@ public:
     void setLockMode(u8 mode);
     int ckStatus();
     int ckOpen();
-    void setEff(u8 eff);
-    void setBreak(Vec* target);
+    void setEff(u8 eff_id);
+    void setBreak(Vec* pPos);
     void setNoClose();
     void setDouble(cEmBarred* other);
     void setUnderCk();
@@ -53,14 +53,14 @@ public:
 
 extern "C" {
 cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int type);
-void emBarredDmCk(cEmBarred* em);
-void emBarred_R1_Set(cEmBarred* em);
-void emBarred_R1_Open(cEmBarred* em);
-void emBarred_R1_Close(cEmBarred* em);
-void emBarred_R1_Break(cEmBarred* em);
-void emBarredEatSet(cEmBarred* em);
-int emBarredNearCk(cEmBarred* em);
-int emBarredUnderCk(cEmBarred* em);
+void emBarredDmCk(cEmBarred* pEm);
+void emBarred_R1_Set(cEmBarred* pEm);
+void emBarred_R1_Open(cEmBarred* pEm);
+void emBarred_R1_Close(cEmBarred* pEm);
+void emBarred_R1_Break(cEmBarred* pEm);
+void emBarredEatSet(cEmBarred* pEm);
+int emBarredNearCk(cEmBarred* pEm);
+int emBarredUnderCk(cEmBarred* pEm);
 }
 
 #endif

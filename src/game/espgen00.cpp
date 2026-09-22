@@ -51,14 +51,14 @@ struct Espgen00Work {
 // Rebuilds the emitter matrix from parts `parts` of pMod (parts rotation + Offset/Ang), once when
 // flags2 bit 0 is not set (bit 1 = keep following every frame). 0xFE = free position (matrix left
 // as set up); 0xF8..0xFD/0xFF or a missing parent kill the controller (PushEspgen) with a log.
-void espgen00_UpdateMatrix(EspgenWork* w)
+void espgen00_UpdateMatrix(EspgenWork* pEspgen)
 {
-    Espgen00Work* p = (Espgen00Work*) w->work;
+    Espgen00Work* p = (Espgen00Work*) pEspgen->work;
     cModel* model = p->pMod;
 
     if ((p->parts >= 0xF8 && p->parts <= 0xFD) || p->parts == 0xFF) {
         pLog->err(0, 0, "ESP_CTRL : NULL_PARTS_NO[%x] invalid.", p->parts);
-        PushEspgen(w);
+        PushEspgen(pEspgen);
         return;
     }
     if (p->parts == 0xFE) {
@@ -87,7 +87,7 @@ void espgen00_UpdateMatrix(EspgenWork* w)
             }
         } else {
             pLog->err(0, 0, "ESP_CTRL : PARTS_NO[%d] is invalid(MAX:%d).", p->parts, model->nParts);
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             return;
         }
     }
@@ -116,9 +116,9 @@ static f32 Calc_D256(Espgen00Work* p, u8 d, f32 rate)
 // when waitCnt reaches 0 emits num+1 copies of the record through EspSeqSet (Flg bit 0 spreads them
 // over 2pi), scaling size/speed/alpha by the life-rate curves scaleD/spdD/colD and reloading
 // waitCnt from wait (+waitD curve, +-waitRnd). Ends itself after `life` frames.
-void espgen00_Update(EspgenWork* w)
+void espgen00_Update(EspgenWork* pEspgen)
 {
-    Espgen00Work* p = (Espgen00Work*) w->work;
+    Espgen00Work* p = (Espgen00Work*) pEspgen->work;
     f32 spdR = 0.0f;
     f32 scaleR = 0.0f;
     f32 colR = 0.0f;
@@ -130,11 +130,11 @@ void espgen00_Update(EspgenWork* w)
 
     if (model != NULL) {
         if ((model->be_flag & 0x201) != 1 || model->guid != p->Guid_pMod) {
-            PushEspgen(w);
+            PushEspgen(pEspgen);
             return;
         }
     }
-    espgen00_UpdateMatrix(w);
+    espgen00_UpdateMatrix(pEspgen);
     if (p->life != 0) {
         f32 rate = (f32) p->Time_cnt / (f32) (int) p->life;
 
@@ -192,10 +192,10 @@ void espgen00_Update(EspgenWork* w)
                     pos = &p->Offset;
                 }
                 if (p->Flg & 1) {
-                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &p->Mat, 1, ang, &esp, p->pOpt, pos);
+                    ret = EspSeqSet(rec, &pEspgen->info, &p->Rand_seed, p->pMod, &p->Mat, 1, ang, &esp, p->pOpt, pos);
                     ang += step;
                 } else {
-                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &p->Mat, 0, 0.0f, &esp, p->pOpt, pos);
+                    ret = EspSeqSet(rec, &pEspgen->info, &p->Rand_seed, p->pMod, &p->Mat, 0, 0.0f, &esp, p->pOpt, pos);
                 }
                 if (ret) {
                     if (bScale) {
@@ -222,29 +222,29 @@ void espgen00_Update(EspgenWork* w)
     }
     p->Time_cnt++;
     if (p->life != 0 && p->life <= p->Time_cnt) {
-        PushEspgen(w);
+        PushEspgen(pEspgen);
     }
 }
 
 // Step 0 of Espgen00MoveTbl: first frame, then moves to step 1.
-void espgen00_Move00(EspgenWork* w)
+void espgen00_Move00(EspgenWork* pEspgen)
 {
-    espgen00_Update(w);
-    w->step = 1;
+    espgen00_Update(pEspgen);
+    pEspgen->step = 1;
 }
 
 // Step 1 of Espgen00MoveTbl: steady state, one Update per frame.
-void espgen00_Move01(EspgenWork* w)
+void espgen00_Move01(EspgenWork* pEspgen)
 {
-    espgen00_Update(w);
+    espgen00_Update(pEspgen);
 }
 
 // EspgenMoveTbl entry for controller type 0: dispatches on w->step; while Status_flg[1] bit
 // 0x10000000 (event pause) is set a controller whose model has be_flag 0x800 clear does not run.
-void Espgen00_Move(EspgenWork* w)
+void Espgen00_Move(EspgenWork* pEspgen)
 {
     static void (*Espgen00MoveTbl[])(EspgenWork*) = {espgen00_Move00, espgen00_Move01};
-    cModel* model = ((Espgen00Work*) w->work)->pMod;
+    cModel* model = ((Espgen00Work*) pEspgen->work)->pMod;
 
     if (model != NULL && (StaFlagChk(pG, STA_SUSPEND))) {
         int susp = !(model->be_flag & 0x800);
@@ -252,7 +252,7 @@ void Espgen00_Move(EspgenWork* w)
             return;
         }
     }
-    Espgen00MoveTbl[w->step](w);
+    Espgen00MoveTbl[pEspgen->step](pEspgen);
 }
 
 // Fills the emitter from the controller record: life (Espgen_work16[0]), wait (x10C), num (x10D),

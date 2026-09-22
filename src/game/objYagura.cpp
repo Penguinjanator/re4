@@ -80,14 +80,14 @@ void cObjYagura::move()
 }
 
 // r_no_0 == 0 (the only routine): plays the vibration motion to its end, else just updates matrices.
-void objYagura_R0_Set(cObjYagura* obj)
+void objYagura_R0_Set(cObjYagura* pObj)
 {
-    if (obj->Motion.pMot) {
-        if (MotionMove(obj, 0)) {
-            obj->Motion.pMot = 0;
+    if (pObj->Motion.pMot) {
+        if (MotionMove(pObj, 0)) {
+            pObj->Motion.pMot = 0;
         }
     } else {
-        obj->matUpdate();
+        pObj->matUpdate();
     }
 }
 

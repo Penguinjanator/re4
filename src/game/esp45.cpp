@@ -81,9 +81,9 @@ void cEsp45::move()
 // world sprites compute wld_pos (parent parts matrix), project it, scale the alpha by the
 // visibility and distance factors, call the filter and remember the screen position for the
 // next visibility test.
-void Esp45_Trans(cEsp* esp0)
+void Esp45_Trans(cEsp* pEsp)
 {
-    cEsp45* esp = (cEsp45*) esp0;
+    cEsp45* esp = (cEsp45*) pEsp;
     Esp45Work* w = &esp->m_Free;
 
     if (esp->m_Parts_no >= ESP_PARTS_SCR_NO_END && esp->m_Parts_no <= ESP_PARTS_SCR_NO_START) {
@@ -258,17 +258,17 @@ void Esp45_HideCheck(cEsp* esp0)
 
 // Spread type Work8[0], rate Blend_type, distance fade Vec0.z, visibility test radius Vec1.x
 // (enables flg bit1).
-int cEsp45::SetFreeWork(EspGenWork* gen, u32* seed)
+int cEsp45::SetFreeWork(EspGenWork* pSeq, u32* pRand_seed)
 {
     Esp45Work* w = &m_Free;
 
-    w->type = gen->Work8[0];
-    w->rate = gen->Blend_type;
+    w->type = pSeq->Work8[0];
+    w->rate = pSeq->Blend_type;
     w->alpha = (u8) m_Col_a;
     w->power = m_Size_plus;
-    w->del_dist = gen->Vec0.z;
-    if (gen->Vec1.x != 0.0f) {
-        w->hide_r = gen->Vec1.x;
+    w->del_dist = pSeq->Vec0.z;
+    if (pSeq->Vec1.x != 0.0f) {
+        w->hide_r = pSeq->Vec1.x;
         w->flg |= 2;
     }
     return 1;

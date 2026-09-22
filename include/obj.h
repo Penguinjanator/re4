@@ -801,9 +801,9 @@ public:
     virtual void memFree(void* p) { MemFree(p); }
     virtual void memClear(cObj* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual void destroy(cObj* p);
-    virtual int construct(cObj* p, u32 id);   // calls the int overload (obj.cpp)
-    int construct(cObj* p, int id);           // placement-new of the per-id class, or ObjInitFunc[id]
+    virtual void destroy(cObj* pEm);
+    virtual int construct(cObj* pSat, u32 room_no);   // calls the int overload (obj.cpp)
+    int construct(cObj* pSat, int room_no);           // placement-new of the per-id class, or ObjInitFunc[id]
     void move();                              // dieCheck, then objMove on every live object
 };
 
@@ -825,8 +825,8 @@ extern "C" {
 // (`info` is the caller's EspInfo, esp.h). esp_sub.cpp EspSeqSet is the only caller.
 cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs);
 // game/obj04.cpp / game/obj05.cpp: orient the model along `m`
-void Efm04RotMatrix(cObj* obj, Mtx m);
-void Efm05RotMatrix(cObj* obj, Mtx m);
+void Efm04RotMatrix(cObj* pObj, Mtx pMat);
+void Efm05RotMatrix(cObj* pObj, Mtx pMat);
 }
 
 #endif

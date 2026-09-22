@@ -43,27 +43,27 @@ struct HermitePrm {
 };
 
 extern "C" {
-void PartsWorldPosCalc(cModel* m);
-void MotionBlendOff(cModel* m);
-void MotionPause(cModel* m);
-void MotionClear(cModel* m, int flag);
+void PartsWorldPosCalc(cModel* pMod);
+void MotionBlendOff(cModel* pEm);
+void MotionPause(cModel* pEm);
+void MotionClear(cModel* pEm, int flag);
 u32 MotionMove(cModel* pEm, Camera* pCamera);
-u16 MotionMoveSub(cModel* m, MotionWorkSub* w);
-void MotionMoveCore(cModel* m, MotionWorkSub* w, Camera* pCamera);
+u16 MotionMoveSub(cModel* pEm, MotionWorkSub* w);
+void MotionMoveCore(cModel* pEm, MotionWorkSub* w, Camera* pCamera);
 void MotionHokan(cModel* m, MotionWorkSub* w);
-void MotionGetSpeed(cModel* m, MotionWorkSub* w, int flag, Vec* pos, Vec* rot);
-void MotionAddSpeed(cModel* m, MotionWorkSub* w, Vec* pos, Vec* rot);
-void MotionGetPosition(cModel* m, Vec* pos, Vec* rot);
+void MotionGetSpeed(cModel* pEm, MotionWorkSub* w, int flg, Vec* Pos_move, Vec* Ang_move);
+void MotionAddSpeed(cModel* pEm, MotionWorkSub* w, Vec* Pos_move, Vec* Ang_move);
+void MotionGetPosition(cModel* pEm, Vec* pPos, Vec* pAng);
 u16 MotionSequenceCtrl(MotionWorkSub* w);
-u16 FcvGetMaxFrame(u16* data);
+u16 FcvGetMaxFrame(u16* pData);
 f32 MotionGetMaxFrame(MotionWorkSub* w);
 f32 MotionGetCurrentFrame(MotionWorkSub* w);
 int MotionCheckCrossFrame(MotionWorkSub* w, f32 frame);
 int MotionGetState(cModel* m);
 int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist);
-int Fcc_next_axis_addr(int type, int n);
-void IKInit(cModel* m, MotionWorkSub* w);
-void InverseKinematics(cModel* m, int flag);
+int Fcc_next_axis_addr(int fmt, int n);
+void IKInit(cModel* pEm, MotionWorkSub* pInfo);
+void InverseKinematics(cModel* pEm, int arm_flag);
 }
 void MotionSetCore(cModel* m, void* w, void* data, void* seq, int hokan, int flags, int frame);
 

@@ -5,7 +5,7 @@
 #include "gx.h"
 
 // game/gx_sub.cpp
-void bio4_GXSetCopyClear(GXColor color, u32 z);
+void bio4_GXSetCopyClear(GXColor clear_clr, u32 clear_z);
 // Draws the real background colour over the cleared frame (trans.cpp). C linkage.
 extern "C" void bio4_AddBgColor();
 

@@ -9,7 +9,7 @@
 // rooms only call the out-of-line members, so no vtable is emitted here).
 class cObjTrolley : public cObj {
 public:
-    void setMotion(void** tbl);
+    void setMotion(void** pMot);
     void setStart();
     void set2ndStart();
     int ckStop();
