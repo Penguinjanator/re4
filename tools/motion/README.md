@@ -15,7 +15,7 @@ entries, and the heads' face morphs as shape keys.
     python3 tools/motion_export.py list   orig/G4BE08/re4_debug_disc1.iso orig/G4BE08/re4_debug_disc2.gcm --all-sources      # the inventory
     python3 tools/motion_export.py export files/em/pl00.drs --motion 46 -o leon_046.gltf --bvh leon_046.bvh   # full Leon
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 46 -o ganado.gltf
-    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 665 --character leon -o kick.gltf  # Leon's alternate kick
+    python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive em10.drs --motion 665 --character leon -o kick.gltf  # Leon's kick on a stunned Ganado
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r100.das --motion 42 --character leon -o r100_042.gltf
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r100s03.evd --motion pl0000_s03_000.fcv --character leon -o ev.gltf  # a cutscene motion
     python3 tools/motion_export.py export orig/G4BE08/re4_debug_disc1.iso --archive r400.das --motion pl00017.fcv --character leon -o ladder.gltf   # a room ETM motion
@@ -48,21 +48,21 @@ setters and the weapon modules' `PSet(pl->m_MotTbl[n], WEP_ARC_PTR(m))` fills al
 object work fields filled by a room's table walk, the debug tools) and writes `refs.py`; the
 `data` pointer of every call resolves to one of these archive classes:
 
-| class (how `data` is obtained) | disc files | tool before | after |
-|---|---|---|---|
-| `PL_ARC_PTR(pG->pPlayer, n)`, `PL_ARC(n)`, `m_MotTbl` (weapon modules fill it), `m_MotTbl2` (rooms) | `em/plNN.drs` (`ReadPlayerData`: pl00/08/09/10 Leon, pl01/05 Ashley, pl0b/0c Ada, pl06 HUNK, pl0a Krauser, pl0d Wesker) | yes | yes |
-| `PL_ARC_PTR(em->subArc, n)`, `ARC(n)`, `pl->subArc = em->subArc` in the grab / ride / door routines (the melee of issue #8, the boat and jet ski pl0e/pl0f, the partner pl11/pl14) | `em/emNN.drs`, `em/plNN.drs` (`EmFileTbl*`) | yes | yes, attributed per player (`list --character`) |
-| `WEP_ARC_PTR(n)` = `pG->pWep` | `em/wepNN.drs` (`ReadWepData`, `wep_data_<player>` tables) | yes | yes, per weapon and player |
-| `ROOM_ARC_PTR(pG->pRoom, n)`, `PlRegistMotion`, `cEm10::setEvtMotion`, the objects' motion tables | `St1/St2/St4/rNNN.das` (disc 1), `St3/rNNN.das` (disc 2 only) | disc 1 only | both discs |
-| `GetEtcAddr(arc, "pl00017.fcv")` (EtcModel.cpp: ladders, doors, windows) | the rooms' `ETM` entry: a named-file archive nested in the .das | **no** | yes (`ETM/` entries) |
-| `EvtMgr.GetBin(name)` -> `Event::ExePacket_Mot` / `ExePacket_Cam` / `ShapeSet` | `Evd/rNNNsMM.evd` (87 disc 1, 61 disc 2): named bins `<room>/<cut>/<model>/*.fcv`, `cam/*.fcv` (camera), `<model>/face/*.fcv` (ShapeData) | **no** | yes |
-| `SS_ARC_PTR(arc, n)` (Sscrn: codec screen, inventory models, weapon display) | `ss/cmn/ss_ocNNN.dat`, `ss_wepNN.dat`, `ss/<lang>/ss_cmmn.dat`, `ss_term.dat` (bare container bodies) | **no** | yes |
-| `EspGetEfmMotAddr` (esp_efm.cpp: effect models) | the `EFF` data's effect-model motion tables (core.das, rooms, ETM `.eff`, event `.eff`, `etc/<lang>/*.eff`) | **no** | yes: 3 entries exist, all in `r10b.das` EFF efm 124, and they are not MotionData (a model header with 0x20 fill; the reader would fault on Fcc type 3) |
-| `cSmd::getMotPtr` (scroll.cpp: scroll models) | the `SMD` entries' motion tables (rooms, `St1/r100_NN.dat`) | **no** | yes: every SMD motion table on both discs is empty |
-| `ARC_PTR(pG->pCore)` (`etc/core.das`) | `etc/core.das` | listed | no FCV in it: models, TPLs, camera / light data (the mercenaries' `smdMot` is `ROOM_ARC_PTR`) |
-| `op/opNN.das` (ss_term.cpp `OP_ARC_PTR`) | 13 `MDT` + 13 "SEQ" per file: the codec conversation blocks, not `MotionSeqKey` tables | no | listed, excluded from the SEQ round-trip |
-| `ss/<lang>/tel*.fcv` (4 raw MotionData files) | not referenced by any code on the disc | no | yes |
-| debug tools (`db_mod.cpp` motion viewer, `t_motseq`, `db_port`) | `HDReadDebugAlloc("Room/Em/mot_tbl.txt")`, `x:/soft/room/`: the developers' host disk, not on the disc | — | not on the disc |
+| class (how `data` is obtained) | disc files | exported |
+|---|---|---|
+| `PL_ARC_PTR(pG->pPlayer, n)`, `PL_ARC(n)`, `m_MotTbl` (weapon modules fill it), `m_MotTbl2` (rooms) | `em/plNN.drs` (`ReadPlayerData`: pl00/08/09/10 Leon, pl01/05 Ashley, pl0b/0c Ada, pl06 HUNK, pl0a Krauser, pl0d Wesker) | yes |
+| `PL_ARC_PTR(em->subArc, n)`, `ARC(n)`, `pl->subArc = em->subArc` in the grab / ride / door routines (the melee, the boat and jet ski pl0e/pl0f, the partner pl11/pl14) | `em/emNN.drs`, `em/plNN.drs` (`EmFileTbl*`) | yes, attributed per player (`list --character`) |
+| `WEP_ARC_PTR(n)` = `pG->pWep` | `em/wepNN.drs` (`ReadWepData`, `wep_data_<player>` tables) | yes, per weapon and player |
+| `ROOM_ARC_PTR(pG->pRoom, n)`, `PlRegistMotion`, `cEm10::setEvtMotion`, the objects' motion tables | `St1/St2/St4/rNNN.das` (disc 1), `St3/rNNN.das` (disc 2 only) | yes |
+| `GetEtcAddr(arc, "pl00017.fcv")` (EtcModel.cpp: ladders, doors, windows) | the rooms' `ETM` entry: a named-file archive nested in the .das | yes (`ETM/` entries) |
+| `EvtMgr.GetBin(name)` -> `Event::ExePacket_Mot` / `ExePacket_Cam` / `ShapeSet` | `Evd/rNNNsMM.evd` (87 disc 1, 61 disc 2): named bins `<room>/<cut>/<model>/*.fcv`, `cam/*.fcv` (camera), `<model>/face/*.fcv` (ShapeData) | yes |
+| `SS_ARC_PTR(arc, n)` (Sscrn: codec screen, inventory models, weapon display) | `ss/cmn/ss_ocNNN.dat`, `ss_wepNN.dat`, `ss/<lang>/ss_cmmn.dat`, `ss_term.dat` (bare container bodies) | yes |
+| `EspGetEfmMotAddr` (esp_efm.cpp: effect models) | the `EFF` data's effect-model motion tables (core.das, rooms, ETM `.eff`, event `.eff`, `etc/<lang>/*.eff`) | read; the only 3 entries (`r10b.das` EFF efm 124) are not MotionData |
+| `cSmd::getMotPtr` (scroll.cpp: scroll models) | the `SMD` entries' motion tables (rooms, `St1/r100_NN.dat`) | read; every SMD motion table on both discs is empty |
+| `ARC_PTR(pG->pCore)` (`etc/core.das`) | `etc/core.das` | no FCV in it (models, TPLs, camera / light data) |
+| `op/opNN.das` (ss_term.cpp `OP_ARC_PTR`) | 13 `MDT` + 13 "SEQ" per file: the codec conversation blocks, not `MotionSeqKey` tables | listed, excluded from the SEQ round-trip |
+| `ss/<lang>/tel*.fcv` (4 raw MotionData files) | not referenced by any code on the disc | yes |
+| debug tools (`db_mod.cpp` motion viewer, `t_motseq`, `db_port`) | `HDReadDebugAlloc("Room/Em/mot_tbl.txt")`, `x:/soft/room/`: the developers' host disk, not on the disc | — |
 
 Every other file on both discs was checked: the ハカセ containers, bare bodies, events, yz2 streams
 and the nested `ETM` / `EFF` / `SMD` are parsed, and every remaining blob (`Rel/*.rel`, `etc/*.esl`,
@@ -76,9 +76,8 @@ Totals: disc 1 15128 FCV entries (em 9273, rooms 358 + 205 in ETM + 3 in EFF, ev
 1775 event camera motions (1038 + 752, two events are on both discs), 1502 event face shape tables
 (878 + 634) and 15684 skeletal motions (5389 of them cutscene motions in 146 events),
 18946 byte-identical round-trips (`verify`). The 15 that do not round-trip: the 12 malformed rifle /
-pl14 archive entries below and the 3 EFF entries of r10b. Before this audit the tool reached 9631
-(em/*.drs + the disc-1 rooms' top-level FCV). All 6574 `SEQ` tables round-trip (the ETM `.seq`
-files included).
+pl14 archive entries below and the 3 EFF entries of r10b. All 6574 `SEQ` tables round-trip (the
+ETM `.seq` files included).
 
 Format variants met on the way (all byte-exact in `fcv.py` / `meshbin.py`): the event bins and ETM
 files pad motions, sequences and models with 0x00 instead of 0xCD (`fill`); the event camera
@@ -97,28 +96,24 @@ inventory per file and per tag.
 
 ## The melee motions: two archives
 
-The player's melee moves are not all in the player's archive. The routines in `em10/em10.cpp`
-(`plem10Kick`, `plem10Kick2`, `plem10FS`, `plem10KneeKick`, `plem10NeckBreak`, `plem10Showtay`)
-start with `pl->subArc = em->subArc` — the caught Ganado's archive, `em10.drs` (`EmFileTbl[0x10]` →
-`FileTbl[0x18]`; `cPlayer::cPlayer` initialises `subArc` to `PL_DATA_ADDR` = `pG->pPlayer`, and every
-routine restores `pl->subArc = pl->subArc2` on exit) — and play `PL_ARC_PTR(pl->subArc, N)` on the
-player; only the roundhouse is `PL_ARC_PTR(pG->pPlayer, 0x25)` in the player's own archive.
-`plem10Kick` alternates: the knee-down prompt sets `r_no_3 = 1` (own 0x25), the standing prompt
-keeps the `pl->r_no_3 = Rnd() & 3` the previous kick left, so 0x25 three times in four and em10's
-0x29D otherwise. `character.MELEE` lists them per player (`list --character` shows the entries):
+The routines that play the player's melee moves (`plem10Kick`, `plem10Kick2`, `plem10FS`,
+`plem10KneeKick`, `plem10NeckBreak`, `plem10Showtay` in `em10/em10.cpp`) set
+`pl->subArc = em->subArc` and play `PL_ARC_PTR(pl->subArc, N)`: the motion is an entry of the caught
+Ganado's archive, `em10.drs` (for Ada too), not of the player's. The exception is the kick on a
+kneeling Ganado: `em10KneeDownAction` sets `r_no_3 = 1` and `plem10Kick` plays
+`PL_ARC_PTR(pG->pPlayer, 0x25)` from the player's own archive. On a stunned standing Ganado
+`em10KickAction` enters through `SetPlDamage`, which clears `r_no_3`, and the kick is em10's 0x29D,
+the same motion for every player. Entry indices (`--motion`), with the prompt the game shows:
 
-| player | own archive | em10.drs | routines |
+| player | kneeling Ganado | standing Ganado | other |
 |---|---|---|---|
-| Leon pl00, Ada pl0b/pl0c | 0x25 roundhouse (pl00:33 49 frames, pl0c:33 38 frames — Ada's spinning fan kick) | 0x29D kick (em10:665, 51 frames, a high axe kick), 0xD6 suplex (em10:210, 89 frames) | `plem10Kick`, `plem10FS` |
-| HUNK pl06 | 0x25 (r_no_3 forced 1) | 0x2B9 neck break (em10:693, 78 frames), 0xD6 suplex | `plem10Kick`, `plem10NeckBreak` (via `Dm_NeckBreak`), `plem10FS` |
-| Krauser pl0a | — | 0x29D + SEQ 0x29E kick, 0x2B4 knee kick (em10:688, 66 frames) | `plem10Kick2`, `plem10KneeKick` |
-| Wesker pl0d | 0x25 (r_no_3 forced 1) | 0x2B4 palm strike, 0xD6 suplex | `plem10Showtay`, `plem10Kick`, `plem10FS` |
+| Leon pl00 | own 33 (`ACT_KICK`) | em10:665 (`ACT_KICK`) | em10:210 suplex |
+| Ada pl0b / pl0c | own 33 (`ACT_BACKKICK`) | em10:665 (`ACT_SENPUU`) | em10:210 suplex |
+| HUNK pl06 | own 33 (`ACT_KICK`) | em10:693 neck break (`ACT_EXECUTE`) | em10:210 suplex |
+| Krauser pl0a | — | em10:665 + SEQ em10:666 (`plem10Kick2`) | em10:688 knee kick |
+| Wesker pl0d | own 33 (`ACT_NERICHAGI`) | em10:688 palm strike (`ACT_PALM_SHOCK`) | em10:210 suplex |
 
-(The game's `FileTbl` names the player and enemy files `em/plNN.das` / `em/emNN.das`, but
-`ReadPlayerData` / `readEmData` rewrite the extension to `.drs` (`SET_DRS_NAME`) and read them
-uncompressed; the disc has no `em/*.das`.) Ada's other enemies come from her own variants
-(`EmFileTbl_Ada`: em16 → em46, em1c → em4c, em1d → em4d, em1f → em4f, em20 → em50); her Ganado is
-the same em10.drs.
+`character.MELEE` holds the table; `list --character` prints it with the other motions.
 
 ## The `.das` archives (yz2)
 
@@ -356,18 +351,14 @@ one-joint stub. `wep10:16` is the semi-auto's draw animation (`pl_rifle.cpp` `WE
 `:28` is archive slot 0x20 (not referenced by `pl_rifle.cpp`). In each, the last joints are tagged
 for attach-camera channel 6 (`kind` word bits 8-11 = 6, e.g. `0xa602`) and their key blocks are
 broken: a key count of 16401 that runs past the end of the blob, an offset at or past the end, or a
-duplicate of another joint's offset. Everything else in those motions is normal: keys every 3 frames
-with Hermite tangents, like the rest of the player's motions.
+duplicate of another joint's offset.
 
 The GameCube never touches them. `MotionMoveCore` (`src/game/motion.cpp`, the `ch == 6 || ch == 7`
 branch) skips channel-6/7 joints unless the MotionWork has an attach camera (`pAttachCam`, set by
 event cameras attached to a motion), and the player has none while handling a rifle. So the data is
 inert on GC; an evaluator that walks every joint of the blob (a re-implementation, or a port that
-dropped the channel test) would read garbage there. This is worth knowing for the PC/UHD port's
-sniper-rifle animation, which its developers capped at 30 fps for a reason nobody outside Capcom
-has explained: the key spacing rules out "authored at a low frame rate", and this corrupt tail is the
-one thing unusual about exactly those animations. `verify` prints the 12 entries with the reason each
-fails.
+dropped the channel test) would read garbage there. `verify` prints the 12 entries with the reason
+each fails.
 
 ## Files
 

@@ -58,16 +58,12 @@ the original word by word and `python3 tools/fdiff.py game/foo <symbol>` shows o
 
 Every unit compiles to the original bytes with the original compilers. Where the compiler needed a
 particular source shape to reproduce a register choice or a schedule and no natural spelling was
-found, the construct is marked with a `// COMPILER-DIFF:` comment (578 of them: dead tests, empty
+found, the construct is marked with a `// COMPILER-DIFF:` comment (542 of them: dead tests, empty
 `asm("")` launders and anchors, `register T x asm("rN")` pins, padding statements). None of them
 emits an instruction: `python3 tools/asmcheck.py --all` compiles every GCC unit with its asm templates
 marked and lists the instructions that came from a template — the only hits are the hardware kernels
 below (TOTAL 231; the eight asm-bodied units are reported on their own line and kept out of that
-number). An earlier state of this tree had ~100 hand-placed instructions (`asm("li %0,0")`,
-`asm("lis/addi")`, `asm("mr")`) in the game code and ~100 register-pinning `asm { }` blocks in the CRI
-libraries; they were replaced by C on 2026-09-17 (`docs/research/compiler.md`, section "Asm-removal pass", records the recipe
-and the compiler mechanism per site). Each tag's mechanism is documented in `docs/matching.md` and
-`docs/research/`.
+number). Each tag's mechanism is documented in `docs/matching.md` and `docs/research/`.
 
 Assembly that remains, all of it code the original authors also wrote in assembly because their
 compilers had no other way to express it:
