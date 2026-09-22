@@ -168,20 +168,25 @@ def M(archive, arc_no, role, source, seq=None):
 
 # The player's melee motions come from TWO archives. The routines in em10/em10.cpp (plem10Kick,
 # plem10Kick2, plem10FS, plem10KneeKick, plem10NeckBreak, plem10Showtay) start with
-# `pl->subArc = em->subArc`: the caught Ganado's archive, em10.drs (EmFileTbl[0x10] -> FileTbl 0x18
-# "em/em10.das", read as .drs), and index it with PL_ARC_PTR(pl->subArc, N); only the roundhouse is
-# PL_ARC_PTR(pG->pPlayer, 0x25) in the player's own archive. `cPlayer::cPlayer` sets subArc to
-# PL_DATA_ADDR (= pG->pPlayer) and every routine restores `pl->subArc = pl->subArc2` on exit.
-# plem10Kick picks the archive by r_no_3: the knee-down prompt (em10KneeDownAction) sets r_no_3 = 1
-# (own 0x25); the standing prompt (em10KickAction) leaves r_no_3 as the previous kick left it
-# (`pl->r_no_3 = Rnd() & 3`), so 0x25 three times in four and em10's 0x29D otherwise. pl_type picks
-# the routine: 0 Leon / 2 Ada plem10Kick + suplex; 3 HUNK plem10Kick(r_no_3 = 1) + neck break
-# (Dm_NeckBreak -> EmCatchPLSet plem10NeckBreak) + suplex; 4 Krauser plem10Kick2 + knee kick;
-# 5 Wesker plem10Showtay + plem10Kick(r_no_3 = 1) + suplex.
-KICK_OWN = 'roundhouse kick'
+# `pl->subArc = em->subArc`: the caught Ganado's archive (em10.drs; every em1x militia archive carries
+# the same bytes at these entries), and index it with PL_ARC_PTR(pl->subArc, N); only the kneeling
+# kick is PL_ARC_PTR(pG->pPlayer, 0x25) in the player's own archive. `cPlayer::cPlayer` sets subArc
+# to PL_DATA_ADDR (= pG->pPlayer) and every routine restores `pl->subArc = pl->subArc2` on exit.
+# Two prompts (em10.cpp, the ActBtn.set block before em10KickAction): on a kneeling Ganado (Be_flg
+# 0x40000000) em10KneeDownAction sets r_no_3 = 1 and plem10Kick plays the player's own 0x25 (Leon
+# ACT_KICK, Ada ACT_BACKKICK, Wesker ACT_NERICHAGI); on a stunned standing Ganado em10KickAction runs
+# plem10Kick with r_no_3 = 0 (SetPlDamage -> PlSetRoutine(4, 0, 0, 0)) and plays the enemy archive's
+# 0x29D (Leon ACT_KICK, Ada ACT_SENPUU "whirlwind kick"). `pl->r_no_3 = Rnd() & 3` after the pick
+# only chooses the kick camera. The 0x29D bytes are the same for every player: on this disc Ada's
+# whirlwind kick and Leon's roundhouse are one motion. 0x25 differs per player archive (pl0c's is
+# Ada's own; pl00/pl0a/pl0d share one). pl_type picks the routine: 0 Leon / 2 Ada plem10Kick +
+# suplex; 3 HUNK plem10Kick(r_no_3 = 1) + neck break (ACT_EXECUTE: Dm_NeckBreak -> EmCatchPLSet
+# plem10NeckBreak) + suplex; 4 Krauser plem10Kick2 + knee kick; 5 Wesker plem10Showtay (ACT_PALM_SHOCK)
+# + plem10Kick(r_no_3 = 1) + suplex.
+KICK_OWN = 'kick on a kneeling enemy (Leon KICK / Ada BACKKICK / Wesker NERICHAGI)'
 _KICK = [
-    M(None, 0x25, KICK_OWN, 'plem10Kick r_no_3 != 0: PL_ARC_PTR(pG->pPlayer, 0x25)'),
-    M('em10', 0x29D, 'kick (alternate)', 'plem10Kick r_no_3 == 0: PL_ARC_PTR(pl->subArc = em->subArc, 0x29D)'),
+    M(None, 0x25, KICK_OWN, 'em10KneeDownAction -> plem10Kick r_no_3 = 1: PL_ARC_PTR(pG->pPlayer, 0x25)'),
+    M('em10', 0x29D, 'kick on a stunned enemy (Leon KICK / Ada SENPUU; same bytes in every enemy archive)', 'em10KickAction -> plem10Kick r_no_3 = 0: PL_ARC_PTR(pl->subArc = em->subArc, 0x29D)'),
 ]
 _SUPLEX = [M('em10', 0xD6, 'suplex', 'plem10FS: PL_ARC_PTR(pl->subArc, 0xD6) (em10FSAction, pl_type != 4)')]
 MELEE = {

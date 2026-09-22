@@ -97,10 +97,10 @@ struct AttachCamera {
     u8 type;
     u8 frame;
     u8 pad_7;
-    Mtx* pMat;
+    Mtx* p_mat;
     Mtx mat;
-    Vec out[5];
-    u16 hist[5][3];
+    Vec camera_data[5];
+    u16 history[5][3];
 };
 
 struct MotionWorkSub {
@@ -209,7 +209,7 @@ public:
     MotionWork Motion;
     MotionParts motParts;
     IkParts ik;
-    Vec addRot;
+    Vec inv_offset;
 
     cModel* getPartsPtr(int no);
     void partsMatCalc();

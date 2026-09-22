@@ -25,10 +25,11 @@ them out; --mesh adds an attachment (or replaces the palette of one in the table
 another archive is written 'stem:N' (the weapon-grip hand of the shotgun module for Leon: --mesh
 wep04:6:13). An attachment the disc cannot render (empty entry, texture id beyond the palette) is
 reported and skipped. --archive picks the archive of a disc.
-The player's melee motions are split over two archives (character.MELEE): the roundhouse kick is
-PL_ARC 0x25 of the player's archive, the alternate kick (0x29D), suplex (0xD6), knee kick / palm
-strike (0x2B4) and neck break (0x2B9) are entries of the Ganado's em10.drs that the em10 routines
-play on the player (`pl->subArc = em->subArc`). `list --character leon` shows them with every
+The player's melee motions are split over two archives (character.MELEE): the kick on a kneeling
+enemy is PL_ARC 0x25 of the player's archive (per player: pl0c's is Ada's back kick); the kick on a
+stunned enemy (0x29D: Leon's roundhouse and Ada's whirlwind kick are the same bytes), suplex (0xD6),
+knee kick / palm strike (0x2B4) and neck break (0x2B9) are entries of the Ganado's archive that the
+em10 routines play on the player (`pl->subArc = em->subArc`). `list --character leon` shows them with every
 other motion Leon can play (the player archive, the enemy / vehicle archives, the weapon modules,
 the rooms, the ETM ladder files, the events, the sub screen) and the game function that plays each
 (tools/motion/refs.py, generated from src/ by gen_refs.py); `list --all-sources` is the inventory
