@@ -229,8 +229,8 @@ void iss_ax_set_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
     cents = (u16) (sit->note & 0xFF) - rgn->unityNote;
     cents *= 100;
     cents += rgn->fineTune;
+    cents += req->rnd_pitch;
     cents += req->pitch;
-    cents += req->pitch_add;
     axv->pitch_base = cents;
     axv->pitch_ofs = req->dop_p;
     axv->pitch = axv->pitch_base + axv->pitch_ofs;

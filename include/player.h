@@ -28,7 +28,7 @@ public:
     void* m_MotL;          // 0x18  second neck motion, switched to past the centre (PS2 m_MotL; was `motR`)
 
     cPlNeck(cPlayer* pl);
-    void init(void* motL, void* motR, int frame);   // range-checked pointers (motSet), frame passed on
+    void init(void* motR, void* motL, int frame);   // range-checked pointers (motSet), frame passed on (PS2 parameter order: motR first)
     void move();
     void motSet(void* data, int frame);
     cEm* getTarget();
