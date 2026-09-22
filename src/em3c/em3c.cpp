@@ -122,7 +122,7 @@ void em3cDmCk(cEm3c* em)
     }
     part = em->dmg.m_pDamageYarare;
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     em->dmg.m_Timer = 1;
@@ -130,8 +130,8 @@ void em3cDmCk(cEm3c* em)
         em->dmg.m_Timer = 0x11;
     }
     w->Be_flg |= 0x80;
-    kind = part->partsNo == 3;
-    if (part->partsNo == 5) {
+    kind = part->parts_no == 3;
+    if (part->parts_no == 5) {
         kind = 2;
     }
     switch (em->dmg.m_Wep) {
@@ -274,7 +274,7 @@ void em3cDmCk(cEm3c* em)
         if (w->Be_flg & 0x100) {
             return;
         }
-        if (part->partsNo == 5) {
+        if (part->parts_no == 5) {
             if (w->pCore) {
                 SndCall(8, 0x37, &em->pos, em->id, 0, em);
             }
@@ -497,13 +497,13 @@ void cEm3c::move()
                 break;
             }
             PSMTXMultVec(inv, &p->world, &v);
-            w->hit[10].ofs = v;
-            w->hit[10].flags |= 1;
+            w->hit[10].offset = v;
+            w->hit[10].flag |= 1;
         } else {
-            w->hit[10].flags &= ~1;
+            w->hit[10].flag &= ~1;
         }
     } else {
-        w->hit[10].flags &= ~1;
+        w->hit[10].flag &= ~1;
     }
 }
 
@@ -1963,7 +1963,7 @@ void em3cPartsBombHead(cEm3c* em)
     u32 j;
 
     w->Head_hp = 0;
-    w->hit[0].flags &= ~1;
+    w->hit[0].flag &= ~1;
     if (w->Be_flg & 0x10) {
         return;
     }
@@ -2089,17 +2089,7 @@ void em3cPartsBombControl(cEm3c* em)
                         }
                     }
                 }
-                // Dead exit (k == 5 here) that only cse2 can fold: cse1 stops its extended block at the
-                // k loop's LOOP_END note, cse2 (after loop.c) walks through it and knows `k > 4` from the
-                // latch's exit test, deletes the jump, and flow drops the compare. So at gcse time the j
-                // body still has an edge to the n latch that skips `j++`, and the block LCM leaves `j+1`
-                // at its latch (j stays a biv with the j*20/j*12/&pt[j] givs) instead of hoisting it in
-                // front of the k loop. No trace in the code. COMPILER-DIFF: 3
-                if (k <= 4) {
-                    goto next_n;
-                }
             }
-        next_n:;
         }
         sum = 0.0f;
         for (j = 0; j < 5; j++) {
@@ -2180,14 +2170,14 @@ int em3cSetDmVal(cEm3c* em)
     int near = 0;
     int dmg;
 
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     dmg = 20;
     if (em->dmg.m_Wep <= 0x2D) {
         dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
-    if (part->partsNo == 3) {
+    if (part->parts_no == 3) {
         dmg *= 3;
     }
     return dmg;
@@ -2329,7 +2319,7 @@ void em3cSetParasite(cEm3c* em)
     if (w->pCore) {
         EstSet(w->pCore, -1, 0, 0, EFF_EM3C, 0x12, 0, w->EffKindIdCore, w->pCore, 0);
     }
-    w->hit[9].flags |= 1;
+    w->hit[9].flag |= 1;
 }
 
 // Plays the footstep at the root part on motion sound events 1 / 2 and consumes the event.

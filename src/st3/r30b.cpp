@@ -64,7 +64,6 @@ struct R30bWork {
 static R30bWork* r30b_work;
 
 
-
 static f32 r30b_cableOfs = 6000.0f;
 static f32 r30b_spd = 100.0f;
 static f32 r30b_accel = 5.0f;

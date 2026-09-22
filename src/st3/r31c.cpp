@@ -143,7 +143,6 @@ static R31cWork* r31c_work;   // .bss 0x20
 
 
 
-
 // The same through a caller's Vec (R31cInit reuses its `pos`).
 static inline void SetPosAngYV(cModel* m, Vec* v, f32 x, f32 y, f32 z, f32 ry)
 {

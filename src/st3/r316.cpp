@@ -40,7 +40,6 @@ struct R316ItemView {
 
 static R316Work* r316_work;
 
-
 void r316_openShelf_main(int no, int mode);
 static void r316_openedShelf(int no);
 static void r316_openShelf(int no);
