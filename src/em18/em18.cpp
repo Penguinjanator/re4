@@ -397,7 +397,7 @@ void em18ActEvtSetTrade(cEm18* em)
             return;
         }
     } else {
-        if (em->plDist2 > 2250000.0f) {
+        if (em->l_pl > 2250000.0f) {
             if (lp.z > 2500.0f || lp.z < 1000.0f) {
                 return;
             }
@@ -502,7 +502,7 @@ static void em18_R1_Die_Normal(cEm18* em)
 }
 
 // Neck tracking: while Be_flg bit4 is set turns the head part 3 towards the player within 60 deg
-// (neckAng smoothed 10% per frame), else eases back to the motion.
+// (Neck_dir_y smoothed 10% per frame), else eases back to the motion.
 void em18NeckMove(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);

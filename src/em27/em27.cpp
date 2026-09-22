@@ -250,7 +250,7 @@ void cEm27::move()
             w->Water_h = wh - 300.0f;
         }
     }
-    if (plDist2 < 250000.0f) {
+    if (l_pl < 250000.0f) {
         w->Esc_timer = Rnd() % 60 + 60;
     }
     if (StaFlagChk(pG, STA_PL_FIRE)) {
@@ -753,7 +753,7 @@ static void em27_R0_Die(cEm27* em)
     Em27_R3_move_tbl[em->r_no_1](em);
 }
 
-// R0 3 / R1 == 0 Die_Normal: the death thrash (ARC 0x15 / 0x1C by dieVariant), counts the kill in the
+// R0 3 / R1 == 0 Die_Normal: the death thrash (ARC 0x15 / 0x1C by Die_type), counts the kill in the
 // room's ctrl12 EM27_DIE counter, the item drop, then the body floats up to the surface (upDown) and
 // bobs there (0x1B / 0x1C) with splashes every 5..65 frames.
 static void em27_R1_Die_Normal(cEm27* em)
@@ -850,7 +850,7 @@ static void em27_R1_Die_Normal(cEm27* em)
 }
 
 // Blends the current speed Spd towards the wanted Spd_t by `rate`, moves the fish along its heading
-// and keeps it between the surface (waterHeight) and 300 below.
+// and keeps it between the surface (Water_h) and 300 below.
 void em27SetSPeed(cEm27* em, f32 rate)
 {
     Em27Work* w = EM27_WK(em);
@@ -985,7 +985,7 @@ int em27MotionMoveScale(cEm27* em)
     return ret;
 }
 
-// Surface crossing effects: when the root part passes the surface (waterHeight + 300) upwards the
+// Surface crossing effects: when the root part passes the surface (Water_h + 300) upwards the
 // leap splash / jump SE, downwards the dive splash / SE, both pushing the water (AddWaterPower);
 // off while dying (Be_flg bit7).
 void em27WaterEffSet(cEm27* em)

@@ -170,7 +170,7 @@ int r311_execAshleyEvent()
     u32 i;
     u32 se;
 
-    if (pSUB != NULL && pSUB->plDist2 < 25000000.0f && (SubCharGetCondition() & 1)) {
+    if (pSUB != NULL && pSUB->l_pl < 25000000.0f && (SubCharGetCondition() & 1)) {
         pSUB->dmg.set(0, 0x80);
         while (pSUB->pos.y >= 50.0f) {
             if (!(SubCharGetCondition() & 1)) {

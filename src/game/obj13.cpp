@@ -734,7 +734,7 @@ int SubLadderClimbCk(cEm* pEm)
             if (fabsf(pEm->pos.y - obj->pos.y) > heightLim) {
                 continue;
             }
-            if (pEm->plDist2 > 100000000.0f || pEm->pos.y + 1000.0f < pPL->pos.y) {
+            if (pEm->l_pl > 100000000.0f || pEm->pos.y + 1000.0f < pPL->pos.y) {
                 obj->ladder.flags |= 4;
                 SetSubDamage((cEm*) obj, (void (*)()) subobjLadderClimb);
                 obj->setClimb();

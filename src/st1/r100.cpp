@@ -800,25 +800,25 @@ static void r100_StreanChk()
             cEmGanado* em4 = W->ems[4];
             cEmGanado* em5 = W->ems[5];
             cEmGanado* em6 = W->ems[6];
-            if (em0 != errEm && em0->ckFindPL() == 1 && em0->plDist2 < lim) {
+            if (em0 != errEm && em0->ckFindPL() == 1 && em0->l_pl < lim) {
                 found = 1;
             }
-            if (em1 != errEm && em1->ckFindPL() == 1 && em1->plDist2 < lim) {
+            if (em1 != errEm && em1->ckFindPL() == 1 && em1->l_pl < lim) {
                 found = 1;
             }
-            if (em2 != errEm && em2->ckFindPL() == 1 && em2->plDist2 < lim) {
+            if (em2 != errEm && em2->ckFindPL() == 1 && em2->l_pl < lim) {
                 found = 1;
             }
-            if (em3 != errEm && em3->ckFindPL() == 1 && em3->plDist2 < lim) {
+            if (em3 != errEm && em3->ckFindPL() == 1 && em3->l_pl < lim) {
                 found = 1;
             }
-            if (em4 != errEm && em4->ckFindPL() == 1 && em4->plDist2 < lim) {
+            if (em4 != errEm && em4->ckFindPL() == 1 && em4->l_pl < lim) {
                 found = 1;
             }
-            if (em5 != errEm && em5->ckFindPL() == 1 && em5->plDist2 < lim) {
+            if (em5 != errEm && em5->ckFindPL() == 1 && em5->l_pl < lim) {
                 found = 1;
             }
-            if (em6 != errEm && em6->ckFindPL() == 1 && em6->plDist2 < lim) {
+            if (em6 != errEm && em6->ckFindPL() == 1 && em6->l_pl < lim) {
                 found = 1;
             }
             if (RsfCheck(G_ROOM_ID, 4)) {

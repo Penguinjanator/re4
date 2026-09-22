@@ -149,7 +149,7 @@ void em2fDmCk(cEm2f* em)
     case 8:
     case 0x21:
         dmg = 1;
-        if (em->plDist2 > 36000000.0f) {
+        if (em->l_pl > 36000000.0f) {
             dmg = 3;
         }
         break;
@@ -436,7 +436,7 @@ static void em2f_R1_Walk(cEm2f* em)
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 32.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
-        if (em->plDist2 < 1000000.0f) {
+        if (em->l_pl < 1000000.0f) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -1019,7 +1019,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         em->flag |= 0x12C;
         w->flags |= 0x580;
         MotionMove(em, 0);
-        if (em->plDist2 < 900000000.0f) {
+        if (em->l_pl < 900000000.0f) {
             if (w->hideRush) {
                 em->r_no_2 = 0xA;
             } else {
@@ -1307,16 +1307,16 @@ void em2fRouteCk(cEm2f* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     w->flags &= ~4;
     if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
+        if (!(w->flags & 1) || em->l_pl > em->l_sub) {
             w->targetPos = w->subRoutePos;
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;

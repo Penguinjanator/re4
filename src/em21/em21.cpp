@@ -371,7 +371,7 @@ static void em21_R1_Turn(cEm21* em)
         MotionMove(em, 0);
         break;
     }
-    if (em->plDist2 < 16000000.0f) {
+    if (em->l_pl < 16000000.0f) {
         EmRoutineSet(em, 1, 3, 0, 0);
         w->escTimer = 2;
     } else if (w->routeAngAbs < PI / 8.0f) {
@@ -388,7 +388,7 @@ static void em21_R1_Escape(cEm21* em)
     Em21Work* w = EM21_WK(em);
     f32 t;
 
-    if (em->plDist2 < 25000000.0f) {
+    if (em->l_pl < 25000000.0f) {
         w->flags |= 2;
     }
     if (em->r_no_2 == 0) {
@@ -508,7 +508,7 @@ static void em21_R1_Bark(cEm21* em)
             }
         }
         ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
-        if (ang < PI / 4.0f && em->plDist2 < 100000000.0f) {
+        if (ang < PI / 4.0f && em->l_pl < 100000000.0f) {
             em->r_no_2++;
         }
         break;
@@ -539,14 +539,14 @@ static void em21_R1_Bark(cEm21* em)
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
-                if (ang > 1.0471976f || em->plDist2 > 144000000.0f) {
+                if (ang > 1.0471976f || em->l_pl > 144000000.0f) {
                     em->r_no_2 = zero;
                 }
             }
         }
         break;
     }
-    if (em->plDist2 < 25000000.0f) {
+    if (em->l_pl < 25000000.0f) {
         w->escTimer = 2;
         EmRoutineSet(em, 1, 3, 0, 0);
     }
@@ -582,7 +582,7 @@ static void em21_R1_R100TrapWait(cEm21* em)
         }
         break;
     }
-    if (!(em->plDist2 > 9000000.0f)) {
+    if (!(em->l_pl > 9000000.0f)) {
         ActBtn.set(ACT_RESCUE, 5, (void*) em21TrapCancelAction, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
@@ -1037,7 +1037,7 @@ void Em21RouteCk(cEm21* em)
         w->targetPos = w->routePos;
         w->targetAng = w->routeAng;
         w->targetAngAbs = w->routeAngAbs;
-        w->targetDist2 = em->plDist2;
+        w->targetDist2 = em->l_pl;
         w->pTarget = pPL;
     }
     w->flags &= ~4;
@@ -1161,13 +1161,13 @@ int em21WakeCk(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
 
-    if (em->plDist2 < 2250000.0f) {
+    if (em->l_pl < 2250000.0f) {
         return 1;
     }
-    if (em->plDist2 < 16000000.0f && w->routeAngAbs < PI / 4.0f) {
+    if (em->l_pl < 16000000.0f && w->routeAngAbs < PI / 4.0f) {
         return 1;
     }
-    if (StaFlagChk(pG, STA_PL_SE_FOOT) && em->plDist2 < 16000000.0f) {
+    if (StaFlagChk(pG, STA_PL_SE_FOOT) && em->l_pl < 16000000.0f) {
         return 1;
     }
     if (StaFlagChk(pG, STA_PL_SE_WHISTLE) || (StaFlagChk(pG, STA_PL_FIRE))) {

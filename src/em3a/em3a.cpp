@@ -589,7 +589,7 @@ static void em3a_R1_Atk(cEm3a* em)
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.034906585f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
-        if (em3aLookPLCk(em) == 0 || em->plDist2 > 100000000.0f) {
+        if (em3aLookPLCk(em) == 0 || em->l_pl > 100000000.0f) {
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
@@ -708,7 +708,7 @@ static void em3a_R1_Chase(cEm3a* em)
             PSVECAdd(&w->spd, &v, &w->spd);
         }
         em3aHoverMove(em, w, fl);
-        if (em3aLookPLCk(em) && em->plDist2 < 100000000.0f) {
+        if (em3aLookPLCk(em) && em->l_pl < 100000000.0f) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;
@@ -835,7 +835,7 @@ static void em3a_R1_FixAtk(cEm3a* em)
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
-        if (em->plDist2 > 225000000.0f || ang > 0.5235988f) {
+        if (em->l_pl > 225000000.0f || ang > 0.5235988f) {
             w->timer = 90;
             break;
         }
@@ -1198,7 +1198,7 @@ static void em3a_R1_B_Move(cEm3a* em)
     } else {
         w->nearCnt = 0;
     }
-    if (em->plDist2 > 25000000.0f) {
+    if (em->l_pl > 25000000.0f) {
         w->lostCnt++;
     } else {
         w->lostCnt = 0;
@@ -1443,7 +1443,7 @@ int em3aFindPLCk(cEm3a* em)
     if (w->flags & 1) {
         return 1;
     }
-    if (em->plDist2 < 6250000.0f) {
+    if (em->l_pl < 6250000.0f) {
         return 1;
     }
     if (em->type == 2) {
@@ -1452,7 +1452,7 @@ int em3aFindPLCk(cEm3a* em)
         range = 15000.0f;
     }
     ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
-    if (ang < 0.5235988f && em->plDist2 < range * range) {
+    if (ang < 0.5235988f && em->l_pl < range * range) {
         cModel* p;
         Vec a;
         Vec b;
@@ -1475,7 +1475,7 @@ int em3aFindPLCk(cEm3a* em)
     if (EmDeadCk(em)) {
         return 1;
     }
-    if (StaFlagChk(pG, STA_PL_FIRE) && em->plDist2 < 225000000.0f) {
+    if (StaFlagChk(pG, STA_PL_FIRE) && em->l_pl < 225000000.0f) {
         return 1;
     }
     if (StaFlagChk(pG, STA_SE_BURST) && pG->SeInfo.type == 2) {

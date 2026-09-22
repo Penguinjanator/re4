@@ -575,7 +575,7 @@ int cPlWep::getMarkerPos(Vec* pPos)
 }
 
 // Display type 2 of the weapon objects: the main object (only with type bit0 for the launcher /
-// grenade / egg types; always for the bow) and pObj2.
+// grenade / egg types; always for the bow) and m_pWepHand.
 void cPlWep::setTrans(int on_off, int flag)
 {
     if (m_pWep == 0) {

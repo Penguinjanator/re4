@@ -113,7 +113,7 @@ int em30DmCk(cEm30* em)
         case 8:
         case 0x21:
             dmg = 10;
-            if (em->plDist2 > 16000000.0f) {
+            if (em->l_pl > 16000000.0f) {
                 dmg = (Rnd() & 1) + 50;
             }
             break;
@@ -319,7 +319,7 @@ static void em30_R1_Walk(cEm30* em)
         em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
-        if (em->plDist2 < 4000000.0f) {
+        if (em->l_pl < 4000000.0f) {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
         break;
@@ -419,16 +419,16 @@ void em30RouteCk(cEm30* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     w->flags &= ~4;
     if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
+        if (!(w->flags & 1) || em->l_pl > em->l_sub) {
             w->targetPos = w->subRoutePos;
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;

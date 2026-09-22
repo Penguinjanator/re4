@@ -521,7 +521,7 @@ static EmAtkInfo em39_atk_tbl[10] = {
 // per-frame flags, tick the attack / dash / escape / hide / trap timers (the back attack wait only
 // while Be_flg 0x800), route, the routine table (r_no_0 0xFF = model load failed: destroy), the
 // mutated arm, neck and waist aim, parts, attack / collision / stage collision (skipped during the
-// jump motions, seFlags 0x40, which also pass pushes), stuckCnt, the invisibility fade (Be_flg 0x400
+// jump motions, seFlags 0x40, which also pass pushes), HoseiCnt, the invisibility fade (Be_flg 0x400
 // = hidden), the shadow fade while airborne / on steep floors / when the camera is below, the
 // marker, voice and speech, the "not shooting" counter, footsteps, the player's voice reactions,
 // the em-list HP mirror and the shadow colour.
@@ -1250,7 +1250,7 @@ static void em39_R1_Wait(cEm39* em)
                 }
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
-                if (em->plDist2 > 25000000.0f) {
+                if (em->l_pl > 25000000.0f) {
                     w->Atk_wait = 0;
                 }
                 if (w->Atk_wait) {
@@ -1283,7 +1283,7 @@ static void em39_R1_Wait(cEm39* em)
                     if (em39SlantCk(em)) {
                         return;
                     }
-                    if (em->plDist2 < 25000000.0f) {
+                    if (em->l_pl < 25000000.0f) {
                         EmRoutineSet(em, 1, 0xF, 0, 0);
                     } else {
                         EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -1352,7 +1352,7 @@ static void em39_R1_Sit(cEm39* em)
             }
         }
         if ((s16) pG->pl_life > 0) {
-            if (em39ExitCk(em) || (w->Be_flg & 0x2000) || em->plDist2 < 25000000.0f) {
+            if (em39ExitCk(em) || (w->Be_flg & 0x2000) || em->l_pl < 25000000.0f) {
                 if (em39AreaMoveCk(em) == 0) {
                     w->Hide_timer = 200;
                     EmRoutineSet(em, 1, 0x26, 0, 0);
@@ -1460,7 +1460,7 @@ static void em39_R1_WallWait(cEm39* em)
             } else {
                 dy = em->pos.y - pPL->pos.y;
                 dy = fabsf(dy);
-                if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) < 2.3561945f || em->plDist2 < 25000000.0f) {
+                if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) < 2.3561945f || em->l_pl < 25000000.0f) {
                     w->LongAtk_wait = 300;
                     w->Atk_wait = 0;
                     if (w->Dash_wait == 0) {
@@ -1547,7 +1547,7 @@ static void em39_R1_Walk(cEm39* em)
         }
         if (w->Go_rot > 2.3561945f) {
             EmRoutineSet(em, 1, 0xB, 0, 0);
-        } else if (em->plDist2 > 20250000.0f && w->Dash_wait == 0) {
+        } else if (em->l_pl > 20250000.0f && w->Dash_wait == 0) {
             if (em39SlantCk(em)) {
                 return;
             }
@@ -1568,7 +1568,7 @@ static void em39_R1_Walk(cEm39* em)
                     if (em39SlantCk(em)) {
                         return;
                     }
-                    if (em->plDist2 < 25000000.0f) {
+                    if (em->l_pl < 25000000.0f) {
                         EmRoutineSet(em, 1, 0xF, 0, 0);
                     } else {
                         EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -1662,9 +1662,9 @@ static void em39_R1_Run(cEm39* em)
             break;
         } else if (w->Go_rot > 2.3561945f) {
             EmRoutineSet(em, 1, 0xB, 0, 0);
-        } else if (em->plDist2 < 9000000.0f && em->type == 2 && pG->Game_level <= 1) {
+        } else if (em->l_pl < 9000000.0f && em->type == 2 && pG->Game_level <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
-        } else if (em->plDist2 < 6250000.0f && em->type == 2 && pG->Game_level <= 3) {
+        } else if (em->l_pl < 6250000.0f && em->type == 2 && pG->Game_level <= 3) {
             EmRoutineSet(em, 1, 8, 0, 0);
         }
         break;
@@ -1679,7 +1679,7 @@ static void em39_R1_Run(cEm39* em)
                 if (em39SlantCk(em)) {
                     return;
                 }
-                if (em->plDist2 < 25000000.0f) {
+                if (em->l_pl < 25000000.0f) {
                     EmRoutineSet(em, 1, 0xF, 0, 0);
                 } else {
                     EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -1855,7 +1855,7 @@ static void em39_R1_Threat(cEm39* em)
         end = MotionMove(em, 0);
         if (end) {
             if (em->r_no_3 && (u8) (Rnd() % 10) > 3) {
-                if ((u8) (Rnd() % 10) > 4 && em->plDist2 > 25000000.0f) {
+                if ((u8) (Rnd() % 10) > 4 && em->l_pl > 25000000.0f) {
                     EmRoutineSet(em, 1, 0x1D, 0, 1);
                 } else {
                     EmRoutineSet(em, 1, 0x23, 0, 1);
@@ -1867,7 +1867,7 @@ static void em39_R1_Threat(cEm39* em)
             if ((u8) (Rnd() % 10) > 6 && em39JumpUpCk3(em)) {
                 break;
             }
-            if (em->plDist2 < 25000000.0f) {
+            if (em->l_pl < 25000000.0f) {
                 EmRoutineSet(em, 1, 0xF, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -1937,7 +1937,7 @@ static void em39_R1_Escape(cEm39* em)
             dir = 3;
             break;
         }
-        if (dir == 3 && em->plDist2 < 16000000.0f) {
+        if (dir == 3 && em->l_pl < 16000000.0f) {
             dir = Rnd() % 3;
         }
         switch ((u32) dir) {
@@ -2082,7 +2082,7 @@ static void em39_R1_Backjump(cEm39* em)
                     if (em39AtkRtnCk(em)) {
                         break;
                     }
-                    if (em->plDist2 > 36000000.0f) {
+                    if (em->l_pl > 36000000.0f) {
                         EmRoutineSet(em, 1, 4, 0, 0);
                         break;
                     }
@@ -2096,7 +2096,7 @@ static void em39_R1_Backjump(cEm39* em)
             }
             if (em39LockCk(em) && em->type != 2 && em->r_no_3 == 0) {
                 Rnd();
-                if (em->plDist2 < 25000000.0f) {
+                if (em->l_pl < 25000000.0f) {
                     EmRoutineSet(em, 1, 0xF, 0, 0);
                 } else {
                     EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -2125,7 +2125,7 @@ static void em39_R1_Backjump(cEm39* em)
                     if ((u8) (Rnd() % 10) > 4 && (w->Be_flg & 1)) {
                         f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
-                        if (em->plDist2 < 100000000.0f && em->plDist2 > 36000000.0f && w->Pl_rot < 0.5235988f && dy < 2000.0f) {
+                        if (em->l_pl < 100000000.0f && em->l_pl > 36000000.0f && w->Pl_rot < 0.5235988f && dy < 2000.0f) {
                             EmRoutineSet(em, 1, 0x1D, 0, 0);
                             break;
                         }
@@ -2168,7 +2168,7 @@ static void em39_R1_Step(cEm39* em)
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
             dir = 1;
         }
-        if (em->plDist2 > 6250000.0f && em->plDist2 < 12250000.0f) {
+        if (em->l_pl > 6250000.0f && em->l_pl < 12250000.0f) {
             dir = 2;
         }
         if (em->r_no_3) {
@@ -2286,7 +2286,7 @@ static void em39_R1_Slant(cEm39* em)
             if (em39SlantCk(em)) {
                 break;
             }
-            if (em->plDist2 < 12250000.0f) {
+            if (em->l_pl < 12250000.0f) {
                 EmRoutineSet(em, 1, 0xF, 0, 1);
             } else if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -2355,11 +2355,11 @@ static void em39_R1_Slant2(cEm39* em)
         }
         if (em->Motion.Seq_old.Free & 4) {
             if (pG->Game_level > 3) {
-                if (em->plDist2 > 12250000.0f && (u8) (Rnd() % 10) > 4) {
+                if (em->l_pl > 12250000.0f && (u8) (Rnd() % 10) > 4) {
                     EmRoutineSet(em, 1, 0x11, 0, 0);
                     break;
                 }
-                if (em->plDist2 > 12250000.0f && (u8) (Rnd() % 10) > 4 && w->Dash_wait == 0) {
+                if (em->l_pl > 12250000.0f && (u8) (Rnd() % 10) > 4 && w->Dash_wait == 0) {
                     EmRoutineSet(em, 1, 9, 0, 0);
                     break;
                 }
@@ -2511,7 +2511,7 @@ static void em39_R1_JumpDown(cEm39* em)
     }
 }
 
-// Routine 1/0x14 (em39JumpUpCk): the climb onto a ledge at jumpPos facing Target_dir (Be_flg 0x100:
+// Routine 1/0x14 (em39JumpUpCk): the climb onto a ledge at Target_pos facing Target_dir (Be_flg 0x100:
 // invulnerable): the motion's own rise brings him 3.2 m up and 2.5 m forward, TmpV covers the rest a
 // tenth per frame while motion event bit 0 is set; collision off in the air. Then a goto point or
 // the run / walk.
@@ -2560,7 +2560,7 @@ static void em39_R1_JumpUp(cEm39* em)
     }
 }
 
-// Routine 1/0x15 (em39JumpUpCk2): the high leap up to jumpPos, invulnerable: a ballistic arc
+// Routine 1/0x15 (em39JumpUpCk2): the high leap up to Target_pos, invulnerable: a ballistic arc
 // (Spd.y starts at 19 steps of the rise-plus-1 m over 190 frames, TmpF the per-frame fall; the
 // landing phase, motion event bit 4, falls faster) while event bit 6 is set, with TmpV covering the
 // horizontal gap a tenth per frame, facing Target_dir. Then a goto point or the run / walk.
@@ -2636,7 +2636,7 @@ static void em39_R1_JumpUp2(cEm39* em)
     }
 }
 
-// Routine 1/0x16 (em39JumpUpCk3): the wall jump up to a perch at jumpPos when aimed at: the
+// Routine 1/0x16 (em39JumpUpCk3): the wall jump up to a perch at Target_pos when aimed at: the
 // forward leap (r_no_3 0) or the backwards one (r_no_3 1, facing away from the perch), the same arc
 // as em39_R1_JumpUp2. On landing Be_flg 0x8000 (perched; 0x00400000 / 0x00040000 count the wall
 // jumps), then a goto point, or a gun burst (50 % beyond 5 m) / grenade throw from above.
@@ -2756,7 +2756,7 @@ static void em39_R1_JumpUp3(cEm39* em)
             if (em39GotoCk(em)) {
                 break;
             }
-            if ((u8) (Rnd() % 10) > 4 && em->plDist2 > 25000000.0f) {
+            if ((u8) (Rnd() % 10) > 4 && em->l_pl > 25000000.0f) {
                 EmRoutineSet(em, 1, 0x1D, 0, 1);
             } else {
                 EmRoutineSet(em, 1, 0x23, 0, 1);
@@ -2840,7 +2840,7 @@ static void em39_R1_AtkKnife(cEm39* em)
                     break;
                 }
                 w->Atk_wait = 30;
-                if (em->plDist2 < 9000000.0f) {
+                if (em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0xE, 0, 1);
                 } else {
                     EmRoutineSet(em, 1, 4, 0, 0);
@@ -2880,7 +2880,7 @@ static void em39_R1_AtkKnife(cEm39* em)
                     break;
                 }
                 w->Atk_wait = 30;
-                if (em->plDist2 < 9000000.0f) {
+                if (em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0xE, 0, 1);
                 } else {
                     EmRoutineSet(em, 1, 4, 0, 0);
@@ -3050,7 +3050,7 @@ static void em39_R1_KnifeCatch(cEm39* em)
                 if (em39JumpUpCk3(em)) {
                     break;
                 }
-                if (em->plDist2 < 9000000.0f) {
+                if (em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0xE, 0, 1);
                 } else {
                     EmRoutineSet(em, 1, 4, 0, 0);
@@ -3615,7 +3615,7 @@ static void plem39_Knife4Atk(cPlayer* pl)
 
 // Routine 1/0x1D: the machine gun burst (Be_flg 0xC0: attacking / gun up; long attack held 300).
 // Aims at a point 1.5 m up the player, 5 deg to the side: steps 0/1 the draw and shoulder, 2/3 the
-// aim (gunPitch eased, the aim blend em39BlendMotSet, 5 frames, a taunt), 4/5 the firing loop: up
+// aim (Blend eased, the aim blend em39BlendMotSet, 5 frames, a taunt), 4/5 the firing loop: up
 // to 50 rounds, each round's hit at Timer2 3 (em39GunHitCk, a cartridge ejected), stopping early
 // after 5 rounds on a dead player or when he gets behind; 6/7 the lower. Then the reload (r_no_3) or
 // a wall jump / the retreating back flip.
@@ -3779,7 +3779,7 @@ static void em39_R1_Reload(cEm39* em)
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (em->r_no_3 && (u8) (Rnd() % 10) > 3) {
-                if ((u8) (Rnd() % 10) > 4 && em->plDist2 > 25000000.0f) {
+                if ((u8) (Rnd() % 10) > 4 && em->l_pl > 25000000.0f) {
                     EmRoutineSet(em, 1, 0x1D, 0, 1);
                 } else {
                     EmRoutineSet(em, 1, 0x23, 0, 1);
@@ -4045,7 +4045,7 @@ static void em39_R1_AppearMG2(cEm39* em)
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
-            if (em->plDist2 < 9000000.0f || (u8) (Rnd() % 10) > 6) {
+            if (em->l_pl < 9000000.0f || (u8) (Rnd() % 10) > 6) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 em->r_no_2++;
@@ -4396,7 +4396,7 @@ static void em39_R1_ThrowGR(cEm39* em)
 
 // Routine 1/0x24 (from a perch, Sit): rises with the bow (Wep_type 4, the bow string set up and
 // an arrow nocked, a taunt if he has not fired for 450 frames) and shoots 3..5 arrows at the player
-// predicted 10 frames ahead: steps 2/3 the 30-frame draw with the aim blend (gunPitch), 4/5 the
+// predicted 10 frames ahead: steps 2/3 the 30-frame draw with the aim blend (Blend), 4/5 the
 // shot (em39ArrowFire with a random spread; the last arrow uses the release motion) and re-draw
 // after 50 frames; the volley stops when the player dies, is knocked down or leaves. Then the lower
 // and back to the crouch.
@@ -5044,7 +5044,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
                     if (rtn) {
                         break;
                     }
-                    if ((u8) (Rnd() % 10) > 4 && em->plDist2 < 9000000.0f) {
+                    if ((u8) (Rnd() % 10) > 4 && em->l_pl < 9000000.0f) {
                         EmRoutineSet(em, 1, 8, rtn, 1);
                         break;
                     }
@@ -5316,13 +5316,13 @@ static void em39_R1_T_Kick(cEm39* em)
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
-            if (em->r_no_3 == 0 && em->plDist2 < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->Pl_rot < 1.0471976f) {
+            if (em->r_no_3 == 0 && em->l_pl < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->Pl_rot < 1.0471976f) {
                 int hit = w->Atk_ck;
 
                 if (hit != 0) {
                     goto rtn_e;
                 }
-                if (em->plDist2 > 4000000.0f) {
+                if (em->l_pl > 4000000.0f) {
                     if ((u8) (Rnd() % 10) > 4) {
                         EmRoutineSet(em, 1, 0x2B, hit, 1);
                     } else {
@@ -5337,7 +5337,7 @@ static void em39_R1_T_Kick(cEm39* em)
                 if (rtn) {
                     break;
                 }
-                if ((u8) (Rnd() % 10) > 4 && em->plDist2 < 9000000.0f) {
+                if ((u8) (Rnd() % 10) > 4 && em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 8, rtn, 1);
                     break;
                 }
@@ -5404,8 +5404,8 @@ static void em39_R1_T_LowKick(cEm39* em)
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
             f = em->r_no_3;
-            if (f == 0 && em->plDist2 < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->Pl_rot < 1.0471976f &&
-                em->plDist2 > 4000000.0f) {
+            if (f == 0 && em->l_pl < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->Pl_rot < 1.0471976f &&
+                em->l_pl > 4000000.0f) {
                 if ((u8) (Rnd() % 10) > 4) {
                     EmRoutineSet(em, 1, 0x2B, f, 1);
                 } else {
@@ -5419,7 +5419,7 @@ static void em39_R1_T_LowKick(cEm39* em)
                 if (rtn) {
                     break;
                 }
-                if ((u8) (Rnd() % 10) > 4 && em->plDist2 < 9000000.0f) {
+                if ((u8) (Rnd() % 10) > 4 && em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 8, rtn, 1);
                     break;
                 }
@@ -5628,7 +5628,7 @@ static void plem39_LowKickHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
-// Cliff attack: the enemy stands on the ledge (jumpPos / jumpAng) and drags the player over it.
+// Cliff attack: the enemy stands on the ledge (Target_pos / jumpAng) and drags the player over it.
 // The object pointer is a one-member struct so that every store through the object reloads it.
 static struct {
     cObj* p;
@@ -5646,7 +5646,7 @@ static u32 em39MarkerCol1 = 0x20800000;
     PSMTXMultVec(mat, &(a), &(em)->pos);                                                           \
     (em)->ang.y = (w)->Target_dir;
 
-// Routine 1/0x2E (type 2): the cliff-edge grab: the boss stands on the ledge (jumpPos /
+// Routine 1/0x2E (type 2): the cliff-edge grab: the boss stands on the ledge (Target_pos /
 // Target_dir) holding the player over the drop (plem39_CliffAtk). Step 0/1: the button-mash
 // prompt during motion event bit 2, TmpU32 presses (5..20 by difficulty and player HP) break free
 // before event bit 0 drops him (the kill); voice and rumble cues. Step 2/3: the break-free counter
@@ -5916,11 +5916,11 @@ static void em39_R0_Damage(cEm39* em)
             EmRoutineSet(em, 1, 0x25, 0, 0);                                                       \
             break;                                                                                 \
         }                                                                                          \
-        if (em39LockCk(em) || (em)->plDist2 < 4000000.0f) {                                       \
+        if (em39LockCk(em) || (em)->l_pl < 4000000.0f) {                                       \
             if ((u8) (Rnd() % 10) > 6 && em39JumpUpCk3(em)) {                                      \
                 break;                                                                             \
             }                                                                                      \
-            if ((em)->plDist2 < 25000000.0f) {                                                     \
+            if ((em)->l_pl < 25000000.0f) {                                                     \
                 EmRoutineSet(em, 1, 0xF, 0, 0);                                                    \
             } else {                                                                               \
                 EmRoutineSet(em, 1, 0xD, 0, 0);                                                    \
@@ -5981,7 +5981,7 @@ static void em39_R1_Dm_Normal(cEm39* em)
                 }
                 if (w->Go_rot > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, rtn, rtn);
-                } else if (em->plDist2 < 9000000.0f) {
+                } else if (em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0xE, rtn, 1);
                 } else {
                     EmRoutineSet(em, 1, 8, rtn, rtn);
@@ -6032,7 +6032,7 @@ static void em39_R1_Dm_Head(cEm39* em)
                 }
                 if (w->Go_rot > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, rtn, rtn);
-                } else if (em->plDist2 < 9000000.0f) {
+                } else if (em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0xE, rtn, 1);
                 } else {
                     EmRoutineSet(em, 1, 8, rtn, rtn);
@@ -6103,7 +6103,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
             if ((u8) (Rnd() % 10) > 4) {
                 if (w->Go_rot > 2.3561945f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
-                } else if (em->plDist2 < 9000000.0f) {
+                } else if (em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0xE, 0, 1);
                 } else if (w->Dash_wait == 0) {
                     EmRoutineSet(em, 1, 9, 0, 0);
@@ -6396,7 +6396,7 @@ static void em39_R1_Die_Flash(cEm39* em)
 
 // ---- HELPERS ----
 // Per-frame routing while alive: the route to the player (`up` when he is a floor above; the
-// type 0 / 1 distance branches are dead code), routeAng / routeAngAbs (zero during init), the
+// type 0 / 1 distance branches are dead code), Pl_dir / Pl_rot (zero during init), the
 // line-of-sight flag (Be_flg bit 0, clear of 0x4000-class obstacles at head height) and the target
 // copy; a goto (Goto_mode) replaces the target with the route to Goto_pos. Debug_flg[0] 0x4000
 // draws the target line.
@@ -6414,7 +6414,7 @@ void em39RouteCk(cEm39* em)
     if (em->type == 2) {
         plPos = pPL->pos;
     } else {
-        if (SQRTF(em->plDist2) < 5000.0f) {
+        if (SQRTF(em->l_pl) < 5000.0f) {
             f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
             if (dy < 0.0f) {
@@ -6449,7 +6449,7 @@ void em39RouteCk(cEm39* em)
     if (em->r_no_0 == 0) {
         w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
         asm("" : "=m"(w->Atk_ck) : "m"(pPL)); // COMPILER-DIFF: candidate #17
     }
     a.x = em->pos.x;
@@ -6464,7 +6464,7 @@ void em39RouteCk(cEm39* em)
     w->Go_pos = w->Pl_pos;
     w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
-    w->L_go = em->plDist2;
+    w->L_go = em->l_pl;
     w->pTarget = pPL;
     w->Be_flg &= ~4;
     if (w->Goto_mode) {
@@ -6491,7 +6491,7 @@ void em39RouteCk(cEm39* em)
 }
 
 
-// Neck: turn the head (parts 3 addRot) towards the player while flags bit 4 is set, else relax.
+// Neck: turn the head (parts 3 inv_offset) towards the player while flags bit 4 is set, else relax.
 void em39NeckMove(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -6749,7 +6749,7 @@ int em39LockCk(cEm39* em)
     if (pPL->Wep->m_pWep->wep.m_SightEm && pPL->Wep->m_pWep->wep.m_SightEm == em) {
         return 1;
     }
-    if (em->plDist2 > 144000000.0f) {
+    if (em->l_pl > 144000000.0f) {
         return 0;
     }
     if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 0.7853982f) {
@@ -6967,7 +6967,7 @@ void em39PLNearTowerCk(cEm39* em)
 
 // The drop check of the first battle (not the final form): every 4th frame a floor more than 35 cm
 // below under both feet starts the jump down (1/0x13) straight ahead. Otherwise (outside the 2 m
-// no-drop spot; without `force` only when stuck, stuckCnt at 5 mod 10, and heading for the target)
+// no-drop spot; without `force` only when stuck, HoseiCnt at 5 mod 10, and heading for the target)
 // four wall probes 1 m ahead / behind / to the sides for a ledge-type collision (EM39_JUMPDOWN_PROBE,
 // flags 0x142810) start the drop facing the ledge. Returns 1 when started.
 int em39JumpDownCk(cEm39* em, int force)
@@ -7276,7 +7276,7 @@ void em39BloodSet(cEm39* em)
     }
 }
 
-// Two-motion blend: m0 as the main motion, m1 / m2 by the sign of gunPitch as the blended one.
+// Two-motion blend: m0 as the main motion, m1 / m2 by the sign of Blend as the blended one.
 void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d)
 {
     Em39Work* w = EM39_WK(em);
@@ -8293,7 +8293,7 @@ int em39AtkRtnCk(cEm39* em)
     dy = fabsf(dy);
     ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
     if (em->type == 2) {
-        if (pG->Game_level > 1 && w->SuperDashWait == 0 && (w->Be_flg & 1) && em->plDist2 > 36000000.0f && em->plDist2 < 100000000.0f &&
+        if (pG->Game_level > 1 && w->SuperDashWait == 0 && (w->Be_flg & 1) && em->l_pl > 36000000.0f && em->l_pl < 100000000.0f &&
             w->Pl_rot < 0.5235988f && ang < 0.5235988f) {
             a = pPL->pos;
             b = em->pos;
@@ -8305,7 +8305,7 @@ int em39AtkRtnCk(cEm39* em)
             }
         }
         LongAtk_wait = w->LongAtk_wait;
-        if (LongAtk_wait == 0 && em->plDist2 < 20250000.0f && em->plDist2 > 12250000.0f && w->Pl_rot < 1.5707964f) {
+        if (LongAtk_wait == 0 && em->l_pl < 20250000.0f && em->l_pl > 12250000.0f && w->Pl_rot < 1.5707964f) {
             if ((u8) (Rnd() % 10) > 4) {
                 EmRoutineSet(em, 1, 0x29, LongAtk_wait, LongAtk_wait);
             } else {
@@ -8313,10 +8313,10 @@ int em39AtkRtnCk(cEm39* em)
             }
             return 1;
         }
-        if (em->plDist2 < 4840000.0f && w->Pl_rot < 1.5707964f && dy < 1500.0f) {
+        if (em->l_pl < 4840000.0f && w->Pl_rot < 1.5707964f && dy < 1500.0f) {
             u32 r = (u8) (Rnd() % 100);
 
-            if (em->plDist2 > 4000000.0f && r > 30) {
+            if (em->l_pl > 4000000.0f && r > 30) {
                 if ((u8) (Rnd() % 10) > 4) {
                     EmRoutineSet(em, 1, 0x2B, 0, 0);
                 } else {
@@ -8333,7 +8333,7 @@ int em39AtkRtnCk(cEm39* em)
         }
         return 0;
     }
-    if (em->plDist2 < 2890000.0f && w->Pl_rot < 1.5707964f && (w->Be_flg & 1)) {
+    if (em->l_pl < 2890000.0f && w->Pl_rot < 1.5707964f && (w->Be_flg & 1)) {
         a = em->pos;
         c = pPL->pos;
         a.y += 500.0f;
@@ -8358,7 +8358,7 @@ int em39AtkRtnCk(cEm39* em)
         }
     }
     LongAtk_wait = w->LongAtk_wait;
-    if (LongAtk_wait == 0 && (w->Be_flg & 1) && em->plDist2 > 36000000.0f && em->plDist2 < 100000000.0f && w->Pl_rot < 0.5235988f &&
+    if (LongAtk_wait == 0 && (w->Be_flg & 1) && em->l_pl > 36000000.0f && em->l_pl < 100000000.0f && w->Pl_rot < 0.5235988f &&
         dy < 2000.0f) {
         if ((u8) (Rnd() % 10) > 2 || dy > 1000.0f) {
             EmRoutineSet(em, 1, 0x1D, LongAtk_wait, LongAtk_wait);
@@ -8513,10 +8513,10 @@ int em39SlantCk(cEm39* em)
     if (em->type == 2) {
         return 0;
     }
-    if (em->plDist2 > 144000000.0f) {
+    if (em->l_pl > 144000000.0f) {
         return 0;
     }
-    if (em->plDist2 < 12250000.0f) {
+    if (em->l_pl < 12250000.0f) {
         return 0;
     }
     if (w->Go_rot > 0.5235988f) {
@@ -8552,7 +8552,7 @@ int em39SlantCk2(cEm39* em)
     if (em->type != 2) {
         return 0;
     }
-    if (em->plDist2 < 6250000.0f) {
+    if (em->l_pl < 6250000.0f) {
         return 0;
     }
     if (w->Go_rot > 0.5235988f) {
@@ -8885,7 +8885,7 @@ void cEm39::setTalk1st()
 void cEm39::setTalk1stCancel()
 {
     AtariOn(&atari, 0x300);
-    if ((u8) (Rnd() % 10) > 4 && plDist2 > 25000000.0f) {
+    if ((u8) (Rnd() % 10) > 4 && l_pl > 25000000.0f) {
         EmRoutineSet(this, 1, 0x1D, 0, 1);
     } else {
         EmRoutineSet(this, 1, 0x23, 0, 1);

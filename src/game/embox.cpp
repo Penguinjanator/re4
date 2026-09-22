@@ -286,7 +286,7 @@ void emBoxDmCk(cEmBox* em)
     case 7:
     case 8:
     case 0x21:
-        if (em->plDist2 > 36000000.0f) {
+        if (em->l_pl > 36000000.0f) {
             dmg = 1000;
         } else {
             dmg = 9999;
@@ -566,7 +566,7 @@ static void emBoxSatSet(cEmBox* em)
     if (hx == 0.0f) {
         return;
     }
-    if (w->pSat != 0 && em->plDist2 > 225000000.0f) {
+    if (w->pSat != 0 && em->l_pl > 225000000.0f) {
         return;
     }
     emBoxSatClear(em);

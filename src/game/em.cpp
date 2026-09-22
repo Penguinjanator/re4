@@ -382,7 +382,7 @@ void cEm::setNoItem()
 
 // Per-character frame step for every work but the player: skips hidden works during an event
 // pause (Status_flg[1] 0x10000000 unless be_flag 0x800) and the frozen partner; caches the
-// squared distance to the player (plDist2), ticks the damage info, runs the virtual move(), then
+// squared distance to the player (l_pl), ticks the damage info, runs the virtual move(), then
 // the shape (skeleton) update, the queued SE (seNo), old position update, hit box debug display
 // and bounding boxes, and resets invisible_factor2.
 void emMove(cEm* pEm)
@@ -406,7 +406,7 @@ void emMove(cEm* pEm)
     }
     dz = pPL->pos.z - pEm->pos.z;
     dx = pPL->pos.x - pEm->pos.x;
-    pEm->plDist2 = dx * dx + dz * dz;
+    pEm->l_pl = dx * dx + dz * dz;
     pEm->l_sub = 1e16f;
     pEm->dmg.move();
     pEm->move();

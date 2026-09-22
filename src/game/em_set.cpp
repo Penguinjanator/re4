@@ -116,7 +116,7 @@ static inline void EmSetDist(cEm* em)
     f32 dz = pPL->pos.z - em->pos.z;
     f32 dx = pPL->pos.x - em->pos.x;
 
-    em->plDist2 = dx * dx + dz * dz;
+    em->l_pl = dx * dx + dz * dz;
 }
 
 

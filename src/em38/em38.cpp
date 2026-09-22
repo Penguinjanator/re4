@@ -1663,16 +1663,16 @@ void em38RouteCk(cEm38* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     w->flags &= ~4;
     if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
+        if (!(w->flags & 1) || em->l_pl > em->l_sub) {
             w->targetPos = w->subRoutePos;
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;

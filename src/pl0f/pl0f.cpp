@@ -1552,7 +1552,7 @@ void pl0fRideActEvtCk(cPl0f* em)
     if (fabsf(em->pos.y - pPL->pos.y) > 10000.0f) {
         return;
     }
-    if (em->plDist2 > 9000000.0f) {
+    if (em->l_pl > 9000000.0f) {
         return;
     }
     switch (em->type) {
@@ -2704,7 +2704,7 @@ static void plboat_R2_Swim(cPlayer* pl)
     if (GetWaterHeight(&pl->pos, &h)) {
         pl->pos.y = h - 100.0f;
     }
-    if (pl->m_pBoat->plDist2 < 3240000.0f) {
+    if (pl->m_pBoat->l_pl < 3240000.0f) {
         EmRoutineSet(pPL, 0, 0xF, 8, 0);
         pl->m_pBoat->r_no_0 = 1;
         pl->m_pBoat->r_no_1 = 5;

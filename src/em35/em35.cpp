@@ -1159,7 +1159,7 @@ static void em35_R1_Wait(cEm35* em)
     case 1:
         MotionMove(em, 0);
         if (EmDeadCk(em)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1167,11 +1167,11 @@ static void em35_R1_Wait(cEm35* em)
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
         } else {
-            if (em->plDist2 > 25000000.0f) {
+            if (em->l_pl > 25000000.0f) {
                 w->atkWait = 0;
             }
             if (w->atkWait == 0) {
-                if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+                if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
                 } else if (w->targetAngAbs > 1.0471976f) {
                     EmRoutineSet(em, 1, 3, 0, 0);
@@ -1203,7 +1203,7 @@ static void em35_R1_Walk(cEm35* em)
         if (em->Motion.Mot_attr & 0x40) {
             flip = 0x45;
         }
-        if (em->plDist2 > 49000000.0f) {
+        if (em->l_pl > 49000000.0f) {
             switch (em->r_no_3) {
             case 0:
             default:
@@ -1244,12 +1244,12 @@ static void em35_R1_Walk(cEm35* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
         if (em->pos.y + 2000.0f < pPL->pos.y) {
-            if (em->plDist2 < 16000000.0f) {
+            if (em->l_pl < 16000000.0f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
             } else {
                 goto big_step;
             }
-        } else if (w->routeAngAbs < 0.5235988f && em->plDist2 > 4000000.0f && em->plDist2 < 12250000.0f &&
+        } else if (w->routeAngAbs < 0.5235988f && em->l_pl > 4000000.0f && em->l_pl < 12250000.0f &&
                    w->lockWait == 0) {
             if ((s16) pG->pl_life <= 900 && (Rnd() & 1)) {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -1267,20 +1267,20 @@ static void em35_R1_Walk(cEm35* em)
                 }
             }
         } else if (w->walkType) {
-            if (em->plDist2 < 2250000.0f && w->routeAngAbs < 0.7853982f) {
+            if (em->l_pl < 2250000.0f && w->routeAngAbs < 0.7853982f) {
                 EmRoutineSet(em, 1, 0xC, 0, 1);
-            } else if (em35bPlRunCk(em) && em->plDist2 < 12250000.0f && w->routeAngAbs < 0.7853982f) {
+            } else if (em35bPlRunCk(em) && em->l_pl < 12250000.0f && w->routeAngAbs < 0.7853982f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             } else {
                 goto turn_ck;
             }
         } else {
             if (w->routeAngAbs < 1.0471976f &&
-                (em->plDist2 < 6250000.0f || (em35bPlRunCk(em) && em->plDist2 < 12250000.0f))) {
+                (em->l_pl < 6250000.0f || (em35bPlRunCk(em) && em->l_pl < 12250000.0f))) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
             turn_ck:
-                if (w->routeAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+                if (w->routeAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
                 } else {
                 big_step:
@@ -1319,7 +1319,7 @@ static void em35_R1_BigStep(cEm35* em)
     }
     case 1:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1328,7 +1328,7 @@ static void em35_R1_BigStep(cEm35* em)
             }
         } else {
             if (em->Motion.Seq_old.Free & 4) {
-                if (w->routeAngAbs < 0.5235988f && em->plDist2 > 4000000.0f && em->plDist2 < 12250000.0f &&
+                if (w->routeAngAbs < 0.5235988f && em->l_pl > 4000000.0f && em->l_pl < 12250000.0f &&
                     w->lockWait == 0) {
                     if ((s16) pG->pl_life <= 900 && (Rnd() & 1)) {
                         EmRoutineSet(em, 1, 9, 0, 0);
@@ -1346,20 +1346,20 @@ static void em35_R1_BigStep(cEm35* em)
                         }
                     }
                 } else if (w->walkType) {
-                    if (em->plDist2 < 2250000.0f && w->routeAngAbs < 0.7853982f) {
+                    if (em->l_pl < 2250000.0f && w->routeAngAbs < 0.7853982f) {
                         EmRoutineSet(em, 1, 0xC, 0, 1);
-                    } else if (em35bPlRunCk(em) && em->plDist2 < 12250000.0f && w->routeAngAbs < 0.7853982f) {
+                    } else if (em35bPlRunCk(em) && em->l_pl < 12250000.0f && w->routeAngAbs < 0.7853982f) {
                         EmRoutineSet(em, 1, 0xC, 0, 0);
                     } else {
                         goto turn_ck;
                     }
                 } else {
                     if (w->routeAngAbs < 1.0471976f &&
-                        (em->plDist2 < 6250000.0f || (em35bPlRunCk(em) && em->plDist2 < 12250000.0f))) {
+                        (em->l_pl < 6250000.0f || (em35bPlRunCk(em) && em->l_pl < 12250000.0f))) {
                         EmRoutineSet(em, 1, 4, 0, 0);
                     } else {
                     turn_ck:
-                        if (w->routeAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+                        if (w->routeAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                             EmRoutineSet(em, 1, 4, 0, 0);
                         } else {
                             goto se;
@@ -1424,9 +1424,9 @@ static void em35_R1_Turn(cEm35* em)
             w->flags |= 0x10;
         }
         if (MotionMove(em, 0)) {
-            if (em->plDist2 < 2250000.0f && w->routeAngAbs < 0.7853982f) {
+            if (em->l_pl < 2250000.0f && w->routeAngAbs < 0.7853982f) {
                 EmRoutineSet(em, 1, 0xC, 0, 1);
-            } else if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            } else if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1485,7 +1485,7 @@ static void em35_R1_Atk(cEm35* em)
             if (w->atkHit) {
                 w->atkWait = 90;
                 EmRoutineSet(em, 1, 0, 0, 0);
-            } else if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            } else if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1493,7 +1493,7 @@ static void em35_R1_Atk(cEm35* em)
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
         } else {
-            if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 25000000.0f) {
+            if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->l_pl < 25000000.0f) {
                 ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
             if (em->Motion.Seq_old.Free & 1) {
@@ -1586,7 +1586,7 @@ static void em35_R1_AtkDouble(cEm35* em)
             if (w->atkHit) {
                 w->atkWait = 90;
                 EmRoutineSet(em, 1, 0, 0, 0);
-            } else if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            } else if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1597,11 +1597,11 @@ static void em35_R1_AtkDouble(cEm35* em)
             if (w->atkHit2) {
                 w->walkType = 1;
             }
-            if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 25000000.0f) {
+            if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->l_pl < 25000000.0f) {
                 ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
             if ((em->Motion.Seq_old.Free & 0x10) && w->atkHit == 0 && w->routeAngAbs < 1.5707964f &&
-                em->plDist2 < 25000000.0f) {
+                em->l_pl < 25000000.0f) {
                 if (w->walkType) {
                     ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, ACTCTR_ENFORCE_EXEC, DISP_A_B, ACT_FUNC_NORMAL, 0);
                 } else {
@@ -1652,7 +1652,7 @@ static void em35_R1_BearHug(cEm35* em)
         em->r_no_2++;
     case 3:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1868,7 +1868,7 @@ static void em35_R1_Atk2F(cEm35* em)
             if (w->atkHit) {
                 w->atkWait = 90;
                 EmRoutineSet(em, 1, 0, 0, 0);
-            } else if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            } else if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1939,7 +1939,7 @@ static void em35_R1_LongAtk(cEm35* em)
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.049087387f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
-        if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 64000000.0f) {
+        if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->l_pl < 64000000.0f) {
             ActBtn.set(ACT_GUARD, 0xB, (void*) em35DashEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
         }
         if (em->Motion.Seq_old.Free & 0x20) {
@@ -1952,7 +1952,7 @@ static void em35_R1_LongAtk(cEm35* em)
             if (w->atkHit) {
                 w->atkWait = 90;
                 EmRoutineSet(em, 1, 0, 0, 0);
-            } else if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            } else if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -2004,9 +2004,9 @@ static void em35_R1_Hook(cEm35* em)
         }
         if (MotionMove(em, 0)) {
             if (w->atkHit) {
-                if (em->plDist2 < 2250000.0f && w->routeAngAbs < 0.7853982f && (Rnd() & 1)) {
+                if (em->l_pl < 2250000.0f && w->routeAngAbs < 0.7853982f && (Rnd() & 1)) {
                     EmRoutineSet(em, 1, 0xC, 0, 0);
-                } else if (em->plDist2 < 12250000.0f) {
+                } else if (em->l_pl < 12250000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
                 } else {
                     goto far;
@@ -2014,7 +2014,7 @@ static void em35_R1_Hook(cEm35* em)
             } else {
             far:
                 if (w->targetAngAbs > 1.0471976f) {
-                    if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+                    if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                         EmRoutineSet(em, 1, 4, 0, 0);
                     } else if (w->targetAngAbs > 1.0471976f) {
                         EmRoutineSet(em, 1, 3, 0, 0);
@@ -2403,7 +2403,7 @@ static void em35_R1_Catch(cEm35* em)
         }
         if (MotionMove(em, 0)) {
             GameAddPoint(LVADD_ESCAPEATTACK);
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -2464,7 +2464,7 @@ static void em35_R1_CatchHit(cEm35* em)
         em->r_no_2++;
     case 3:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -2636,9 +2636,9 @@ static void em35_R1_U_Wait(cEm35* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            if ((Rnd() & 3) == 0 && em->plDist2 > 25000000.0f && em35BeamDownCk(em, w->beamNo)) {
+            if ((Rnd() & 3) == 0 && em->l_pl > 25000000.0f && em35BeamDownCk(em, w->beamNo)) {
                 EmRoutineSet(em, 1, 0x1A, 0, 0);
-            } else if ((Rnd() & 3) == 0 && em->plDist2 > 25000000.0f && em35BeamUpCk(em, w->beamNo)) {
+            } else if ((Rnd() & 3) == 0 && em->l_pl > 25000000.0f && em35BeamUpCk(em, w->beamNo)) {
                 EmRoutineSet(em, 1, 0x19, 0, 0);
             } else {
                 em35NextRtnSetUpper(em);
@@ -2661,7 +2661,7 @@ static void em35_R1_U_Jump(cEm35* em)
     case 0: {
         f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
-        if (w->routeAngAbs < 0.5235988f && em->plDist2 < 49000000.0f && dy < 500.0f && (Rnd() & 1) &&
+        if (w->routeAngAbs < 0.5235988f && em->l_pl < 49000000.0f && dy < 500.0f && (Rnd() & 1) &&
             pG->Game_level > 1) {
             if (w->routeAng < 0.0f) {
                 MotionSetCore(em, MOTION(em), ARC(0x70), ARC(0x71), 3, 0x41, 0);
@@ -2699,7 +2699,7 @@ static void em35_R1_U_Jump(cEm35* em)
                     em35AtkCk(em, 8, 0x1F);
                 }
             }
-            if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->plDist2 < 25000000.0f) {
+            if ((em->Motion.Seq_old.Free & 4) && w->routeAngAbs < 1.5707964f && em->l_pl < 25000000.0f) {
                 ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
         }
@@ -2778,12 +2778,12 @@ static void em35_R1_U_BackJump(cEm35* em)
         if (MotionMove(em, 0)) {
             f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
-            if (em->plDist2 < 30250000.0f && dy < 500.0f) {
-                if (em->plDist2 < 2250000.0f) {
+            if (em->l_pl < 30250000.0f && dy < 500.0f) {
+                if (em->l_pl < 2250000.0f) {
                     EmRoutineSet(em, 1, 0x1B, 0, 0);
-                } else if (em->plDist2 < 9000000.0f && w->routeAngAbs < 0.2617994f) {
+                } else if (em->l_pl < 9000000.0f && w->routeAngAbs < 0.2617994f) {
                     EmRoutineSet(em, 1, 0x1D, 0, 0);
-                } else if (em->plDist2 < 9000000.0f && (Rnd() & 1)) {
+                } else if (em->l_pl < 9000000.0f && (Rnd() & 1)) {
                     EmRoutineSet(em, 1, 0x1C, 0, 0);
                 } else if (w->routeAngAbs < 0.7330383f) {
                     EmRoutineSet(em, 1, 0x1E, 0, 0);
@@ -2939,7 +2939,7 @@ static void em35_R1_U_StepDown(cEm35* em)
     switch (em->r_no_2) {
     case 0:
         if (w->routeAngAbs < 1.5707964f) {
-            if (em->plDist2 < 9000000.0f && w->routeAngAbs < 1.0471976f && pG->Game_level > 1) {
+            if (em->l_pl < 9000000.0f && w->routeAngAbs < 1.0471976f && pG->Game_level > 1) {
                 MotionSetCore(em, MOTION(em), ARC(0x72), ARC(0x73), 10, 1, 0);
             } else {
                 MotionSetCore(em, MOTION(em), ARC(0x58), ARC(0x59), 10, 1, 0);
@@ -2969,7 +2969,7 @@ static void em35_R1_U_StepDown(cEm35* em)
                 em35AtkCk(em, 8, 0x2E);
                 em35AtkCk(em, 8, 0x2F);
             }
-            if ((em->Motion.Seq_old.Free & 4) && em->plDist2 < 9000000.0f) {
+            if ((em->Motion.Seq_old.Free & 4) && em->l_pl < 9000000.0f) {
                 ActBtn.set(ACT_STOOP, 0xB, (void*) em35AtkEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
             }
         }
@@ -3448,7 +3448,7 @@ static void em35_R1_Dm_Small(cEm35* em)
     }
     case 1:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -3476,7 +3476,7 @@ static void em35_R1_Dm_Spinal(cEm35* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
                 break;
             }
@@ -3527,7 +3527,7 @@ static void em35_R1_Dm_Big(cEm35* em)
     }
     case 1:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->targetAngAbs > 1.0471976f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -3578,7 +3578,7 @@ static void em35_R1_Dm_Frame(cEm35* em)
                 EmRoutineSet(em, 3, 0, 0, 0);
                 break;
             }
-            if (w->targetAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
+            if (w->targetAngAbs > 2.0943952f && em->l_pl < 6250000.0f) {
                 EmRoutineSet(em, 1, 4, 0, 0);
                 break;
             }
@@ -3817,7 +3817,7 @@ void em35RouteCk(cEm35* em)
         w->targetPos = w->routePos;
         w->targetAng = w->routeAng;
         w->targetAngAbs = w->routeAngAbs;
-        w->targetDist = em->plDist2;
+        w->targetDist = em->l_pl;
         w->pTarget = pPL;
         w->flags &= ~4;
         return;
@@ -3832,7 +3832,7 @@ void em35RouteCk(cEm35* em)
         w->targetPos = w->routePos;
         w->targetAng = w->routeAng;
         w->targetAngAbs = w->routeAngAbs;
-        w->targetDist = em->plDist2;
+        w->targetDist = em->l_pl;
         w->pTarget = pPL;
         if (pPL->pos.x < 33000.0f && pPL->pos.z > -61300.0f) {
             if (em->pos.z < -60000.0f) {
@@ -3872,12 +3872,12 @@ void em35RouteCk(cEm35* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
 }
 
@@ -4401,7 +4401,7 @@ void em35NextRtnSetUpper(cEm35* em)
             EmRoutineSet(em, 1, 0x11, 0, 0);
             return;
         }
-        if (em->plDist2 < 100000000.0f && em35BeamUpCk(em, w->beamNo)) {
+        if (em->l_pl < 100000000.0f && em35BeamUpCk(em, w->beamNo)) {
             EmRoutineSet(em, 1, 0x19, 0, 0);
             return;
         }
@@ -4411,7 +4411,7 @@ void em35NextRtnSetUpper(cEm35* em)
             EmRoutineSet(em, 1, 0x12, 0, 0);
             return;
         }
-        if (em->plDist2 < 25000000.0f && em35BeamDownCk(em, w->beamNo)) {
+        if (em->l_pl < 25000000.0f && em35BeamDownCk(em, w->beamNo)) {
             EmRoutineSet(em, 1, 0x1A, 0, 0);
             return;
         }
@@ -4426,20 +4426,20 @@ void em35NextRtnSetUpper(cEm35* em)
             return;
         }
     }
-    if (em->plDist2 < 30250000.0f && dy < 500.0f) {
-        if (em->plDist2 < 2250000.0f) {
+    if (em->l_pl < 30250000.0f && dy < 500.0f) {
+        if (em->l_pl < 2250000.0f) {
             EmRoutineSet(em, 1, 0x1B, 0, 0);
             return;
         }
-        if (em->plDist2 < 9000000.0f && w->routeAngAbs < 0.2617994f) {
+        if (em->l_pl < 9000000.0f && w->routeAngAbs < 0.2617994f) {
             EmRoutineSet(em, 1, 0x1D, 0, 0);
             return;
         }
-        if (em->plDist2 < 9000000.0f && w->routeAngAbs < 1.0471976f && (Rnd() & 1)) {
+        if (em->l_pl < 9000000.0f && w->routeAngAbs < 1.0471976f && (Rnd() & 1)) {
             EmRoutineSet(em, 1, 0x1C, 0, 0);
             return;
         }
-        if (em->plDist2 < 9000000.0f && w->routeAngAbs > 2.0943952f && (Rnd() & 1)) {
+        if (em->l_pl < 9000000.0f && w->routeAngAbs > 2.0943952f && (Rnd() & 1)) {
             EmRoutineSet(em, 1, 0x1C, 0, 0);
             return;
         }
@@ -4540,7 +4540,7 @@ int em35LockCk(cEm35* em)
     if (pPL->r_no_1 != 6) {
         return 0;
     }
-    if (em->plDist2 > 144000000.0f) {
+    if (em->l_pl > 144000000.0f) {
         return 0;
     }
     if (pG->weapon_no == 0x10) {
@@ -4744,7 +4744,7 @@ int em35BeamFrontDobuleCk(cEm35* em, int no)
     if (no == 0xFF) {
         return 0;
     }
-    if (em->plDist2 < 100000000.0f) {
+    if (em->l_pl < 100000000.0f) {
         return 0;
     }
     if (em35BeamFrontCk(em, no) == 0) {

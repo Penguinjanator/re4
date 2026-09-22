@@ -712,7 +712,7 @@ static void em22_R1_JumpWait(cEm22* em)
         if (em22GotoCk(em)) {
             return;
         }
-        if ((w->flags & 1) && em->plDist2 < em->Guard_r * em->Guard_r) {
+        if ((w->flags & 1) && em->l_pl < em->Guard_r * em->Guard_r) {
             EmRoutineSet(em, 1, 7, 0, 0);
             return;
         }
@@ -786,7 +786,7 @@ static void em22_R1_Wait(cEm22* em)
         EmRoutineSet(em, 1, 7, 0, 0);
         return;
     }
-    if ((w->flags & 1) && em->plDist2 < em->Guard_r * em->Guard_r) {
+    if ((w->flags & 1) && em->l_pl < em->Guard_r * em->Guard_r) {
         EmRoutineSet(em, 1, 7, 0, 0);
         return;
     }
@@ -794,7 +794,7 @@ static void em22_R1_Wait(cEm22* em)
         // the zero of the last routine set is a block-local pseudo set before the test (its
         // `li` lands at the top of the test block, above the pG load)
         int zero = 0;
-        if (StaFlagChk(pG, STA_PL_FIRE) && em->plDist2 < 625000000.0f) {
+        if (StaFlagChk(pG, STA_PL_FIRE) && em->l_pl < 625000000.0f) {
             EmRoutineSet(em, 1, 7, zero, zero);
             return;
         }
@@ -820,7 +820,7 @@ static void em22_R1_RunAbout(cEm22* em)
     case 1:
         em22RunTurn(em, w);
         MotionMove(em, 0);
-        if ((w->flags & 1) && em->plDist2 < 49000000.0f && w->routeAngAbs < 0.5235988f) {
+        if ((w->flags & 1) && em->l_pl < 49000000.0f && w->routeAngAbs < 0.5235988f) {
             EmRoutineSet(em, 1, 0xB, 0, 0);
         } else if (w->stuckCnt > 5) {
             EmRoutineSet(em, 1, 9, 0, 0);
@@ -832,7 +832,7 @@ static void em22_R1_RunAbout(cEm22* em)
     if (em22GotoCk(em)) {
         return;
     }
-    if (em->plDist2 < 6250000.0f) {
+    if (em->l_pl < 6250000.0f) {
         EmRoutineSet(em, 1, 0xA, 0, 0);
     } else if (em22SetParasiteCk(em)) {
         EmRoutineSet(em, 1, 0x12, 0, 0);
@@ -864,7 +864,7 @@ static void em22_R1_Run(cEm22* em)
     case 1:
         em22RunTurn(em, w);
         MotionMove(em, 0);
-        if (em->plDist2 < 20250000.0f && w->routeAngAbs < 0.5235988f && em22PlRunCk(em) == 0) {
+        if (em->l_pl < 20250000.0f && w->routeAngAbs < 0.5235988f && em22PlRunCk(em) == 0) {
             if (w->plDeadWait == 0) {
                 a = em->pos;
                 b = pPL->pos;
@@ -878,7 +878,7 @@ static void em22_R1_Run(cEm22* em)
             } else {
                 EmRoutineSet(em, 1, 7, 0, 0);
             }
-        } else if (em->plDist2 < 4000000.0f && w->routeAngAbs < 0.5235988f) {
+        } else if (em->l_pl < 4000000.0f && w->routeAngAbs < 0.5235988f) {
             if (w->plDeadWait == 0) {
                 a = em->pos;
                 b = pPL->pos;
@@ -946,7 +946,7 @@ static void em22_R1_Turn(cEm22* em)
         em22DirMatrix(em, 0.0f);
         if (MotionMove(em, 0)) {
             if (em22GotoCk(em) == 0) {
-                if (em->plDist2 < 6250000.0f) {
+                if (em->l_pl < 6250000.0f) {
                     EmRoutineSet(em, 1, 0xA, 0, 0);
                     return;
                 }
@@ -975,7 +975,7 @@ static void em22_R1_Escape(cEm22* em)
     Em22Work* w = EM22_WK(em);
     f32 lim;
 
-    if (em->plDist2 < 25000000.0f) {
+    if (em->l_pl < 25000000.0f) {
         w->flags |= 4;
     }
     if (em->r_no_2 == 0) {
@@ -1017,7 +1017,7 @@ static void em22_R1_Escape(cEm22* em)
     if (w->timer) {
         w->timer--;
     }
-    if (em->plDist2 > 49000000.0f && w->timer == 0) {
+    if (em->l_pl > 49000000.0f && w->timer == 0) {
         EmRoutineSet(em, 1, 7, 0, 1);
         return;
     }
@@ -1070,7 +1070,7 @@ static void em22_R1_Threat(cEm22* em)
             if (w->plDist > 5000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
-        } else if (em->plDist2 < 16000000.0f && w->routeAngAbs < 0.5235988f && w->plDeadWait == 0) {
+        } else if (em->l_pl < 16000000.0f && w->routeAngAbs < 0.5235988f && w->plDeadWait == 0) {
             a = em->pos;
             b = pPL->pos;
             a.y += 500.0f;
@@ -1078,7 +1078,7 @@ static void em22_R1_Threat(cEm22* em)
             if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
                 EmRoutineSet(em, 1, 0xF, 0, 0);
             }
-        } else if (em22PlRunCk2(em) && em->plDist2 < 49000000.0f && w->plDeadWait == 0) {
+        } else if (em22PlRunCk2(em) && em->l_pl < 49000000.0f && w->plDeadWait == 0) {
             a = em->pos;
             c = pPL->pos;
             a.y += 500.0f;
@@ -2046,7 +2046,7 @@ void Em22RouteCk(cEm22* em)
     w->routePos = w->plRoutePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist2 = em->plDist2;
+    w->targetDist2 = em->l_pl;
     w->pTarget = pPL;
     w->plDist = RouteCkPosToPosDis(&em->pos, &pPL->pos);
     if (w->gotoOn) {
@@ -2550,7 +2550,7 @@ int em22LockCk(cEm22* em)
     if (pPL->r_no_1 != 6) {
         return 0;
     }
-    if (em->plDist2 > 64000000.0f) {
+    if (em->l_pl > 64000000.0f) {
         return 0;
     }
     if (pG->weapon_no == 0x10) {
@@ -2757,7 +2757,7 @@ void em22ParaAtkHitPosSet(cEm22* em)
     Vec a;
     Vec b;
 
-    if (em->plDist2 > 6250000.0f) {
+    if (em->l_pl > 6250000.0f) {
         return;
     }
     PSVECSubtract(&em->pos, &pPL->pos, &d);

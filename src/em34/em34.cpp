@@ -109,7 +109,7 @@ void em34DmCk(cEm34* em)
     case 8:
     case 0x21:
         dmg = 10;
-        if (em->plDist2 > 16000000.0f) {
+        if (em->l_pl > 16000000.0f) {
             dmg = (Rnd() & 1) + 50;
         }
         break;
@@ -402,11 +402,11 @@ static void em34_R1_Walk(cEm34* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
         if (em->type == 1 && em->hp < 500) {
-            if (em->plDist2 < 1000000.0f) {
+            if (em->l_pl < 1000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             }
         } else {
-            if (em->plDist2 < 4000000.0f) {
+            if (em->l_pl < 4000000.0f) {
                 EmRoutineSet(em, 1, 0, 0, 0);
             }
         }
@@ -569,16 +569,16 @@ void em34RouteCk(cEm34* em)
     if (em->r_no_0 == 0) {
         w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->Go_pos = w->Pl_pos;
     w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
-    w->L_go = em->plDist2;
+    w->L_go = em->l_pl;
     w->pEm = pPL;
     w->Be_flg &= ~4;
     if (w->Be_flg & 2) {
-        if (!(w->Be_flg & 1) || em->plDist2 > em->l_sub) {
+        if (!(w->Be_flg & 1) || em->l_pl > em->l_sub) {
             w->Go_pos = w->Sub_pos;
             w->Go_dir = w->Sub_dir;
             w->Go_rot = w->Sub_rot;

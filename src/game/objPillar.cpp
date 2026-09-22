@@ -141,7 +141,7 @@ void objPillar_R0_Set(cObjPillar* pObj)
     objPillarEatSet(pObj);
 }
 
-// Rno0 == 1 (setBreak): the pillar topples with motBreak towards the player: creak sound when he
+// Rno0 == 1 (setBreak): the pillar topples with Mot towards the player: creak sound when he
 // is near, crushing hit tests on parts 1/2 (objPillarAtkCk), the escape action button (0x25)
 // offered while he stands in front, fade-out 10 frames before the end; removed when Scenario_flg[1]
 // 0x200 (the boss died).
@@ -207,7 +207,7 @@ void objPillar_R0_Break(cObjPillar* pObj)
     }
 }
 
-// Rno0 == 2 (setThrow): lifted (motThrow0 from frame 31, dust effect), then flies at 500 units/frame
+// Rno0 == 2 (setThrow): lifted (Mot_catch from frame 31, dust effect), then flies at 500 units/frame
 // towards the player (motThrow1, trail effect) for 90 frames with crushing hit tests along its
 // length; the escape button is offered once it is within 1000 units.
 void objPillar_R0_Throw(cObjPillar* pObj)

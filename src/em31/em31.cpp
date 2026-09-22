@@ -840,7 +840,7 @@ static void em31_R1_Wait(cEm31* em)
             w->Timer--;
             break;
         }
-        if (em->plDist2 > 64000000.0f) {
+        if (em->l_pl > 64000000.0f) {
             f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
             if (w->Berserk_wait == 0 && w->Go_rot < 0.5235988f && dy < 100.0f && !(w->Be_flg & 0x40) &&
@@ -894,7 +894,7 @@ static void em31_R1_Walk(cEm31* em)
                 break;
             }
             w->Timer--;
-            if (em->plDist2 > 64000000.0f) {
+            if (em->l_pl > 64000000.0f) {
                 f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
                 if (w->Berserk_wait == 0 && w->Go_rot < 0.5235988f && dy < 100.0f && !(w->Be_flg & 0x40) &&
@@ -928,7 +928,7 @@ static void em31_R1_Walk(cEm31* em)
         if (w->Go_rot > 0.7853982f) {
             EmRoutineSet(em, 1, 4, 0, 0);
         } else {
-            if (em->plDist2 < 12250000.0f) {
+            if (em->l_pl < 12250000.0f) {
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
             }
@@ -1064,7 +1064,7 @@ static void em31_R1_Turn(cEm31* em)
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else if (w->Be_flg & 0x40) {
                 EmRoutineSet(em, 1, 3, 0, 0);
-            } else if (em->plDist2 > 64000000.0f &&
+            } else if (em->l_pl > 64000000.0f &&
                        (dy = fabsf(em->pos.y - pPL->pos.y), w->Berserk_wait == 0 && w->Go_rot < 0.5235988f &&
                                                              dy < 100.0f && pG->Game_level > 1)) {
                 EmRoutineSet(em, 1, 5, 0, 0);
@@ -1092,7 +1092,7 @@ static void em31_R1_Turn(cEm31* em)
 
 // Body routine 1/7: the stand-off across the bridge (berserk cancelled). `side` is which bank the
 // giant is on (x -44 m), `ang` the yaw facing across. Steps: 0/1 turn to face across, 2/3 side-step
-// along the bank to line up with the player (motVar = direction; the tentacle's pillar attack
+// along the bank to line up with the player (TmpU32 = direction; the tentacle's pillar attack
 // (setAtk / em31PillarCk2) when it can, or the jump over (EM31_BRIDGE_JUMP_SET) if the player leaves
 // the bridge zone or reaches the crane), 4/5 idle facing him until the attack wait is out and the
 // tentacle is ready, 6/7 the pillar throw (setPillarThrow, Vs_cnt++; after three or a 30 % roll it
@@ -2775,7 +2775,7 @@ static inline void em31ClimbBtnCk(cEm31* em)
 {
     f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
-    if (em->plDist2 < 56250000.0f && dy < 100.0f) {
+    if (em->l_pl < 56250000.0f && dy < 100.0f) {
         ActBtn.set(ACT_CLIMB, 0xB, (void*) em31SetActClimb, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
 }
@@ -3245,7 +3245,7 @@ static void em31_R1_Die_Normal(cEm31* em)
 }
 
 // Per-frame routing while alive: the route from a point 50 cm behind the giant's centre to the
-// player (Be_flg bit 0 when found), the yaw to the route point (routeAng / Pl_rot, zero during
+// player (Be_flg bit 0 when found), the yaw to the route point (Pl_dir / Pl_rot, zero during
 // init) copied as the movement target (Go_pos / Go_dir / Go_rot).
 void em31RouteCk(cEm31* em)
 {
@@ -3270,7 +3270,7 @@ void em31RouteCk(cEm31* em)
     if (em->r_no_0 == 0) {
         w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
 }
 
@@ -3974,7 +3974,7 @@ void em31EyelidInit(cEm31* em)
 // Body only, per frame: each eye's lid state machine (Rno 0/1 open: lid flat, eye raised and full
 // size, for a timer by difficulty; 2/3 shut: lid rotated over, eye sunk 5 cm and shrunk, the eye
 // unhittable (Flag); 4/5 broken: eye shrunk to a tenth). Berserk / catch / jump / a reaction or a
-// flash shut the eyes at once. Every eye also turns to look at the player's head (addRot within 45 deg).
+// flash shut the eyes at once. Every eye also turns to look at the player's head (inv_offset within 45 deg).
 void em31EyelidMove(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4183,7 +4183,7 @@ void em31SmallTentacleMove(cEm31* em)
     u32 i;
 
     if (w->Be_flg & 0x20) {
-        if (em->plDist2 < 49000000.0f) {
+        if (em->l_pl < 49000000.0f) {
             return;
         }
         w->Be_flg &= ~0x20;
@@ -4194,7 +4194,7 @@ void em31SmallTentacleMove(cEm31* em)
             }
         }
     } else {
-        if (em->plDist2 > 25000000.0f) {
+        if (em->l_pl > 25000000.0f) {
             return;
         }
         w->Be_flg |= 0x20;
@@ -4395,7 +4395,7 @@ int em31JumpCk(cEm31* em)
     if (!(w->Be_flg & 1)) {
         return 0;
     }
-    if (em->plDist2 < 225000000.0f) {
+    if (em->l_pl < 225000000.0f) {
         return 0;
     }
     dy = fabsf(em->pos.y - pPL->pos.y);
@@ -4422,7 +4422,7 @@ int em31JumpCk(cEm31* em)
 
         if ((o->be_flag & 0x201) == 1 && o->id == 0x1F && ((cObjPillar*) o)->ckSet()) {
             PSMTXMultVec(m, &o->pos, &lp);
-            if (lp.x > -3500.0f && lp.x < 3500.0f && lp.z > 0.0f && lp.z * lp.z < em->plDist2) {
+            if (lp.x > -3500.0f && lp.x < 3500.0f && lp.z > 0.0f && lp.z * lp.z < em->l_pl) {
                 return 0;
             }
         }
@@ -5211,7 +5211,7 @@ void cEm31::setVoice(int no, int timer)
     w->Breath_se_wait = timer;
 }
 
-// Tentacle: the breath at its mouth every 60 frames (breathTimer).
+// Tentacle: the breath at its mouth every 60 frames (Breath_se_wait).
 void em31BreathSe(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);

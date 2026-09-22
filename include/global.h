@@ -189,7 +189,7 @@ struct GlobalWork {
     u16 save_cnt;          // 0x4F8C  times saved (card makeSaveData increments it)
     u16 game_cnt;          // 0x4F8E  games cleared: nonzero = new round (merchant full tables; 1 = Merchant2ndRoundInit on load)
     u16 r_continue_cnt;    // 0x4F90  continues in this room (GameContinue increments; room jump / scene change clear it)
-    u8 terminal_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
+    u8 terminal_no;         // 0x4F92  save terminal (typewriter) number: the card save sets it (card.cpp), snd.cpp indexes the room BGM / stream tables with it + 1 (PS2 terminal_no)
     u8 game_country;           // 0x4F93  game language (main: pSys->language; title: language_tbl[])
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
     u32 peseta;            // 0x4F98  money (ss_shop buy/sell, item pickups; PlSelect swaps it with peseta_bak)

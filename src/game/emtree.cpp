@@ -274,7 +274,7 @@ void emTree_R1_Lost(cEmTree* pEm)
 }
 
 // Rno1 == 3: carried: follows parts `oya_parts` of pParent (rotation re-normalised unless
-// Be_flg bit0), plays its motion when it has one, and counts fallTimer down to setFall (a tree
+// Be_flg bit0), plays its motion when it has one, and counts Fall_wait down to setFall (a tree
 // stuck in the player).
 void emTree_R1_Parent(cEmTree* pEm)
 {

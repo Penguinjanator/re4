@@ -283,7 +283,7 @@ void emHit_R1_Beetle(cEmHit* pEm)
         if (pEm->hp <= 0) {
             pEm->r_no_2++;
         } else if (fabsf(Muku(&pPL->pos, &pEm->pos, pEm->ang.y, 3.1415927f)) < 0.5235988f) {
-            if (pEm->plDist2 < 2250000.0f) {
+            if (pEm->l_pl < 2250000.0f) {
                 pEm->hp = 0;
                 pEm->r_no_2++;
             }

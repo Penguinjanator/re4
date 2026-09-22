@@ -224,7 +224,7 @@ void emTorchDmCk(cEmTorch* pEm)
     case 7:
     case 8:
     case 0x21:
-        if (pEm->plDist2 > 36000000.0f) {
+        if (pEm->l_pl > 36000000.0f) {
             dmg = 999;
         } else {
             dmg = 9999;

@@ -554,7 +554,7 @@ void emRackSatSet(cEmRack* pEm)
 
         at->m_flag |= 0x200;
     }
-    if (w->pEatUnder != 0 && pEm->plDist2 > 225000000.0f) {
+    if (w->pEatUnder != 0 && pEm->l_pl > 225000000.0f) {
         return;
     }
     hx = w->Size_x - 100.0f;

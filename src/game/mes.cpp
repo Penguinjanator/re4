@@ -360,7 +360,7 @@ void MessageControl::releaseFont(int no)
     MesFont[no].destroy();
 }
 
-// Loads a .fnt from disc into fontBuf[no] and creates the font; 0 on read failure.
+// Loads a .fnt from disc into m_font_addr[no] and creates the font; 0 on read failure.
 #line 703 "D:/Bio4/Prog/mes.cpp"
 int MessageControl::loadFont(int w, int h, const char* name, int no)
 {
@@ -785,7 +785,7 @@ void Message::move()
     }
 }
 
-// Pre-pass over the message (flags2 bit 3): measures each line's width (glyphs, numbers,
+// Pre-pass over the message (m_state bit 3): measures each line's width (glyphs, numbers,
 // spaces), then computes the line start x positions from the alignment attributes (0x20000 left,
 // 0x80000 per-line centre, else centre on the widest; right-aligned when set) and the vertical
 // centring (0x10000), and rewinds.
@@ -904,7 +904,7 @@ void Message::WidthCk()
 }
 
 // Emits glyph `code` at the pen position: appended to the glyph queue (drawn by trans), or drawn
-// immediately when the slot has no queue; advances the pen by the glyph width + charSpace.
+// immediately when the slot has no queue; advances the pen by the glyph width + m_char_gap.
 void Message::QueSet(int code, MessageFont* p_font)
 {
     s8 l, r;
@@ -1209,7 +1209,7 @@ int Message::code00()
     return 0;
 }
 
-// Code 01 (end): marks the message finished (flags2 bit 1); unless attr 0x01000000 (keep
+// Code 01 (end): marks the message finished (m_state bit 1); unless attr 0x01000000 (keep
 // displayed) frees the slot, restores Stop_flg (unless attr 0x10) and the life meter.
 int Message::code01()
 {

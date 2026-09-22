@@ -544,7 +544,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     case 3:
         EmCatchMotionMove(sub, 0.3f, 0.2f);
         LifeDownSet2(pSUB, 3, 0, 1);
-        if (sub->plDist2 < 9000000.0f && fabsf(sub->pos.y - pPL->pos.y) < 1000.0f) {
+        if (sub->l_pl < 9000000.0f && fabsf(sub->pos.y - pPL->pos.y) < 1000.0f) {
             ActBtn.set(ACT_RESCUE, 5, (void*) em2aResuceAshleyAction, sub, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }
         if (sub->m_Work0) {

@@ -1046,9 +1046,9 @@ void SetHeriTargetEm()
                 continue;
             }
             if (r320_work->em[i].isActive() == 1) {
-                if (r320_work->em[i].getPtr()->plDist2 > dist) {
+                if (r320_work->em[i].getPtr()->l_pl > dist) {
                     best = i;
-                    dist = r320_work->em[i].getPtr()->plDist2;
+                    dist = r320_work->em[i].getPtr()->l_pl;
                 }
             }
         }

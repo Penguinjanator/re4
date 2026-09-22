@@ -1057,7 +1057,7 @@ static void em2b_R1_Wait(cEm2b* em)
         if (StaFlagChk(pG, STA_PL_CATCHED) || EmDeadCk(pPL) || (s16) pG->pl_life <= 0) {
             w->Dash_wait = 30;
         }
-        if (em->plDist2 > 25000000.0f) {
+        if (em->l_pl > 25000000.0f) {
             w->Dash_wait = 0;
         }
         if (w->Dash_wait == 0 && em2bStayCk(em)) {
@@ -1144,10 +1144,10 @@ static void em2b_R1_Walk(cEm2b* em)
 
         w->TmpU32 = zero;
         spd = 0;
-        if (em->plDist2 > 64000000.0f) {
+        if (em->l_pl > 64000000.0f) {
             spd = 1;
         }
-        if (em->plDist2 > 225000000.0f) {
+        if (em->l_pl > 225000000.0f) {
             spd = 2;
         }
         if (pG->Game_level <= 1) {
@@ -1666,7 +1666,7 @@ static void em2b_R1_Kick(cEm2b* em)
             } else {
                 em2bNextRtnSet(em);
             }
-        } else if ((em->Motion.Seq_old.Free & 0x20) && w->Atk_ck && em->plDist2 > 16000000.0f && (Rnd() & 1)) {
+        } else if ((em->Motion.Seq_old.Free & 0x20) && w->Atk_ck && em->l_pl > 16000000.0f && (Rnd() & 1)) {
             em->r_no_2++;
         } else if ((em->Motion.Seq_old.Free & 4) && w->Atk_ck == 0) {
             em2bNextRtnSet(em);
@@ -3126,7 +3126,7 @@ static void em2b_R1_Dm_Face(cEm2b* em)
         end = MotionMove(em, 0);
         if (end) {
             em->r_no_2++;
-        } else if (em->plDist2 < 25000000.0f) {
+        } else if (em->l_pl < 25000000.0f) {
             ActBtn.set(ACT_CLIMB, 0xB, (void*) em2bSetActAtkParasite, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, end);
         }
         break;
@@ -3969,7 +3969,7 @@ void em2bRouteCk(cEm2b* em)
     if (pG->stage_no == 1 && pG->room_no == 0x19) {
         w->Pl_pos = pPL->pos;
     } else {
-        if ((em->flag & 0x80000000) && !((dist = SQRTF(em->plDist2)) < 8000.0f)) {
+        if ((em->flag & 0x80000000) && !((dist = SQRTF(em->l_pl)) < 8000.0f)) {
             if (dist > 25000.0f) {
                 dist = 25000.0f;
             }
@@ -3991,7 +3991,7 @@ void em2bRouteCk(cEm2b* em)
         } else {
             plPos = pPL->pos;
         }
-        if (pPL->pos.y > em->pos.y + 2000.0f && em->plDist2 < 36000000.0f) {
+        if (pPL->pos.y > em->pos.y + 2000.0f && em->l_pl < 36000000.0f) {
             w->Pl_pos = plPos;
             w->Be_flg |= 1;
         } else if (RouteCkToPos(em, &plPos, &w->Pl_pos, 0, 0)) {
@@ -4003,12 +4003,12 @@ void em2bRouteCk(cEm2b* em)
     if (em->r_no_0 == 0) {
         w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->Go_pos = w->Pl_pos;
     w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
-    w->L_go = em->plDist2;
+    w->L_go = em->l_pl;
     w->pEm = pPL;
     if (w->pTreeTarget) {
         RouteCkToPos(em, &w->pTreeTarget->pos, &w->Go_pos, 0, 0);
@@ -4035,7 +4035,7 @@ void em2bRouteCk(cEm2b* em)
         f32 dist = sqrtf((em->pos.x - pSUB->pos.x) * (em->pos.x - pSUB->pos.x) +
                          (em->pos.z - pSUB->pos.z) * (em->pos.z - pSUB->pos.z)) + 3000.0f;
 
-        if (dist * dist < em->plDist2) {
+        if (dist * dist < em->l_pl) {
             RouteCkToPos(em, &pSUB->pos, &w->Go_pos, 0, 0);
             w->Go_dir = Muku(&em->pos, &w->Go_pos, em->ang.y, 3.14159274f);
             w->Go_rot = fabsf(w->Go_dir);
@@ -4079,7 +4079,7 @@ void em2bNeckMove(cEm2b* em)
 }
 
 // Two-motion blend: m0 on the main motion work, m1 (Blend < 0) or m2 on the blend work with the
-// weight |Blend|; blendCnt / blendSeq give the hokan frames and start frame (the stamp aim).
+// weight |Blend|; Hokan / Frame give the hokan frames and start frame (the stamp aim).
 void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, int d)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -5491,7 +5491,7 @@ int em2bAtkRtnCk(cEm2b* em)
     Em2bWork* w = EM2B_WK(em);
 
     if (StaFlagChk(pG, STA_PL_CATCHED) || EmDeadCk(pPL) || (s16) pG->pl_life <= 0) {
-        if (em->plDist2 < 49000000.0f) {
+        if (em->l_pl < 49000000.0f) {
             em2bThreatSet(em, w);
             return 1;
         }
@@ -5521,7 +5521,7 @@ int em2bAtkRtnCk(cEm2b* em)
         }
     }
     if (pPL->pos.y > em->pos.y + 2000.0f) {
-        if (w->Pl_rot < 0.785398185f && em->plDist2 < 16000000.0f) {
+        if (w->Pl_rot < 0.785398185f && em->l_pl < 16000000.0f) {
             EmRoutineSet(em, 1, 0x15, 0, 0);
             return 1;
         }
@@ -5781,7 +5781,7 @@ int em2bPlDashEscapeCk(cEm2b* em)
     if (!(em->Motion.Seq_old.Free & 4)) {
         return 0;
     }
-    if (em->plDist2 < 9000000.0f) {
+    if (em->l_pl < 9000000.0f) {
         return 1;
     }
     PSMTXInverse(em->mat, inv);
@@ -6180,11 +6180,11 @@ int em2bStayCk(cEm2b* em)
         if (!e->checkStatus(EM_STATUS_ACTIVE)) {
             continue;
         }
-        if (e->plDist2 < em->plDist2) {
+        if (e->l_pl < em->l_pl) {
             cnt++;
         }
     }
-    if (cnt == 0 || em->plDist2 > 144000000.0f) {
+    if (cnt == 0 || em->l_pl > 144000000.0f) {
         return 1;
     }
     if (pG->room_id == 0x224) {

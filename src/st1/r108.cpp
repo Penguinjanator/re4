@@ -441,7 +441,7 @@ static void r108_str_check()
             cEm* em = EmMgr.fastAt(i);
 
             if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
-                && ((cEmGanado*) em)->ckFindPL() == 1 && em->plDist2 < near) {
+                && ((cEmGanado*) em)->ckFindPL() == 1 && em->l_pl < near) {
                 found = 1;
             }
         }

@@ -1653,7 +1653,7 @@ int Merchant::buyupPrice(ItemWork* item, int num)
 }
 
 // Sells a slot to the merchant: adds the price to *money, returns the item (and a weapon's ammo)
-// to the stock and raises favor by buyFavor.
+// to the stock and raises favor by shift_Buyup.
 int Merchant::buyup(ItemWork* p_item, int num, int* pocket)
 {
     ItemInfo ii;

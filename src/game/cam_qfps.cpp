@@ -622,9 +622,9 @@ void CameraQuasiFPS::checkCameraType()
     }
 }
 
-// The frame's shoulder offset: blends old -> current tables by blend_ratio (counting the blend
-// down), picks the up / mid / down site by the pitch ratio angle_y (interpolating toward the
-// up or down entry), copies roll / fov, and rotates the result about y by the yaw angle_x.
+// The frame's shoulder offset: blends old -> current tables by m_blend_ratio (counting the blend
+// down), picks the up / mid / down site by the pitch ratio m_depression_ratio (interpolating toward the
+// up or down entry), copies roll / fov, and rotates the result about y by the yaw m_direction_ratio.
 void CameraQuasiFPS::calcOffset(QfpsOfs* p_offset)
 {
     Vec a;

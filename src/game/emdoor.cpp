@@ -324,7 +324,7 @@ void emDoorDmCkWood(cEmDoor* pEm)
             return;
         }
         if (part->parts_no != 0) {
-            if (pEm->plDist2 < 9000000.0f && Rnd() % 5 == 0) {
+            if (pEm->l_pl < 9000000.0f && Rnd() % 5 == 0) {
                 w->Door_hp = 0.0f;
             } else {
                 w->Door_hp -= 1.0f;
@@ -378,7 +378,7 @@ void emDoorDmCkWood(cEmDoor* pEm)
     case 8:
     case 0x21:
         if (part == &w->hit[12]) {
-            if (pEm->plDist2 < 25000000.0f) {
+            if (pEm->l_pl < 25000000.0f) {
                 if (w->Be_flg & 2) {
                     w->Lock_L_hp -= 4;
                 } else {
@@ -389,7 +389,7 @@ void emDoorDmCkWood(cEmDoor* pEm)
             return;
         }
         if (part == &w->hit[11]) {
-            if (pEm->plDist2 < 25000000.0f) {
+            if (pEm->l_pl < 25000000.0f) {
                 if (w->Be_flg & 2) {
                     w->Lock_R_hp -= 4;
                 } else {
@@ -472,7 +472,7 @@ static inline void emDoorLockHitR(cEmDoor* em, EmDoorWork* w)
 // Lock hit by a shotgun: only from close by.
 static inline void emDoorLockHitNearL(cEmDoor* em, EmDoorWork* w)
 {
-    if (em->plDist2 < 25000000.0f) {
+    if (em->l_pl < 25000000.0f) {
         if (w->Be_flg & 2) {
             w->Lock_L_hp -= 4;
         } else {
@@ -485,7 +485,7 @@ static inline void emDoorLockHitNearL(cEmDoor* em, EmDoorWork* w)
 // Right lock hit by a shotgun: damaged only within 5000 units.
 static inline void emDoorLockHitNearR(cEmDoor* em, EmDoorWork* w)
 {
-    if (em->plDist2 < 25000000.0f) {
+    if (em->l_pl < 25000000.0f) {
         if (w->Be_flg & 2) {
             w->Lock_R_hp -= 4;
         } else {
@@ -2705,7 +2705,7 @@ void cEmDoor::setOpen2(int type)
         return;
     }
     near = 0;
-    if (pSUB && pSUB->plDist2 < 25000000.0f) {
+    if (pSUB && pSUB->l_pl < 25000000.0f) {
         near = 1;
     }
     if (near) {

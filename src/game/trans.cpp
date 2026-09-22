@@ -62,7 +62,7 @@ struct GxWork {
 // cModel fields past the 0x1D8 the header declares (KNOWN DEBT: cModel is 0x320 in the original).
 struct cModelExt {
     u8 pad_0[0x308];
-    void* pFootShadowTbl;  // 0x308
+    void* pFsdTbl;  // 0x308
     EmLightArea litArea;   // 0x30C
     cTexChg* pTexChg;      // 0x31C
 };
@@ -1274,7 +1274,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         info = info->pList;
     }
     if (!StaFlagChk(pG, STA_PROC_SHD_TEX)) {
-        if (MODEL_EXT(m)->pFootShadowTbl != 0 && (m->be_flag & 0x10)) {
+        if (MODEL_EXT(m)->pFsdTbl != 0 && (m->be_flag & 0x10)) {
             DrawFootShadow((cEm*) m);
         }
     }

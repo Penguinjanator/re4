@@ -1212,7 +1212,7 @@ int doorHitCheck(Vec* a, Vec* b)
 // Per-frame analysis: one round-robin step of the enemy scan (isTarget) keeps the nearest valid
 // target in pTarget / pEmNearDist (a dead / hidden one is dropped); the route distance to the
 // player; aimCheck; every 1800 frames flags bit3 (offer an item); a grenade held near his height
-// (greThrowCheck) counts greCnt up and sets flags bit4 (dodge) after 30 frames (hand grenade), 5
+// (greThrowCheck) counts grenadeTimer up and sets flags bit4 (dodge) after 30 frames (hand grenade), 5
 // (incendiary / flash) or 1 (rocket), decaying when none is held.
 void cAnalysis::move()
 {

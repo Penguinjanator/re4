@@ -306,8 +306,8 @@ struct EmLightArea {
     void on(u32 bit) { flags |= bit; }   // player.cpp init1: `addi rX,this,0x30C; lwz/stw 4(rX)`
 };
 
-// The object units' view of cModel+0x2B4 .. 0x320 (`obj->sub2B4.atari`, `sub2B4.pFootShadowTbl`);
-// aliases the cAtariInfo / pFootShadowTbl members of cModel below. cAtariInfo is wrapped so that
+// The object units' view of cModel+0x2B4 .. 0x320 (`obj->sub2B4.atari`, `sub2B4.pFsdTbl`);
+// aliases the cAtariInfo / pFsdTbl members of cModel below. cAtariInfo is wrapped so that
 // the struct has no constructor of its own and can sit in cModel's union.
 struct ObjSub2B4 {
     union {
@@ -316,7 +316,7 @@ struct ObjSub2B4 {
         };
     };
     u8 pad_4C[0x54 - 0x4C];
-    void* pFootShadowTbl; // 0x54 (cModel+0x308)  foot shadow table (event ExePacket_SetOm)
+    void* pFsdTbl; // 0x54 (cModel+0x308)  foot shadow table (event ExePacket_SetOm)
     u8 pad_58[0x6C - 0x58];
 
     void clrFlags(u16 mask) { atari.m_flag &= mask; }
@@ -386,7 +386,7 @@ public:
         cModel* pParts;      // 0xF4 child parts list (a cParts chain; every source addresses it as cModel*)
         cParts* pList;  // 0xF4 the same pointer typed as the parts (model.cpp)
     };
-    u32 guid;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
+    u32 guid;      // 0xF8  identity check for parent links (obj04: parent->guid == work.parentSerial) (PS2 GUID guid)
 
     u8 r_no_0;  // 0xFC  routine / state
     u8 r_no_1;  // 0xFD  routine index (move table)
@@ -407,7 +407,7 @@ public:
             u8 TevScaleGroup;         // 0x12D  (pl_leon setModel sets 1)
             u8 kindid;         // 0x12E  2 = scroll (Smd) object
             u8 ot_type;         // 0x12F  scroll: SmxWork.type2 (3 by default)
-            void* pChildShadowModel;  // 0x130  (db_work "pCldShMd")
+            void* pCldShMd;  // 0x130  child shadow model (db_work prints it as "pCldShMd": GC vendor name; PS2 pChildShadowModel)
             u8 Shd_color;       // 0x134  (db_work "SHD COL")
             u8 CullMode;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
             u8 Shader_type;         // 0x136  TexRender: 2 while rendered to texture, 0 after

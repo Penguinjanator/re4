@@ -1558,7 +1558,7 @@ void emWep_R1_GrenadeThrow(cEmWep* pEm)
         pEm->setLost();
         return;
     }
-    if (w->Bomb_wait <= 0x18 && pEm->plDist2 < 36000000.0f && w->Act_ck == 0) {
+    if (w->Bomb_wait <= 0x18 && pEm->l_pl < 36000000.0f && w->Act_ck == 0) {
         ActBtn.set(ACT_GUARD, 0xB, (void*) emWepEscapeAction, pEm, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
     }
     w->spd.y -= 15.0f;

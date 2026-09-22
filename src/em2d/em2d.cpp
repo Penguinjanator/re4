@@ -1261,7 +1261,7 @@ static void em2d_R1_Walk(cEm2d* em)
         w->lockCnt = hit;
     }
     if (w->atkWait) {
-        if (em->plDist2 < 2250000.0f && w->routeAngAbs < 0.785398185f) {
+        if (em->l_pl < 2250000.0f && w->routeAngAbs < 0.785398185f) {
             EmRoutineSet(em, 1, 5, 0, 0);
         } else {
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -1271,7 +1271,7 @@ static void em2d_R1_Walk(cEm2d* em)
     {
         f32 dy = fabsf(em->pos.y - pPL->pos.y);
         if ((w->flags & 1) && dy < 500.0f) {
-            if (em->plDist2 < 4000000.0f && w->routeAngAbs < 0.785398185f) {
+            if (em->l_pl < 4000000.0f && w->routeAngAbs < 0.785398185f) {
                 if (pG->Game_level <= 1 && (em->r_no_0 != 1 || em->r_no_1 != 1) && Rnd() % 10 > 4) {
                     w->atkWait = 30;
                     EmRoutineSet(em, 1, 1, 0, 0);
@@ -1298,21 +1298,21 @@ static void em2d_R1_Walk(cEm2d* em)
                     switch ((u32) w->walkMode) {
                     case 0:
                     default:
-                        if (em->plDist2 > 6250000.0f && em->plDist2 < 12250000.0f && w->routeAngAbs < 0.785398185f &&
+                        if (em->l_pl > 6250000.0f && em->l_pl < 12250000.0f && w->routeAngAbs < 0.785398185f &&
                             !(w->flags & 0x200000)) {
                             EmRoutineSet(em, 1, 0xA, 0, 0);
                             return;
                         }
                         break;
                     case 1:
-                        if (em->plDist2 > 9000000.0f && em->plDist2 < 16000000.0f && w->routeAngAbs < 0.785398185f &&
+                        if (em->l_pl > 9000000.0f && em->l_pl < 16000000.0f && w->routeAngAbs < 0.785398185f &&
                             !(w->flags & 0x200000)) {
                             EmRoutineSet(em, 1, 7, 0, 0);
                             return;
                         }
                         break;
                     case 2:
-                        if (em->plDist2 > 9000000.0f && em->plDist2 < 16000000.0f && w->routeAngAbs < 0.785398185f &&
+                        if (em->l_pl > 9000000.0f && em->l_pl < 16000000.0f && w->routeAngAbs < 0.785398185f &&
                             !(w->flags & 0x200000)) {
                             EmRoutineSet(em, 1, 9, 0, 0);
                             return;
@@ -1344,7 +1344,7 @@ next:
             return;
         }
     }
-    if (em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
+    if (em->l_pl < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
         w->routeAngAbs < 1.91986215f) {
         Vec d;
 
@@ -2311,7 +2311,7 @@ static void em2dKickAction(cEm2d* em)
 {
     SetPlDamage(em, plem2dKick);
     pPL->dmg.set(0, 30);
-    if (pSUB && pSUB->plDist2 < 9000000.0f) {
+    if (pSUB && pSUB->l_pl < 9000000.0f) {
         cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
 
         if (!EmDeadCk(pSUB)) {
@@ -2682,7 +2682,7 @@ static void em2d_R1_W_Wait(cEm2d* em)
         em2dSetWallMatrix2(em, 0.4f);
         MotionMove(em, 0);
         if (!(w->flags & 0x200)) {
-            if (em->plDist2 < 49000000.0f) {
+            if (em->l_pl < 49000000.0f) {
                 w->flags |= 0x200;
             }
         } else if (w->atkWait == 0) {
@@ -2778,7 +2778,7 @@ static void em2d_R1_W_Walk(cEm2d* em)
                     EmRoutineSet(em, 1, 6, t, t);
                     break;
                 }
-            } else if (em->plDist2 < 250000.0f && alpha < -0.899999976f) {
+            } else if (em->l_pl < 250000.0f && alpha < -0.899999976f) {
                 if (fabsf(em->pos.y - pPL->pos.y) < 4000.0f) {
                     EmRoutineSet(em, 1, 0x17, 0, 0);
                 } else {
@@ -2790,7 +2790,7 @@ static void em2d_R1_W_Walk(cEm2d* em)
                 break;
             }
         }
-        if (alpha < -0.899999976f && em->plDist2 < 250000.0f) {
+        if (alpha < -0.899999976f && em->l_pl < 250000.0f) {
             if (fabsf(em->pos.y - pPL->pos.y) < 4000.0f && Rnd() % 10 > 4) {
                 EmRoutineSet(em, 1, 0x17, 0, 0);
             } else {
@@ -2814,7 +2814,7 @@ static void em2d_R1_W_Walk(cEm2d* em)
                 int f = em2dWallFallCk(em);
                 if (f) {
                     EmRoutineSet(em, 1, 0x19, r, r);
-                } else if (w->wallNrm.y > 0.899999976f && em->plDist2 < 1440000.0f &&
+                } else if (w->wallNrm.y > 0.899999976f && em->l_pl < 1440000.0f &&
                            fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
                            w->routeAngAbs < 1.91986215f) {
                     d.x = 0.0f;
@@ -3224,13 +3224,13 @@ static void em2d_R1_A_Wait(cEm2d* em)
         }
         if (MotionMove(em, 0) && (Rnd() & 3) == 0) {
             if (w->flags & 0x200) {
-                if (em->pos.y < pPL->pos.y && em->plDist2 > 9000000.0f && (hit = Rnd() & 3) == 0 &&
+                if (em->pos.y < pPL->pos.y && em->l_pl > 9000000.0f && (hit = Rnd() & 3) == 0 &&
                     Em2dGetCeiling(em) > em->pos.y + 4000.0f) {
                     EmRoutineSet(em, 1, 0x20, hit, hit);
                     break;
                 }
                 int h2;
-                if (em->pos.y > pPL->pos.y + 3000.0f && em->plDist2 > 9000000.0f && (h2 = Rnd() & 3) == 0) {
+                if (em->pos.y > pPL->pos.y + 3000.0f && em->l_pl > 9000000.0f && (h2 = Rnd() & 3) == 0) {
                     EmRoutineSet(em, 1, 0x21, h2, h2);
                     break;
                 }
@@ -3261,9 +3261,9 @@ static void em2d_R1_A_Wait(cEm2d* em)
         w->lockCnt++;
         if (w->lockCnt > 15) {
             if ((Rnd() & 1) && em->pos.y > SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 2000.0f &&
-                em->pos.y > pPL->pos.y + 1000.0f && (Rnd() & 1) && em->plDist2 < 9000000.0f) {
+                em->pos.y > pPL->pos.y + 1000.0f && (Rnd() & 1) && em->l_pl < 9000000.0f) {
                 EmRoutineSet(em, 1, 0x21, 0, 0);
-            } else if ((Rnd() & 1) && em->pos.y < pPL->pos.y + 5000.0f && em->plDist2 > 9000000.0f && (Rnd() & 1) &&
+            } else if ((Rnd() & 1) && em->pos.y < pPL->pos.y + 5000.0f && em->l_pl > 9000000.0f && (Rnd() & 1) &&
                        Em2dGetCeiling(em) > em->pos.y + 4000.0f) {
                 EmRoutineSet(em, 1, 0x20, 0, 0);
             } else {
@@ -3275,8 +3275,8 @@ static void em2d_R1_A_Wait(cEm2d* em)
         w->lockCnt = lock;
     }
     }
-    if (em->plDist2 < 16000000.0f && w->routeAngAbs < 0.34906584f && em->pos.y - pPL->pos.y < 1000.0f) {
-        if ((Rnd() & 1) && em->plDist2 > 12250000.0f) {
+    if (em->l_pl < 16000000.0f && w->routeAngAbs < 0.34906584f && em->pos.y - pPL->pos.y < 1000.0f) {
+        if ((Rnd() & 1) && em->l_pl > 12250000.0f) {
             EmRoutineSet(em, 1, 0x23, 0, 0);
         } else {
             EmRoutineSet(em, 1, 0x24, 0, 0);
@@ -3318,12 +3318,12 @@ static void em2d_R1_A_Walk(cEm2d* em)
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
-        if (em->plDist2 > 100000000.0f) {
+        if (em->l_pl > 100000000.0f) {
             w->turnAng = fRand0_1() * 1.5f + 1.5f;
         } else {
             w->turnAng = fRand0_1() + 0.5f;
         }
-        if (em->plDist2 > 36000000.0f) {
+        if (em->l_pl > 36000000.0f) {
             w->jumpAng = fRand1_1() * 0.52359879f;
         } else {
             w->jumpAng = 0.0f;
@@ -3905,7 +3905,7 @@ static void em2d_R1_C_Wait(cEm2d* em)
         if (em2dPlRunCk(em)) {
             range = 25000000.0f;
         }
-        if (em->plDist2 < range) {
+        if (em->l_pl < range) {
             w->flags |= 0x200;
             EmRoutineSet(em, 1, 0x28, t, t);
         }
@@ -4681,7 +4681,7 @@ void em2dRouteCk(cEm2d* em)
         if (em->r_no_0 == 0) {
             w->routeAng = 0.0f;
             w->routeAngAbs = 0.0f;
-            em->plDist2 = 100000000.0f;
+            em->l_pl = 100000000.0f;
         }
     } else {
         RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0);
@@ -4690,7 +4690,7 @@ void em2dRouteCk(cEm2d* em)
         if (em->r_no_0 == 0) {
             w->routeAng = 0.0f;
             w->routeAngAbs = 0.0f;
-            em->plDist2 = 100000000.0f;
+            em->l_pl = 100000000.0f;
         }
     }
     plPos = pPL->pos;
@@ -4717,7 +4717,7 @@ void em2dRouteCk(cEm2d* em)
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;  // before the flags RMW: the pPL load (may alias a w store) precedes `stw flags`
     w->flags &= ~4;
     if (w->flags & 0x8000) {
@@ -4884,7 +4884,7 @@ int em2dLockCk(cEm2d* em)
     if (pPL->r_no_1 != 6) {
         return 0;
     }
-    if (em->plDist2 > 64000000.0f) {
+    if (em->l_pl > 64000000.0f) {
         return 0;
     }
     if (pG->weapon_no == 0x10) {
@@ -5361,7 +5361,7 @@ int em2dFallCatchCk(cEm2d* em)
     if (StaFlagChk(pG, STA_PL_CATCHED)) {
         return 0;
     }
-    if (em->plDist2 > 2250000.0f) {
+    if (em->l_pl > 2250000.0f) {
         return 0;
     }
     dy = em->pos.y - pl->pos.y;
@@ -5513,11 +5513,11 @@ int em2dStayCk(cEm2d* em)
         cEm* e = EmMgr.fastAt(i);
 
         if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE) &&
-            (EM2D_WK(e)->flags & 0x200) && e->plDist2 < em->plDist2) {
+            (EM2D_WK(e)->flags & 0x200) && e->l_pl < em->l_pl) {
             cnt++;
         }
     }
-    return cnt > 2 ? em->plDist2 > 64000000.0f : 1;
+    return cnt > 2 ? em->l_pl > 64000000.0f : 1;
 }
 
 // Registers a kind 3 crash volume of radius `r` at the insect (a falling one knocks the others over).
@@ -6033,7 +6033,7 @@ int em2dToGround(cEm2d* em)
     if (set != 1) {
         return 0;
     }
-    if (em->plDist2 < 64000000.0f) {
+    if (em->l_pl < 64000000.0f) {
         return 0;
     }
     if (em->pos.y > SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 2000.0f) {
@@ -6207,11 +6207,11 @@ void em2dAirNextRtnSet(cEm2d* em)
         return;
     }
     wait = w->atkWait;
-    if (wait == 0 && em->plDist2 < 9000000.0f && w->routeAngAbs < 0.785398185f) {
+    if (wait == 0 && em->l_pl < 9000000.0f && w->routeAngAbs < 0.785398185f) {
         dy = em->pos.y - pPL->pos.y;
         if (dy < 1000.0f && dy > -200.0f) {
             fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f));
-            if ((Rnd() & 1) && em->plDist2 > 12250000.0f) {
+            if ((Rnd() & 1) && em->l_pl > 12250000.0f) {
                 EmRoutineSet(em, 1, 0x23, wait, wait);
             } else {
                 EmRoutineSet(em, 1, 0x24, 0, 0);
@@ -6225,7 +6225,7 @@ void em2dAirNextRtnSet(cEm2d* em)
     }
     wait2 = w->atkWait;
     if (!(wait2 == 0 && em2dStayCk(em) && (w->flags & 0x200))) {
-        if (em->plDist2 < 16000000.0f) {
+        if (em->l_pl < 16000000.0f) {
             EmRoutineSet(em, 1, 0x1E, 0, 0);
             return;
         }
@@ -6239,11 +6239,11 @@ void em2dAirNextRtnSet(cEm2d* em)
             return;
         }
         if (em->pos.y > SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0) + 2000.0f &&
-            em->pos.y > pPL->pos.y + 1000.0f && ((Rnd() & 1) || em->plDist2 < 9000000.0f)) {
+            em->pos.y > pPL->pos.y + 1000.0f && ((Rnd() & 1) || em->l_pl < 9000000.0f)) {
             EmRoutineSet(em, 1, 0x21, wait2, wait2);
             return;
         }
-        if (em->pos.y < pPL->pos.y + 1000.0f && em->plDist2 > 9000000.0f && (r = Rnd() & 3) == 0 &&
+        if (em->pos.y < pPL->pos.y + 1000.0f && em->l_pl > 9000000.0f && (r = Rnd() & 3) == 0 &&
             Em2dGetCeiling(em) > em->pos.y + 4000.0f) {
             EmRoutineSet(em, 1, 0x20, r, r);
             return;
@@ -6252,7 +6252,7 @@ void em2dAirNextRtnSet(cEm2d* em)
         if (r) {
             return;
         }
-        if ((Rnd() & 3) && em->plDist2 > 16000000.0f) {
+        if ((Rnd() & 3) && em->l_pl > 16000000.0f) {
             EmRoutineSet(em, 1, 0x1D, r, r);
             return;
         }
@@ -6276,11 +6276,11 @@ int em2dFindCk(cEm2d* em)
     if (w->flags & 0x200) {
         return 0;
     }
-    if (w->routeAngAbs < 1.04719758f && em->plDist2 < 100000000.0f) {
+    if (w->routeAngAbs < 1.04719758f && em->l_pl < 100000000.0f) {
         w->flags |= 0x200;
         return 1;
     }
-    if (!(em->plDist2 < 9000000.0f)) {
+    if (!(em->l_pl < 9000000.0f)) {
         if (StaFlagChk(pG, STA_SE_BURST)) {
             f32 r;
 

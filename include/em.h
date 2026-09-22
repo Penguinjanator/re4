@@ -88,7 +88,7 @@ enum EM_STATUS {
 };
 
 // Character work (game/em.cpp), sizeof 0x3E0: the cModel (0x320, which carries the motion work,
-// the cAtariInfo, pFootShadowTbl and the light area) plus the fields below. The derived classes own
+// the cAtariInfo, pFsdTbl and the light area) plus the fields below. The derived classes own
 // the bytes from 0x3E0 up: cPlayer and cSubChar name theirs, the enemies overlay a work struct on
 // the free area cEmFree declares.
 class cEm : public cModel {
@@ -97,8 +97,8 @@ public:
     s16 hp_max;            // 0x322
     cDmgInfo dmg;     // 0x324  (obj08: dmg.set on a hit target)
     YARARE_INFO hitInfo;    // 0x33C .. 0x370  (obj08: the player's hit part for the damage effect)
-    f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
-    f32 l_sub;             // 0x374  (em_set: 1e16 at creation)  squared distance to the partner (em30/em34/em38: closer than plDist2 -> target it) (PS2 l_sub)
+    f32 l_pl;             // 0x370  squared distance to the player (db_work prints its sqrt as "L PL") (PS2 l_pl)
+    f32 l_sub;             // 0x374  (em_set: 1e16 at creation)  squared distance to the partner (em30/em34/em38: closer than l_pl -> target it) (PS2 l_sub)
     PlArc* subArc;          // 0x378  cSubChar: motion archive the routines index (pl_npc.cpp)
     PlArc* subArc2;         // 0x37C  cSubChar: the archive restored after a damage routine
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)

@@ -961,7 +961,7 @@ static void em36_R1_R310Appear(cEm36* em)
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
             }
-            if (em->plDist2 > 9000000.0f) {
+            if (em->l_pl > 9000000.0f) {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
         }
@@ -989,7 +989,7 @@ static void em36_R1_Wait(cEm36* em)
                 if (w->targetAngAbs > 2.3561945f) {
                     EmRoutineSet(em, 1, 3, 0, 0);
                 }
-                if (em->plDist2 > 9000000.0f) {
+                if (em->l_pl > 9000000.0f) {
                     EmRoutineSet(em, 1, 1, 0, 0);
                 }
             }
@@ -1059,8 +1059,8 @@ static void em36_R1_Walk(cEm36* em)
         if (w->targetAngAbs > 2.3561945f) {
             EmRoutineSet(em, 1, 3, 0, 0);
         }
-        if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) && em->plDist2 > 25000000.0f &&
-            em->plDist2 < 100000000.0f) {
+        if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) && em->l_pl > 25000000.0f &&
+            em->l_pl < 100000000.0f) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1161,7 +1161,7 @@ static void em36_R1_Turn(cEm36* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMove(em, 0)) {
             if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) &&
-                em->plDist2 > 25000000.0f && em->plDist2 < 100000000.0f) {
+                em->l_pl > 25000000.0f && em->l_pl < 100000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
@@ -2244,7 +2244,7 @@ static void em36_R1_RegeneArm(cEm36* em)
     case 1:
         if (MotionMove(em, 0)) {
             if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) &&
-                em->plDist2 > 25000000.0f && em->plDist2 < 100000000.0f) {
+                em->l_pl > 25000000.0f && em->l_pl < 100000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
@@ -2369,7 +2369,7 @@ static void em36_R1_D_Wait(cEm36* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            if ((em->type == 2 || em->type == 3) && em->plDist2 > 2250000.0f && (s16) pG->pl_life > 0) {
+            if ((em->type == 2 || em->type == 3) && em->l_pl > 2250000.0f && (s16) pG->pl_life > 0) {
                 EmRoutineSet(em, 1, 0x11, 0, 0);
             } else {
                 em->r_no_2 = 0;
@@ -2437,7 +2437,7 @@ static void em36_R1_D_Walk(cEm36* em)
         if (MotionMove(em, 0)) {
             if (w->routeAngAbs > 0.5235988f) {
                 EmRoutineSet(em, 1, 0x12, 0, 0);
-            } else if ((s16) pG->pl_life <= 0 || em->plDist2 < 1000000.0f) {
+            } else if ((s16) pG->pl_life <= 0 || em->l_pl < 1000000.0f) {
                 EmRoutineSet(em, 1, 0x10, 0, 0);
             } else if (w->atkTimer[4] == 0 && w->atkTimer[5] == 0) {
                 EmRoutineSet(em, 1, 0x19, 0, 0);
@@ -2790,8 +2790,8 @@ static void em36_R1_Wakeup(cEm36* em)
             u32 f = w->flags;
 
             w->flags &= ~0x20;
-            if ((u32) em->type <= 1 && !(f & 4) && w->seWait == 0 && (f & 1) && em->plDist2 > 25000000.0f &&
-                em->plDist2 < 100000000.0f) {
+            if ((u32) em->type <= 1 && !(f & 4) && w->seWait == 0 && (f & 1) && em->l_pl > 25000000.0f &&
+                em->l_pl < 100000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
@@ -2907,7 +2907,7 @@ static void em36_R1_Dm_Normal(cEm36* em)
             switch (em->r_no_3) {
             default:
                 if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) &&
-                    em->plDist2 > 25000000.0f && em->plDist2 < 100000000.0f) {
+                    em->l_pl > 25000000.0f && em->l_pl < 100000000.0f) {
                     EmRoutineSet(em, 1, 2, 0, 0);
                 } else {
                     EmRoutineSet(em, 1, 1, 0, 0xA);
@@ -3042,7 +3042,7 @@ static void em36_R1_Dm_Big(cEm36* em)
         em36DmTwitch(w);
         if (MotionMove(em, 0)) {
             if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) &&
-                em->plDist2 > 25000000.0f && em->plDist2 < 100000000.0f) {
+                em->l_pl > 25000000.0f && em->l_pl < 100000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0xA);
@@ -3072,7 +3072,7 @@ static void em36_R1_Dm_Weak(cEm36* em)
     case 1:
         if (MotionMove(em, 0)) {
             if ((u32) em->type <= 1 && !(w->flags & 4) && w->seWait == 0 && (w->flags & 1) &&
-                em->plDist2 > 25000000.0f && em->plDist2 < 100000000.0f) {
+                em->l_pl > 25000000.0f && em->l_pl < 100000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
                 break;
             }
@@ -3323,7 +3323,7 @@ void em36RouteCk(cEm36* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     a.x = em->pos.x;
     a.y = em->pos.y + 1300.0f;
@@ -3385,7 +3385,7 @@ void em36RouteCk(cEm36* em)
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     w->flags &= ~4;
     if (pSUB && !StaFlagChk(pG, STA_ASHLEY_HIDE) && w->plRouteDis > w->subRouteDis + 1000.0f) {
@@ -4901,13 +4901,13 @@ int em36FindCk(cEm36* em)
         return 0;
     }
     if (w->flags & 1) {
-        if (em->plDist2 < 225000000.0f && w->routeAngAbs < 1.0471976f) {
+        if (em->l_pl < 225000000.0f && w->routeAngAbs < 1.0471976f) {
             find = 1;
         }
-        if (StaFlagChk(pG, STA_PL_SE_FOOT) && em->plDist2 < 25000000.0f) {
+        if (StaFlagChk(pG, STA_PL_SE_FOOT) && em->l_pl < 25000000.0f) {
             find = 1;
         }
-        if (em->plDist2 < 12250000.0f) {
+        if (em->l_pl < 12250000.0f) {
             find = 1;
         }
     }

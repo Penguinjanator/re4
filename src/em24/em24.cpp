@@ -335,7 +335,7 @@ static void em24_R1_CoilWait(cEm24* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->plDist2 < 9000000.0f) {
+        if (em->l_pl < 9000000.0f) {
             em->r_no_2++;
         }
         break;
@@ -350,7 +350,7 @@ static void em24_R1_CoilWait(cEm24* em)
     }
 }
 
-// R1 == 2 Free: slithers about (ARC 7 / 8), turning towards a new random Target_dir every turnTimer
+// R1 == 2 Free: slithers about (ARC 7 / 8), turning towards a new random Target_dir every Timer2
 // frames, pauses (9 / 0xA); coils up (Coil 3) when the player comes close.
 static void em24_R1_Free(cEm24* em)
 {

@@ -147,7 +147,7 @@ void em28DmCk(cEm28* em)
         case 7:
         case 8:
         case 0x21:
-            if (em->plDist2 < 16000000.0f) {
+            if (em->l_pl < 16000000.0f) {
                 EmDmBloodSet2(em, 0x20, 0, 0, 0, 0);
                 EmDmBloodSet2(em, 0x20, 2, 0, 0, 0);
             } else {
@@ -782,7 +782,7 @@ int em28EscapeCk(cEm28* em)
             esc = 1;
         }
     }
-    d = em->plDist2;
+    d = em->l_pl;
     if (StaFlagChk(pG, STA_PL_FIRE)) {
         if (d < 100000000.0f) {
             esc = 1;

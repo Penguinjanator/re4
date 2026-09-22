@@ -196,7 +196,7 @@ struct Obj08Work {
     u32 atkFlags;         // 0x38  low 16 bits: GetWepTargetList flag, low byte: damage kind
     u32 estNo[4];         // 0x3C  effects: 0 ?, 1 scenario hit / timeout, 2 floor hit, 3 enemy / player hit
     u32 estPrm[4];        // 0x4C
-    u16 blk_no;            // 0x5C  hit SE (0xFFFF = none)
+    u16 blk_no;            // 0x5C  hit SE block number (0xFFFF = none)
     u16 call_no;             // 0x5E
     u8 hit_type;           // 0x60  1: the enemy-hit effect follows the target instead of the hit point
 };
@@ -665,7 +665,7 @@ struct Obj16Work {
 };
 
 // Map object work (game/obj.cpp), sizeof 0x3D8: the cModel (0x320; motion work `mot` / `Motion.pMot`
-// / `Motion.Seq_frame`.., `sub2B4.atari`, `sub2B4.pFootShadowTbl` are cModel members, see model.h), the
+// / `Motion.Seq_frame`.., `sub2B4.atari`, `sub2B4.pFsdTbl` are cModel members, see model.h), the
 // scroll block and the per-object work area. Per-object modules keep their state in `work`.
 class cObj : public cModel {
 public:

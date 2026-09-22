@@ -1103,7 +1103,7 @@ void make_shadow_texture(ShadowMng* mng)
             } else {
                 shadowModelTrans2(p, info, mng->lookAt);
             }
-            n = (cModel*) p->pChildShadowModel;
+            n = (cModel*) p->pCldShMd;
             if (n && (n->be_flag & 0x12)) {
                 p = n;
                 goto NEXT_MODEL;

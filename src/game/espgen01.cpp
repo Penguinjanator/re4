@@ -85,9 +85,9 @@ void Espgen01_Trans(EspgenWork* pEspgen)
 
 // Per-frame flare: computes the light's world position (parts matrix * offset) and its screen
 // position; when it is in front of the camera, alpha = 1 - (dist to screen centre / (height *
-// sizeRate*0.7))^2, times GetDirAlpha (flg bit 0), GetDistAlpha and hide_alpha (flg bit 1), and if
+// center_dist_ratio*0.7))^2, times GetDirAlpha (flg bit 0), GetDistAlpha and hide_alpha (flg bit 1), and if
 // > 0.01 spawns every est table record (one-frame sprites, screen-space parts 0xF8) spaced along
-// the centre line by their record x offset, scaled by alpha*scaleRate.
+// the centre line by their record x offset, scaled by alpha*size_ratio.
 void SetEsp(EspgenWork* pGen)
 {
     Espgen01Work* p = (Espgen01Work*) pGen->work;

@@ -285,7 +285,7 @@ void emBar_R1_Set(cEmBar* pEm)
         pEm->r_no_2++;
     }
     pEm->be_flag |= 0x4000;
-    if (pEm->plDist2 < 25000000.0f) {
+    if (pEm->l_pl < 25000000.0f) {
         u8 esc = w->Act_ck;
 
         if (esc == 0) {

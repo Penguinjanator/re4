@@ -120,7 +120,7 @@ void objMissile_R0_Set(cObjMissile* pObj)
     pObj->matUpdate();
 }
 
-// Rno0 == 1: mounted on parts partsNo of the launcher (axes normalised unless noNormalize).
+// Rno0 == 1: mounted on parts oya_parts of the launcher (axes normalised unless scale_mode).
 void objMissile_R0_Parent(cObjMissile* pObj)
 {
     MissileWork* w = &pObj->missile;
@@ -385,7 +385,7 @@ void objMissile_R0_Lost(cObjMissile* pObj)
     ObjMgr.destroy(pObj);
 }
 
-// Mounts the missile on parts partsNo of `parent` -> Parent.
+// Mounts the missile on parts oya_parts of `parent` -> Parent.
 void cObjMissile::setParent(cModel* parent, int partsNo, int noNormalize)
 {
     MissileWork* w = &missile;

@@ -1201,7 +1201,7 @@ static void em2c_R1_Wait(cEm2c* em)
         if (w->routeAngAbs > 1.57079637f && pG->Game_level > 3) {
             w->atkWait = 0;
         }
-        if (em->plDist2 > 25000000.0f && pG->Game_level > 3) {
+        if (em->l_pl > 25000000.0f && pG->Game_level > 3) {
             w->atkWait = 0;
         }
         if (EmDeadCk(em) && pG->Game_level > 1) {
@@ -1218,7 +1218,7 @@ static void em2c_R1_Wait(cEm2c* em)
             EmRoutineSet(em, 1, 3, r, r);
         } else if (w->flags & 0x800) {
             EmRoutineSet(em, 1, 0x18, r, r);
-        } else if (em->plDist2 > 25000000.0f && Rnd() % 10 > 7 && pG->room_id == 0x221 &&
+        } else if (em->l_pl > 25000000.0f && Rnd() % 10 > 7 && pG->room_id == 0x221 &&
                    fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) > 1.57079637f) {
             EmRoutineSet(em, 1, 0x12, 0, 0);
         } else if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f && w->Dash_wait == 0) {
@@ -1334,7 +1334,7 @@ static void em2c_R1_Walk(cEm2c* em)
         w->lockCnt = 0;
     }
     if (w->atkWait) {
-        if (em->plDist2 < 2250000.0f && w->routeAngAbs < 0.785398185f) {
+        if (em->l_pl < 2250000.0f && w->routeAngAbs < 0.785398185f) {
             EmRoutineSet(em, 1, 6, 0, 0);
         } else {
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -1347,7 +1347,7 @@ static void em2c_R1_Walk(cEm2c* em)
         if (plAng > 1.57079637f) {
             lim = 1690000.0f;
         }
-        if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
+        if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
             if (pPL->r_no_0 != 0 && pPL->r_no_1 != 6 && ItemMgr.bulletNumCurrent() == 0 && Rnd() % 10 > 4 &&
                 !(w->flags & 0x800)) {
                 EmRoutineSet(em, 1, 7, 0, 0);
@@ -1363,7 +1363,7 @@ static void em2c_R1_Walk(cEm2c* em)
                 }
                 return;
             }
-            if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+            if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                 EmRoutineSet(em, 1, 9, 0, 0);
                 return;
             }
@@ -1391,7 +1391,7 @@ static void em2c_R1_Walk(cEm2c* em)
             }
         }
     }
-    if (em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
+    if (em->l_pl < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
         w->routeAngAbs < 1.91986215f) {
         pos.x = 0.0f;
         pos.y = 0.0f;
@@ -1427,7 +1427,7 @@ static inline void em2cNextWalkSet(cEm2c* em, Em2cWork* w, int r)
         EmRoutineSet(em, 1, 3, r, r);
     } else if (w->flags & 0x800) {
         EmRoutineSet(em, 1, 0x18, r, r);
-    } else if (em->plDist2 > 25000000.0f && Rnd() % 10 > 7 && pG->room_id == 0x221 &&
+    } else if (em->l_pl > 25000000.0f && Rnd() % 10 > 7 && pG->room_id == 0x221 &&
                fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) > 1.57079637f) {
         EmRoutineSet(em, 1, 0x12, 0, 0);
     } else if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f && w->Dash_wait == 0) {
@@ -1460,7 +1460,7 @@ static void em2c_R1_Dash(cEm2c* em)
         w->blendD = 5;
         w->blendCnt = 5;
         w->blendVal = 0.0f;
-        if (em->plDist2 > 25000000.0f) {
+        if (em->l_pl > 25000000.0f) {
             w->blendVal = 255.0f;
         }
         w->timer = 15;
@@ -1472,7 +1472,7 @@ static void em2c_R1_Dash(cEm2c* em)
         if (w->timer8 % 6 == 0) {
             EstSet(em, -1, 0, 0, EFF_EM2C, 0xE, 0, w->espKind2, em, 0);
         }
-        if (em->plDist2 > 25000000.0f && pG->Game_level > 1) {
+        if (em->l_pl > 25000000.0f && pG->Game_level > 1) {
             w->blendVal += 16.0f;
             if (w->blendVal > 255.0f) {
                 w->blendVal = 255.0f;
@@ -1520,7 +1520,7 @@ static void em2c_R1_Dash(cEm2c* em)
         if (plAng > 1.57079637f) {
             lim = 1690000.0f;
         }
-        if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
+        if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
             if (pPL->r_no_0 != 0 && pPL->r_no_1 != 6 && ItemMgr.bulletNumCurrent() == 0 && Rnd() % 10 > 4 &&
                 !(w->flags & 0x800)) {
                 EmRoutineSet(em, 1, 7, 0, 0);
@@ -1536,7 +1536,7 @@ static void em2c_R1_Dash(cEm2c* em)
                 }
                 return;
             }
-            if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+            if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                 EmRoutineSet(em, 1, 9, 0, 0);
                 return;
             }
@@ -1560,7 +1560,7 @@ static void em2c_R1_Dash(cEm2c* em)
             }
         }
     }
-    if (em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
+    if (em->l_pl < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
         w->routeAngAbs < 1.91986215f) {
         pos.x = 0.0f;
         pos.y = 0.0f;
@@ -1660,7 +1660,7 @@ static void em2c_R1_Ambush(cEm2c* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->plDist2 < 100000000.0f) {
+        if (em->l_pl < 100000000.0f) {
             em->r_no_2++;
         }
         break;
@@ -1736,13 +1736,13 @@ static void em2c_R1_SideStep(cEm2c* em)
             if (plAng > 1.57079637f) {
                 lim = 4000000.0f;
             }
-            if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
+            if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
                 if (pPL->r_no_0 != 0 && pPL->r_no_1 != 6 && ItemMgr.bulletNumCurrent() == 0 && Rnd() % 10 > 4 &&
                     !(w->flags & 0x800)) {
                     EmRoutineSet(em, 1, 7, 0, 0);
                     break;
                 }
-                if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+                if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                     EmRoutineSet(em, 1, 9, 0, 0);
                     break;
                 }
@@ -1802,7 +1802,7 @@ static void em2c_R1_BackJump(cEm2c* em)
             if (r) {
                 break;
             }
-            if (em->plDist2 > 25000000.0f && Rnd() % 10 > 5 && pG->room_id == 0x221 &&
+            if (em->l_pl > 25000000.0f && Rnd() % 10 > 5 && pG->room_id == 0x221 &&
                 fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) > 1.57079637f) {
                 EmRoutineSet(em, 1, 0x12, r, r);
             } else if (pPL->r_no_0 != 0 && pPL->r_no_1 != 6 && ItemMgr.bulletNumCurrent() == 0 && Rnd() % 10 > 4 &&
@@ -1842,8 +1842,8 @@ static void em2c_R1_Threat(cEm2c* em)
                 if (plAng > 1.57079637f) {
                     lim = 4000000.0f;
                 }
-                if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
-                    if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+                if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
+                    if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                         EmRoutineSet(em, 1, 9, 0, 0);
                         break;
                     }
@@ -1898,8 +1898,8 @@ static void em2c_R1_AtkSign(cEm2c* em)
                 if (plAng > 1.57079637f) {
                     lim = 4000000.0f;
                 }
-                if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
-                    if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+                if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
+                    if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                         EmRoutineSet(em, 1, 9, 0, 0);
                         break;
                     }
@@ -1931,8 +1931,8 @@ static void em2c_R1_AtkSign(cEm2c* em)
                 if (plAng > 1.57079637f) {
                     lim = 4000000.0f;
                 }
-                if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
-                    if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+                if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
+                    if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                         EmRoutineSet(em, 1, 9, end, end);
                         break;
                     }
@@ -2003,7 +2003,7 @@ static void em2c_R1_Atk(cEm2c* em)
             w->dmgTotal = 0;
             w->atkWait = 5;
             if (w->atkHit) {
-                if (em->plDist2 < 4000000.0f) {
+                if (em->l_pl < 4000000.0f) {
                     EmRoutineSet(em, 1, 6, 0, 0);
                     break;
                 }
@@ -2038,7 +2038,7 @@ static inline void em2cAtkEndSet(cEm2c* em, Em2cWork* w)
     w->dmgTotal = 0;
     w->atkWait = 5;
     if (w->atkHit) {
-        if (em->plDist2 < 4000000.0f) {
+        if (em->l_pl < 4000000.0f) {
             EmRoutineSet(em, 1, 6, 0, 0);
             return;
         }
@@ -2311,8 +2311,8 @@ static void em2c_R1_SwayBack(cEm2c* em)
                 if (plAng > 1.57079637f) {
                     lim = 4000000.0f;
                 }
-                if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
-                    if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+                if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
+                    if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                         EmRoutineSet(em, 1, 9, end, end);
                         break;
                     }
@@ -3113,7 +3113,7 @@ static void em2c_R1_F_Walk(cEm2c* em)
         EmRoutineSet(em, 1, 0, r, r);
         return;
     }
-    if ((w->flags & 1) && em->plDist2 < 4000000.0f && w->routeAngAbs < 0.52359879f) {
+    if ((w->flags & 1) && em->l_pl < 4000000.0f && w->routeAngAbs < 0.52359879f) {
         EmRoutineSet(em, 1, 0x19, wait, wait);
         return;
     }
@@ -3208,7 +3208,7 @@ static void em2c_R1_F_Clear(cEm2c* em)
             w->atkWait = 30;
             if (w->targetAngAbs > 2.09439516f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
-            } else if (em->plDist2 > 25000000.0f) {
+            } else if (em->l_pl > 25000000.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
@@ -3332,7 +3332,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
                 break;
             }
         }
-        if (ny < -0.899999976f && em->plDist2 < 250000.0f) {
+        if (ny < -0.899999976f && em->l_pl < 250000.0f) {
             if (Rnd() % 10 > 2) {
                 EmRoutineSet(em, 1, 0x1E, 0, 0);
             } else {
@@ -3353,7 +3353,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
             EmRoutineSet(em, 1, 0x20, t, t);
             break;
         }
-        if (w->wallNrm.y > 0.899999976f && em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f &&
+        if (w->wallNrm.y > 0.899999976f && em->l_pl < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f &&
             w->routeAngAbs > 1.04719758f && w->routeAngAbs < 1.91986215f) {
             d.x = 0.0f;
             d.y = 0.0f;
@@ -4400,13 +4400,13 @@ static void em2c_R1_Dm_Guard(cEm2c* em)
             if (plAng > 1.57079637f) {
                 lim = 4000000.0f;
             }
-            if (em->plDist2 < lim && w->routeAngAbs < 0.52359879f) {
+            if (em->l_pl < lim && w->routeAngAbs < 0.52359879f) {
                 if (pPL->r_no_0 != 0 && pPL->r_no_1 != 6 && ItemMgr.bulletNumCurrent() == 0 && Rnd() % 10 > 4 &&
                     !(w->flags & 0x800)) {
                     EmRoutineSet(em, 1, 7, 0, 0);
                     break;
                 }
-                if (em->plDist2 < 6250000.0f && plAng < 1.57079637f) {
+                if (em->l_pl < 6250000.0f && plAng < 1.57079637f) {
                     EmRoutineSet(em, 1, 9, 0, 0);
                     break;
                 }
@@ -4470,7 +4470,7 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
             EmRoutineSet(em, 1, 0x18, 0, 0);
             break;
         }
-        if (em->plDist2 < 2250000.0f) {
+        if (em->l_pl < 2250000.0f) {
             hit = w->actDone;
             if (hit == 0 && fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 0.785398185f) {
                 ActBtn.set(ACT_KICK, 0xB, (void*) em2cKickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
@@ -4661,7 +4661,7 @@ static void em2c_R1_Dm_F_Normal(cEm2c* em)
             EmRoutineSet(em, 1, 0x1A, 0, 0);
             break;
         }
-        if (em->plDist2 < 2250000.0f) {
+        if (em->l_pl < 2250000.0f) {
             hit = w->actDone;
             if (hit == 0 && fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 0.785398185f) {
                 ActBtn.set(ACT_KICK, 0xB, (void*) em2cKickAction, em, ACTCTR_WEP_SET_IGNORE, DISP_A_NORMAL, ACT_FUNC_NORMAL, hit);
@@ -4901,7 +4901,7 @@ void em2cRouteCk(cEm2c* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     plPos = pPL->pos;
     plPos.y += 1800.0f;
@@ -4922,7 +4922,7 @@ void em2cRouteCk(cEm2c* em)
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     w->flags &= ~4;
 }
@@ -5103,7 +5103,7 @@ int em2cLockCk(cEm2c* em)
     if (pPL->r_no_1 != 6) {
         return 0;
     }
-    if (em->plDist2 > 144000000.0f) {
+    if (em->l_pl > 144000000.0f) {
         return 0;
     }
     if (pG->weapon_no == 0x10) {
@@ -6355,7 +6355,7 @@ int em2cAmbushCk(cEm2c* em)
     Vec v;
     u32 i;
 
-    if (em->plDist2 < 25000000.0f) {
+    if (em->l_pl < 25000000.0f) {
         return 0;
     }
     if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 2.09439516f) {

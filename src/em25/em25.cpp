@@ -189,7 +189,7 @@ void em25DmCk(cEm25* em)
         em->dmg.m_Timer = 0x11;
     }
     // COMPILER-DIFF: candidate #12 (AROUND form; r104 execEvent00 family) -- the original's cse forgets
-    // `zero == 0` past the skipped `if` block, so the `hitCnt = 0` below gets its own `li`; ours
+    // `zero == 0` past the skipped `if` block, so the `Wm_no = 0` below gets its own `li`; ours
     // carries the equivalence through and would store `zero`.
     asm("" : "+r"(zero));
     em25BloodSet(em);
@@ -486,9 +486,9 @@ static void em25_R1_Wait(cEm25* em)
             if (w->Go_rot > 1.22173047f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else if (w->Atk_wait == 0) {
-                if (em->plDist2 < 4000000.0f && w->Go_rot < 0.523598790f) {
+                if (em->l_pl < 4000000.0f && w->Go_rot < 0.523598790f) {
                     EmRoutineSet(em, 1, 6, 0, 0);
-                } else if (em->plDist2 > 25000000.0f) {
+                } else if (em->l_pl > 25000000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
                 } else {
                     EmRoutineSet(em, 1, 3, 0, 0);
@@ -525,7 +525,7 @@ static void em25_R1_Walk(cEm25* em)
             }
             w->Timer--;
         }
-        if (em->plDist2 < 4000000.0f && w->Go_rot < 0.523598790f) {
+        if (em->l_pl < 4000000.0f && w->Go_rot < 0.523598790f) {
             EmRoutineSet(em, 1, 2, 0, 0);
         } else if (w->Go_rot > 1.22173047f) {
             EmRoutineSet(em, 1, 5, 0, 0);
@@ -559,7 +559,7 @@ static void em25_R1_Run(cEm25* em)
             }
             w->Timer--;
         }
-        if (em->plDist2 < 4000000.0f && w->Go_rot < 0.523598790f) {
+        if (em->l_pl < 4000000.0f && w->Go_rot < 0.523598790f) {
             EmRoutineSet(em, 1, 2, 0, 0);
         } else if (w->Go_rot > 1.22173047f) {
             EmRoutineSet(em, 1, 5, 0, 0);
@@ -591,8 +591,8 @@ static void em25_R1_Turn90(cEm25* em)
         if (MotionMove(em, 0)) {
             if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f)) > 1.22173047f) {
                 em->r_no_2 = 0;
-            } else if (em->plDist2 > 9000000.0f) {
-                if (em->plDist2 > 25000000.0f) {
+            } else if (em->l_pl > 9000000.0f) {
+                if (em->l_pl > 25000000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
                 } else {
                     EmRoutineSet(em, 1, 3, 0, 0);
@@ -898,7 +898,7 @@ static void em25_R1_P_Wait(cEm25* em)
     }
 }
 
-// R1 == 0xA P_Atk: the bite from the host's shoulders (em25AtkCk kind 1 on the hit frames, atkHit for
+// R1 == 0xA P_Atk: the bite from the host's shoulders (em25AtkCk kind 1 on the hit frames, Atk_ck for
 // the host's ckAtkHit), then back to P_Wait (9).
 static void em25_R1_P_Atk(cEm25* em)
 {
@@ -1346,7 +1346,7 @@ void cEm25::setWait()
     EmRoutineSet(this, 1, 9, 0, 0);
 }
 
-// Host request (em10_R1_ParasiteAtk): the bite from the shoulders (P_Atk 0xA), atkHit cleared.
+// Host request (em10_R1_ParasiteAtk): the bite from the shoulders (P_Atk 0xA), Atk_ck cleared.
 void cEm25::setAtk()
 {
     r_no_0 = 1;
@@ -1356,7 +1356,7 @@ void cEm25::setAtk()
     r_no_3 = 0;
 }
 
-// 1 when the current attack hit the player / partner (atkHit).
+// 1 when the current attack hit the player / partner (Atk_ck).
 int cEm25::ckAtkHit()
 {
     if (EM25_WK(this)->Atk_ck) {
@@ -1420,7 +1420,7 @@ void cEm25::setBirth(Vec* ppos, f32 ang)
 }
 
 // Bite hit test on the attack frames: the capsule at part `parts` against the player / partner with
-// em25_atk_tbl[no] (0 floor bite, 1 from the host), once per attack (atkHit); blood on a hit, the
+// em25_atk_tbl[no] (0 floor bite, 1 from the host), once per attack (Atk_ck); blood on a hit, the
 // player's head comes off when it kills him (em25PlHeadLost). 1 = hit.
 int em25AtkCk(cEm25* em, int no, int parts)
 {
@@ -1567,7 +1567,7 @@ void em25ScaleCompress(cEm25* em)
     }
 }
 
-// Per frame for a floor parasite: the route point / angle to the player (routePos, routeAng, Be_flg
+// Per frame for a floor parasite: the route point / angle to the player (Pl_pos, Pl_dir, Be_flg
 // bit0 = route found) and the target copies used by the crawl routines.
 void em25RouteCk(cEm25* em)
 {
@@ -1592,12 +1592,12 @@ void em25RouteCk(cEm25* em)
     if (em->r_no_0 == 0) {
         w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->Go_pos = w->Pl_pos;
     w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
-    w->L_go = em->plDist2;
+    w->L_go = em->l_pl;
     w->pEm = pPL;
     w->Be_flg &= ~4;
 }

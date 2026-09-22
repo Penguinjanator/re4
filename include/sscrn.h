@@ -68,7 +68,7 @@ struct SUB_SCREEN {
     SsArc* pMapObj;          // 0x1F8  SS/cmn/map_objNN.dat archive of the current area (Sscrn ss_map)
     SsArc* pFileDat;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
-    SsArc* pShopDat;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + aramSize)
+    SsArc* pShopDat;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + pFreeOffs)
     void* pTelDat;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
     void* pTplDat;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
     void* pWepDat;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
@@ -146,7 +146,7 @@ struct SUB_SCREEN {
 };
 typedef SUB_SCREEN SubScreenWork;
 
-// Sscrn ss_item cursor state (SUB_SCREEN::pItemWk, MEM_ALLOC(9)): two item columns.
+// Sscrn ss_item cursor state (SUB_SCREEN::item, MEM_ALLOC(9)): two item columns.
 struct ItemScreenWork {
     s8 x0;
     s8 col;      // 0x1  current column (-1 = main menu)

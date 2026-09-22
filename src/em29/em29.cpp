@@ -215,7 +215,7 @@ void em29DmCk(cEm29* em)
     case 8:
     case 0x21:
         dmg = 9999;
-        if (em->plDist2 > 16000000.0f) {
+        if (em->l_pl > 16000000.0f) {
             dmg = (Rnd() & 1) + 999;
         }
         break;
@@ -449,7 +449,7 @@ static void em29_R1_WaitLand(cEm29* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->plDist2 < 25000000.0f) {
+        if (em->l_pl < 25000000.0f) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -495,7 +495,7 @@ static void em29_R1_WaitCeiling(cEm29* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->plDist2 < 25000000.0f) {
+        if (em->l_pl < 25000000.0f) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -1072,12 +1072,12 @@ void em29RouteCk(cEm29* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     if ((em->pos.x - w->initPos.x) * (em->pos.x - w->initPos.x) + (em->pos.z - w->initPos.z) * (em->pos.z - w->initPos.z)
         > em->Guard_r * em->Guard_r) {
@@ -1088,7 +1088,7 @@ void em29RouteCk(cEm29* em)
                         + (em->pos.z - w->initPos.z) * (em->pos.z - w->initPos.z);
     }
     if (!(w->flags & 0x10)) {
-        if (em->plDist2 < 360000.0f) {
+        if (em->l_pl < 360000.0f) {
             w->escTimer = 45;
         }
     }

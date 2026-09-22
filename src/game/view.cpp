@@ -2,7 +2,7 @@
 // half-width one (for the split-screen / mirror passes) as 6 planes + 8 corner points in camera
 // and world space, plus the frustum's bounding sphere; rebuilt each frame from the camera fovy /
 // far plane (initPerspective) and orientation (orientation). Models and effects test against
-// View.world* / sphereWorld before drawing.
+// View.world* / _sphere_outer before drawing.
 #include "types.h"
 #include "vec.h"
 #include "global.h"

@@ -672,7 +672,7 @@ static void em3c_R1_StartWait(cEm3c* em)
 // Routine 1/1 (set 2): the ambush grab. Steps: 0 idle pose, 1 wait until the living player is
 // within 3 m, 2 kill the enemy as an enemy (hp 0, EmSetDie: it is a one-shot scripted grab), take
 // over the player (plemSurprised) and a partner within 5 m (subemSurprised), suspend the other
-// enemies (em3cAtkSuspend), 3 a 30-frame hold after which the action-button variant (actMode 1 / 2)
+// enemies (em3cAtkSuspend), 3 a 30-frame hold after which the action-button variant (TmpU32 1 / 2)
 // is rolled, 4 the grab motion with its effect and a 60-frame window, 5 the grab hits through
 // em3cAtkCk2 (Atk_ck -> Act_ck and flag bit 1, which releases the partner), a foot dust effect on
 // motion event 4, and when the window ends the suspend is lifted and the enemy dies (routine 3,
@@ -694,7 +694,7 @@ static void em3c_R1_AtkWait(cEm3c* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (em->plDist2 > 9000000.0f) {
+        if (em->l_pl > 9000000.0f) {
             break;
         }
         if ((s16) pG->pl_life <= 0) {
@@ -1044,7 +1044,7 @@ static void em3c_R1_Walk(cEm3c* em)
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
-        if (w->Atk_wait && em->plDist2 < 6250000.0f) {
+        if (w->Atk_wait && em->l_pl < 6250000.0f) {
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
         }
@@ -1110,7 +1110,7 @@ static void em3c_R1_Run(cEm3c* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
-            if (em->plDist2 < 9000000.0f && (w->Be_flg & 1)) {
+            if (em->l_pl < 9000000.0f && (w->Be_flg & 1)) {
                 EmRoutineSet(em, 1, 3, 0, 0);
                 break;
             }
@@ -1119,7 +1119,7 @@ static void em3c_R1_Run(cEm3c* em)
                 break;
             }
         }
-        if (w->Atk_wait && em->plDist2 < 6250000.0f) {
+        if (w->Atk_wait && em->l_pl < 6250000.0f) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         {
@@ -1153,7 +1153,7 @@ static void em3c_R1_Run(cEm3c* em)
     em3cDoorOpenCk(em);
 }
 
-// Routine 1/5: the about-face motion. turnAng starts at yaw + PI and, while motion event bit 3 is
+// Routine 1/5: the about-face motion. TmpF starts at yaw + PI and, while motion event bit 3 is
 // set, both it and the yaw steer towards the route point at PI/32 per frame. Ends in Wait or Walk.
 static void em3c_R1_Turn180(cEm3c* em)
 {
@@ -1259,7 +1259,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
             if (w->Atk_ck == 0) {
                 GameAddPoint(LVADD_ESCAPEATTACK);
             }
-            if (w->Atk_ck != 0 || em->plDist2 < 6250000.0f) {
+            if (w->Atk_ck != 0 || em->l_pl < 6250000.0f) {
                 w->Atk_wait = 45;
                 if (pG->Game_level <= 3) {
                     w->Atk_wait = 60;
@@ -1732,7 +1732,7 @@ int em3cAtkCk2(cEm3c* em, int no)
 // Every 4th frame (staggered by emset_no), routes towards the player. The goal is a point beside
 // the player (0 / +-1.5 / +-2 m sideways by emset_no % 5, scaled by the distance up to 6 m, so a
 // group spreads out), pulled back 35 cm in front of any wall between it and the player. RouteCkToPos
-// gives routePos (Be_flg bit 0 when a route exists); routeAng / targetAng are the yaw to it,
+// gives Pl_pos (Be_flg bit 0 when a route exists); Pl_dir / Go_dir are the yaw to it,
 // L_pl_route the route distance to the player. Debug_flg[0] 0x4000 draws the wall probe.
 void em3cRouteCk(cEm3c* em)
 {
@@ -1749,7 +1749,7 @@ void em3cRouteCk(cEm3c* em)
     if ((pG->Frame_cnt & 3) != (em->emset_no & 3)) {
         return;
     }
-    spd = SQRTF(em->plDist2);
+    spd = SQRTF(em->l_pl);
     if (spd > 6000.0f) {
         spd = 6000.0f;
     }
@@ -1805,13 +1805,13 @@ void em3cRouteCk(cEm3c* em)
     if (em->r_no_0 == 0) {
         w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
-        em->plDist2 = 100000000.0f;
+        em->l_pl = 100000000.0f;
     }
     w->L_pl_route = RouteCkPosToPosDis(&em->pos, &pPL->pos);
     w->Go_pos = w->Pl_pos;
     w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
-    w->L_go = em->plDist2;
+    w->L_go = em->l_pl;
     w->pEm = pPL;
     w->Be_flg &= ~4;
 }
@@ -1951,7 +1951,7 @@ void em3cPartsBombSet(cEm3c* em, int add)
 }
 
 // The head bursts (Head_hp used up, or the big flinch below half HP): the head part 3 becomes a
-// falling piece pushed 10 cm forward, disabled as a hit box (hit[0]), bombTimer hides parts 3 / 4
+// falling piece pushed 10 cm forward, disabled as a hit box (hit[0]), HeadOffTimer hides parts 3 / 4
 // after 45 frames, the burst effect and sound play and the parasite takes its place
 // (em3cSetParasite). Be_flg 0x10 makes it a one-shot.
 void em3cPartsBombHead(cEm3c* em)
@@ -2359,7 +2359,7 @@ int em3cStayCk(cEm3c* em)
             return 0;
         }
     }
-    if (em->plDist2 > 25000000.0f && !(w->Be_flg & 1)) {
+    if (em->l_pl > 25000000.0f && !(w->Be_flg & 1)) {
         return 0;
     }
     return 1;
@@ -2379,7 +2379,7 @@ int em3cFindCk(cEm3c* em)
     if (!(w->Be_flg & 1)) {
         return 0;
     }
-    if (w->Pl_rot < 1.0471976f && em->plDist2 < 100000000.0f) {
+    if (w->Pl_rot < 1.0471976f && em->l_pl < 100000000.0f) {
         w->Be_flg |= 0x80;
         return 1;
     }

@@ -76,7 +76,7 @@ cModel::cModel()
     TevScaleGroup = 0;
     kindid = 0;
     ot_type = 0;
-    pChildShadowModel = 0;
+    pCldShMd = 0;
     Shd_color = 0;
     CullMode = 0;
     Shader_type = 0;
@@ -146,7 +146,7 @@ int cModel::modelInit(void* bin, void* tpl)
     }
     pShadowModelInfo = 0;
     Motion.Seq_speed = 1.0f;
-    pChildShadowModel = 0;
+    pCldShMd = 0;
     Motion.pAttachCam = 0;
     return (int) info;
 }

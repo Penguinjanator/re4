@@ -301,7 +301,7 @@ void R30fMain()
 
         for (j = 0; j < 90; j++) {
             for (i = 0; i < 90; i++) {
-                if (r30f_work->em[i].isActive() == 1 && r30f_work->em[i].getPtr()->plDist2 > 4000.0f) {
+                if (r30f_work->em[i].isActive() == 1 && r30f_work->em[i].getPtr()->l_pl > 4000.0f) {
                     Vec p;
 
                     if (pSUB) {

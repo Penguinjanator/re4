@@ -130,7 +130,7 @@ void em3bDmCkTruck(cEm3b* em)
     case 8:
     case 0x21:
         dmg = 500;
-        if (em->plDist2 > 16000000.0f) {
+        if (em->l_pl > 16000000.0f) {
             dmg = 200;
         }
         break;

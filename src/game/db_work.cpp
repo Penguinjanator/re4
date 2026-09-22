@@ -102,7 +102,7 @@ void cDbWork::dispEm()
         dispModel(em, 4, 3);
         eprintf(32, 280, 0, 0, "HP       %d", em->hp);
         eprintf(32, 294, 0, 0, "HP MAX   %d", em->hp_max);
-        eprintf(32, 308, 0, 0, "L PL     %f", SQRTF(em->plDist2));
+        eprintf(32, 308, 0, 0, "L PL     %f", SQRTF(em->l_pl));
         eprintf(32, 322, 0, 0, "EMSET NO %d", em->emset_no);
         Draw_pos(&em->pos, 500);
     }
@@ -174,7 +174,7 @@ void cDbWork::dispModel(cModel* pMod, int x, int y)
     y++;
     eprintf(x, y * 14, 0, 0, "SPEED    %7.0f %7.0f %7.0f", pMod->speed.x, pMod->speed.y, pMod->speed.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "pCldShMd %08X", pMod->pChildShadowModel);
+    eprintf(x, y * 14, 0, 0, "pCldShMd %08X", pMod->pCldShMd);
     y++;
     eprintf(x, y * 14, 0, 0, "SHD COL  %02X", pMod->Shd_color);
     y++;

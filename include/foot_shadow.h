@@ -14,7 +14,7 @@ struct FootShadowDat {
     f32 size;   // 0x04
 };
 
-// Foot shadow table (cEm::pFootShadowTbl): entry count and the entries.
+// Foot shadow table (cEm::pFsdTbl): entry count and the entries.
 struct FootShadowTbl {
     u32 nTbl;
     FootShadowDat* dat;
@@ -26,7 +26,7 @@ void DrawFootShadow(class cEm* pMod);
 void drawShadowParts(GXTexObj* tex, Vec* pos, f32 size, f32 alpha);
 }
 
-// game/foot_shadow_tbl.cpp: the per-character tables the enemy modules point pFootShadowTbl at.
+// game/foot_shadow_tbl.cpp: the per-character tables the enemy modules point pFsdTbl at.
 extern FootShadowTbl Em10_fs_tbl;   // Ganado (em10..em20, em18, em30, em34 reuse it)
 extern FootShadowTbl Em2b_fs_tbl;
 extern FootShadowTbl Em2c_fs_tbl;   // event.cpp ExePacket_SetOm

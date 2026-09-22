@@ -303,7 +303,7 @@ void EspRoomInit()
     }
 }
 
-// Reserves `num` consecutive GXTexObj slots from the 0x1F4 entry pool (texObjFlag bitmap);
+// Reserves `num` consecutive GXTexObj slots from the 0x1F4 entry pool (TexObj_flg bitmap);
 // NULL with an error when no run of that length is free.
 GXTexObj* EspPullTexObj(u32 num)
 {

@@ -960,7 +960,7 @@ static inline void em32NextWalkSet(cEm32* em, Em32Work* w, int r)
         EmRoutineSet(em, 1, 0xC, r, r);
     } else if (w->mode == 2) {
         EmRoutineSet(em, 1, 0xB, r, r);
-    } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+    } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
         EmRoutineSet(em, 1, 8, r, r);
     } else {
         EmRoutineSet(em, 1, 9, r, r);
@@ -997,10 +997,10 @@ static void em32_R1_Wait(cEm32* em)
     case 1:
         MotionMove(em, 0);
         if (!(w->flags & 0x200)) {
-            if (em->plDist2 < 64000000.0f) {
+            if (em->l_pl < 64000000.0f) {
                 w->flags |= 0x200;
             }
-            if (em->plDist2 < 225000000.0f && w->routeAngAbs < 0.52359879f) {
+            if (em->l_pl < 225000000.0f && w->routeAngAbs < 0.52359879f) {
                 w->flags |= 0x200;
             }
         } else {
@@ -1076,9 +1076,9 @@ static void em32_R1_Ambush(cEm32* em)
             }
             break;
         case 1:
-            if (w->routeAngAbs < 0.52359879f && em->plDist2 < 9000000.0f && Rnd() % 10 > 4) {
+            if (w->routeAngAbs < 0.52359879f && em->l_pl < 9000000.0f && Rnd() % 10 > 4) {
                 EmRoutineSet(em, mode, 0x1D, timer, timer);
-            } else if (w->routeAngAbs < 0.785398185f && em->plDist2 < 9000000.0f) {
+            } else if (w->routeAngAbs < 0.785398185f && em->l_pl < 9000000.0f) {
                 EmRoutineSet(em, 1, 0x1C, 0, 0);
             }
             break;
@@ -1092,14 +1092,14 @@ static void em32_R1_Ambush(cEm32* em)
             if (w->mode == 0 && Rnd() % 10 > 7 && em32JumpUpCk(em)) {
                 break;
             }
-            if ((w->Atk_ck || Rnd() % 10 > 4) && em->plDist2 < 16000000.0f && em32StepUpCk2(em)) {
+            if ((w->Atk_ck || Rnd() % 10 > 4) && em->l_pl < 16000000.0f && em32StepUpCk2(em)) {
                 break;
             }
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             } else if (w->mode == 2) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -1228,7 +1228,7 @@ static void em32_R1_Walk(cEm32* em)
                     }
                 }
             }
-            if (w->atkWait == 0 && em->plDist2 > 36000000.0f) {
+            if (w->atkWait == 0 && em->l_pl > 36000000.0f) {
                 if (Rnd() % 10 > 7) {
                     em32JumpUpCk(em);
                 } else {
@@ -1246,16 +1246,16 @@ static void em32_R1_Walk(cEm32* em)
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
             }
-            if (w->routeAngAbs < 0.52359879f && em->plDist2 < 9000000.0f && Rnd() % 10 > 4) {
+            if (w->routeAngAbs < 0.52359879f && em->l_pl < 9000000.0f && Rnd() % 10 > 4) {
                 EmRoutineSet(em, 1, 0x1D, ret, ret);
                 break;
             }
-            if (w->routeAngAbs < 0.785398185f && em->plDist2 < 9000000.0f) {
+            if (w->routeAngAbs < 0.785398185f && em->l_pl < 9000000.0f) {
                 EmRoutineSet(em, 1, 0x1C, 0, 0);
             }
             break;
         case 2:
-            if (w->routeAngAbs < 0.52359879f && em->plDist2 < 25000000.0f) {
+            if (w->routeAngAbs < 0.52359879f && em->l_pl < 25000000.0f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
             }
             break;
@@ -1368,7 +1368,7 @@ static void em32_R1_Dash(cEm32* em)
                     }
                 }
             }
-            if (w->atkWait == 0 && em->plDist2 > 36000000.0f) {
+            if (w->atkWait == 0 && em->l_pl > 36000000.0f) {
                 if (Rnd() % 10 > 7) {
                     em32JumpUpCk(em);
                 } else {
@@ -1386,16 +1386,16 @@ static void em32_R1_Dash(cEm32* em)
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
             }
-            if (w->routeAngAbs < 0.52359879f && em->plDist2 < 9000000.0f && Rnd() % 10 > 4) {
+            if (w->routeAngAbs < 0.52359879f && em->l_pl < 9000000.0f && Rnd() % 10 > 4) {
                 EmRoutineSet(em, 1, 0x1D, ret, ret);
                 break;
             }
-            if (w->routeAngAbs < 0.785398185f && em->plDist2 < 9000000.0f) {
+            if (w->routeAngAbs < 0.785398185f && em->l_pl < 9000000.0f) {
                 EmRoutineSet(em, 1, 0x1C, 0, 0);
             }
             break;
         case 2:
-            if (w->routeAngAbs < 0.52359879f && em->plDist2 < 25000000.0f) {
+            if (w->routeAngAbs < 0.52359879f && em->l_pl < 25000000.0f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
             }
             break;
@@ -1431,9 +1431,9 @@ static void em32_R1_Back(cEm32* em)
         if (MotionMove(em, 0)) {
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if (w->mode == 2 && w->routeAngAbs < 0.52359879f && em->plDist2 < 25000000.0f) {
+            } else if (w->mode == 2 && w->routeAngAbs < 0.52359879f && em->l_pl < 25000000.0f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -1535,7 +1535,7 @@ static void em32_R1_AtkWalk(cEm32* em)
                     EmRoutineSet(em, 1, 0xD, 0, 0);
                     break;
                 }
-                if (em->plDist2 > 64000000.0f) {
+                if (em->l_pl > 64000000.0f) {
                     EM32_EFFECT_DELETE(w->espKind[1], em);
                     EmRoutineSet(em, 1, 8, 0, 0);
                     break;
@@ -1606,9 +1606,9 @@ static void em32_R1_Turn(cEm32* em)
                 EmRoutineSet(em, 1, 6, 0, 0);
             } else if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if (w->mode == 2 && w->routeAngAbs < 0.52359879f && em->plDist2 < 25000000.0f) {
+            } else if (w->mode == 2 && w->routeAngAbs < 0.52359879f && em->l_pl < 25000000.0f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -1629,7 +1629,7 @@ static void em32_R1_Turn(cEm32* em)
     if ((w)->mode == 0 && Rnd() % 10 > jc && em32JumpUpCk(em)) {                         \
         return;                                                                         \
     }                                                                                   \
-    if (((w)->Atk_ck || Rnd() % 10 > 4) && (em)->plDist2 < near && em32StepUpCk2(em)) {    \
+    if (((w)->Atk_ck || Rnd() % 10 > 4) && (em)->l_pl < near && em32StepUpCk2(em)) {    \
         return;                                                                         \
     }
 
@@ -1689,11 +1689,11 @@ static void em32_R1_Threat(cEm32* em)
                 }
                 break;
             case 1:
-                if (w->routeAngAbs < 0.52359879f && em->plDist2 < 9000000.0f && Rnd() % 10 > 4) {
+                if (w->routeAngAbs < 0.52359879f && em->l_pl < 9000000.0f && Rnd() % 10 > 4) {
                     EmRoutineSet(em, mode, 0x1D, 0, 0);
                     return;
                 }
-                if (w->routeAngAbs < 0.785398185f && em->plDist2 < 9000000.0f) {
+                if (w->routeAngAbs < 0.785398185f && em->l_pl < 9000000.0f) {
                     EmRoutineSet(em, 1, 0x1C, 0, 0);
                     return;
                 }
@@ -1708,15 +1708,15 @@ static void em32_R1_Threat(cEm32* em)
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             } else if (w->mode == 2) {
-                if (w->routeAngAbs < 0.52359879f && em->plDist2 < 25000000.0f) {
+                if (w->routeAngAbs < 0.52359879f && em->l_pl < 25000000.0f) {
                     EmRoutineSet(em, 1, 0xB, 0, 0);
                 }
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
             }
-        } else if (w->targetAngAbs > 1.30899692f && em->plDist2 > 12250000.0f) {
+        } else if (w->targetAngAbs > 1.30899692f && em->l_pl > 12250000.0f) {
             EmRoutineSet(em, 1, 0xC, ret, ret);
         }
         break;
@@ -1762,7 +1762,7 @@ static void em32_R1_AmbushAtk(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 4);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if (em->plDist2 < 25000000.0f) {
+            } else if (em->l_pl < 25000000.0f) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -1774,7 +1774,7 @@ static void em32_R1_AmbushAtk(cEm32* em)
             }
             if (w->timer3) {
                 w->timer3--;
-            } else if (w->timer2 && w->Atk_ck == 0 && em->plDist2 < 36000000.0f) {
+            } else if (w->timer2 && w->Atk_ck == 0 && em->l_pl < 36000000.0f) {
                 w->timer2--;
                 ActBtn.set(ACT_GUARD, 0xB, (void*) em32SitAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, w->Atk_ck);
             }
@@ -1807,7 +1807,7 @@ static void em32_R1_Atk(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if ((em->plDist2 < 25000000.0f && pG->Game_level <= 9) || w->Atk_ck) {
+            } else if ((em->l_pl < 25000000.0f && pG->Game_level <= 9) || w->Atk_ck) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -1861,7 +1861,7 @@ static void em32_R1_Catch(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if ((em->plDist2 < 25000000.0f && pG->Game_level <= 9) || w->Atk_ck) {
+            } else if ((em->l_pl < 25000000.0f && pG->Game_level <= 9) || w->Atk_ck) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -1953,7 +1953,7 @@ static void em32_R1_CatchHit(cEm32* em)
                 if (w->mode == 0 && Rnd() % 10 > 7 && em32JumpUpCk(em)) {
                     break;
                 }
-                if (Rnd() % 10 > 4 && em->plDist2 < 16000000.0f && em32StepUpCk2(em)) {
+                if (Rnd() % 10 > 4 && em->l_pl < 16000000.0f && em32StepUpCk2(em)) {
                     break;
                 }
                 if (w->targetAngAbs > 1.30899692f) {
@@ -2083,7 +2083,7 @@ static void em32_R1_LongAtk(cEm32* em)
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if ((em->plDist2 < 25000000.0f && pG->Game_level <= 9) || w->Atk_ck) {
+            } else if ((em->l_pl < 25000000.0f && pG->Game_level <= 9) || w->Atk_ck) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -2507,7 +2507,7 @@ static void em32_R1_StepDown(cEm32* em)
                     EmRoutineSet(em, 1, 0xC, flag, flag);
                 } else if (w->mode == 2) {
                     EmRoutineSet(em, 1, 0xB, flag, flag);
-                } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+                } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                     EmRoutineSet(em, 1, 8, flag, flag);
                 } else {
                     EmRoutineSet(em, 1, 9, flag, flag);
@@ -2735,7 +2735,7 @@ static void em32_R1_JumpDown(cEm32* em)
                 EmRoutineSet(em, 1, 0xC, ret, ret);
             } else if (w->mode == 2) {
                 EmRoutineSet(em, 1, 0xB, ret, ret);
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, ret, ret);
             } else {
                 EmRoutineSet(em, 1, 9, ret, ret);
@@ -2902,7 +2902,7 @@ static void em32_R1_C_Atk(cEm32* em)
             EmRoutineSet(em, 1, 0x19, 0, 0);
         } else if (w->timer) {
             w->timer--;
-        } else if (w->timer2 && w->Atk_ck == 0 && w->routeAngAbs < 1.57079637f && em->plDist2 < 16000000.0f) {
+        } else if (w->timer2 && w->Atk_ck == 0 && w->routeAngAbs < 1.57079637f && em->l_pl < 16000000.0f) {
             x10 = w->TmpU32;
             w->timer2--;
             switch (x10) {
@@ -3083,13 +3083,13 @@ static void em32_R1_P_Atk(cEm32* em)
             if (w->Atk_ck) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xA, 0, 0);
-            } else if (w->routeAngAbs < 0.785398185f && em->plDist2 < 9000000.0f) {
+            } else if (w->routeAngAbs < 0.785398185f && em->l_pl < 9000000.0f) {
                 EmRoutineSet(em, 1, 0x1C, 0, 0);
             } else if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             } else if (w->mode == 2) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -3153,12 +3153,12 @@ static void em32_R1_P_Catch(cEm32* em)
             if (w->mode == 0 && Rnd() % 10 > 7 && em32JumpUpCk(em)) {
                 return;
             }
-            if ((w->Atk_ck || Rnd() % 10 > 4) && em->plDist2 < 16000000.0f && em32StepUpCk2(em)) {
+            if ((w->Atk_ck || Rnd() % 10 > 4) && em->l_pl < 16000000.0f && em32StepUpCk2(em)) {
                 return;
             }
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
-            } else if (em->plDist2 < 25000000.0f && pG->Game_level <= 9) {
+            } else if (em->l_pl < 25000000.0f && pG->Game_level <= 9) {
                 w->wait = 60;
                 EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
@@ -3244,7 +3244,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
                 if (w->mode == 0 && Rnd() % 10 > 7 && em32JumpUpCk(em)) {
                     break;
                 }
-                if (Rnd() % 10 > 4 && em->plDist2 < 16000000.0f && em32StepUpCk2(em)) {
+                if (Rnd() % 10 > 4 && em->l_pl < 16000000.0f && em32StepUpCk2(em)) {
                     break;
                 }
                 if (w->targetAngAbs > 1.30899692f) {
@@ -3488,7 +3488,7 @@ static void em32_R1_BreakBarred(cEm32* em)
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             } else if (w->mode == 2) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -3567,7 +3567,7 @@ static void em32_R1_Dm_Normal(cEm32* em)
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            if (em->plDist2 < 25000000.0f && em32StepUpCk2(em)) {
+            if (em->l_pl < 25000000.0f && em32StepUpCk2(em)) {
                 return;
             }
             if (w->targetAngAbs > 1.30899692f) {
@@ -3575,7 +3575,7 @@ static void em32_R1_Dm_Normal(cEm32* em)
             } else if (w->mode == 2) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
                 return;
-            } else if (Rnd() % 10 > 4 || em->plDist2 < 49000000.0f) {
+            } else if (Rnd() % 10 > 4 || em->l_pl < 49000000.0f) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 9, 0, 0);
@@ -3704,12 +3704,12 @@ void em32RouteCk(cEm32* em)
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
-        em->plDist2 = 10000000000000000.0f;
+        em->l_pl = 10000000000000000.0f;
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
+    w->targetDist = em->l_pl;
     w->pTarget = pPL;
     w->flags &= ~4;
     if (DbgFlagChk(pG, DBG_RTP_DISP)) {
