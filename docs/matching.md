@@ -1,7 +1,7 @@
 # Resident Evil 4 (GameCube, G4BE08 debug build) — matching notes
 
-Goal: C/C++ source that compiles to a byte-identical `main.dol` and 110 byte-identical `.rel`
-overlays. The build reproduces the original binaries from split objects; every unit that is matched
+Goal: C/C++ source that compiles to a byte-identical `main.dol` and 114 byte-identical `.rel`
+overlays (110 on disc 1, the four `st3_*` island stages on disc 2). The build reproduces the original binaries from split objects; every unit that is matched
 replaces one split object with compiled code.
 
 This file is the reference part of the notes written during the matching work: how the compilers
@@ -9,6 +9,16 @@ behave, which source shape produces which instruction pattern, and the project c
 pass-by-pass log (the evidence behind every `// COMPILER-DIFF:` tag and every rule below, in
 chronological order) is in `docs/research/`; column 5 of the lever catalogue and many source comments
 cite its `### ` section titles.
+
+Reading the dated entries: every unit matches (115/115 binaries), so an entry marked `OPEN` records the
+state at its date and the mechanism was found later (the closer is in `docs/research/` under the
+unit's pass). Entries that name the reference-view setters (`U32Set`, `FSet`, `PSet`, `ISet`, ...), the
+`pGS`/`pPLS` struct views or a one-member `XxxWorkPtr` global describe the source form that was needed
+before the mem-flags compiler patch ("Compiler"); those helpers are gone (PR #10) and a plain member
+store or pointer is the form now. The undated rules below have been rewritten to say so where it
+matters; the dated pass logs keep their wording. Harness directories the dated entries name
+(`/tmp/ssw6`, `/tmp/sched5`, ...) were scratch and are gone; what was kept of them is
+`tools/research/`.
 
 ## Conventions
 
@@ -32,7 +42,7 @@ cite its `### ` section titles.
   with the chain unmerged, ...) was inline asm in the vendor's source — keep the asm body for THAT
   function and say so in a comment (mpv_mc `MPVMC08_OneRef1p_TuneC`). Everything else must be C.
 - A unit counts as matched when bytecmp says IDENTICAL, (REL) `python3 tools/make_rel.py --verify` passes,
-  and after `ninja -k 0` `build/tools/dtk shasum -c config/G4BE08/build.sha1` prints 111 OK. Every unit is
+  and after `ninja -k 0` `build/tools/dtk shasum -c config/G4BE08/build.sha1` prints 115 OK. Every unit is
   linked from source; while you work on one, list it in `NON_MATCHING` (`config/G4BE08/objects.py` or
   `modules.py`) so the build links the original object and the SHA-1 check keeps passing.
 - Tools: the research kit (see "Tooling kit" below) — `tools/research/kit/variant.sh <unit> <variant-src> [FUNC]`
@@ -63,9 +73,9 @@ every lever with `tools/research/kit/variant.sh`; read the mechanism's numbers w
 | a value sits in an argument register (r9/r10) at a variadic call whose format does not use it (`lha r9`, `lhax r9`), and/or a rematerialised `lis` there takes r11 while r9 looks free | calls.c: a surplus argument to a variadic callee is a bare `(set r9 x)` before the call: local-alloc ties `x` to r9, `x` is live at the other argument insns, so reload's per-insn `used_spill_regs` loses r9 and r11 joins the spill set (round robin from then on) | pass the value as an extra argument to the eprintf/printf (`eprintf(.., "[%6s]", dir, no)`); the original did | — | "Tool RELs, db_mod pass 8" |
 | target keeps a constant (`li rN,K`, `lis @ha`, pool `lfs`) in a callee-saved register across calls/loops, ours re-materialises it at each use | local-alloc.c update_equiv_regs: a pseudo set once to a constant gets REG_EQUIV and is never allocated (rematerialised by reload) | make the pseudo multi-set (two assignments, `no = ..` reused in another case), a shared variable across cases | (no asm-emitted constants any more, compiler.md ("Asm-removal pass"): a two-set variable, the set inside the loop with the use after it, a fold only combine can do `((u32) e >> 16) & 0xFFFF0000`, three uses so `update_equiv_regs` leaves the `lis` in block 0, `register int z asm("r11")` pin), tag #13 | "COMPILER-DIFF #13 sweep", "Tool RELs, t_esp pass 5", "DOL cam_ctrl final closer" (asm `la` args) |
 | `addi rX,r1,N; mr rY,rX` / a hoisted `&local` in ours, a fresh `addi` per use in the target | gcse PRE of `(plus fp N)`; inline argument sets to hard regs are never PRE'd (integrate subst_constants); `high(sym)` PRE to the end of bb 0 | frame-offset-0 local, `&local` passed through an inline taking `Vec*`, `FadeSetW` (the inline's own temp slot), argument expression instead of a variable, `Vec* pa = &ang2` at the block top | `asm("" : "+r"(p))` launder; `&local` passed through a `static inline` wrapper (integrate substitutes it into hard-register argument sets, which PRE never touches); an explicit `else pm = m;` arm to end the cse ebb, tag #3 | "Known compiler-build differences" 3, "DOL sweep 21b" (FadeSetW), "DOL structural pass 5" (view) |
-| extra/missing `clrlwi`/`extsh`/`extsb` at a call, a store or a return | combine strips a narrow extension only for a single-set pseudo with known nonzero bits; promoted parameters; `(sign_extend (subreg:QI no))` on a 2-set pseudo | `int c = col;` then `(u8) c` at the use; the launder in the ARM (not the join) when PRE must share it; `u8 num = a; if (num < 60) num = 60;` vs the ternary | int-view / narrow-view asm-labelled alias `T fI(int) asm("mangled")`, tag #2/#4 (check the plain call first: 5 of 51 were unnecessary) | "Known compiler-build differences" 2/4, "db_light, second pass" (COMPILER-DIFF 2), "COMPILER-DIFF tag audit" |
+| extra/missing `clrlwi`/`extsh`/`extsb` at a call, a store or a return | combine strips a narrow extension only for a single-set pseudo with known nonzero bits; promoted parameters; `(sign_extend (subreg:QI no))` on a 2-set pseudo | `int c = col;` then `(u8) c` at the use; the launder in the ARM (not the join) when PRE must share it; `u8 num = a; if (num < 60) num = 60;` vs the ternary | an `int` local, a `(int)` launder `asm("" : "=r"(ai) : "0"((int) a))` or a `register` pin, tag #2/#4; a mangled callee's declaration follows its symbol's types, a C-linkage callee gets an int-view declaration under `asm("<symbol>")` (t_id `ScreenReSizeI`); check the plain call first: 5 of 51 int-view aliases were unnecessary and the rest were declarations that disagreed with the symbol (PR #7) | "Known compiler-build differences" 2/4, "db_light, second pass" (COMPILER-DIFF 2), "COMPILER-DIFF tag audit" |
 | parameter copy `fmr fN,f1` / `mr rN,r3` ranked as if the incoming register did not die (prologue) | regmove optimize_reg_copy_1 moves the REG_DEAD only when the modes match | read the incoming register in another mode in block 0 | `register f32 x asm("f1")` read as f64 (or s16 for int) inside a codeless `asm("" : "=m"(field) : "f"(x))`, tag #8 | "COMPILER-DIFF #8 closed" |
-| argument moves interleaved differently at a mixed int/float call (`fmr f1; li r4; fmr f7; li r5`) | calls.c load_register_parameters in argument order; the FP source dying at the move is weight 0 (rank18 research: no compiler variant fixes it) | try the plain member call first (8 of 26 aliases were unnecessary) | floats-first asm-labelled redeclaration of the callee (`include/atari_init.h`), tag #1 | "Known compiler-build differences" 1, "COMPILER-DIFF tag audit" |
+| argument moves interleaved differently at a mixed int/float call (`fmr f1; li r4; fmr f7; li r5`) | calls.c load_register_parameters in argument order; the FP source dying at the move is weight 0 (rank18 research: no compiler variant fixes it) | a floats-first declaration (`cAtariInfo::init`, row re-mangled `init__10cAtariInfofffffffiii` by PR #7, see naming.md), the plain member call (8 of 26 aliases were unnecessary) | float constants passed as pseudos through the `AtariInit` inline (`include/atari_init.h`), tag #1 | "Known compiler-build differences" 1, "COMPILER-DIFF tag audit" |
 | a shared tail cross-jumped in ours and duplicated in the target (or the reverse); `li r3,0` placement before `beq` | jump2 cross_jump is stock; decided by the RTL at jump2 entry: `(use r3)`, flow's `(use (const_int 0))` after a block-ending CALL, sched2's position of `li r3,K`, jump1's `x = b; if (c) x = a` hoist (tools/research/xjump.py predicts) | duplicate the tail through a non-call statement per arm; arm order; `if (ok) { ..; return 1; } err; return 0;`; `int c; if (..) c = 0; else c = 0x14;` as a statement, not a ternary | `asm volatile("")` (ASM_INPUT) ending an arm, a tied launder, tag #6 | "COMPILER-DIFF #6 resolved", "Matching rules of thumb" (branch arms ending in a call), "db_light, third pass" |
 | loop rotated/un-rotated, duplicated exit test, `b test` poll, peeled FP exit test, constants reloaded per iteration | stmt.c expand_end_loop scans ~30 insns for a jump to the loop end; `for(;;){if(c)break;}`/`while(c)` rotate, `while(1)` + deep break and `if(!c){..} else break;` do not; a goto loop has no loop notes | `while (f() != 1) SceSleep(1);`, `do { if (call()==1) break; SceSleep(1); } while (1);`, `goto open; wait: SceSleep(1); open:`, `for (;;) { A; if (c) { x = lim; break; } SceSleep(1); }` | — (all are spellings) | "Don'ts" (loop rotation, room idioms), "COMPILER-DIFF #7/#9 closed" |
 | loop counter kept (`cmplwi i,N`) vs pointer compare (`cmplw`), giv `li rY,C` position, `subic./bge`, `addic.; bne` | loop.c strength reduction: a single-use giv is not combined, a giv passed to a call puts its init after the hoisted invariants, `u32` vs `int` decides cmplw/cmpw, a post-loop use keeps the biv | write the giv expression at every use (`C + i*14`), a `y += 14` variable to combine, keep `i` by a use after the loop, `for (i = n-1; i >= 0; i--)`, `while (i--)`, `if (i++ == 9)` | `int dead = 0;` before the copies (extra pseudo), tag #13 | "Matching rules of thumb" (menu loops, strength-reduced index), "db_light, third pass", "Tool RELs, t_event closer" (XmlNodeDataClear) |
@@ -73,7 +83,7 @@ every lever with `tools/research/kit/variant.sh`; read the mechanism's numbers w
 | `.rodata` order (pool constants, strings, vtables, deferred statics), dead pool entries | varasm/finish_file order: inline string literals at parse time, function-local static initialisers after the body, vtables then deferred namespace statics in declaration order | declaration order of `static const` tables, `extern` in a header vs internal linkage, `static const Vec` sources, `#line N` for `__LINE__` | dead `f32 lcN` labels (row 2) | "db_light, second pass", "Matching rules of thumb" (`const T x[]` extern), "DOL structural pass 5" (dead pool) |
 | `.text`/`.bss`/`.data` order or size gap, phantom or missing functions, linkonce copies | the original link stripped never-called statics per function; `.gnu.linkonce` placement (ngccc.py); `static int x = 0` .data vs `static f32 v` .bss; empty in-class ctor emits the object at the definition | `STRIP_UNUSED` / `LINKONCE_DROP` in modules.py or objects.py, declaration order, empty `C() {}` | — | "REL modules", "Room idioms" (r229), "DOL sweep 23a", "Matching rules of thumb" (statics) |
 | frame slot order / frame size, `addi rX,r1,N` offsets | function.c assign_stack_temp best-fits into freed inline slots, address-taken scalars after arrays, ADDRESSOF forcing, frame = ALIGN8(8 + vars + fpmem + fp/gp) | declare locals after the getter calls / in inner blocks, by-value struct helper for a 4-byte temp, `Vec* pa = &ang2` at the block top | `asm("" : "=m"(unused))` to keep an unused slot | "Matching rules of thumb" (locals whose frame slot, frame size), "Tool RELs, t_esp pass 11" |
-| `new` result: ctor stores late, the object pointer in a callee-saved register, spill set of `&local`s | calls.c is_malloc -> REG_NOALIAS -> unique alias base for the pointer; the target's `new` result had none (`NOMALLOC=1` is the oracle) | pass the pointer through a non-inlined boundary / a memory round trip; `CreateEditWindowN(slot)` reading the global inside the helper | class-scope `operator new` bound to the `__builtin_new` symbol, tagged | "Tool RELs, t_esp pass 12/13" |
+| `new` result: ctor stores late, the object pointer in a callee-saved register, spill set of `&local`s | calls.c is_malloc -> REG_NOALIAS -> unique alias base for the pointer; the target's `new` result had none (`NOMALLOC=1` is the oracle) | pass the pointer through a non-inlined boundary / a memory round trip; `CreateEditWindow1..3(slot)` (t_esp) reading the global inside the helper | class-scope `operator new` bound to the `__builtin_new` symbol, tagged | "Tool RELs, t_esp pass 12/13" |
 | `switch` compare tree shape (`cmpwi;beq;bgt` chain, default first, folded case constant) | stmt.c/jump.c case tree (tools/research/casetree.py validated on 836 switches) | case order, `default:` first, empty `case 0: break;`, `no = g->x; switch (no) { case N: num = N; }` | — | "Switch tree model", "Room idioms" |
 | inline boundary: `bl` vs inlined body, deferred inline order, template copies | integrate.c: a `void*` destination is not inlined, inline size limits, `static inline` vs macro, `saved_inlines` order | macro vs inline, `void*` parameter, a helper taking `Vec*`, `template <>` declaration order | — | "Inline-vs-macro sweep", "REL modules" (linkonce), "Sscrn" (candidate #8 end-of-file order) |
 | setcc (`xori;subfic;adde`) vs branch; `%256` as `rlwinm;subf`; one mask vs two `andi.` | fold/expand: `x = (a == 2)` is a setcc, `!= 2` branches; `(on & A) || (on & B)` folds to one mask | `cursor = (mode == 2)`, inline helpers for separate `andi.` tests, `int skip = 1; if (..) skip = 0;` | — | "db_light" passes, "Room idioms" (r11b) |
@@ -145,7 +155,7 @@ that is not in the repo):
 - Symbols: `config/G4BE08/sym_map.tsv` — address, size, section, unit, scope, current symbol name,
   original demangled name (from the debug build's `Bio4.sym`). Function boundaries and sizes are exact.
 - Target asm per unit: `build/G4BE08/asm/<unit>.s` (dtk disassembly with symbolic relocations).
-- The 110 REL overlays (rooms, enemies, players, weapons, tools) build byte-identical too; their units are `<mod>/<file>.cpp` with
+- The 114 REL overlays (rooms, enemies, players, weapons, tools) build byte-identical too; their units are `<mod>/<file>.cpp` with
   their own symbol files under `config/G4BE08/modules/<mod>/` — see "REL modules" below.
 - Types: `include/types.h` (u8..f64). Shared class/struct definitions go in `include/<name>.h`;
   check existing headers before adding a type, and only extend, never rewrite, structs other units use.
@@ -221,7 +231,12 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
    experiment harness exists at ../re4-orig/sn-gcc-argorder/harness/ (10 s per
    run over all game units, with `calls.tsv` = 1209 classified call sites); every candidate rule
    either regresses matched functions or fails SetEmBarred's interleave, so NOTHING is installed.
-   Workaround: a floats-first asm-labelled redeclaration (include/atari_init.h) for the affected callee.
+   Workaround now: the callee is declared floats first and its `sym_map.tsv` row carries that mangling
+   (`init__10cAtariInfofffffffiii`; the vendor's `.sym` has `iiifffffff`, see `docs/naming.md` on the
+   PR #7 rows), and float constants go through the `AtariInit` inline of include/atari_init.h so they
+   reach the call as pseudos; the remaining sites are tagged #1. The floats-first `asm("<mangled>")`
+   redeclarations (`atariInitF`, `SatMgrCreateF`, `setYarareCubeF`) were the earlier form of the same
+   reorder and were removed (PR #7, historical below).
    RESEARCH 2026-09-10 (/tmp/rank18 -> /var/tmp/rank18, whole-tree harness with `-D`-hooked haifa-sched.c /
    calls.c / regmove.c and alternative rs6000.md timings; see "COMPILER-DIFF #1 / #8 research" in
    docs/research/compiler.md): SN's haifa-sched.c, calls.c, regmove.c and rs6000_adjust_cost/adjust_priority are stock; every
@@ -238,8 +253,11 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
    the copy, because regmove's optimize_reg_copy_1 only moves the death when the modes match. All six are
    closed (emshield, r223 Matching; emwep setThrow 0 words; pl_wep/em_sub prologues fixed, other residues left).
 2. Narrow-argument extension: the original sign/zero-extends narrow values at some call sites and
-   entries (`extsh`, `clrlwi 24/16`) where ours treats them as promoted. Workaround: asm-labelled
-   alias with the signed/narrow type (id_sys.h `setTimeS`).
+   entries (`extsh`, `clrlwi 24/16`) where ours treats them as promoted. Workaround: the parameter type
+   the mangled symbol gives (`IDSystem::setTime(IdUnit*, s16)` = `setTime__8IDSystemP6IdUnits`), or the
+   PS2 type with the row re-mangled (`setCk__8IDSystemi`, PR #5/#7, see naming.md); where neither fixes
+   it, an int local or a `(int)` launder `asm("" : "=r"(ai) : "0"((int) a))` (em39) or a `register` pin,
+   tagged #2.
 3. (candidate) Frame-address PRE: no `addi rX,r1,N; mr rY,rX` pattern exists anywhere in the original
    asm, while our gcse routinely creates a pseudo for `&local` used in several blocks; the original
    also never cross-jumps a single-insn tail (`find_cross_jump` minimum). Under investigation with the
@@ -370,7 +388,10 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
      is to be installed.
 4. Narrow-argument truncation: the original build does not truncate `int` -> `u16` arguments at call
    sites nor a wider value on a narrow `return`, but masks a u8-returning call assigned to a u16.
-   Workaround: asm-labelled int-view / narrow-view declarations (item.h `constructI`, `searchI`).
+   Workaround: the declaration follows the mangled symbol (`cItemMgr::construct(ItemWork*, ITEM_ID)` =
+   `..P8ItemWorkUs`); a C-linkage callee gets an int-view declaration under `asm("<symbol>")`
+   (t_id `ScreenReSizeI(int, u32) asm("ScreenReSize")`), tagged #4. The `constructI`/`searchI` int-view
+   aliases are historical (PR #7).
 5. haifa interblock scheduling: our cc1plus's `find_rgns` never marks leaf blocks (only successor =
    EXIT) as reached, so any function ending in a plain return block gets single-block regions and no
    interblock motion; the original formed regions there (shadow `ShadowTrans` `mr r3,r31` hoist over
@@ -509,9 +530,10 @@ original: fix the source, do not link it.
 
 - ProDG has no header dependency tracking: after editing a header, `touch` the sources that include it.
 - `size_t` is `unsigned int` (see `include/newlib_local.h`); `unsigned long` changes register allocation.
-- `include/global.h` has `pG` (`GlobalWork`) and the `BitOn(u32&, bit)`/`BitOff` helpers: the original
-  sets/clears flag bits through a reference, which makes GCC reload `pG` after the store and keep
-  consecutive `|=` separate. Use them where the asm shows that pattern.
+- `include/global.h` has `pG` (`GlobalWork`), the `XxxFlagChk/On/Off(pG, NAME)` flag macros and the
+  `BitOn(u32&, bit)`/`BitOff`/`BitOn16`/`BitOff16` helpers. The helpers keep consecutive `|=` separate
+  and `BitOff16` keeps the 32-bit `rlwinm` mask; use them where the asm shows that. The `pG` reload after
+  a store is the compiler's own (see "Compiler", mem-flags patch): a plain `pG->x = v` is the form.
 - `include/dolphin/*.h` are CodeWarrior-only (SDK units); game code uses `include/vec.h` for Vec/Mtx/PS*.
 - Loops that search and set: `for (...) { if (hit) { ...; break; } }`; a `return` inside the loop gives a different tail.
 - Zeroed local arrays (`T* a[3] = {NULL, NULL, NULL}`) become a `memset` libcall with `crclr cr1eq`.
@@ -587,12 +609,11 @@ original: fix the source, do not link it.
   interleaves them).
 - Bio4.sym scopes are unreliable: symbols marked `local` in `sym_map.tsv` are often global (called from
   other units) — check callers' asm before making them `static`.
-- Stores through raw pointers/references (non-struct MEMs) make GCC reload `pG` afterwards and keep
-  loads in source order; struct-member stores don't (`BitOn`/`BitOff`/`BitSet` and the `U16Set`-style helpers take references).
-  A `memcpy` whose destination is a `u32*` pointer variable is such a store (`VEC_COPY` in `global.h`); `memcpy(&pG->f, ...)`
-  in any spelling is not. `pGS` (struct view of pG) is loaded separately from plain `pG` loads, so a `pGS->` access after
-  a struct assignment gets a fresh pG load: the `SeInfo` sets are `pG->SeInfo.pos = pos; pGS->SeInfo.type = n;` (or `pGS`
-  on both in the enemy modules).
+- A member store through a varying pointer keeps a following `pG`/`pPL`/work-pointer load below it and
+  makes cse reload the pointer (the mem-flags patch, "Compiler"); no reference helper or struct view
+  is needed for that. Still distinct: a `memcpy` whose destination is a `u32*` pointer variable
+  (`VEC_COPY` in `global.h`) is a block store the scheduler cannot place against the cached loads,
+  `memcpy(&pG->f, ...)` in any spelling is an ordinary member store.
 - Uninitialised globals are emitted in order of *first declaration*, header externs included, so header
   extern order dictates `.bss`/`.sbss` layout; initialised objects are emitted at their definition.
   Statics/initialised globals ≤ 8 bytes go to `.sdata` (-G 8); 16-byte zero-initialised objects to `.data`.
@@ -605,8 +626,8 @@ original: fix the source, do not link it.
 - `memcpy(dst, "literal")`/`strcpy` with a constant source inlines to word/byte moves; `char s[64] = ""`
   → `lbz` + `memset(s+1, 0, 63)`; `Vec v = {0,0,0}` inside a loop → `memset` per iteration.
 - The original never moves a load of a global (`pG`, a static float) above a store made through `this`
-  or a member pointer; ProDG does unless the store goes through a scalar reference — `FSet(f32&, f32)`,
-  `BitOn16(u16&, u16)` in `include/global.h` reproduce the original order. No compiler flag changes this.
+  or a member pointer; the installed compiler does not either ("Compiler", mem-flags patch). The
+  `FSet`/`U32Set` reference setters that reproduced the order before the patch are gone (PR #10).
 - `fabsf` is a volatile asm (`include/math_sub.h`) and acts as a scheduling barrier.
 - Frame layout: `Vec`/`Mtx` locals are 8-byte aligned; function-level locals in declaration order from
   0x8, block-scoped ones after the block's temporaries, freed block slots reused — block scoping matters.
@@ -624,8 +645,6 @@ original: fix the source, do not link it.
 - `#line N "D:/Bio4/Prog/<unit>.cpp"` before `MEM_ALLOC` reproduces `__FILE__`/`__LINE__` strings.
 - ProDG's scheduler ranks ready insns by register pressure before priority; no cross-block hoisting inside
   functions with loops.
-- A global pointer loaded twice around a block copy: a plain `T* pT` gets the second load hoisted; reading
-  it as a struct member (`((Wrapper*)&pT)->p`, like `cLogPtr`) keeps it below the stores.
 - `for (...) { if (hit) { call; return; } }` duplicates the loop entry test; with `break` the loop is
   rotated with a single bottom test. `if (a && b) {reset} else {load}` vs the swapped form controls
   branch layout.
@@ -634,15 +653,15 @@ original: fix the source, do not link it.
   emitted at their declaration; file-scope uninitialised statics after all function-local ones.
 - `s16 mem += (int)(s16)(float)` keeps `lha/extsh/add/sth`; without the `(int)` cast the front end
   narrows to u16 arithmetic. A local `int num = 5` divisor gives `divw` by register, not the magic multiply.
-- Struct-member view of a global pointer (`pGS`, `pEffParentWorldS`, `pLog`) keeps its load after a
-  preceding store through `this`; but wrapping the global's *declaration* reorders loads in units that
-  already match, so use the view macro only where the target shows it.
+- `pLog` is the one global still declared as a one-member struct (`cLogPtr`, `include/db_log.h`,
+  read through `operator->`): the inline's block notes sit between `high(pLog)` and the load (em27,
+  ss_pzzl). The `pGS`/`pEffParentWorldS` struct views of `pG`/`pEffParentWorld` are gone (PR #10).
 - Independent stores at a block end are issued in reverse RTL order (`a = b = c = 0` -> reverse;
   separate statements `x; y; z` -> `z, x, y`). CSE reuses the newest register holding a constant.
 - A reload of a just-stored member is forwarded as `mr`; a local gives no copy. `if (c < n) x = c+1;
   else x = n;` yields an `mr` before the compare; `x = n; if (...) x = ...` loads into `x` directly.
 - `T* p = alloc(); g.p = p; p->init();` gives `mr r0,r3; stw r0`; assigning the call result directly
-  stores r3. Loading a wrapped global once into a local avoids per-store reloads.
+  stores r3. Loading a global pointer once into a local avoids per-store reloads.
 - `!(flag & 1)` as an `if` condition gives `xori; andi.` when the same test exists in two cross-jumped
   branches; `(flag & 1) == 0` gives a plain `andi.`.
 - `*(u32*)(char_ptr + i*4) = 0` keeps the pointer `lwz` inside a `bdnz` loop (may alias) and prevents
@@ -721,8 +740,9 @@ original: fix the source, do not link it.
   unnamed 4-byte gaps dtk labels as separate symbols.
 - gcse PRE of a struct load across an if/else is blocked by any memory kill in the arm: if the target
   lacks a PRE shape ours produces, the original arm stored to memory somewhere.
-- Every store to a `GlobalWork` field followed by a `pG` reload = the original stored through
-  reference setters (`U8Set/U16Set/U32Set`, `BitOn16`), not plain member stores. Four byte stores after
+- A store to a `GlobalWork` field followed by a `pG` reload is what the compiler does with a plain
+  member store ("Compiler", mem-flags patch); before the patch it was spelled through reference setters
+  (`U8Set/U16Set/U32Set`, historical). Four byte stores after
   a call through one fresh pointer load = an inline with its own `cPlayer* p = pPL` local.
 - A `li rZ,0` in both arms of an if/else whose common tail follows = source-level tail duplication
   (the rest of the function repeated in each arm; jump2 cross-jumps the suffix).
@@ -754,8 +774,9 @@ original: fix the source, do not link it.
   cCoord and cUnit vtable copies = `static const s32 ShadowPtNum[4]` used by the dead ShadowModelInit /
   AddShadowModel).
 - A byte store `x = 0` makes a QImode zero pseudo that later word stores cannot share; `U8Set(x, 0)`
-  (u8& setter, promoted parameter) makes it SImode, and cse's skip-blocks path carries it over a
-  one-statement `if` so the word stores after the join reuse the same register (modelInit).
+  (`include/ref_access.h`: u8& setter, promoted parameter) makes it SImode, and cse's skip-blocks path
+  carries it over a one-statement `if` so the word stores after the join reuse the same register
+  (model.cpp modelInit, the helper's one remaining use).
 - `Derived() : cUnit(1)` (base initializer) instead of `be_flag = 1;` in the body moves the constant's
   pseudo before the vptr pseudo and gives it r0 (cModelInfo::cModelInfo); the store order is unchanged.
 - `for (i = 0; lim = n + 1, i < nArray - lim; i++)`: recomputing `n + 1` in the loop test reproduces
@@ -784,11 +805,9 @@ original: fix the source, do not link it.
   in a QI/HI-mode context (range fold `x >= 0xF8 && x <= 0xFD`, a `switch`), stays a QI/HI pseudo and
   every later int use gets an explicit mask; a local `u8 v = p->member` is promoted and never masked.
   Likewise `u32 no = rec->x6; if (no > 0x7F)` keeps `cmplwi 0x7f` where a u8 local folds to `andi.`.
-  Try this first on the id_sys/emobj/em_set OPEN cases. NOTE (option `setTime`): the original caller
-  sign-extends (`extsh`) an argument whose callee is mangled `Us` (u16) — no cast form gives `extsh`
-  for an unsigned parameter, so the original compiler extends narrow arguments at call sites in a way
-  ours does not (likely a compiler-build difference in argument promotion, like the FPR/GPR arg-move
-  order). Workaround: an asm-labelled signed alias (`setTimeS(IdUnit*, s16) asm("setTime__...Us")`).
+  NOTE (option `setTime`): the original caller sign-extends (`extsh`) the argument because the callee's
+  parameter is `s16` (`setTime__8IDSystemP6IdUnits`); the header had it as `u16`, hence the historical
+  `setTimeS` alias. Read the type off the mangled symbol before suspecting the compiler.
 - `int susp = !(m->flag & bit); if (susp) return;` gives `xori; andi.; bne`; the direct
   `if (!(x & bit))` gives plain `andi./beq`.
 - A single `return ret` reached by `goto ok` from several paths keeps `li r31,1` + `mr r3,r31`;
@@ -797,39 +816,27 @@ original: fix the source, do not link it.
   before the store. `u32 max = f(); if (w->id < max)` loads `id` after the call; `w->id < f()` keeps
   `id` in a callee-saved register across it.
 - Zero-initialised function-pointer table `= { NULL }` lands in `.data`; uninitialised in `.bss`.
-- Byte stores alias everything (alias.c: QImode store -> every global reloaded). Word/half stores
-  through a varying struct pointer never alias a fixed scalar; if the target reloads a global pointer
-  after such a store, the original stored through a scalar reference (`PSet(void*&, void*)`).
+- Byte stores alias everything (alias.c: QImode store -> every global reloaded). With the installed
+  compiler a word/half store through a varying struct pointer also reloads a following global pointer
+  ("Compiler", mem-flags patch); with stock 2.95 it did not, which is what the removed `PSet(void*&)`
+  spelling worked around.
 - A sum written as two statements (`d = a*b + c*d; d += e*f;`) keeps the intermediate in the
   variable's register instead of a temp tied to a dying operand.
 - An unused aggregate local still takes its frame slot.
-- `cModel` (include/model.h) is 0x320 bytes; `cEm`, `cObj`, `cMap` start their own fields at 0x320
-  (sizeof(cEm) 0xDE0, sizeof(cObj) 0x3D8, sizeof(cPlayer) 0xDE0, sizeof(cMap) 0x324 and all 391
-  probed field offsets unchanged by the refactor, verified with an offsetof harness before and after;
-  `cMotModel` is now an empty cModel subclass, 0x320 instead of 0x2B4). Layout (after cCoord's 0xF4 bytes):
-
-  | offset | field | notes |
-  |---|---|---|
-  | 0xF4 | `pParts` / `pPartsHead` | cModel* / cParts* views of the parts chain |
-  | 0xF8 | `serial` | |
-  | 0xFC | `stat` / `xFC..xFF` | word / byte views |
-  | 0x100 | `id`, `type`, `nParts`, `x103` | |
-  | 0x104 | `speed`, `oldPos`, `wallNrm` | Vec ×3 |
-  | 0x128 | `pFloorNrm`, `x12C..x12F`, `pCldShMd`, `shdCol`, `x135..x13B`, `fixParts`, `fixPos`, `x14C..x14F` | aliased by the obj05 `efmStat/efmSpd/efmRotSpd` view |
-  | 0x150 | `x150` / `x150w` | f32 / u32 |
-  | 0x154 | `alpha`, `x158`, `pInfo`, `pShMdInfo` | |
-  | 0x164 | `lightInfo` | cLightInfo, 0x74 bytes |
-  | 0x1D8 | `mot` | MotionWork (0xDC bytes); the cEm/cObj names (`pMotion`, `motFlags`, `motState`, `motFlags2`/`x21C`, `satPos`, `seNo`, `seFlags28B`/`motEvent`, `frame`/`motFrame`, `frameMax`/`motSeqMax`, `motSpeedRate`, `x29D`, `p2A4`, `blendMot`/`motBlend`, `motFlip`, `x2B0`) are an anonymous-struct view of it |
-  | 0x2B4 | `atari` | cAtariInfo (0x4C); wrapped in an anonymous struct so no member ctor runs, cModel::cModel calls `AtariInfoConstruct` |
-  | 0x300 | `x300`, `x304` | |
-  | 0x308 | `pFootShadowTbl` | |
-  | 0x30C | `litArea` | EmLightArea (0x10) |
-  | 0x31C | `pTexChg` | cTexChg* |
-  | 0x2B4 | `sub2B4` | ObjSub2B4: the object units' view of 0x2B4..0x320 |
-
-  `MotionSeqKey/MotionData/MotionWork`, `EmLightArea`, `ObjSub2B4` now live in model.h; `cParts`
-  (0x1D8, a cCoord with `pNext`, `bindMat`, `addRot`, `motParts`) and the two managers are declared
-  before cModel. `cObj::blk` sits at 0x324 (was `sub2B4.blk`). `p2A4` is `void*` (cam_ctrl casts it).
+- `cModel` (include/model.h) is 0x320 bytes; `cEm`, `cObj`, `cMap` start their own fields at 0x320.
+  `cEm` is 0x3E0 (em.h; the per-character fields are `cPlayer`/`cSubChar`'s and the enemies overlay a
+  work on the free area, `EM_WORK_SIZE` 0xDE0 is the manager stride), `cObj` 0x3D8, `cMap` 0x324
+  (offsets verified with an offsetof harness when the classes were consolidated). The layout is in `include/model.h`
+  with the offset in each field's line comment: `pParts`/`pList` 0xF4, `r_no_0..3` 0xFC, `speed`/`pos_old`/
+  `Wall_norm` 0x104, the 0x128 union (player fields / obj05 `efmStat`/`efmSpd`/`efmRotSpd`),
+  `LightInfo` 0x164 (cLightInfo), `Motion` 0x1D8 (`MotionWork`, 0xDC bytes: `MotionWorkSub` = the PS2
+  `MOTION_INFO` fields `pMot`, `Mot_frame`, `Mot_frame_max`, `Mot_attr`, `Mot_state`, `Mot_flag`, `Seq`, ...
+  plus the GC `blend`/`flip`/`blendTbl` pointers), `atari` 0x2B4 (cAtariInfo, wrapped in an anonymous
+  struct so no member ctor runs; cModel::cModel constructs it explicitly), `litArea` 0x30C, `pTexChg`
+  0x31C, and `ObjSub2B4 sub2B4` as the object units' view of 0x2B4..0x320. The cEm/cObj alias union
+  over the motion work (`pMotion`, `motFlags`, `frameMax`, `blendMot`, ...) was removed on 2026-09-21;
+  the sources read the `Motion.` members. `cParts` (0x1D8, a cCoord with `pList`, `lt_inv_mat`,
+  `addRot`, `motParts`) and the two managers are declared before cModel. `cObj::blk` sits at 0x324.
 - Callee return type changes arg-setup order through dependence counts: an `int` result adds an
   output dependence on r3 that pulls `li r3,0`/`mr r3` to the end of the arg block. Declare the callee
   with its real return type (check the callee's own asm); `EstSet`, `MotionSetCore` are `void`.
@@ -855,8 +862,9 @@ original: fix the source, do not link it.
 - Hand-rolled `goto` loops (label + `if (...) goto loop`) get no loop notes: no invariant hoisting
   and no givs, with an explicit `ofs += N` variable. A `found:` label inside the last loop's if-body
   puts the shared exit block inside that loop.
-- A unit-owned global pointer the original reloads after every store through it is reproduced by
-  defining the global itself as a one-member struct (`TexRenderMngPtr g_pMgr; g_pMgr.p`).
+- A unit-owned global pointer the original reloads after every store through it is a plain pointer
+  global with plain member stores (esp_app `TexRenderMng* g_pMgr`; the one-member struct wrapper it
+  had before the mem-flags patch is gone).
 - Vec by-value parameters are passed by reference under the V4 ABI: callee code identical to `Vec*`.
 - A local `lim = 512.0f` shared by an `if` test and a `while` bound keeps one constant register; a
   repeated literal inside the loop is hoisted as a second pseudo and copied (`fmr`).
@@ -946,9 +954,10 @@ original: fix the source, do not link it.
   preferences; inlining the expressions per test gives per-block pseudos.
 - Unused `.sdata` globals with no Bio4.sym name must keep the `lbl_XXXXXXXX` symbol name or
   strip_unused removes them.
-- Reading a static through a reference (`static inline f32 FRef(f32& v) { return v; }`) gives a MEM
-  with neither the struct nor the scalar flag: the load stays below preceding member stores and
-  blocks flow.c's dead-store elimination of an earlier store to the same member.
+- Reading a static through a reference parameter (historical `FRef(f32&)`, no longer in the tree)
+  gave a MEM with neither the struct nor the scalar flag: the load stayed below preceding member
+  stores and blocked flow.c's dead-store elimination of an earlier store to the same member. With the
+  mem-flags patch a plain read has the same flags.
 - SN's `BRANCH_COST` is 0, so `&&` is never folded to `&`: a `subfic/adde ... and.` store-flag pair is
   an explicit `&` in the source.
 - Byte stores of the literal `0xFF` share one `li rX,0xff`; a `u8`/`int` local `c = 0xFF` yields `li -1`.
@@ -979,9 +988,10 @@ original: fix the source, do not link it.
 - Loop invariants assigned inside the body (`range = to;` in the `for`) survive as an `fmr` copy /
   shared double-trick registers hoisted by loop.c; the bound `j < i` with `i = 15` a variable gives
   `cmpwi 0xf; blt`, a literal 15 gives `cmpwi 0xe; ble`.
-- The original stores to unit globals/members through scalar references far more often than
-  expected: `U16Set`, `VSet(ptr, MEM_ALLOC(..))`, `MSet`, `FSet(m->dir.y, -1.0f)` and reference
-  *reads* (`BitChk(pG->flags, bit)`) are what keep following `.sdata`/`pG` loads below the store.
+- Following `.sdata`/`pG` loads stay below a member store with the installed compiler ("Compiler",
+  mem-flags patch). The `U16Set`/`VSet`/`MSet`/`FSet` reference stores and `BitChk` reference reads
+  that used to be needed for that are gone; `U16Set` (global.h) remains only where the stored constant
+  must sit in its own register (mes, sce_at, ss_shop, ss_file).
 - Inline accessors taking `&m->member`: every such argument is a fresh `(plus m ofs)` that gcse PRE
   turns into an `mr rX,rMember` copy.
 - `found = 1` written after a void call is scheduled above the `bl` into the callee-saved register.
@@ -1009,8 +1019,9 @@ original: fix the source, do not link it.
 - `mr rLong,rTmp; stb rTmp` (value stored and copied into a long-lived variable) = a reused block
   temp (`u8 c; c = sr[ptn]; mat.r = c; r = c; c = sg[ptn]; ...`); multi-set `c` blocks coalescing.
 - An uninitialised `GXColor amb;` passed by value emits `stw rCalleeSaved, slot` (garbage register).
-- Argument-move order workaround is per call site: a call may need the floats-first asm-labelled
-  redeclaration while another call of the same function in the unit matches with the real one.
+- Argument-move order is per call site: with the declaration in the symbol's order, one call of a
+  function may still need its float constants passed as pseudos (`AtariInit`) while another call of the
+  same function in the unit matches with literals (tag #1).
 - flow.c appends `(use (const_int 0))` after any CALL_INSN that ends a block; jump2's cross-jump then
   fails against the fallthrough, so one of N identical call tails stays unmerged unless the arm does
   not end in the call (repeat a trailing store in every arm to let the tails merge deeper).
@@ -1054,12 +1065,10 @@ original: fix the source, do not link it.
   from merging `lwz r0; mr r29,r0; cmpwi r0`.
 - Float `ble/bge` without `cror` = reversed `>`/`<`: write `if (!(a > b))`; `cror un,eq,lt; bso` is
   the real `<=`.
-- Work-struct init blocks: int/f32 fields written through reference setters (`ISet/FSet`) while u8
-  fields are plain stores gives the target's store schedule where plain int stores never do.
 - `insert_bct` refuses known loop counts < 3: a 2-iteration loop only becomes `mtctr/bdnz` if the
   count is not visible to loop.c.
 - Routine bytes: the `ff, fd, fc, fe` store order of an `xFC/xFD/xFE/xFF` state change comes from an
-  inline `PlRoutineSet(pl, int, int, int, int)` storing `fc, fd, fe, ff`; direct byte stores give
+  inline `EmRoutineSet(em, int, int, int, int)` (em.h) storing `r_no_0..3`; direct byte stores give
   the dying-first order.
 - A static local aggregate with a `_.tmp_0` guard and per-member `stfs 0.0` is a class with a
   constructor (`struct P { f32 x,y,z; P() {..} }`), not a POD initializer.
@@ -1070,8 +1079,10 @@ original: fix the source, do not link it.
 - Interblock scheduling threshold: haifa's `find_rgns` makes a loop one region only if its LUID span
   is <= 100 (notes and deleted insns count). A loop body over that limit shows no speculative
   hoisting (`mcrf cr7,cr0`, arg `li`s before the branch).
-- No `clrlwi` for `0x40 + i` passed to a `u8` parameter is only obtainable with an int-parameter
-  asm-labelled alias of the callee (`unitPtrI`, `setI` in id_sys.h).
+- No `clrlwi` for `0x40 + i` passed to a `u8` parameter: the plain call gives none (ss_shop
+  `IdSub.unitPtr(0x21 + i, ..)`, `IdNum.set(.., 0x40 + i, ..)` against `unitPtr__8IDSystemUci`); the
+  historical `unitPtrI`/`setI` int-view aliases were unnecessary (the tag audit's "check the plain call
+  first").
 - Stores to a plain `static void*` are freely reordered against `u->member` loads; declaring them as
   one-element arrays (`g_p[1]`) keeps the target's load/store interleave.
 - `psq_l f,0(rP),1,qrN` straight from a stepping pointer is inline asm; the compiler always goes
@@ -1165,9 +1176,9 @@ original: fix the source, do not link it.
 - A conditional `x12F = a < 250.0f ? 1 : 0` compiles to `mfcr`; the original `if/else` with constant
   stores cross-jumps to `li 0; bge; li 1; stb`. `f32 ratio = a / b; w->a = (f32) c * ratio;` evaluates
   the division before the u8 load; the inline product converts `c` first.
-- Stores through `FSet` (scalar references) keep a following `.sdata` load (`lfs f1, static@sda21`) after
-  them; plain member stores let ProDG hoist the load. Their emission order still follows the reverse-order
-  rule, so permute the statements (`speed.x, speed.y, speed.z, pos.y` in source gives `x, y, pos.y, z`).
+- Member stores keep a following `.sdata` load (`lfs f1, static@sda21`) after them (installed compiler).
+  Their emission order follows the reverse-order rule, so permute the statements (`speed.x, speed.y,
+  speed.z, pos.y` in source gives `x, y, pos.y, z`).
 - Parameter order only shows in register allocation of the copies; for the filter `GXDraw` helpers the
   order `(f32 x, y, z, u, v, u8 r, g, b, a, f32 scale, int div, int fmt, ...)` reproduces the target.
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
@@ -1305,7 +1316,8 @@ original: fix the source, do not link it.
   strings land between vtable groups: ctrl.h declares cCtrl00/01/10 *after* cCtrlMgr to get
   `_vt.7cCtrl10, 01, 00, [destroy strings], _vt.8cCtrlMgr, cManager, cCtrl, cUnit`.
 - An in-class inline `getWork()`/ctor of a class whose vtable the unit owns is emitted out of line (grows
-  .text): use a free `static inline` (ctrl.h `CtrlMgrWork`) and no user-declared `cCtrl()` ctor.
+  .text): reach the pool through the base template's `cManager<T>::at(i)` (ctrl11/ctrl12 `CtrlMgr.at(i)`;
+  the per-manager `XxxMgrWork` free inlines of 2026-09 are gone, PR #7) and declare no user `cCtrl()` ctor.
 - Functions with function-pointer parameters declared inside `extern "C" {}` need `extern "C"` on the
   definition too, or GCC 2.95 treats the definition as a C++ overload (`AddOtDirect__FiPvPFv_v...`).
 - Weak vtable copies (`_vt.7cCamera` in cam_extra and cam_motion): the reference in the later unit binds
@@ -1314,18 +1326,19 @@ original: fix the source, do not link it.
 - `#line N` for an inline `MEM_ALLOC` inside a class body counts from the `class` line (ctrl.h: `#line 113`
   puts memAlloc on line 116).
 - `-0x602` mask (`and r0, r0, r11`) in every `_._7cCtrlXX` is the inlined `cUnit::~cUnit` (`be_flag &= ~0x601`).
-- (read) `bl ReadCheck__4cDvdi` with a `DvdReadInfo*` in r5: `cDvd::ReadCheck(int)` passes its uninitialised
-  `info` pointer through to readCheckMain, and read.cpp calls it with three arguments. An asm-labelled
-  member declaration reproduces the call (`int ReadCheckInfo(int, DvdReadInfo*) asm("ReadCheck__4cDvdi");`
-  in dvd.h); PMF casts give an indirect call.
+- (read) `cDvd::ReadCheck` is two overloads (`ReadCheck__4cDvdiPiT2PPv`, `ReadCheck__4cDvdiP11DvdReadInfo`);
+  read.cpp calls the `DvdReadInfo*` one directly (dvd.h). The vendor's `.sym` spells the second
+  `ReadCheck__4cDvdi` (a one-parameter mangling for a function whose body reads r5); PR #7 renamed the
+  sym_map row to the two-parameter spelling so the header can declare the overload without the historical
+  `ReadCheckInfo(...) asm("ReadCheck__4cDvdi")` alias. PMF casts give an indirect call.
 - `static` functions with unmangled names in sym_map (decodeData, readEm) were declared inside the
   `extern "C" {}` block. "global constructors keyed to X": X is the first *public* function/initialised
   object emitted, so everything before it in `.text` is static.
 - `memcpy(dst, src, n)` with typed pointers (`OSModuleHeader*`) expands inline to a libcall with
   `crclr cr1eq`; `void*` operands give a plain prototyped `bl memcpy` (read readEmData).
 - A store to a scalar global followed by a struct-member load (`EmInitFunc = m->pInitFunc; return
-  m->pArc;`) lets ProDG hoist the load above the store; the original kept the order, so the global is
-  stored through a struct view (`((EmInitFuncPtr*)&EmInitFunc)->p`, the pLog trick on the store side).
+  m->pArc;`) keeps the order with the installed compiler; the `EmInitFuncPtr` struct view of the
+  global that reproduced it before the mem-flags patch is gone.
 - A flag test through a `u16&` inline (`BitChk16(PlReadModule.flag, 2)`) materialises `sym+0x82` into a
   register; `&PlReadModule` right after is then `subi r4, rX, 0x82` (cse related-value). `BitOn16` on a
   global struct member gives `lis sym+ofs@ha; lhz/sth sym+ofs@l(r9)`, the plain `|=` after `&sym` is
@@ -1445,7 +1458,8 @@ original: fix the source, do not link it.
   PLUS at the top of the INDIRECT_REF) is not in-struct, so a `static f32 a_ratio` is reloaded after every such
   store while the address still folds to base+index (`lfsx r9,r10`); `v[i]` / `*(v + i)` are in-struct (the
   load is hoisted) and an `f32&` parameter makes the address a general giv (stepping pointer with
-  displacements). `FSet(unitPtr()->rot.z, x)` on a call result keeps the following `pG` load below the store.
+  displacements). A member store on a call result (`unitPtr()->rot.z = x`) keeps the following `pG`
+  load below the store (installed compiler).
 - A `u8` function result (`u8 f()` declared so) assigned to a `u8` local is never masked (SUBREG_PROMOTED); an
   `int` local holding a u8 result passed to two u8 parameters gets one PRE'd `clrlwi` before both calls
   (BulletInfo::move `wepNo`). `u16 num = f()` with `u16 f()` compares `mr. r30,r3` directly and masks
@@ -1513,12 +1527,12 @@ original: fix the source, do not link it.
 - A pointer local assigned in two places (`mgr = pMgr;` twice) has two deaths, is skipped by local-alloc
   and gets a caller-saved register (r12) from global alloc; two distinct locals are local-allocated and
   take r9 / r30 in alloc order.
-- Reading a global through a one-member struct *wrapper declaration* (`TexRenderMngPtr g_pMgr; g_pMgr.p`)
-  forces the `@sda21` address into a register (`li r8, g@sda21; lwz r9, 0(r8)`) whenever the member is
-  read as a value (`mgr = g_pMgr.p`, `this` of a method call) — `expand_expr` calls `memory_address`
-  on the BLKmode struct and constant addresses go through a pseudo "to be cse'd". A plain pointer
-  global with reference-setter stores (`BitSet(mgr->sx, 0x40)`, `ISet(mgr->repType, v)`) gives the
-  same reloads with direct `lwz r9, g@sda21`.
+- Reading a global through a one-member struct *wrapper declaration* (historical `TexRenderMngPtr
+  g_pMgr; g_pMgr.p`) forces the `@sda21` address into a register (`li r8, g@sda21; lwz r9, 0(r8)`)
+  whenever the member is read as a value (`this` of a method call) — `expand_expr` calls
+  `memory_address` on the BLKmode struct and constant addresses go through a pseudo "to be cse'd". A
+  plain pointer global with plain member stores gives the same reloads with direct `lwz r9, g@sda21`
+  (esp_app, since the mem-flags patch).
 - jump.c hoists a first-arm single set (`if (c) on = 0; else { on = 1; ... }` → `li 0` before the
   branch, inverted test) only when the else arm *starts* with a set of the same variable; reading a
   global into a local first (`u32 f = pG->flags_5010; on = 1; if (f & bit) ...`) keeps the target's
@@ -1553,10 +1567,10 @@ original: fix the source, do not link it.
   are call args) and equal dependence count, so the ready list falls through to INSN_LUID: the target
   order (`mr r3,this; fmr f1; fmr f6; li r4; fmr f7; li r5; li r6`, fpu one insn/cycle, sched2 keeping
   sched1's order) is exactly what an RTL order "this, FPR args, GPR args" produces, and GCC's
-  `load_register_parameters` emits the moves in declaration order (ints first). Proven by an asm-labelled
-  redeclaration with the floats first (`include/atari_init.h`: `atariInitF(cAtariInfo*, f32 x7, int x3)
-  asm("init__10cAtariInfoiiifffffff")`, ABI-identical since GPR and FPR argument registers are numbered
-  independently); with the float constants passed through an inline (`AtariInit`) so they are pseudos
+  `load_register_parameters` emits the moves in declaration order. Proven (2026-09) with a floats-first
+  asm-labelled redeclaration (`atariInitF`, historical); the header now declares `init` floats first with
+  the sym_map row re-mangled to match (PR #7; GPR and FPR argument registers are numbered independently, so
+  the order is ABI-neutral); with the float constants passed through an inline (`AtariInit`) so they are pseudos
   (cse shares the 0.0 with the `pos = 0` stores through the `if (pos)` branch; the 1000.0 pseudo feeding
   both f2 and f7 gets the longer chain the target loads first). The same "FP arg moves before GPR arg
   moves" appears in every unmatched int-then-float call site checked (embarrel/emBarred/emrock init,
@@ -1578,20 +1592,21 @@ original: fix the source, do not link it.
 - An inline helper taking `const Vec* size` evaluates `&size` as the parameter copy before the body's
   `&ofs`, reversing the `lis/addi` pairs of `init2(0, 1, &ofs, &size, 0x10)`; a helper that *returns*
   `&ofs` (shared `.rodata` copy) used as the argument keeps the argument order (embarrel).
-- (emrock) `cAtariInfo::init` with *computed* float arguments (`em->scale.x * 1200.0f * 0.5f`): plain
-  `atariInitF(&em->atari, ...)` with the constants written inline reproduces both arms (the `fmr f5,f4;
+- (emrock) `cAtariInfo::init` with *computed* float arguments (`em->scale.x * 1200.0f * 0.5f`): the plain
+  `em->atari.init(...)` call with the constants written inline reproduces both arms (the `fmr f5,f4;
   fmr f6,f5` chain and the `fmuls`-interleaved `li`s); `AtariInit` (pseudo constants) does not. The
   `&em->atari` pseudo PRE'd into r28 for the later `setPriority`/`clrFlag100()` comes from the member
   call form, so use `em->atari.clrFlag100()` (not `em->atari.flags &= ~0x100`, which re-derives the
   address from `em`).
-- Any int-then-float call whose target issues the FPR moves before the `li`s can be redeclared with the
-  floats first under `asm("<mangled>")` (atari_init.h idiom): `setYarareCubeF(cEmRock*, f32, f32, f32,
-  Vec*) asm("setYarareCube__7cEmRockP3Vecfff")` fixes `fmr f3,f1` before `li r4,0` in setFall/setThrow.
-- A callee whose mangled name says one parameter but whose body reads r5 (`cGameSave::save(void*)` reads
-  an `int` in r5; every caller loads it) is declared through a free asm-labelled function with the real
-  parameters *and the real return type*: `int GameSaveSave(cGameSave*, void*, int) asm("save__9cGameSavePv")`.
-  Declared `void`, `li r3, GameSave@sda21` is issued before `li r5, -1`; with `int` the r3 output
-  dependence puts it last (the "callee return type" rule also applies to asm-labelled aliases).
+- An int-then-float call whose target issues the FPR moves before the `li`s: the declaration order
+  decides. `cEmRock::setYarareCube` is declared `(f32, f32, f32, Vec*)` with the row re-mangled
+  `setYarareCube__7cEmRockfffP3Vec` (PR #7; the `.sym` has `P3Vecfff`); the historical `setYarareCubeF`
+  alias did the same for `fmr f3,f1` before `li r4,0` in setFall/setThrow.
+- A callee whose body reads a register the header's declaration does not pass (`cGameSave::save` reads
+  an `int` in r5; every caller loads it) is declared with the real parameters *and the real return type*
+  (the symbol `save__9cGameSaveP14SAVE_DATA_HEADi` names both parameters; historical: a free
+  `GameSaveSave(...) asm("...")` alias did the same). Declared `void`, `li r3, GameSave@sda21` is issued
+  before `li r5, -1`; with `int` the r3 output dependence puts it last (the "callee return type" rule).
 - `dx*dx + dy*dy + dz*dz` compared with a radius sum: compute `len` into its variable first and
   `r = w->radius + 1000.0f` *after* it (`fadds` then `fmuls f0,f0,f0` tied), then `if (len > r * r)`;
   with `r` computed before `len` the radius load is interleaved into the distance chain (emrock DropHitCk).
@@ -1603,8 +1618,8 @@ original: fix the source, do not link it.
   computes it before the count (plemRockEscape).
 - `(int) pl->x3E0 / 20` on the `u32` cEm field gives the signed `mulhw 0x66666667; srawi 3` divide (obj13
   uses the same `(int)` cast for signed tests; do not change the shared field type).
-- A pointer local `Camera* cam = &G;` + `FSet(cam->param.fovy, C)` keeps the store `stfs 0xc0(rCam)`
-  and, being a scalar-reference store, gives it a dependence on the following `lwz pG` so it is issued
+- A pointer local `Camera* cam = &G;` + `cam->param.fovy = C` keeps the store `stfs 0xc0(rCam)`
+  and gives it a dependence on the following `lwz pG` (installed compiler) so it is issued
   before the `addi r5, r1, 8` argument; later `&G.param.at` written on the *global* are cse
   related-values `addi r5, rCam, 0xb0` recomputed per call (a `cam->param.at` pointer form PRE's them
   into callee-saved registers). In a block that follows a branch join the same `&G.param.at` is the
@@ -1636,7 +1651,7 @@ original: fix the source, do not link it.
   dying one is the *last* zero store in source (`x54 = 0` after `flags = 0`, pl_cloth testDressSetAda).
 - Two different QI zero stores separated by a call reuse one pseudo (callee-saved); the original's
   fresh `li r0,0` after the call = the second group used an SImode zero: `u8` fields stored from `int`
-  values (an inline `PlRoutineSet(pl, int, int, int, int)`), cse cannot merge SI and QI zeros (pl_dmg).
+  values (the inline `EmRoutineSet(em, int, int, int, int)`), cse cannot merge SI and QI zeros (pl_dmg).
 - `do { } while (0)` macro bodies emit NOTE_INSN_LOOP_BEG/END; haifa makes the first insn after a
   loop note depend on *everything* before it (loop_notes → full barrier), so PRE copies inserted at
   the block end cannot move above the next macro invocation. Written-out blocks with a plain `{ }`
@@ -1699,7 +1714,8 @@ original: fix the source, do not link it.
   L 390 vs 386 fall in buckets 76/77, so the later-declared one wins; the original's lengths must
   share a bucket (then the lower pseudo wins). Block-scoped declarations and do/while notes do NOT
   change REG_LIVE_LENGTH at global-alloc time (only real insns count there).
-- Asm-labelled *definitions* (`int IDSystem::setCkI(int) asm("setCk__8IDSystemUc")`) do not
+- Asm-labelled *definitions* (historical `int IDSystem::setCkI(int) asm("setCk__8IDSystemUc")`; the row is
+  `setCk__8IDSystemi` since PR #5 and the definition takes `int`) do not
   assemble: SN's cc1plus emits the function-begin label as `.L_f*setCk__8IDSystemUc_s` (the `*`
   of the asm name) and NgcAs rejects it. So the narrow-parameter masks (`clrlwi rP,rP,24` on a u8
   parameter, id_sys setCk/dispSw/kill) cannot be reproduced by an int-parameter view; an explicit
@@ -1816,16 +1832,13 @@ original: fix the source, do not link it.
   keep two tree nodes (`cmpwi 0xc; beq; blt`); a shared `case 0xB: case 0xC:` label is a range
   (`subi; cmplwi 1; ble`). Turn180's `switch (x4FB8)` needs `case 0:` as its own arm (same body as
   default) plus `case 5:` grouped with `default:` for the `cmpwi 2` root.
-- (player) `pl->pNeck->motL = 0` followed by a global read (`PlFanceFlag`): the load stays below the
-  store only through a `void*&` setter (`PSet`), like the `pG` reloads. `hp = pGS->pl_life` (struct
-  view) after `pPL = this` keeps `lwz pG` below the scalar store.
-- (pl_npc) `cSubChar` is a cEm whose partner fields overlay the player ones (em.h unions at 0x378,
-  0x3E0, 0x3E4..0x400, 0x404..0x524 incl. a second `MotionWorkSub subBackMot` at 0x454, and the
-  0x5CC/0x7D4.. tail); `subFlags`/`subFlags2` are `cFlag`s: tests written as
-  `((cFlag*) &subFlags2)->check(bit)` reproduce the `lhz; mr rX,r0; clrlwi r0,r0,16` copies gcse PRE
+- (pl_npc) `cSubChar` (`include/pl_npc.h`) is a cEm whose partner fields sit in cEm's work area from
+  0x3E0 (a second `MotionWorkSub subMot` at 0x454); `flg`/`status` (0x400/0x402) are `cFlag`s: tests
+  written as `((cFlag*) &pl->status)->check(bit)` (pl_npc.cpp `SUBFLAG2`) reproduce the
+  `lhz; mr rX,r0; clrlwi r0,r0,16` copies gcse PRE
   gives a HImode member load (plain `& mask` tests fold adjacent halfword tests into one word compare
   and never show the mask). `&= ~bit` on the u16 flags is `BitOff16` (`rlwinm`, not `andi.`).
-- Routine-byte blocks (`xFC..xFF` + a mode word): `SubRoutineSet(pl, fc, fd, fe, ff)` (int inline)
+- Routine-byte blocks (`r_no_0..3` + a mode word): `EmRoutineSet(pl, fc, fd, fe, ff)` (int inline)
   followed by the other stores gives the original order when the zero pseudo stays live (`RS(1,0,0,0);
   mode = 2;` -> `fc, ff, stw, fd, fe`; `RS(1,0,0,0); dmHit = 0;` -> `324, fc, fd, fe, ff`); brute-force
   the alternatives with a 6-line test file through tools/ngccc.py + `dtk elf disasm` (seconds).
@@ -1859,13 +1872,13 @@ original: fix the source, do not link it.
   == 0) eyeDir.x = y;`) issues the expression's constant loads before the compare's; the member-store
   form (`eyeDir.y = expr; ... = eyeDir.y`) schedules the compare first. `x = x*z + y*(1-z)` written as
   a member function of the static's class loads z before 1.0 (moveFace).
-- `SubRoutineSet(this, 0, md, 0, 0)` with `int md = 1;` declared at the top of the case block: the
+- `EmRoutineSet(this, 0, md, 0, 0)` with `int md = 1;` declared at the top of the case block: the
   `li r6, 1` is shared by both if/else arms and lets jump2 cross-jump their AtariOn tails (control).
 - Byte-store order rule (dmgCheck/control): the emitted order is not the source order; brute-force
   the 3-4 statement permutations with a scripted loop (tools: ngccc.py, ~0.3 s per variant).
 - cAtariInfo flag stores through the info's address (`cAtariInfo* at = &atari; AtariOn(at, 0x300)`)
-  give `addi rX,this,0x2b4; lhz 0x1a(rX)`; a scalar-reference store on `at->flags` keeps a following
-  `lwz pG` below it.
+  give `addi rX,this,0x2b4; lhz 0x1a(rX)`; the store on `at->flags` keeps a following `lwz pG` below
+  it (installed compiler).
 - Two `MotionSetCore` calls that share their tail in the target are `void* m; if (..) m = A; else
   m = B; MotionSetCore(pl, .., m, ..)` (arms compute `arc->ofs[n]`, the `add` after the join); a
   ternary index gives `lwzx`.
@@ -1895,8 +1908,8 @@ original: fix the source, do not link it.
   `wk->stage = 0` zero is a reload-materialised pseudo in
   the original (`li r11,0` right before the `stw`, after `lwz pG`), ours a sched1-hoisted `li r0,0`
   (local-alloc'd); and the SndStrReq `lfs f1` pool load is issued last (right before `bl`) although
-  its `lis r29` sits at the block top — sched2 in ours hoists it at once. Reference stores (`BitSet`),
-  `G_ROOM_ID`, `pGS`, a shared `zero` local, int/local forms of the 0.0f argument all tried.
+  its `lis r29` sits at the block top — sched2 in ours hoists it at once. Reference stores and struct
+  views (historical), `G_ROOM_ID`, a shared `zero` local, int/local forms of the 0.0f argument all tried.
 - Giv final value (loop.c) as a later loop's bound: an `addi r0, base, 0x58` right after an inner
   loop's exit (inside the outer loop's latch) plus `mr rB, r0` in the next loop's preheader is
   loop.c's `final_giv_value` of the inner loop's pointer giv, copied by cse2 into the later loop's
@@ -1913,9 +1926,9 @@ original: fix the source, do not link it.
 - `u16 flags = p->flags; u32 fl = flags;` (promoted HImode load widened) gives `mr r11, r0`; an
   `int` load copied into a `u16` gives `clrlwi 16` (em_sub EmYarareDisp, still 1 word off: the
   original's copy is not cprop'ed into the later tests while ours propagates one of them).
-- A `u8` member passed to two int-parameter inlines (`EmSetDieCk(em->emsetNo)`;
-  `EmSetDieOn(em->emsetNo)`) is one QImode load + `mr r6, r9` copy with `clrlwi 24` at each use;
-  a `u8 no = em->emsetNo` local is promoted and never masked (em_set EmSetDie).
+- A `u8` member passed to two int-parameter inlines (`EmSetDieCk(em->emset_no)`;
+  `EmSetDieOn(em->emset_no)`) is one QImode load + `mr r6, r9` copy with `clrlwi 24` at each use;
+  a `u8 no = em->emset_no` local is promoted and never masked (em_set EmSetDie).
 - Zero-store block order (PenCloth setters): the dying zero store is the *last* zero statement in
   source and is issued first; put that member (`c->x54 = 0` in Em30ClothSet2) after `flags = 0`.
 - A distance sum whose result register is the *variable's* callee-saved FPR (not the tied f13 of a
@@ -1927,8 +1940,8 @@ original: fix the source, do not link it.
   `mr r31,r4; stw pMotion; fmr f29,f1`, emwep setFall matched only because grav is the last
   parameter), i.e. as if f1 did not die there (weight +1); the same "FP arg register does not die"
   reading explains compiler-build difference 1 (`fmr f1, x` arg moves issued before `li`/`mr`
-  int arg moves). No source form changes it; the SatMgrCreateF / atariInitF floats-first aliases
-  remain the workaround at call sites (emBarred emBarredEatSet sub[0]/sub[1]).
+  int arg moves). No source form changes it; the declarations in the symbol's order plus `AtariInit`
+  pseudos are the workaround at call sites (emBarred emBarredEatSet sub[0]/sub[1], tag #1).
 - Dying-register tie-break not applied by the original (SetRock SOLVED 2026-09-10 with a #13 launder, see
   the sweep section; ShotArrow still OPEN): emrock SetRock's `stb r30, 0x95`
   (last use of the zero pseudo) stays in source order and `li r30, 0` is re-materialised after the
@@ -2454,9 +2467,11 @@ relocation fields masked; harness deleted). Findings that supersede parts of the
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
-110 configured RELs byte-identical next to the DOL (`build/G4BE08/<mod>/<mod>.rel`, all covered by the
-`build/G4BE08/ok` SHA-1 check: `111 files OK`); a unit you match replaces one split object in one REL,
-like the DOL.
+114 configured RELs byte-identical next to the DOL (`build/G4BE08/<mod>/<mod>.rel`, all covered by the
+`build/G4BE08/ok` SHA-1 check: `115 files OK`; the dated entries below say `111 files OK`, the count
+before the four disc-2 `st3_*` modules were configured); a unit you match replaces one split object in
+one REL, like the DOL. Module unit names are `<mod>/<file>.cpp`; `config/G4BE08/modules.py` maps each to
+its source file, which for the stage rooms is `src/st<n>/rNNN.cpp` shared by the stage's modules.
 
 ### Facts
 
@@ -2574,10 +2589,10 @@ like the DOL.
 ```sh
 python3 tools/unit_info.py st2_4/r22c                 # functions, sizes, match % (module sym_map)
 sed -n '/^\.fn NAME/,/^\.endfn/p' build/G4BE08/st2_4/asm/st2_4/r22c.s
-# write src/st2_4/r22c.cpp, then:
+# write the source (modules.py maps the unit to its file: st2_4/r22c.cpp -> src/st2/r22c.cpp), then:
 ninja build/G4BE08/src/st2_4/r22c.o
 python3 tools/sync_rel_symbols.py build/G4BE08/src/st2_4/r22c.o   # module symbols.txt (+DOL/imported modules for references)
-ninja                                                  # must still print `111 files OK` (ninja reruns configure itself)
+ninja                                                  # must still print `115 files OK` (ninja reruns configure itself)
 python3 tools/fdiff.py st2_4/r22c <mangled_symbol>
 ```
 
@@ -2711,17 +2726,18 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - Every room includes `include/st_room.h` after main_mem.h: it defines the module's 0x34-byte COMMON
     placeholder (`asm(".comm common_<REL_MODULE>,52,4")`, REL_MODULE is a per-module `-D` configure.py
     adds to every module unit) so a module whose common-owning room is compiled still links (the split
-    skeleton's `common_<mod>` merges with it), plus the scalar reference setters U8Set/U16Set/U32Set/
-    IntSet/FAdd/FSub (FSet is global.h's).
+    skeleton's `common_<mod>` merges with it). It still carries `FAdd`/`FSub` (`f32&` helpers, no
+    current use) and includes `ref_access.h`; the U32Set/IntSet/FSet setters the rooms once stored
+    through are gone (mem-flags patch, "Compiler").
   - `include/flag_rsf.h` is the original's shape (RsfSet/RsfClear/RsfCheck with `if (no > 0x1F) HALT`
     at lines 17/21/25; constant `no` folds the check away): `RsfCheck(G_ROOM_ID, 0)` is
     `lwz 4(r3); cmpwi 0; bge/blt` (sign test), higher bits `andis.`. `if (RsfCheck(..) == 0)` and
     `if (RsfCheck(..))` are the two branch polarities.
   - Room work: `static RNNNWork* rNNN_work; rNNN_work = (RNNNWork*) MEM_CALLOC(sizeof, 1, 0xd);` with
     `#line N "D:/Bio4/Prog/rNNN.cpp"` (N from the mem_calloc line argument). Stores into the work after
-    a call reload the work pointer: write `rNNN_work->field = call(...)` directly (r109), and a store the
-    original reloads *both* the work and the field after is a reference store (`PSet(rNNN_work->evd, ..)`,
-    r102). Work pointers of `cSat*`/`cObj*` etc. get their own typed `PSet` per file.
+    a call reload the work pointer: write `rNNN_work->field = call(...)` directly (r109); the reload of
+    the work pointer and of `pG`/`pPL` after a member store is the compiler's ("Compiler", mem-flags
+    patch; the typed `PSet` setters are gone).
   - `SceExec(0x12, (TaskFunc) fn, 0, 0, 2, 0)` / `SceAtDataSet_exec(no, 0x12, 0, (TaskFunc) fn, 0, 1|2)`
     are the task registrations; `EmSetFromList2(no, 1)`, `setEm(no, -1, 1, 1, 1)`, `SceCkFindPL(0)`,
     `SceCountEmAlive(lo, hi)` the enemy calls; BGM/stream tasks are `for (;;)` loops with an `on` flag
@@ -2730,8 +2746,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     3 lwz/stw (r109, r102 `pos`); a Vec built from `stfs` of pool constants is memberwise stores, and
     one member stored through a `Vec* pa = &ang` pointer while the others are direct gives the
     `stfs f31, 4(r31)` / `stfs f0, 0x20(r1)` mix (r102 `ang`). A float kept in a callee-saved FPR across
-    a call and stored after it is a local `f32 ry = K;` declared before the call. `cPlayer* pl = pPLS`
-    (struct view of pPL) keeps the pPL load below the preceding Vec template stores.
+    a call and stored after it is a local `f32 ry = K;` declared before the call. A `cPlayer* pl = pPL`
+    local's load stays below the preceding Vec template stores (installed compiler).
   - Vec/aggregate locals are temp slots rounded to 16 bytes (a Vec takes 0x10 of frame); address-taken
     scalars (`cEm* torch; getRoomEtcTorch(0, &torch, 1)`) get their slot after every aggregate.
   - Angle constants: some are `deg * (PI / 180.0f)` folds (r102: -5.4/-3/-1.2 deg), others only
@@ -2798,6 +2814,11 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   (`extern void (*EmInitFunc)(cEm*)`); `Em10SetSeTbl` is `extern "C"`.
 
 ### Sscrn (sub screen DLL, src/Sscrn/ss_*.cpp, include/ss_main.h)
+
+The dated pass entries below are the matching record. Where they name `PSet`, `FSet`, `S16Set`,
+`pGS` or a one-member `XxxPtr` struct, the tree now has a plain member store or pointer (mem-flags
+patch, "Compiler"); `U16Set` (global.h) remains at the sites where the stored constant must sit in its
+own register.
 
 - The screens are `Widget<SUB_SCREEN>` state-machine nodes (include/widget.h: `num`, `link[]`, `cur`, vptr
   at 0xC; virtuals dtor/init/quit/move; `connect(no, w)`, `transit(no, wk)` with the two `pLog->err`
@@ -4230,7 +4251,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   a global `setTexRender` and link (ngcld -r keeps one symbol-table entry, the REL bytes are unaffected).
   A duplicated name stays a placeholder in symbols.txt (`setTexRender_A194`, `reset_40_7178`: the sync
   "keeps" it because the mangled name already exists at the first copy) — objdiff/unit_info then show 0%
-  for a byte-identical function; compare with /tmp/rooms_a/mm.py (pairs leftovers by .text order).
+  for a byte-identical function; pair the leftovers by `.text` order (`unit_info.py` on both sides).
 - COMPILER-DIFF candidate #11 (temp slots): two freed 12-byte Vec slots of a block are merged by
   `combine_temp_slots` into one 24-byte slot; a sibling block's first Vec takes the whole slot (24-16 < 16
   forbids the split) so its second Vec gets a fresh slot (+0x10 frame); the original reuses both. 16-byte
@@ -4274,8 +4295,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   gives the un-rotated poll; `for (;;) { if (c) break; }` and `while (c)` get rotated + duplicated test.
 - Named struct arrays with non-constant initializers get a `memset` per row (C++ TYPE_FIELDS includes
   the class-name TYPE_DECL); the original used plain `void* tbl[N][M]`.
-- A cEm local (0x3E0) against em.h's 0xDE0 cEm: `struct { u8 buf[0x3E0]; }` + `cEmConstruct asm("__3cEm")`
-  + qualified `((cUnit*)&em)->cUnit::~cUnit()` reproduces frame, inlined dtor and the linkonce copies.
+- A cEm local on the stack (r100, r103) is a plain `cEm em;` now that em.h's `cEm` is 0x3E0 (the
+  per-character fields moved to `cPlayer`/`cSubChar`, PR #5); the `struct { u8 buf[0x3E0]; }` +
+  `asm("__3cEm")` ctor alias of the 0xDE0-cEm days is historical.
 - After `sync_rel_symbols.py` the module split objects are not re-split by ninja; delete
   `build/G4BE08/config.json` to force it, otherwise unit_info/fdiff report stale names.
 - COMPILER-DIFF candidate #7 -- CLOSED 2026-09-10 as a SOURCE FORM (not a compiler difference; see "#7/#9
@@ -4301,17 +4323,17 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - Template-copied locals (`int list[11] = {...}`, `Vec pos = {..}`) whose copies the target issues
     *after* a run of calls are declared mid-block after those calls (C++), and a `cEmWrap em;` whose
     ctor `bl` follows them is declared after them too (r11d execEmAppear_end, r10f DoorOpen).
-  - COMPILER-DIFF #4 in the rooms: `setPtr(s16,..)`/`setEm(s16,..)` called with `int list[i]`
-    elements get `lwz` straight into r4 in the original (ours `lhz; extsh`): int-parameter aliases
-    `cEmWrapSetPtrI asm("setPtr__7cEmWrapsSci")`, `setEmI asm("setEm__FsSciii")` (r11d).
+  - `setPtr`/`setEm` called with `int list[i]` elements get `lwz` straight into r4: the parameters are
+    declared `u32 no, int list` (em_wrap.h; rows `setPtr__7cEmWrapUlii`, `setEm__FUliiii` re-mangled from
+    the `.sym`'s `sSci`/`sSciii` by PR #7, see naming.md). The historical `cEmWrapSetPtrI`/`setEmI`
+    int-parameter aliases did the same under COMPILER-DIFF #4 (r11d).
   - `for (i = 0; i < 11; i++) f(list[i])` over a local array: pointer compare `cmplw r31,r28; ble`
     needs a `u32 i` (`int i` gives `cmpw`); ours still initialises the loop pointer straight from the
     template-copy register where the original keeps an extra `mr r4,r8`/`mr r31,r4` copy (OPEN).
   - A work pointer whose element stores are followed by a reload of both the pointer and the element
-    (`stw r3,0(r9); lwz r11,work; lwzx r3,r11,r29`) is the one-member-struct global (r10f
-    `R10fWorkPtr r10f_work; r10f_work.p->gondola[i] = ...`); a typed `PSet(cObjGondola*&, ..)` gives
-    `stwx r3,r29,r9` (index first) instead. Single pointer fields keep the typed `PSet` (r11d `mi`,
-    r11e `rock[i]`, r119 `dog`).
+    (`stw r3,0(r9); lwz r11,work; lwzx r3,r11,r29`) is the plain `r10f_work->gondola[i] = ...` store
+    with the installed compiler ("Compiler", mem-flags patch; the `R10fWorkPtr` one-member struct and
+    the typed `PSet` it needed before are gone).
   - Two accessor results stored through one local (`cLight* l; l = LightMgr.getWorkPtr(2); l->power
     = a; l = LightMgr.getWorkPtr(6); l->power = b;`) share one register (r10 twice); separate
     expressions get r10/r11 (r119 ThunderFlagOn/Off).
@@ -4346,20 +4368,18 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Room idioms found on r10c / r11b / r229 / r22a (st1_2, st2_3) and r410 / r40b / r411 / r40a
   (st4_0; r410, r40b, r411, r22b, r229 Matching, 2026-09):
   - Work pointer reloaded after a store *through* it (`stw r3,0x74(r9); lwz r9,work; lwz 0x70(r9)`,
-    `sth hp; lwz work` chains) = the one-member struct global (`R10cWorkPtr r10c_work; .p->`) as in
-    r10f; stores into the work that are followed by a `pG`/`pPL`/`pSys` load in the original need a
-    typed `PSet(cSat*&, ..)` / `U32Set(cnt, cnt + 1)` on top (a struct store lets ours hoist the
-    fixed-scalar load above it). The calloc store whose `lis work@ha` sits in a callee-saved register
-    *before* earlier calls is a reference variable `R11bWork*& wp = r11b_work.p;` declared at the
-    top (`wp = MEM_CALLOC(..)`); ours then merges that `lis` with the PRE'd one of the later loads
-    (r11b -4 bytes, OPEN), r229 (no later loads in Init) matches.
+    `sth hp; lwz work` chains) and a `pG`/`pPL`/`pSys` load kept below a store into the work are what
+    the installed compiler does with plain member stores ("Compiler", mem-flags patch; the
+    `R10cWorkPtr` struct and the `PSet`/`U32Set` setters are historical). The calloc store whose
+    `lis work@ha` sits in a callee-saved register *before* earlier calls is a reference variable
+    `R11bWork*& wp = r11b_work;` declared at the top (`wp = MEM_CALLOC(..)`, r11b Init).
   - Two `EM_LIST(n)` byte stores with one `pG` load (`lbz flags; stb x3; ori; stb flags`) are written
     through a local `EmListData* l = EM_LIST(n);` (a QI store reloads `pG` otherwise), and an
     `EM_LIST(n)->x3 = 0` after an `EmSetFromList2(n, ..)` whose `pG + 0x5xx8` address is computed
     *before* the call is `EmListData* l = EM_LIST(n); em = EmSetFromList2(n, 1); l->x3 = 0;`.
   - `cPlayer* p = pPL; p->setPos(&v); p->setAng(&v)` when one `lwz pPL` feeds two calls (`mr r3,r30`
-    twice); `pPLS->setPos(); pPLS->setAng()` (the struct view, twice, no local) when the original
-    reloads pPL per call but keeps the first load below preceding Vec template stores (r10c ItemGet).
+    twice); `pPL->setPos(); pPL->setAng()` (no local) when the original reloads pPL per call (r10c
+    ItemGet).
   - Frame-slot reuse decides block scoping: r10c/r22a's rope event has `{ Mtx m; ... FadeSetW(2,30);
     SceSleep(30); ObjMgr.destroy(obj); } { Vec pos2 = {..}; Vec ang2; f32 ry; Vec* pa = &ang2; ... }`
     in each arm — the else arm's FadeSetW colour pair lands at a fresh 0x68 slot because `m` is still
@@ -4385,9 +4405,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - A block of `for (i = 0; i < 80; i++) { SceSleep(1); .. }` with a constant start has no entry
     test (`cmplwi 0x4f; ble` with `u32 i`); `f32 spd = 0.0f; f32 max = 100.0f;` declared mid-block
     (after the `BitOn(obj->be_flag, 0x20)`) keep their `lfs` below the preceding calls (r22a EleDown).
-  - `FSet`/`FAdd`/`FSub` on `SmdGetObjPtr(id)->pos.y` where the original reloads `pPL` after the
-    store; `pPL->pos.y = K` stores that reload pPL between each other are `FSetP(pPL->pos.y, K)`
-    (r22a), `wheel->rotSpd.z` stores followed by a `pG` load are `FSet` too (r10c moveWheel).
+  - `SmdGetObjPtr(id)->pos.y = ..` / `+=` / `-=`, `pPL->pos.y = K` and `wheel->rotSpd.z = ..` are plain
+    member stores; the `pPL`/`pG` reload after each is the compiler's (r22a, r10c moveWheel; the
+    `FSet`/`FAdd`/`FSub` spellings were the pre-patch form).
   - A room whose `.rodata` carries `"event/evd/rNNNsXX.evd"` / `"evt_.._func"` strings with no code
     using them had a never-called static function (r229 `r229_evtSetup`): the original REL link did
     strip room objects at function level too; add the unit to modules.py `STRIP_UNUSED`.
@@ -4396,9 +4416,10 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - TexRender rooms (r10c, r229, r11b): `u8* tbl = r10c_texTbl;` local for the blend table (`addi r25`
     kept, `stb 0xf7,4(r25)`), `tex->sy = tex->sx = 0x40` chain, per-object `x136 = 2; x137 = 0x12;
     x138 = 0xA0;` written in that order for every object (the scheduler emits 138,136,137 or
-    138,137,136 per block by itself); `TexRenderModRes(cModel*)` reads a parts number from r4:
-    `void TexRenderModResP(cModel*, int) asm("TexRenderModRes")`; `ModelInfoRefrectOn` is C++
-    (model.h). `u8 GetEmIdFromList()` passed on unmasked: `int GetEmIdFromListI(u32) asm(..)`.
+    138,137,136 per block by itself); `TexRenderModRes(cModel*, u32 parts)` (TexRender.h) and
+    `u32 GetEmIdFromList(u32)` (em_set.h) are declared with the parameters the callers load, so the
+    historical `TexRenderModResP`/`GetEmIdFromListI` aliases are gone; `ModelInfoRefrectOn` is C++
+    (model.h).
   - OPEN: independent `stfs` of two pool constants into a Vec (`v.x = 3145; v.z = 10394; v.y = 0`)
     come out x-first in the original and z-first in ours whatever the statement order (r10c
     EmEvent/EmEvent_exit, r40a first_init: the FPR pair f0/f13 swaps with them); the second word
@@ -4412,9 +4433,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Locals whose frame slot sits inside freed inline-table slots must be declared after the getter
   calls: `assign_stack_temp` best-fits into the merged freed region; only fresh allocations extend the
   frame (trans `ShadowCastSetup`/`SelfShadowSetup`).
-- A load the original does not hoist above scalar-global stores means the stores were not
-  `MEM_SCALAR_P`: write the increments as `ISet(g, g + 1)` (an `INDIRECT_REF` of a plain pointer sets
-  neither IN_STRUCT nor SCALAR, so `true_dependence` keeps the order).
+- A load the original does not hoist above scalar-global stores: with the installed compiler no MEM
+  is `MEM_SCALAR_P` ("Compiler", mem-flags patch), so a plain `g++` keeps the order; the `ISet(g, g + 1)`
+  spelling that produced an unflagged MEM is historical.
 - Branch arms ending in a call block cross-jumping of a shared tail (flow.c appends
   `(use (const_int 0))` after a block-ending CALL_INSN); duplicate the tail through a non-call
   statement into each arm to get the original's merged `li r7; bl`.
