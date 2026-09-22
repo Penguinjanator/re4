@@ -45,7 +45,7 @@ static cObj* SetObj26(cObj* parent, Vec* scale)
 
     obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     obj->obj26.parent = parent;
-    obj->obj26.tgtScale = *scale;
+    obj->obj26.Scale = *scale;
     obj->scale.x = obj->scale.y = obj->scale.z = 0.0f;
     obj->invisible_factor = 1.0f;
     return obj;
@@ -75,9 +75,9 @@ void obj26_R1_Set(cObj26* obj)
     case 0:
         obj->r_no_2++;
     case 1:
-        obj->scale.x = obj->scale.x * 0.9f + w->tgtScale.x * 0.1f;
-        obj->scale.y = obj->scale.y * 0.9f + w->tgtScale.y * 0.1f;
-        obj->scale.z = obj->scale.z * 0.9f + w->tgtScale.z * 0.1f;
+        obj->scale.x = obj->scale.x * 0.9f + w->Scale.x * 0.1f;
+        obj->scale.y = obj->scale.y * 0.9f + w->Scale.y * 0.1f;
+        obj->scale.z = obj->scale.z * 0.9f + w->Scale.z * 0.1f;
         if (obj->Motion.pMot) {
             MotionMove(obj, 0);
         }

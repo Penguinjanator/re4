@@ -148,7 +148,7 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->pEat[i] = 0;
     }
     w->Ride_pl = 0;
-    p = w->mot;
+    p = w->Mot_tbl;
     for (i = 0; i < 9; i++) {
         *p++ = 0;
     }
@@ -174,8 +174,8 @@ void objTrolley_R0_Set(cObjTrolley* obj)
 {
     TrolleyWork* w = &obj->trolley;
 
-    if (w->mot[0]) {
-        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
+    if (w->Mot_tbl[0]) {
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
     } else {
         obj->matUpdate();
@@ -205,7 +205,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
     objTrolleyPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
         obj->r_no_2++;
@@ -226,7 +226,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
         }
         break;
     case 4:
-        MotionSetCore(obj, &obj->Motion, w->mot[1], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[1], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
         w->Timer = 20;
@@ -282,9 +282,9 @@ void objTrolley_R0_Break(cObjTrolley* obj)
         obj->pos.z = 78000.0f;
         obj->ang.y = 0.0f;
         if (obj->r_no_3) {
-            MotionSetCore(obj, &obj->Motion, w->mot[2], 0, 0, 0x8001, 0);
+            MotionSetCore(obj, &obj->Motion, w->Mot_tbl[2], 0, 0, 0x8001, 0);
         } else {
-            MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0x8001, 0);
+            MotionSetCore(obj, &obj->Motion, w->Mot_tbl[3], 0, 0, 0x8001, 0);
         }
         SndCall(6, 2, 0, 0, 0, 0);
         SndCall(6, 3, 0, 0, 0, 0);
@@ -406,7 +406,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.y = -51832.78f;
         em->pos.z = 73991.43f;
         em->ang.y = 0.0f;
-        MotionSetCore(em, &em->Motion, w->mot[4], 0, 0, 0x201, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_tbl[4], 0, 0, 0x201, 0);
         em->atari.throughOn();
         em->be_flag &= ~0x10;
         em->r_no_2++;
@@ -430,7 +430,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.y = -52360.74f;
         em->pos.z = 95802.8f;
         em->ang.y = 0.0f;
-        MotionSetCore(em, &em->Motion, w->mot[6], 0, 0, 0x201, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_tbl[6], 0, 0, 0x201, 0);
         PlGachaInit();
         ((cPlayer*) em)->m_Work0 = 90;
         ((cPlayer*) em)->m_Work1 = 10;
@@ -462,7 +462,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.y = -52361.7f;
         em->pos.z = 95773.43f;
         em->ang.y = 0.0f;
-        MotionSetCore(em, &em->Motion, w->mot[7], 0, 0, 0x201, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_tbl[7], 0, 0, 0x201, 0);
         em->r_no_2++;
         SndRoomStrStop(2);
         SndStrReq(1, 0x2F, 0x80000003, 0, 0, 0.0f);
@@ -485,7 +485,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.y = -52361.7f;
         em->pos.z = 95773.43f;
         em->ang.y = 0.0f;
-        MotionSetCore(em, &em->Motion, w->mot[8], 0, 0, 0x201, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_tbl[8], 0, 0, 0x201, 0);
         SndCall(1, 0x4A, &pPL->getPartsPtr(4)->world, 0, 0, em);
         pG->pl_life = 0;
         em->r_no_2++;
@@ -513,7 +513,7 @@ void plobjTrolleyDie(cPlayer* pl)
         em->pos.y = -52400.0f;
         em->pos.z = 87300.0f;
         em->ang.y = 0.0f;
-        MotionSetCore(em, &em->Motion, w->mot[5], 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_tbl[5], 0, 0, 1, 0);
         em->atari.throughOn();
         pG->pl_life = step;
         em->be_flag &= ~0x10;
@@ -532,10 +532,10 @@ void cObjTrolley::setMotion(void** tbl)
     int i;
 
     for (i = 0; i < 9; i++) {
-        w->mot[i] = tbl[i];
+        w->Mot_tbl[i] = tbl[i];
     }
-    if (w->mot[0]) {
-        MotionSetCore(this, &Motion, w->mot[0], 0, 0, 0x8001, 0);
+    if (w->Mot_tbl[0]) {
+        MotionSetCore(this, &Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
     }
 }
 

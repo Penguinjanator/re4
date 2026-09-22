@@ -11,20 +11,20 @@ struct EmShieldWork {
     u32 Be_flg;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: hidden
     int Timer;            // 0x004 (0x3E4)
     u8 pad_8[0x1C - 0x8];
-    int hitCnt;           // 0x01C (0x3FC)  hits left before the next plank breaks off (Rnd() % 3 + 2)
-    int breakCnt;         // 0x020 (0x400)  planks broken off so far (4 = the shield is destroyed)
+    int Parts_hp;           // 0x01C (0x3FC)  hits left before the next plank breaks off (Rnd() % 3 + 2)
+    int Break_num;         // 0x020 (0x400)  planks broken off so far (4 = the shield is destroyed)
     int Fall_wait;        // 0x024 (0x404)  emShield_R1_Parent: frames until setFall
     cModel* pParent;      // 0x028 (0x408)  model the shield follows (setParent)
     cModel* pOldParent;   // 0x02C (0x40C)  parent before setFall (landing sound owner)
-    int partsNo;          // 0x030 (0x410)
+    int oya_parts;          // 0x030 (0x410)
     int x34;              // 0x034 (0x414)
     int x38;              // 0x038 (0x418)  -1
     u8 pad_3C[4];
-    Vec effOfs;           // 0x040 (0x420)  looping effect offset in parts effParts
+    Vec always2_offset;           // 0x040 (0x420)  looping effect offset in parts effParts
     u8 always2_parts;          // 0x04C (0x42C)  0xFF = none
     u8 pad_4D;
-    u16 effWait;          // 0x04E (0x42E)  frames between the looping effect restarts
-    u16 effTimer;         // 0x050 (0x430)
+    u16 always2_wait;          // 0x04E (0x42E)  frames between the looping effect restarts
+    u16 always2_timer;         // 0x050 (0x430)
     u8 pad_52[2];
     f32 Gravity;          // 0x054 (0x434)  setFall first argument (20)
     Vec pt[3];            // 0x058 (0x438)  node speeds kept between frames (setFall initialises them)

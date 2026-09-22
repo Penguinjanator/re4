@@ -15,12 +15,12 @@ struct Em3dWork {
                           //                bit3: an enemy locked on it (per frame), bit4: target set (per frame),
                           //                bit5: free fire, bit6: patrolling (per frame)
     int Timer;            // 0x004 (0x3E4)
-    int count;            // 0x008 (0x3E8)  Patrol: hover frames; Atk: enemies found
+    int Timer2;            // 0x008 (0x3E8)  Patrol: hover frames; Atk: enemies found
     u8 pad_C[4];
-    int mesDone;          // 0x010 (0x3F0)  Atk: the near-player message was given
+    int TmpU32;          // 0x010 (0x3F0)  Atk: the near-player message was given
     u8 pad_14[0x26C - 0x14];
     Vec vibAng;           // 0x26C (0x64C)  hover vibration phases (em3dVibMove)
-    Vec vibSpd;           // 0x278 (0x658)  their per-frame increments
+    Vec Vib_v;           // 0x278 (0x658)  their per-frame increments
     Vec Spd;              // 0x284 (0x664)  movement speed
     u8 pad_290[0x2A8 - 0x290];
     Vec Patrol_pos;        // 0x2A8 (0x688)  setPatrolPos
@@ -34,7 +34,7 @@ struct Em3dWork {
     f32 Search_len;            // 0x2CC (0x6AC)  enemy search range (setTarget)
     cObjMissile* pMissile[4];   // 0x2D0 (0x6B0)  the rockets hung on parts 0xC..0xF
     u8 pad_2E0;
-    u8 gunTimer;          // 0x2E1 (0x6C1)  frames between chain gun shots
+    u8 Fire_wait;          // 0x2E1 (0x6C1)  frames between chain gun shots
 };
 
 #define EM3D_WK(em) ((Em3dWork*) (((cEm3d*) (em))->free))

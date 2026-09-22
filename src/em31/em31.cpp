@@ -1162,10 +1162,10 @@ static void em31_R1_BridgeVs(cEm31* em)
     case 2:
         if (muku > 0.0f) {
             MotionSetCore(em, MOTION(em), ARC(0x3E), ARC(0x3F), 10, 0x45, 3);
-            w->motVar = 1;
+            w->TmpU32 = 1;
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x3E), ARC(0x3F), 10, 5, 3);
-            w->motVar = 0;
+            w->TmpU32 = 0;
         }
         em->r_no_2++;
     case 3:
@@ -1185,7 +1185,7 @@ static void em31_R1_BridgeVs(cEm31* em)
                 EM31_BRIDGE_JUMP_SET();
                 break;
             }
-            if (w->motVar) {
+            if (w->TmpU32) {
                 if (muku < 0.0f) {
                     em->r_no_2 = 2;
                     break;
@@ -1296,15 +1296,15 @@ static void em31_R1_Jump(cEm31* em)
         if (w->pTen) {
             w->pTen->setJump();
         }
-        PSVECSubtract(&w->Target_pos, &em->pos, &w->jumpSpd);
+        PSVECSubtract(&w->Target_pos, &em->pos, &w->TmpV);
         EstSet(em, -1, 0, 0, EFF_EM31, 0x18, 0, ESP_CORE_KIND_NONE, em, 0);
         w->Atk_ck = 0;
         em->r_no_2++;
     case 1:
         if (em->Motion.Seq_old.Free & 2) {
-            PSVECScale(&w->jumpSpd, &v, 0.1f);
+            PSVECScale(&w->TmpV, &v, 0.1f);
             PSVECAdd(&em->pos, &v, &em->pos);
-            PSVECSubtract(&w->jumpSpd, &v, &w->jumpSpd);
+            PSVECSubtract(&w->TmpV, &v, &w->TmpV);
             em->atari.throughOn();
         } else {
             em->atari.throughOff();
@@ -2078,15 +2078,15 @@ static void em31_R1_T_Wait(cEm31* em)
     switch (em->r_no_2) {
     case 0:
         mot = ARC(0x44);
-        w->motVar = 0;
+        w->TmpU32 = 0;
         if (w->pBody) {
             if (w->pBody->ckBerserk()) {
                 mot = ARC(0x45);
-                w->motVar = 1;
+                w->TmpU32 = 1;
             }
             if (w->pBody->ckEyeBreak()) {
                 mot = ARC(0x6A);
-                w->motVar = 0;
+                w->TmpU32 = 0;
             }
         }
         if (em->r_no_3) {
@@ -2102,7 +2102,7 @@ static void em31_R1_T_Wait(cEm31* em)
         if (w->pBody && (w->pBody->ckBerserk() || w->pBody->ckEyeBreak())) {
             v = 1;
         }
-        if (w->motVar != v) {
+        if (w->TmpU32 != v) {
             em->r_no_2 = 0;
         }
         break;
@@ -3262,13 +3262,13 @@ void em31RouteCk(cEm31* em)
     if (RouteCkPosToPos(&v, &pPL->pos, &w->Pl_pos)) {
         w->Be_flg |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->Pl_pos, em->ang.y, PI);
-    w->Pl_rot = fabsf(w->routeAng);
+    w->Pl_dir = Muku(&em->pos, &w->Pl_pos, em->ang.y, PI);
+    w->Pl_rot = fabsf(w->Pl_dir);
     w->Go_pos = w->Pl_pos;
-    w->Go_dir = w->routeAng;
+    w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
     if (em->r_no_0 == 0) {
-        w->routeAng = 0.0f;
+        w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
         em->plDist2 = 100000000.0f;
     }
@@ -3895,10 +3895,10 @@ void em31TailAtkCk(cEm31* em)
     t = w->pTail;
     for (i = 0; i < 4; i++) {
         if (w->pTail[i]) {
-            if (w->tailSeTimer) {
-                w->tailSeTimer--;
+            if (w->Ten_se_wait) {
+                w->Ten_se_wait--;
             } else {
-                w->tailSeTimer = 0x1D;
+                w->Ten_se_wait = 0x1D;
                 SndCall(8, 9, &em->getPartsPtr(0)->world, em->id, 0, em);
             }
             break;
@@ -5208,7 +5208,7 @@ void cEm31::setVoice(int no, int timer)
     p = getPartsPtr(0xB);
     w->Seid = SndCall(8, no, &p->world, id, 0, this);
     SndStop(w->Breath_seid, 0);
-    w->breathTimer = timer;
+    w->Breath_se_wait = timer;
 }
 
 // Tentacle: the breath at its mouth every 60 frames (breathTimer).
@@ -5219,10 +5219,10 @@ void em31BreathSe(cEm31* em)
     if (em->type != 1) {
         return;
     }
-    if (w->breathTimer) {
-        w->breathTimer--;
+    if (w->Breath_se_wait) {
+        w->Breath_se_wait--;
     } else {
-        w->breathTimer = 0x3B;
+        w->Breath_se_wait = 0x3B;
         w->Breath_seid = SndCall(8, 0x21, &em->getPartsPtr(0xB)->world, em->id, 0, em);
     }
 }
@@ -5258,7 +5258,7 @@ void em31BreathSeStopCk(cEm31* em)
     case 0x1F:
     case 0x37:
         SndStop(w->Breath_seid, 0);
-        w->breathTimer = 2;
+        w->Breath_se_wait = 2;
         break;
     }
 }

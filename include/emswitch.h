@@ -9,8 +9,8 @@
 // Work of the lever switch enemy (game/emswitch.cpp), overlaid on cEm from 0x3E0.
 struct EmSwitchWork {
     u8 pad_0[0x210];
-    int state;            // 0x210 (0x5F0)  1 = open, 2 = closed, 0 = moving (ckSwitch)
-    int opened;           // 0x214 (0x5F4)  ckOpen
+    int Status;            // 0x210 (0x5F0)  1 = open, 2 = closed, 0 = moving (ckSwitch)
+    int Onoff_flag;           // 0x214 (0x5F4)  ckOpen
     u8 pad_218[4];
     class cEmBarred* pBarred;     // 0x21C (0x5FC)  gates the lever drives
     class cEmBarred* pBarred2;    // 0x220 (0x600)

@@ -83,7 +83,7 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     em->be_flag &= ~0x10;
     w->Status = 0;
     w->pParent = parent;
-    w->partsNo = 0;
+    w->oya_parts = 0;
     w->noNormalize = 0;
     em->r_no_0 = 1;
     em->r_no_1 = 0;
@@ -202,7 +202,7 @@ void emHit_R1_Parent(cEmHit* em)
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
         if (w->noNormalize == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -355,7 +355,7 @@ void cEmHit::setParent(cModel* parent, int partsNo, int noNormalize)
     EmHitWork* w = EMHIT_WK(this);
 
     w->pParent = parent;
-    w->partsNo = partsNo;
+    w->oya_parts = partsNo;
     w->noNormalize = noNormalize;
     r_no_0 = 1;
     r_no_1 = 1;

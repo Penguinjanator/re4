@@ -22,7 +22,7 @@
 // Work of the Ganado enemy, overlaid on cEm from 0x3E0 (em10_R0_Init prints its size: 0x818).
 // Field names are the work-relative offsets; the comment gives the cEm offset.
 struct Em10Work {
-    u32 flags;            // 0x000 (0x3E0)
+    u32 Be_flg;            // 0x000 (0x3E0)
     int Timer;               // 0x004 (0x3E4)  routine timer
     int Timer2;               // 0x008 (0x3E8)
     int Timer3;               // 0x00C (0x3EC)
@@ -33,7 +33,7 @@ struct Em10Work {
     int TmpU32;              // 0x020 (0x400)
     Vec TmpV;              // 0x024 (0x404)  scratch Vec (scale copy, pos copy, approach step) (PS2 TmpV)
     void* mot[79];        // 0x030 (0x410)  motion data table (Em10Set / Em10WeaponSet fill it; [0x29..] weapons)
-    cEmWep* pWep;         // 0x16C (0x54C)  weapon in hand
+    cEmWep* pWeapon;         // 0x16C (0x54C)  weapon in hand
     cEmWep* pWeapon2;        // 0x170 (0x550)
     cEmShield* pShield;   // 0x174 (0x554)
     cObj12* pCap;         // 0x178 (0x558)  (PS2 cObj12* pCap)
@@ -90,7 +90,7 @@ struct Em10Work {
     cModel* pChain;         // 0x594 (0x974)  chain object of the chain Ganado (em10ChainSet: cObjChain)  (PS2 pChain)
     Vec Floor_ang;             // 0x598 (0x978)  smoothed floor slope angle, RotMatrix input (em10SlopeMove) (PS2 Floor_ang)
     Vec Spd;             // 0x5A4 (0x984)  fall speed (y -= 20 per frame) (PS2 Spd)
-    class cCtrl* pCtrl12; // 0x5B0 (0x990)  GetCtrlCtrl12()
+    class cCtrl* pCtrlGroup; // 0x5B0 (0x990)  GetCtrlCtrl12()
     class cCtrl* pCtrlSe; // 0x5B4 (0x994)  GetCtrlCtrl11()
     u32 Seid_voice;             // 0x5B8 (0x998)
     u32 Seid_breath;             // 0x5BC (0x99C)
@@ -105,7 +105,7 @@ struct Em10Work {
     Vec Target_pos;             // 0x5E0 (0x9C0)  action target pos / approach offset (scaled 0.2 per frame) (PS2 Target_pos)
     u32 Goto_mode;             // 0x5EC (0x9CC)  ckGoto  ckGoto (PS2 Goto_mode)
     Vec Goto_pos;             // 0x5F0 (0x9D0)  goto-mode destination (player / bell), copied to Route_target (PS2 Goto_pos)
-    Vec scaleBase;        // 0x5FC (0x9DC)  scale at init
+    Vec Scale;        // 0x5FC (0x9DC)  scale at init
     Vec Campos;             // 0x608 (0x9E8)  takeaway camera position (PS2 Campos)
     void* evtMot[8];      // 0x614 (0x9F4)  event motions (setEvtMotion / setGondolaMotion / setDrill / setGatling)
     u32 HoseiCnt;             // 0x634 (0xA14)  frames the collision halved the movement (capped at 60) (PS2 HoseiCnt)
@@ -193,10 +193,10 @@ struct Em10Work {
     u8 Se_tbl[19];        // 0x6C6 (0xAA6)  sound numbers (Em10SetSeTbl) (PS2 Se_tbl[19])
     u8 pad_6D9[3];
     PenCloth Cloth;       // 0x6DC (0xABC)  Em18ClothSet / Em1fClothSet / em10ChainSet / em10BeltSet
-    f32 blendRate;        // 0x73C (0xB1C)  em10BlendMotSet
+    f32 Blend;        // 0x73C (0xB1C)  em10BlendMotSet
     int Hokan;             // 0x740 (0xB20)  em10BlendMotSet: hokan frames left (low byte passed)  em10BlendMotSet: hokan frames (PS2 Hokan)
     u32 Frame;             // 0x744 (0xB24)  em10BlendMotSet: start frame (low half passed)  em10BlendMotSet: start frame (PS2 Frame)
-    MotionWorkSub blendMot;  // 0x748 (0xB28)
+    MotionWorkSub Sub_mot;  // 0x748 (0xB28)
 };
 
 #define EM10_WK(em) ((Em10Work*) (((cEm10*) (em))->free))

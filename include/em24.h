@@ -9,7 +9,7 @@
 struct Em24Work {
     u32 Be_flg;            // 0x000 (0x3E0)  bit2: box mode (checkAir instead of the floor), bit4: die fade done, bit5: in water
     int Timer;            // 0x004 (0x3E4)
-    int turnTimer;        // 0x008 (0x3E8)  R1_Free: frames until the next random turn
+    int Timer2;        // 0x008 (0x3E8)  R1_Free: frames until the next random turn
     u8 pad_C[0x20 - 0xC];
     int motEnd;           // 0x020 (0x400)  MotionMove reported the end of the motion
     u8 pad_24[0x30 - 0x24];

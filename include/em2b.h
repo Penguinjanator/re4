@@ -36,20 +36,20 @@ struct Em2bWork {
                           //                bit7: targets the friend (0x26C), bit9: parasite out, bit13: parasite hit
     int Timer;            // 0x004 (0x3E4)
     int Timer2;           // 0x008 (0x3E8)
-    int mode;             // 0x00C (0x3EC)
+    int TmpU32;             // 0x00C (0x3EC)
     int TmpU32b;              // 0x010 (0x3F0)
-    Vec posSave;          // 0x014 (0x3F4)  pos of the previous frame (GetTree / TreeAtk move the tree by the delta)
+    Vec TmpV;          // 0x014 (0x3F4)  pos of the previous frame (GetTree / TreeAtk move the tree by the delta)
     YARARE_INFO hit[10];    // 0x020 (0x400)  extra hit boxes (YarareAdd in em2b_R0_Init); hit[9] is the parasite (parts 0x3F)
-    f32 routeAng;         // 0x228 (0x608)
-    f32 routeAngAbs;      // 0x22C (0x60C)
+    f32 Pl_dir;         // 0x228 (0x608)
+    f32 Pl_rot;      // 0x22C (0x60C)
     u8 pad_230[8];
-    f32 targetAng;        // 0x238 (0x618)
-    f32 targetAngAbs;     // 0x23C (0x61C)
-    f32 targetDist;       // 0x240 (0x620)  squared
-    Vec routePos;         // 0x244 (0x624)
+    f32 Go_dir;        // 0x238 (0x618)
+    f32 Go_rot;     // 0x23C (0x61C)
+    f32 L_go;       // 0x240 (0x620)  squared
+    Vec Pl_pos;         // 0x244 (0x624)
     u8 pad_250[0xC];
-    Vec targetPos;        // 0x25C (0x63C)
-    cEm* pTarget;         // 0x268 (0x648)
+    Vec Go_pos;        // 0x25C (0x63C)
+    cEm* pEm;         // 0x268 (0x648)
     cEm* pFriend;         // 0x26C (0x64C)
     Vec moveVec;          // 0x270 (0x650)  remaining move towards the tree / rock (a tenth per frame)
     cCtrl* pCtrlGroup;       // 0x27C (0x65C)  GetCtrlCtrl12()
@@ -58,9 +58,9 @@ struct Em2bWork {
     u8 Tex_buf[8];       // 0x288 (0x668)  cModelInfo::setTexBlendTbl table (em2b_R1_HoleAtk)
     u8 pad_290[0x18];
     f32 Blend;         // 0x2A8 (0x688)
-    int blendCnt;         // 0x2AC (0x68C)
-    int blendSeq;         // 0x2B0 (0x690)
-    MotionWorkSub blendMot;  // 0x2B4 (0x694)  second motion work (cModel::Motion.blend)
+    int Hokan;         // 0x2AC (0x68C)
+    int Frame;         // 0x2B0 (0x690)
+    MotionWorkSub Sub_mot;  // 0x2B4 (0x694)  second motion work (cModel::Motion.blend)
     void* blendM0;        // 0x384 (0x764)
     void* blendM1;        // 0x388 (0x768)
     void* blendM2;        // 0x38C (0x76C)
@@ -94,21 +94,21 @@ struct Em2bWork {
     int Catch_power;         // 0x62C (0xA0C)
     int Parasite_damage;           // 0x630 (0xA10)
     u32 HoseiCnt;         // 0x634 (0xA14)
-    int dmGuard;          // 0x638 (0xA18)
+    int Go_dog_timer;          // 0x638 (0xA18)  frames left heading for the dog (900 when pFriend is set) (PS2 Go_dog_timer; was `dmGuard`)
     int Dog_wait;             // 0x63C (0xA1C)
     int Event_wait;             // 0x640 (0xA20)
-    f32 scaleRate;        // 0x644 (0xA24)
+    f32 Compress_y;        // 0x644 (0xA24)  y scale (1 -> 0.1 while dying) (PS2 Compress_y)
     u8 espKind;           // 0x648 (0xA28)
     u8 Atk_ck;            // 0x649 (0xA29)
-    u8 variant;           // 0x64A (0xA2A)
+    u8 Ft_axis;           // 0x64A (0xA2A)  selects the effect set (PS2 Ft_axis)
     u8 Button_mode;            // 0x64B (0xA2B)  parasite attack button: 1 = 0x40000, 0 = 0x80000 (Key.trg)
-    u8 espKind2;          // 0x64C (0xA2C)
+    u8 Eff;          // 0x64C (0xA2C)  effect kind for EstSet / EmDmBloodSet2 (PS2 Eff)
     u8 Debug_atk_rtn;          // 0x64D (0xA2D)
 };
 
 
 #define EM2B_WK(em) ((Em2bWork*) (((cEm2b*) (em))->free))
-#define EM2B_BLEND_MOT(w) ((MotionWork*) &(w)->blendMot)
+#define EM2B_BLEND_MOT(w) ((MotionWork*) &(w)->Sub_mot)
 
 class cEm2b : public cEm {
 public:

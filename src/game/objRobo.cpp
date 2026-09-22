@@ -92,7 +92,7 @@ cObjRobo* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->partsMatCalc();
     obj->partsWorldCalc();
     w->r_no_0 = 0;
-    w->step = 0;
+    w->r_no_1 = 0;
     return (cObjRobo*) obj;
 }
 
@@ -115,7 +115,7 @@ void cObjRobo::SetBeginEvent(u32 a)
 
     setNoSuspend(1);
     w->r_no_0 = 7;
-    w->step = 0;
+    w->r_no_1 = 0;
 }
 
 // Event end: normal suspend behaviour again (the room sets the next routine).
@@ -165,10 +165,10 @@ void cObjRobo::R0Init(cObjRobo* robo)
     SceAtDataSet_exec(SCEAT_EXEC_BACK, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchBack, robo, 1);
     SceAtDataSet_exec(SCEAT_EXEC_FRONT, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchFront, robo, 1);
     if (RsfCheck(pG->room_id, 9)) {
-        w->step = 0;
+        w->r_no_1 = 0;
         w->r_no_0 = 1;
     } else {
-        w->step = 0;
+        w->r_no_1 = 0;
         w->r_no_0 = 7;
     }
     {
@@ -220,10 +220,10 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
     cModel* parts;
     cEmHit* hit;
 
-    switch (w->step) {
+    switch (w->r_no_1) {
     case 0:
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0, 4, 0);
-        w->step++;
+        w->r_no_1++;
     case 1:
         if (robo->Motion.Seq_old.Free & 1) {
             SndCall(6, 2, &robo->getPartsPtr(RoboPartsNoLHand)->world, 0, 0, 0);
@@ -276,11 +276,11 @@ void cObjRobo::R0WalkPassage(cObjRobo* robo)
     RoboWork* w = &robo->robo;
     Vec v;
 
-    switch (w->step) {
+    switch (w->r_no_1) {
     case 0:
         EstSet(robo, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
-        w->step++;
+        w->r_no_1++;
     case 1:
         robo->WalkSequence(robo, 1);
         break;
@@ -302,10 +302,10 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
     RoboWork* w = &robo->robo;
     Vec v;
 
-    switch (w->step) {
+    switch (w->r_no_1) {
     case 0:
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0x3C, 5, 0);
-        w->step++;
+        w->r_no_1++;
     case 1:
         robo->WalkSequence(robo, 0);
         if (robo->pos.x <= -55597.8984375f) {
@@ -321,7 +321,7 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
             v.z = robo->pos.z;
             robo->setPos(&v);
             w->SndTimer = t;
-            w->step++;
+            w->r_no_1++;
         }
         break;
     case 2:
@@ -360,7 +360,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
     u32 f;
     int* hp;
 
-    switch (w->step) {
+    switch (w->r_no_1) {
     case 0:
         v.x = BridgeStartX;
         v.y = robo->pos.y;
@@ -376,7 +376,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
         for (i = 0; i < 6; i++) {
             w->BridgeTimer[i] = 0;
         }
-        w->step++;
+        w->r_no_1++;
     case 1:
         robo->WalkSequence(robo, 1);
         smd = SmdGetObjPtr(smdNo[0]);
@@ -385,7 +385,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
         }
         if (robo->pos.x < smd->pos.x) {
             w->FallTimer = 0;
-            w->step++;
+            w->r_no_1++;
         }
         break;
     case 2:
@@ -444,9 +444,9 @@ void cObjRobo::R0WaitBreak(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
 
-    if (w->step == 0) {
+    if (w->r_no_1 == 0) {
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 4, 0);
-        w->step++;
+        w->r_no_1++;
     }
     MotionMove(robo, 0);
     robo->partsWorldCalc();
@@ -457,9 +457,9 @@ void cObjRobo::R0WaitDie(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
 
-    if (w->step == 0) {
+    if (w->r_no_1 == 0) {
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 4, 0);
-        w->step++;
+        w->r_no_1++;
     }
     MotionMove(robo, 0);
     robo->partsWorldCalc();

@@ -107,7 +107,7 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     }
     for (i = 0; i < 5; i++) {
         w->pSat[i] = 0;
-        w->sat2[i] = 0;
+        w->pEat[i] = 0;
     }
     p = w->pEm;
     for (i = 0; i < 5; i++) {
@@ -116,8 +116,8 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->Ride_pl = 0;
     w->Ride_sub = 0;
     w->subWork = 0;
-    w->subMot = 0;
-    w->breakMot = 0;
+    w->Sub_mot1 = 0;
+    w->Sub_mot2 = 0;
     obj->r_no_0 = 0;
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
@@ -311,9 +311,9 @@ void objGondola_R0_Break(cObjGondola* obj)
         if (w->Timer) {
             w->Timer--;
             if (w->Timer == 0) {
-                if (w->subWork && w->breakMot) {
+                if (w->subWork && w->Sub_mot2) {
                     ((GondolaMotWork*) w->subWork)->flags2 |= 0x10000000;
-                    MotionSetCore(obj, w->subWork, w->breakMot, 0, 0, 0, 0);
+                    MotionSetCore(obj, w->subWork, w->Sub_mot2, 0, 0, 0, 0);
                     ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
                     obj->Motion.blend = w->subWork;
                     ((GondolaMotWork*) obj->Motion.blend)->blendRate = 1.0f;
@@ -358,8 +358,8 @@ void objGondolaSatClear(cObjGondola* obj)
         if (w->pSat[i]) {
             w->pSat[i]->m_Flag &= ~4;
         }
-        if (w->sat2[i]) {
-            w->sat2[i]->m_Flag &= ~4;
+        if (w->pEat[i]) {
+            w->pEat[i]->m_Flag &= ~4;
         }
     }
 }
@@ -659,8 +659,8 @@ void cObjGondola::setSubMotion(MotionWork* work, void* mot, void* breakMot)
     GondolaWork* w = &gondola;
 
     w->subWork = work;
-    w->subMot = mot;
-    w->breakMot = breakMot;
+    w->Sub_mot1 = mot;
+    w->Sub_mot2 = breakMot;
 }
 
 // Hit shake: blends the shake motion in (rate 1, additive), quake and vibration.
@@ -668,9 +668,9 @@ void cObjGondola::setVib()
 {
     GondolaWork* w = &gondola;
 
-    if (w->subWork && w->subMot) {
+    if (w->subWork && w->Sub_mot1) {
         ((GondolaMotWork*) w->subWork)->flags2 |= 0x10000000;
-        MotionSetCore(this, w->subWork, w->subMot, 0, 0, 0, 0);
+        MotionSetCore(this, w->subWork, w->Sub_mot1, 0, 0, 0, 0);
         ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
         Motion.blend = w->subWork;
         ((GondolaMotWork*) Motion.blend)->blendRate = 1.0f;

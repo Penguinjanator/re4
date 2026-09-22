@@ -28,7 +28,7 @@ struct MineNode {
     Vec old;       // 0x0C
     Vec spd;          // 0x18
     f32 len;          // 0x24  rest distance to the next node
-    int onFloor;      // 0x28
+    int reflect;      // 0x28
 };
 
 
@@ -993,9 +993,9 @@ void emMine_R1_Fall(cEmMine* em)
     i = 5; i = 6;
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        n->spd.x = w->pts[i].x;
-        n->spd.y = w->pts[i].y;
-        n->spd.z = w->pts[i].z;
+        n->spd.x = w->Fall_spd[i].x;
+        n->spd.y = w->Fall_spd[i].y;
+        n->spd.z = w->Fall_spd[i].z;
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
@@ -1013,9 +1013,9 @@ void emMine_R1_Fall(cEmMine* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        n->spd.y -= w->grav;
+        n->spd.y -= w->Gravity;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
-        n->onFloor = 0;
+        n->reflect = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
@@ -1035,21 +1035,21 @@ void emMine_R1_Fall(cEmMine* em)
             PSVECSubtract(&n->pos, &d, &n->pos);
             if (n->pos.y < floor) {
                 n->pos.y = floor;
-                n->onFloor = 1;
+                n->reflect = 1;
             }
             if (nn->pos.y < floor) {
                 nn->pos.y = floor;
-                nn->onFloor = 1;
+                nn->reflect = 1;
             }
         }
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        if (n->onFloor) {
+        if (n->reflect) {
             n->spd.x *= fRand0_1() * 0.2f + 0.5f;
             n->spd.y *= -(fRand0_1() * 0.2f + 0.5f);
             n->spd.z *= fRand0_1() * 0.2f + 0.5f;
-            if (n->spd.y <= w->grav) {
+            if (n->spd.y <= w->Gravity) {
                 if (n->spd.y > 0.0f) {
                     n->spd.y = 0.0f;
                 }
@@ -1061,9 +1061,9 @@ void emMine_R1_Fall(cEmMine* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        w->pts[i].x = n->spd.x;
-        w->pts[i].y = n->spd.y;
-        w->pts[i].z = n->spd.z;
+        w->Fall_spd[i].x = n->spd.x;
+        w->Fall_spd[i].y = n->spd.y;
+        w->Fall_spd[i].z = n->spd.z;
     }
     PSVECSubtract(&node[0].pos, &node[1].pos, &e0);
     PSVECSubtract(&node[2].pos, &node[1].pos, &e1);
@@ -1205,14 +1205,14 @@ void cEmMine::setFall()
 
     Motion.pMot = 0;
     for (i = 0; i < 3; i++) {
-        w->pts[i].x = fRand1_1() * 10.0f;
-        w->pts[i].y = fRand1_1() * 10.0f + 50.0f;
-        w->pts[i].z = fRand1_1() * 10.0f;
+        w->Fall_spd[i].x = fRand1_1() * 10.0f;
+        w->Fall_spd[i].y = fRand1_1() * 10.0f + 50.0f;
+        w->Fall_spd[i].z = fRand1_1() * 10.0f;
     }
     w->pEm_oya = 0;
     w->pEm_old = 0;
     hp = 0;
-    w->grav = 15.0f;
+    w->Gravity = 15.0f;
     w->Water_ck = 0;
     pos.x = mat[0][3];
     pos.y = mat[1][3];

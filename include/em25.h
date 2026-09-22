@@ -15,24 +15,24 @@ struct Em25Work {
                           //                bit5: parent head turned away (em25_R1_P_Wait / em25OnParent); the low bits (0x2F) are cleared every frame
     int Timer;            // 0x004 (0x3E4)
     int Timer2;       // 0x008 (0x3E8)  em25_R1_Bite: frames the catch motion blends
-    u32 sndId;            // 0x00C (0x3EC)  bite SE handle (SndStop)
+    u32 TmpU32;            // 0x00C (0x3EC)  bite SE handle (SndStop)
     YARARE_INFO hit[3];     // 0x010 (0x3F0)  extra hit boxes (YarareAdd in em25_R0_Init)
     u8 pad_AC[0x218 - 0xAC];
-    f32 routeAng;         // 0x218 (0x5F8)  Muku towards the route point (player)
-    f32 routeAngAbs;      // 0x21C (0x5FC)
+    f32 Pl_dir;         // 0x218 (0x5F8)  Muku towards the route point (player)
+    f32 Pl_rot;      // 0x21C (0x5FC)
     u8 pad_220[8];
-    f32 targetAng;        // 0x228 (0x608)  copy of the route angle / distance
-    f32 targetAngAbs;     // 0x22C (0x60C)
-    f32 targetDist;       // 0x230 (0x610)
-    Vec routePos;         // 0x234 (0x614)  RouteCkToPos result towards the player
+    f32 Go_dir;        // 0x228 (0x608)  copy of the route angle / distance
+    f32 Go_rot;     // 0x22C (0x60C)
+    f32 L_go;       // 0x230 (0x610)
+    Vec Pl_pos;         // 0x234 (0x614)  RouteCkToPos result towards the player
     u8 pad_240[0xC];
-    Vec targetPos;        // 0x24C (0x62C)
+    Vec Go_pos;        // 0x24C (0x62C)
     cEm* pEm;         // 0x258 (0x638)  pPL
     cEm* pEm_oya;         // 0x25C (0x63C)  host enemy (setParent), NULL on the floor
-    int parentParts;      // 0x260 (0x640)  host parts the parasite is attached to
+    int oya_parts;      // 0x260 (0x640)  host parts the parasite is attached to
     u8 pad_264[0x378 - 0x264];
-    cObj16* pPara[3];     // 0x378 (0x758)  the three tentacle objects (em25SetParasite, type 7)
-    u32 hitCnt;           // 0x384 (0x764)  damage counter 0..3
+    cObj16* pParasite[3];     // 0x378 (0x758)  the three tentacle objects (em25SetParasite, type 7)
+    u32 Wm_no;           // 0x384 (0x764)  damage counter 0..3
     int Alive_timer;        // 0x388 (0x768)  frames until the parasite dies by itself (900)
     f32 Compress_y;           // 0x38C (0x76C)  em25ScaleCompress: y scale of the parts (the die routines shrink it)
     int Mode;             // 0x390 (0x770)  1 while attached to a parent
@@ -42,9 +42,9 @@ struct Em25Work {
     u8 pad_39D[3];
     int Se_breath_wait;          // 0x3A0 (0x780)  frames until the next crawl SE
     int Eff_wait1;             // 0x3A4 (0x784)
-    int estTimer;         // 0x3A8 (0x788)  frames until the next attached effect
-    u8 dead;              // 0x3AC (0x78C)  ckDie
-    u8 atkHit;            // 0x3AD (0x78D)  the attack already hit (em25AtkCk)
+    int Eff_wait2;         // 0x3A8 (0x788)  frames until the next attached effect
+    u8 Die_ck;              // 0x3AC (0x78C)  ckDie
+    u8 Atk_ck;            // 0x3AD (0x78D)  the attack already hit (em25AtkCk)
     u8 Atk_enable;         // 0x3AE (0x78E)  ckAtkEnable
 };
 

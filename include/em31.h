@@ -36,12 +36,12 @@ struct Em31Work {
                           //                bit12: down, bit13: tentacle weak point hit, bit14: down enable, bit15: dashing (foot SE)
     int Timer;            // 0x004 (0x3E4)
     int Timer2;             // 0x008 (0x3E8)
-    int motVar;           // 0x00C (0x3EC)  em31_R1_BridgeVs / T_Wait: motion variant chosen at the state start
+    int TmpU32;           // 0x00C (0x3EC)  em31_R1_BridgeVs / T_Wait: motion variant chosen at the state start
     int x010;             // 0x010 (0x3F0)
-    Vec jumpSpd;          // 0x014 (0x3F4)  em31_R1_Jump: movement left towards bridgePos
+    Vec TmpV;          // 0x014 (0x3F4)  em31_R1_Jump: movement left towards bridgePos
     YARARE_INFO hit[29];    // 0x020 (0x400)  hit boxes (YarareAdd)
     u8 pad_604[0x638 - 0x604];
-    f32 routeAng;         // 0x638 (0xA18)  Muku towards the route point (player)
+    f32 Pl_dir;         // 0x638 (0xA18)  Muku towards the route point (player)
     f32 Pl_rot;      // 0x63C (0xA1C)
     f32 Sub_dir;             // 0x640 (0xA20)
     f32 Sub_rot;             // 0x644 (0xA24)
@@ -76,10 +76,10 @@ struct Em31Work {
     int Total_damage;      // 0x8E8 (0xCC8)  tentacle: damage on the weak point (getTotalDamage)
     u32 Seid;            // 0x8EC (0xCCC)  voice handle (setVoice)
     u32 Breath_seid;           // 0x8F0 (0xCD0)  breath handle (em31BreathSe)
-    u16 breathTimer;      // 0x8F4 (0xCD4)  frames until the next breath
+    u16 Breath_se_wait;      // 0x8F4 (0xCD4)  frames until the next breath
     u16 pad_8F6;
     int Str_seid;             // 0x8F8 (0xCD8)
-    u16 tailSeTimer;      // 0x8FC (0xCDC)  em31TailAtkCk: frames until the next tail SE
+    u16 Ten_se_wait;      // 0x8FC (0xCDC)  em31TailAtkCk: frames until the next tail SE
     s16 Flash_timer;         // 0x8FE (0xCDE)  frames the eyelids stay shut after a weapon 0x17 hit
     EYELID_WK Eyelid[4];    // 0x900 (0xCE0)
     u8 Atk_ck;            // 0x970 (0xD50)  the attack hit the player

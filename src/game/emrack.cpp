@@ -730,9 +730,9 @@ void cEmRack::setEff(u8 eff)
 // south / west directions (negative = 0) and enables the range clamp (rackFlags 0x10).
 void cEmRack::setRange(f32 n, f32 e, f32 s, f32 w)
 {
-    RotMatrix(rackMat, &ang);
-    TransMatrix(rackMat, &pos);
-    PSMTXInverse(rackMat, rackInvMat);
+    RotMatrix(baseMat, &ang);
+    TransMatrix(baseMat, &pos);
+    PSMTXInverse(baseMat, baseInvMat);
     if (n > 0.0f) {
         rackRange[0] = n;
     } else {
@@ -766,7 +766,7 @@ int cEmRack::adjustRange(u8 dir)
     if (!(rackFlags & 0x10)) {
         return 0;
     }
-    PSMTXMultVec(rackInvMat, &pos, &v);
+    PSMTXMultVec(baseInvMat, &pos, &v);
     ret = 0;
     switch (dir) {
     case 0:
@@ -795,7 +795,7 @@ int cEmRack::adjustRange(u8 dir)
         break;
     }
     if (ret == 1) {
-        PSMTXMultVec(rackMat, &v, &pos);
+        PSMTXMultVec(baseMat, &v, &pos);
     }
     return ret;
 }

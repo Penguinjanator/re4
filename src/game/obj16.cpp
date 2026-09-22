@@ -610,7 +610,7 @@ void obj16_R1_Atk(cObj16* obj)
         if ((Rnd() & 1) || obj->r_no_3) {
             MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0xA, 0, 0);
             w->Timer = 34;
-            w->atkTimer = 8;
+            w->Timer2 = 8;
             obj->r_no_3 = 0;
             if (obj->type == 2) {
                 EstSet(obj, -1, 0, 0, EFF_EM10, 0x6C, 0, ESP_CORE_KIND_NONE, obj, 0);
@@ -621,7 +621,7 @@ void obj16_R1_Atk(cObj16* obj)
         } else {
             MotionSetCore(obj, &obj->Motion, w->mot[4], 0, 3, 0, 0);
             w->Timer = 28;
-            w->atkTimer = 6;
+            w->Timer2 = 6;
             obj->r_no_3 = 1;
             if (obj->type == 2) {
                 EstSet(obj, -1, 0, 0, EFF_EM10, 0x6F, 0, ESP_CORE_KIND_NONE, obj, 0);
@@ -654,8 +654,8 @@ void obj16_R1_Atk(cObj16* obj)
                     }
                 }
             } else {
-                if (w->atkTimer) {
-                    w->atkTimer--;
+                if (w->Timer2) {
+                    w->Timer2--;
                     atk = 1;
                 }
             }
@@ -833,7 +833,7 @@ void obj16_R1_Damage(cObj16* obj)
             }
         }
         w->Timer = 30;
-        w->atkTimer = 0;
+        w->Timer2 = 0;
         obj->r_no_2++;
     case 1:
         if (obj->type == 3 || obj->type == 0xD) {
@@ -847,10 +847,10 @@ void obj16_R1_Damage(cObj16* obj)
         }
         if (obj->type == 4) {
             if (w->target) {
-                if (w->atkTimer) {
-                    w->atkTimer--;
+                if (w->Timer2) {
+                    w->Timer2--;
                 } else {
-                    w->atkTimer = 29;
+                    w->Timer2 = 29;
                     w->Seid = SndCall(8, 0x13, &w->target->pos, w->target->id, 0, 0);
                 }
             }

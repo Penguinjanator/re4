@@ -280,7 +280,7 @@ static void em18_R0_Init(cEm18* em)
     EspDataLoad((u32) ARC(4), EFF_EM18, 0);
     Em18ClothSet(em, &w->Cloth, 0);
     w->Be_flg = 0;
-    w->neckAng = 0.0f;
+    w->Neck_dir_y = 0.0f;
     EmRoutineSet(em, one, 0, 0, 0);
     MotionSetCore(em, MOTION(em), ARC(0x14), 0, 0, 1, 0);
     MotionMove(em, 0);
@@ -322,7 +322,7 @@ static void em18_R1_Trade(cEm18* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 10, 1, 0);
-        w->sndId = SndCall(8, 9, &em->pos, em->id, 0, 0);
+        w->Seid_voice = SndCall(8, 9, &em->pos, em->id, 0, 0);
         KeyStop(0xEFCF0000);
         em->r_no_2++;
     case 1:
@@ -348,7 +348,7 @@ static void em18_R1_Trade(cEm18* em)
     case 3:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 10, 1, 0);
         SndCall(8, 0xA, &em->pos, em->id, 0, 0);
-        w->sndId = SndCall(8, 7, &em->pos, em->id, 0, 0);
+        w->Seid_voice = SndCall(8, 7, &em->pos, em->id, 0, 0);
         pG->Stop_flg &= 0x7FFFFFFF;
         em->r_no_2++;
     case 4:
@@ -481,7 +481,7 @@ static void em18_R1_Die_Normal(cEm18* em)
         break;
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 3, 1, 0);
-        SndStop(w->sndId, 0);
+        SndStop(w->Seid_voice, 0);
         SndCall(8, 8, &em->pos, em->id, 0, 0);
         em->r_no_2++;
     case 1:
@@ -519,14 +519,14 @@ void em18NeckMove(cEm18* em)
         PSMTXMultVec(h->mat, &v, &v);
     }
     if (w->Be_flg & 0x10) {
-        w->neckAng = w->neckAng * 0.9f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.0471976f) * 0.1f;
+        w->Neck_dir_y = w->Neck_dir_y * 0.9f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.0471976f) * 0.1f;
     } else {
-        w->neckAng = w->neckAng * 0.9f;
+        w->Neck_dir_y = w->Neck_dir_y * 0.9f;
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
     ((cParts*) p)->addRot.x = 0.0f;
-    ((cParts*) p)->addRot.y = w->neckAng;
+    ((cParts*) p)->addRot.y = w->Neck_dir_y;
     ((cParts*) p)->addRot.z = 0.0f;
 }
 

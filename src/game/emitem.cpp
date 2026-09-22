@@ -96,7 +96,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->Be_flg = 0;
-    w->rotType = rotType;
+    w->Rot_type = rotType;
     w->Status = 0;
     w->rotAng.x = fRand1_1() * 3.1415927f;
     w->rotAng.y = fRand1_1() * 3.1415927f;
@@ -301,7 +301,7 @@ void emItem_R1_Parent(cEmItem* em)
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
         if (w->noNormalize == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -447,7 +447,7 @@ void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
     EmItemWork* w = EMITEM_WK(this);
 
     w->pParent = parent;
-    w->partsNo = partsNo;
+    w->oya_parts = partsNo;
     w->noNormalize = noNormalize;
     r_no_0 = 1;
     r_no_1 = 2;
@@ -459,7 +459,7 @@ void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
 // Swing mode: 1 = medal swing on x/z with a y wobble, 2 = fixed rotation from ang, 0 = none.
 void cEmItem::setRotType(u8 type)
 {
-    EMITEM_WK(this)->rotType = type;
+    EMITEM_WK(this)->Rot_type = type;
 }
 
 // Applies the swing to parts 0: mode 1 rotates by sin(rotAng) * rotAmp per axis and advances
@@ -470,7 +470,7 @@ void emItemRotMove(cEmItem* em)
     Mtx tmp;
     cModel* p;
 
-    switch (w->rotType) {
+    switch (w->Rot_type) {
     case 1:
         p = em->getPartsPtr(0);
         PSMTXRotRad(tmp, 'x', SINF(w->rotAng.x) * w->rotAmp.x);

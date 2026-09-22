@@ -11,7 +11,7 @@ struct EmTorchWork {
     int Timer;            // 0x004 (0x3E4)  30 after the first frame
     u8 pad_8[4];
     cModel* pParent;      // 0x00C (0x3EC)  model the torch follows (setParent)
-    int partsNo;          // 0x010 (0x3F0)
+    int oya_parts;          // 0x010 (0x3F0)
     u8 pad_14[0x48 - 0x14];
     Vec size;             // 0x048 (0x428)  yarare box size
     Vec spd;              // 0x054 (0x434)  fall speed

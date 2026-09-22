@@ -48,24 +48,24 @@ void cWepItem::move()
 void cWepItem::move00()
 {
     WepItemWork* w = &wepItem;
-    int life = w->life;
+    int life = w->timer;
     f32 wh;
 
     if (life) {
         if (w->eff_action != 2) {
-            w->life = life - 1;
+            w->timer = life - 1;
         }
     } else {
-        if (w->estNo0 != -1 && w->est != -1) {
+        if (w->eff != -1 && w->est != -1) {
             switch (w->eff_action) {
             case 1:
                 StaFlagOn(pG, STA_PL_FIRE);
                 if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
-                    EstSet(0, -1, &pos, 0, w->estNo3, (u8) w->est4, 0, ESP_CORE_KIND_NONE, 0, 0);
+                    EstSet(0, -1, &pos, 0, w->eff4, (u8) w->est4, 0, ESP_CORE_KIND_NONE, 0, 0);
                     AddWaterPower(pos, 1.0f);
                     SndCall(1, 0x17, &pos, 0, 0, 0);
                 } else {
-                    EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+                    EstSet(0, -1, &pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                 }
                 PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
@@ -77,8 +77,8 @@ void cWepItem::move00()
                 return;
             case 2:
                 StaFlagOn(pG, STA_PL_FIRE);
-                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
-                EstSet(0, -1, &pos, 0, w->estNo1, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, &pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, &pos, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SndCall(1, 0x15, &pos, 0, 0, 0);
                 SndCall(1, 0x16, &pos, 0, 0, 0);
                 dmgSet(1);
@@ -157,7 +157,7 @@ void cWepItem::move00()
         }
     }
     if (w->hold) {
-        cModel* parts = w->hold->getPartsPtr(w->holdParts);
+        cModel* parts = w->hold->getPartsPtr(w->parts_no);
         RotMatrix(mat, &w->ang);
         TransMatrix(mat, &w->offset);
         ScaleMatrix(mat, &scale);
@@ -238,7 +238,7 @@ int obj10AddSpeed(cWepItem* obj)
     if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh && !(pG->weapon_no == 0xB || pG->weapon_no == 0xC)) {
         obj->pos.y = wh;
         if (!(w->flag & 8)) {
-            EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->eff3, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
             w->flag |= 8;
             AddWaterPower(obj->pos, 0.5f);
             switch (obj->type) {
@@ -252,7 +252,7 @@ int obj10AddSpeed(cWepItem* obj)
                 break;
             }
         }
-        w->life = 0;
+        w->timer = 0;
         return w->eff_action == 2;
     }
     nrm.x = 0.0f;
@@ -280,8 +280,8 @@ int obj10AddSpeed(cWepItem* obj)
             break;
         case 2:
             obj->dmgSet(1);
-            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
-            EstSet(0, -1, &obj->pos, 0, w->estNo1, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->eff, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->eff2, (u8) w->est2, 0, ESP_CORE_KIND_NONE, 0, 0);
             SndCall(1, 0x15, &obj->pos, 0, 0, 0);
             SndCall(1, 0x16, &obj->pos, 0, 0, 0);
             obj->r_no_0 = 1;
@@ -358,11 +358,11 @@ cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
     w->spd = *spd;
     w->gravity = grav;
     w->r = rad;
-    w->life = life;
+    w->timer = life;
     w->hold = 0;
-    w->estNo0 = -1;
+    w->eff = -1;
     w->est = -1;
-    w->estNo1 = -1;
+    w->eff2 = -1;
     w->est2 = -1;
     w->eff_action = 0;
     w->release_timer = 0;
@@ -400,13 +400,13 @@ void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int 
         return;
     }
     w = &obj->wepItem;
-    w->estNo0 = no0;
+    w->eff = no0;
     w->est = prm0;
-    w->estNo1 = no1;
+    w->eff2 = no1;
     w->est2 = prm1;
     w->est3 = prm2;
-    w->estNo2 = no2;
-    w->estNo3 = no3;
+    w->eff3 = no2;
+    w->eff4 = no3;
     w->est4 = prm3;
     w->eff_action = type;
 }

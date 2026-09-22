@@ -313,13 +313,13 @@ static void em3d_R0_Init(cEm3d* em)
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(4), EFF_EM3D, 0);
     w->Be_flg = zero;
-    w->gunTimer = zero;
+    w->Fire_wait = zero;
     w->vibAng.x = fRand1_1() * PI;
     w->vibAng.y = fRand1_1() * PI;
     w->vibAng.z = fRand1_1() * PI;
-    w->vibSpd.x = fRand0_1() * 0.17453292f + 0.17453292f;
-    w->vibSpd.y = fRand0_1() * 0.05235988f + 0.13962634f;
-    w->vibSpd.z = fRand0_1() * 0.05235988f + 0.2443461f;
+    w->Vib_v.x = fRand0_1() * 0.17453292f + 0.17453292f;
+    w->Vib_v.y = fRand0_1() * 0.05235988f + 0.13962634f;
+    w->Vib_v.z = fRand0_1() * 0.05235988f + 0.2443461f;
     w->Search_len = 12000.0f;
     w->Spd.x = 0.0f;
     w->Spd.y = 0.0f;
@@ -377,7 +377,7 @@ static void em3d_R1_Patrol(cEm3d* em)
         }
         em->r_no_3 = 0;
         w->Be_flg &= ~0x10;
-        w->count = Rnd() % 90 + 90;
+        w->Timer2 = Rnd() % 90 + 90;
         w->pTargetEm = 0;
         em->r_no_2++;
     case 1:
@@ -388,8 +388,8 @@ static void em3d_R1_Patrol(cEm3d* em)
         }
         EM3D_HOVER_MOVE(em, w, 0.95f);
         EM3D_TURN_TO(em, &target, 0.05f, 0.034906585f, -0.034906585f);
-        if (w->count) {
-            w->count--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
             em->r_no_2++;
         }
@@ -507,9 +507,9 @@ static void em3d_R1_Atk(cEm3d* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->count = 0;
+        w->Timer2 = 0;
         w->Timer = 240;
-        w->mesDone = 0;
+        w->TmpU32 = 0;
         em->r_no_2++;
     case 1:
         if (em->pos.y > pos.y + 500.0f) {
@@ -523,7 +523,7 @@ static void em3d_R1_Atk(cEm3d* em)
         if (w->pTargetEm == 0) {
             em3dGetTargetEm(em);
             if (w->pTargetEm) {
-                w->count++;
+                w->Timer2++;
             }
         }
         if (w->Timer == 0) {
@@ -538,8 +538,8 @@ static void em3d_R1_Atk(cEm3d* em)
                 < 64000000.0f) {
             w->Se_id = SndCall(6, 0x6E, &em->pos, 0, 0, em);
             em3dMesSet(w, 4);
-            if (w->mesDone == 0) {
-                w->mesDone = 1;
+            if (w->TmpU32 == 0) {
+                w->TmpU32 = 1;
                 if (w->Timer > 30 && w->Timer < 240) {
                     w->Timer = 240;
                 }
@@ -570,7 +570,7 @@ static void em3d_R1_Atk(cEm3d* em)
             w->Target_area = 0;
         }
         if ((s16) pG->pl_life > 0 && w->Se_wait == 0) {
-            if (w->count > 2) {
+            if (w->Timer2 > 2) {
                 w->Se_id = SndCall(6, 0x72, &em->pos, 0, 0, em);
                 em3dMesSet(w, 6);
             } else {
@@ -755,12 +755,12 @@ void em3dChainGunMove(cEm3d* em)
     if (noAim) {
         return;
     }
-    t = w->gunTimer;
+    t = w->Fire_wait;
     if (t) {
-        w->gunTimer--;
+        w->Fire_wait--;
         return;
     }
-    w->gunTimer = 2;
+    w->Fire_wait = 2;
     EstSet(em, -1, 0, 0, EFF_EM3D, 1, 1, ESP_CORE_KIND_NONE, em, (void*) t);
     EstSet(em, -1, 0, 0, EFF_EM3D, 2, 1, ESP_CORE_KIND_NONE, em, (void*) t);
     SndCall(6, 1, &em->pos, 0, 0, em);
@@ -791,11 +791,11 @@ void em3dVibMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
 
-    w->vibAng.x += w->vibSpd.x;
+    w->vibAng.x += w->Vib_v.x;
     em->pos.x += SINF(w->vibAng.x) * 20.0f;
-    w->vibAng.y += w->vibSpd.y;
+    w->vibAng.y += w->Vib_v.y;
     em->pos.y += SINF(w->vibAng.y) * 10.0f;
-    w->vibAng.z += w->vibSpd.z;
+    w->vibAng.z += w->Vib_v.z;
     em->pos.z += SINF(w->vibAng.z) * 20.0f;
 }
 

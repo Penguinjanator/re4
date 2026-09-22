@@ -651,9 +651,9 @@ void emBarred_R1_Close(cEmBarred* em)
     switch (em->r_no_2) {
     case 0:
         if (em->type == 4) {
-            w->spd = -10.0f;
+            w->TmpF = -10.0f;
         } else {
-            w->spd = -50.0f;
+            w->TmpF = -50.0f;
         }
         SndStop(w->Seid, 0);
         if (em->r_no_3 == 0) {
@@ -673,12 +673,12 @@ void emBarred_R1_Close(cEmBarred* em)
     case 1:
         switch (em->type) {
         default:
-            em->pos.y += w->spd;
-            em->pos.y += w->spd;
+            em->pos.y += w->TmpF;
+            em->pos.y += w->TmpF;
             if (em->type == 4) {
-                w->spd -= 10.0f;
+                w->TmpF -= 10.0f;
             } else {
-                w->spd -= 15.0f;
+                w->TmpF -= 15.0f;
             }
             if (em->pos.y < w->pos0.y) {
                 em->pos.y = w->pos0.y;

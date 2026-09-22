@@ -92,7 +92,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->atari.clrFlag100();
     w->Be_flg = 0;
     em->be_flag &= ~0x10;
-    w->fallTimer = 0;
+    w->Fall_wait = 0;
     w->pParent = 0;
     w->pEm_old = 0;
     w->pAtk = 0;
@@ -118,7 +118,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->effFall[1] = 0xFF;
     w->eff72[0] = 0xFF;
     w->eff72[1] = 0xFF;
-    w->sndId = 0;
+    w->seid_throw = 0;
     w->effHit[0] = 0xFF;
     w->effHit[1] = 0xFF;
     em->Motion.pMot = 0;
@@ -334,9 +334,9 @@ void emTree_R1_Parent(cEmTree* em)
         em->partsMatCalc();
     }
     em->partsWorldCalc();
-    if (w->fallTimer) {
-        w->fallTimer--;
-        if (w->fallTimer == 0) {
+    if (w->Fall_wait) {
+        w->Fall_wait--;
+        if (w->Fall_wait == 0) {
             em->setFall();
         }
     }
@@ -393,7 +393,7 @@ void emTree_R1_Fall(cEmTree* em)
         n = &node[i];
         n->spd.y -= 20.0f;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
-        n->onFloor = 0;
+        n->reflect = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
@@ -411,11 +411,11 @@ void emTree_R1_Fall(cEmTree* em)
             PSVECSubtract(&n->pos, &tmp, &n->pos);
             if (n->pos.y < floor) {
                 n->pos.y = floor;
-                n->onFloor = 1;
+                n->reflect = 1;
             }
             if (nx->pos.y < floor) {
                 nx->pos.y = floor;
-                nx->onFloor = 1;
+                nx->reflect = 1;
             }
         }
     }
@@ -430,7 +430,7 @@ void emTree_R1_Fall(cEmTree* em)
         } else {
             nx = &node[i + 1];
         }
-        if (n->onFloor) {
+        if (n->reflect) {
             if (w->landed == 0 && n->spd.y < -50.0f) {
                 w->landed = 1;
                 if (w->seFall[0] != 0xFF) {
@@ -530,7 +530,7 @@ void emTree_R1_Throw(cEmTree* em)
         } else {
             w->Timer = w->seAlwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
-                w->sndId = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
+                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
             }
         }
         break;
@@ -542,14 +542,14 @@ void emTree_R1_Throw(cEmTree* em)
         if (w->seWall[0] != 0xFF && w->seWall[1] != 0xFF) {
             SndCall(w->seWall[0], w->seWall[1], &em->pos, w->seWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 1)) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
@@ -609,7 +609,7 @@ void emTree_R1_Shot(cEmTree* em)
         } else {
             w->Timer = w->seAlwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
-                w->sndId = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
+                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
             }
         }
         if (w->Timer2) {
@@ -633,7 +633,7 @@ void emTree_R1_Shot(cEmTree* em)
             w->Timer--;
         } else {
             em->setFall();
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
         }
         return;
     }
@@ -643,7 +643,7 @@ void emTree_R1_Shot(cEmTree* em)
         if (w->seWall[0] != 0xFF && w->seWall[1] != 0xFF) {
             SndCall(w->seWall[0], w->seWall[1], &em->pos, w->seWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
         em->pos = hit;
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
@@ -653,7 +653,7 @@ void emTree_R1_Shot(cEmTree* em)
         if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
             SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
         QuakeExec(0, 0, 5, 22.0f, 2);
         if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
             EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
@@ -675,9 +675,9 @@ void emTree_R1_Shot(cEmTree* em)
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);
             em->ang.z = 0.0f;
             if ((s16) pG->pl_life <= 0) {
-                w->fallTimer = 0;
+                w->Fall_wait = 0;
             } else {
-                w->fallTimer = 30;
+                w->Fall_wait = 30;
             }
             em->setParent(pPL, no, 0);
             emTree_R1_Parent(em);

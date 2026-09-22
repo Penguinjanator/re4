@@ -134,8 +134,8 @@ void objMissile_R0_Parent(cObjMissile* obj)
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, obj->mat, m);
-        if (w->noNormalize == 0) {
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
+        if (w->scale_mode == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];
@@ -219,8 +219,8 @@ void objMissile_R0_FireWait(cObjMissile* obj)
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, obj->mat, m);
-        if (w->noNormalize == 0) {
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
+        if (w->scale_mode == 0) {
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];
@@ -296,7 +296,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
             TransMatrix(obj->mat, &obj->pos);
         }
         w->Timer = 90;
-        w->hitWait = 3;
+        w->Timer2 = 3;
         switch (obj->type) {
         case 0:
         default:
@@ -321,8 +321,8 @@ void objMissile_R0_Fire(cObjMissile* obj)
 
     PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
     PSVECScale(&w->Spd, &w->Spd, 1.1f);
-    if (w->hitWait) {
-        w->hitWait--;
+    if (w->Timer2) {
+        w->Timer2--;
     } else {
         if (EatMgr.hitCheck(&obj->pos_old, &obj->pos, &hit, 0, 0, 0)) {
             PSVECSubtract(&obj->pos_old, &obj->pos, &nrm);
@@ -391,8 +391,8 @@ void cObjMissile::setParent(cModel* parent, int partsNo, int noNormalize)
     MissileWork* w = &missile;
 
     w->parent = parent;
-    w->partsNo = partsNo;
-    w->noNormalize = noNormalize;
+    w->oya_parts = partsNo;
+    w->scale_mode = noNormalize;
     r_no_0 = 1;
     r_no_1 = 0;
     r_no_2 = 0;

@@ -96,12 +96,12 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->be_flag &= ~0x10;
     w->Fall_wait = 0;
     w->inWater = 0;
-    w->breakCnt = 0;
+    w->Break_num = 0;
     w->pParent = 0;
     w->pOldParent = 0;
     w->xA8 = 0;
     w->x38 = -1;
-    w->hitCnt = (Rnd() % 3) + 2;
+    w->Parts_hp = (Rnd() % 3) + 2;
     w->seAlwaysWait = 4;
     w->Gravity = 20.0f;
     w->seFall[0] = 0xFF;
@@ -132,11 +132,11 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->effAlways[1] = 0xFF;
     w->always2_parts = 0xFF;
     w->x34 = 0;
-    w->effWait = 0;
-    w->effTimer = 0;
-    w->effOfs.x = 0.0f;
-    w->effOfs.y = 0.0f;
-    w->effOfs.z = 0.0f;
+    w->always2_wait = 0;
+    w->always2_timer = 0;
+    w->always2_offset.x = 0.0f;
+    w->always2_offset.y = 0.0f;
+    w->always2_offset.z = 0.0f;
     w->estNo = 50;
     em->r_no_0 = 1;
     em->r_no_1 = 0;
@@ -229,13 +229,13 @@ void emShieldDmCk(cEmShield* em)
         if (part->partsNo == 0) {
             goto blood;
         }
-        w->hitCnt--;
-        if (w->hitCnt > 0) {
+        w->Parts_hp--;
+        if (w->Parts_hp > 0) {
             goto blood;
         }
-        w->breakCnt++;
-        w->hitCnt = (Rnd() % 3) + 2;
-        if (w->breakCnt > 3) {
+        w->Break_num++;
+        w->Parts_hp = (Rnd() % 3) + 2;
+        if (w->Break_num > 3) {
             goto breakAll;
         }
         parts0 = em->getPartsPtr(part->partsNo - 1);
@@ -264,9 +264,9 @@ void emShieldDmCk(cEmShield* em)
         if (part->partsNo == 0) {
             goto blood;
         }
-        w->breakCnt++;
-        w->hitCnt = (Rnd() % 3) + 2;
-        if (w->breakCnt > 3) {
+        w->Break_num++;
+        w->Parts_hp = (Rnd() % 3) + 2;
+        if (w->Break_num > 3) {
         breakAll:
             parts0 = em->getPartsPtr(0);
             p = parts0->world;
@@ -307,7 +307,7 @@ void emShieldDmCk(cEmShield* em)
         if (part->rad > 64000000.0f) {
             break;
         }
-        if (w->breakCnt <= 3 && !(part->rad < 12250000.0f)) {
+        if (w->Break_num <= 3 && !(part->rad < 12250000.0f)) {
             goto plank;
         }
     case 0xD:
@@ -344,16 +344,16 @@ void emShieldDmCk(cEmShield* em)
         } else {
             EstSet(0, -1, &p, &r, EFF_EM10, 0x61, 0, ESP_CORE_KIND_NONE, 0, 0);
         }
-        w->hitCnt -= 3;
-        if (w->hitCnt > 0) {
+        w->Parts_hp -= 3;
+        if (w->Parts_hp > 0) {
             break;
         }
-        w->breakCnt++;
+        w->Break_num++;
         parts2->scale.x = 0.0f;
         parts2->scale.y = 0.0f;
         parts2->scale.z = 0.0f;
         part->flags &= ~1;
-        w->hitCnt = (Rnd() % 3) + 2;
+        w->Parts_hp = (Rnd() % 3) + 2;
         if (w->pParent) {
             SndCall(8, 0xAD, &em->getPartsPtr(0)->world, w->pParent->id, 0, em);
         }
@@ -384,13 +384,13 @@ void cEmShield::move()
         if (w->Be_flg & 2) {
             be_flag &= ~2;
         }
-        if ((be_flag & 2) && w->effAlways[0] != 0xFF && w->effAlways[1] != 0xFF && w->effTimer != 0) {
-            s16 t = --w->effTimer;
+        if ((be_flag & 2) && w->effAlways[0] != 0xFF && w->effAlways[1] != 0xFF && w->always2_timer != 0) {
+            s16 t = --w->always2_timer;
 
             if (t == 0) {
                 PSMTXMultVec(getPartsPtr(w->always2_parts)->mat, &w->effOfs, &p);
                 EstSet(0, -1, &p, 0, w->effAlways[0], w->effAlways[1], 0, ESP_CORE_KIND_NONE, 0, 0);
-                w->effTimer = w->effWait;
+                w->always2_timer = w->always2_wait;
             }
         }
         if (w->pParent) {
@@ -617,7 +617,7 @@ void emShield_R1_Fall(cEmShield* em)
         n = &node[i];
         n->spd.y -= w->Gravity;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
-        n->onFloor = 0;
+        n->reflect = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
@@ -635,11 +635,11 @@ void emShield_R1_Fall(cEmShield* em)
             PSVECSubtract(&n->pos, &tmp, &n->pos);
             if (n->pos.y < floor) {
                 n->pos.y = floor;
-                n->onFloor = 1;
+                n->reflect = 1;
             }
             if (nx->pos.y < floor) {
                 nx->pos.y = floor;
-                nx->onFloor = 1;
+                nx->reflect = 1;
             }
         }
     }
@@ -650,7 +650,7 @@ void emShield_R1_Fall(cEmShield* em)
         } else {
             nx = &node[i + 1];
         }
-        if (n->onFloor) {
+        if (n->reflect) {
             if (w->landed == 0 && n->spd.y < -50.0f) {
                 w->landed = 1;
                 if (w->inWater == 0 && w->pOldParent) {

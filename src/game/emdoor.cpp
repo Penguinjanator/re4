@@ -1442,7 +1442,7 @@ void emDoor_R1_Open(cEmDoor* em)
     switch (em->r_no_2) {
     case 0:
         em->flag |= 0x20000000;
-        w->kickCnt = 1;
+        w->Timer2 = 1;
         w->Timer = 0x14;
         w->Open_timer = 0x96;
         emDoorSetDmgLock_L(em, 1);
@@ -1474,8 +1474,8 @@ void emDoor_R1_Open(cEmDoor* em)
             em->ang.y = ang;
             em->r_no_2++;
         }
-        if (w->kickCnt != 0) {
-            w->kickCnt--;
+        if (w->Timer2 != 0) {
+            w->Timer2--;
             em->dmg.m_Timer = 2;
             if (w->Open_flag) {
                 v.x = 0.0f;
@@ -1613,7 +1613,7 @@ void emDoor_R1_Down(cEmDoor* em)
     switch (em->r_no_2) {
     case 0:
         em->flag |= 0x20000000;
-        w->kickCnt = 1;
+        w->Timer2 = 1;
         w->Timer = 0x14;
         w->Open_timer = 0x96;
         emDoorSetDmgLock_L(em, 1);
@@ -1677,8 +1677,8 @@ void emDoor_R1_Down(cEmDoor* em)
                 em->r_no_2++;
             }
         }
-        if (w->kickCnt != 0) {
-            w->kickCnt--;
+        if (w->Timer2 != 0) {
+            w->Timer2--;
             em->dmg.m_Timer = 2;
             if (w->Open_flag) {
                 v.x = 0.0f;

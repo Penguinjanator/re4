@@ -419,7 +419,7 @@ void emTorch_R1_Parent(cEmTorch* em)
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
         if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
@@ -601,7 +601,7 @@ void cEmTorch::setParent(cModel* parent, int partsNo, int flag)
     EmTorchWork* w = EMTORCH_WK(this);
 
     w->pParent = parent;
-    w->partsNo = partsNo;
+    w->oya_parts = partsNo;
     if (flag) {
         w->Be_flg |= 1;
     } else {

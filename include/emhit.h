@@ -12,7 +12,7 @@ struct EmHitWork {
     u8 pad_8[4];
     int Status;           // 0x00C (0x3EC)  1 = damaged this frame (ckStatus / ckDmgWeapon)
     cModel* pParent;      // 0x010 (0x3F0)  model the hit follows (setParent)
-    int partsNo;          // 0x014 (0x3F4)
+    int oya_parts;          // 0x014 (0x3F4)
     int noNormalize;      // 0x018 (0x3F8)  setParent 3rd argument: keep the parent's scale
     u8 pad_1C[0x224 - 0x1C];
     Vec spd;              // 0x224 (0x604)  beetle fly-away speed

@@ -164,8 +164,8 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     if (rot) {
         em->ang = *rot;
     }
-    w->state = 1;
-    w->opened = 1;
+    w->Status = 1;
+    w->Onoff_flag = 1;
     w->pBarred = 0;
     w->pBarred2 = 0;
     w->pSwitch = 0;
@@ -225,10 +225,10 @@ void emSwitch_R1_Open(cEmSwitch* em)
             if (w->pBarred2) {
                 w->pBarred2->setOpen(0);
             }
-            w->state = 1;
+            w->Status = 1;
             if (w->Mode == 2) {
-                w->state = 0;
-                w->opened = 0;
+                w->Status = 0;
+                w->Onoff_flag = 0;
                 em->r_no_0 = 1;
                 em->r_no_1 = 2;
                 em->r_no_2 = 0;
@@ -281,10 +281,10 @@ void emSwitch_R1_Close(cEmSwitch* em)
                 SetR227Barrel(&pos, &rot);
                 w->Barrel_wait = 150;
             }
-            w->state = 2;
+            w->Status = 2;
             if (w->Mode == 3) {
-                w->state = 0;
-                w->opened = 1;
+                w->Status = 0;
+                w->Onoff_flag = 1;
                 em->r_no_0 = 1;
                 em->r_no_1 = 1;
                 em->r_no_2 = 0;
@@ -304,13 +304,13 @@ void emSwitch_R1_Close(cEmSwitch* em)
 // Lever state: 0 moving, 1 open, 2 closed.
 int cEmSwitch::ckSwitch()
 {
-    return EMSWITCH_WK(this)->state;
+    return EMSWITCH_WK(this)->Status;
 }
 
 // 1 when the lever is in (or moving to) the open position.
 int cEmSwitch::ckOpen()
 {
-    if (EMSWITCH_WK(this)->opened) {
+    if (EMSWITCH_WK(this)->Onoff_flag) {
         return 1;
     }
     return 0;
@@ -321,9 +321,9 @@ void cEmSwitch::setOpen()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    if (w->state == 2) {
-        w->state = 0;
-        w->opened = 1;
+    if (w->Status == 2) {
+        w->Status = 0;
+        w->Onoff_flag = 1;
         r_no_0 = 1;
         r_no_1 = 1;
         r_no_2 = 0;
@@ -340,9 +340,9 @@ void cEmSwitch::setClose()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    if (w->state == 1 && w->Mode != 1) {
-        w->state = 0;
-        w->opened = 0;
+    if (w->Status == 1 && w->Mode != 1) {
+        w->Status = 0;
+        w->Onoff_flag = 0;
         r_no_0 = 1;
         r_no_1 = 2;
         r_no_2 = 0;
@@ -359,8 +359,8 @@ void cEmSwitch::setOpened()
     EmSwitchWork* w = EMSWITCH_WK(this);
 
     getPartsPtr(1)->ang.x = 0.0f;
-    w->state = 1;
-    w->opened = 1;
+    w->Status = 1;
+    w->Onoff_flag = 1;
 }
 
 // Snaps the lever to the closed position.
@@ -369,8 +369,8 @@ void cEmSwitch::setClosed()
     EmSwitchWork* w = EMSWITCH_WK(this);
 
     getPartsPtr(1)->ang.x = 1.3613569f;
-    w->state = 2;
-    w->opened = 0;
+    w->Status = 2;
+    w->Onoff_flag = 0;
 }
 
 // Links the primary gate the lever drives and matches its current open / closed state.
@@ -379,10 +379,10 @@ void cEmSwitch::setBarred(cEmBarred* b)
     EmSwitchWork* w = EMSWITCH_WK(this);
 
     w->pBarred = b;
-    if (w->state == 1) {
+    if (w->Status == 1) {
         b->setOpened();
     }
-    if (w->state == 2) {
+    if (w->Status == 2) {
         b->setClosed();
     }
 }
@@ -393,10 +393,10 @@ void cEmSwitch::setBarred2nd(cEmBarred* pBarred)
     EmSwitchWork* w = EMSWITCH_WK(this);
 
     w->pBarred2 = pBarred;
-    if (w->state == 1) {
+    if (w->Status == 1) {
         pBarred->setOpened();
     }
-    if (w->state == 2) {
+    if (w->Status == 2) {
         pBarred->setClosed();
     }
 }
@@ -407,10 +407,10 @@ void cEmSwitch::setConnectSwitch(cEmSwitch* s)
     EmSwitchWork* w = EMSWITCH_WK(this);
 
     w->pSwitch = s;
-    if (w->state == 1) {
+    if (w->Status == 1) {
         s->setOpened();
     }
-    if (w->state == 2) {
+    if (w->Status == 2) {
         s->setClosed();
     }
 }
@@ -433,7 +433,7 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
     if (w->actButton == 0) {
         return;
     }
-    if (w->state == 0) {
+    if (w->Status == 0) {
         return;
     }
     dz = em->pos.z - pPL->pos.z;
@@ -452,10 +452,10 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
             return;
         }
     }
-    if (w->state == 2) {
+    if (w->Status == 2) {
         ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActOpen, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
     }
-    if (w->state == 1) {
+    if (w->Status == 1) {
         if (w->Mode != 1) {
             ActBtn.set(ACT_OPERATION, 5, (void*) emSwitchActClose, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
         }

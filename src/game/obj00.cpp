@@ -26,7 +26,7 @@ struct Obj00Node {
     Vec old;
     Vec spd;
     f32 len;
-    int hit;
+    int reflect;
 };
 
 extern "C" {
@@ -48,8 +48,8 @@ void cObj00::move()
         ScaleMatrix(l_mat, &scale);
         PSMTXCopy(l_mat, mat);
     }
-    if (w->oya) {
-        if ((w->oya->be_flag & 0x201) != 1) {
+    if (w->pEm_oya) {
+        if ((w->pEm_oya->be_flag & 0x201) != 1) {
             ObjMgr.destroy(this);
             return;
         }
@@ -109,10 +109,10 @@ cObj* SetObj00(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->ang.y = 0.0f;
         obj->ang.z = 0.0f;
     }
-    w->oya = 0;
+    w->pEm_oya = 0;
     w->oya_parts = 0;
     w->oya_hokan = 1.0f;
-    w->rateSpd = 0.0f;
+    w->oya_hokan_add = 0.0f;
     return obj;
 }
 
@@ -138,7 +138,7 @@ void OyaSetObj00(cObj* obj, cModel* oya, int partsNo)
     if (obj == 0) {
         return;
     }
-    w->oya = oya;
+    w->pEm_oya = oya;
     w->oya_parts = partsNo;
     obj->Motion.pMot = 0;
     w->be_flag &= ~8;
@@ -153,7 +153,7 @@ static void obj00SetRate(cObj* obj, u32 rate)
     if (r < 1.0f) {
         r = 1.0f;
     }
-    obj->o0.rateSpd = r / 100.0f;
+    obj->o0.oya_hokan_add = r / 100.0f;
 }
 
 // Fall simulation (be_flag bit 2): three rope nodes 300 units around the object fall under gravity
@@ -203,7 +203,7 @@ void obj00FallMove(cObj00* obj)
         p = &node[i];
         p->spd.y -= 20.0f;
         PSVECAdd(&p->pos, &p->spd, &p->pos);
-        p->hit = 0;
+        p->reflect = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
@@ -221,11 +221,11 @@ void obj00FallMove(cObj00* obj)
             PSVECSubtract(&p->pos, &d, &p->pos);
             if (p->pos.y < 30.0f) {
                 p->pos.y = 30.0f;
-                p->hit = 1;
+                p->reflect = 1;
             }
             if (n->pos.y < 30.0f) {
                 n->pos.y = 30.0f;
-                n->hit = 1;
+                n->reflect = 1;
             }
         }
     }
@@ -235,11 +235,11 @@ void obj00FallMove(cObj00* obj)
     // occupies r24 across the hit loop so the constant takes r23 like the original; the four dead
     // `i` sets keep the gcse bucket count (spill-slot order of the PRE'd w+32/34/36, fp+136).
     int junk;
-    asm("" : "=r"(junk) : "m"(node[0].hit));
+    asm("" : "=r"(junk) : "m"(node[0].reflect));
     i = 5; i = 6; i = 7; i = 8;
     for (i = 0; i < 3; i++) {
         p = &node[i];
-        if (p->hit) {
+        if (p->reflect) {
             p->spd.x *= 0.8f;
             p->spd.y *= -0.8f;
             p->spd.z *= 0.8f;
@@ -298,13 +298,13 @@ void obj00SetOya(cObj00* obj)
     Quaternion q1;
     Quaternion q;
 
-    if (w->oya == 0) {
+    if (w->pEm_oya == 0) {
         return;
     }
-    if (w->oya->pParts == 0) {
+    if (w->pEm_oya->pParts == 0) {
         return;
     }
-    PSMTXCopy(w->oya->getPartsPtr(w->oya_parts)->mat, m);
+    PSMTXCopy(w->pEm_oya->getPartsPtr(w->oya_parts)->mat, m);
     v0.x = m[0][0];
     v0.y = m[1][0];
     v0.z = m[2][0];
@@ -340,7 +340,7 @@ void obj00SetOya(cObj00* obj)
     m[2][2] = v2.z;
     PSMTXConcat(m, obj->mat, m);
     if (w->oya_hokan < 1.0f) {
-        w->oya_hokan += w->rateSpd;
+        w->oya_hokan += w->oya_hokan_add;
         if (w->oya_hokan >= 1.0f) {
             w->oya_hokan = 1.0f;
             w->be_flag &= ~8;
@@ -362,8 +362,8 @@ void obj00SetOya(cObj00* obj)
     } else {
         PSMTXCopy(m, obj->mat);
     }
-    if (w->oya) {
-        if (w->oya->LightInfo.EnableMask & 2) {
+    if (w->pEm_oya) {
+        if (w->pEm_oya->LightInfo.EnableMask & 2) {
             obj->LightInfo.EnableMask &= ~0x10;
             obj->LightInfo.EnableMask |= 2;
         }

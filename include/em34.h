@@ -16,7 +16,7 @@ struct Em34Work {
     u8 pad_8[4];
     YARARE_INFO hit[3];     // 0x00C (0x3EC)  extra hit boxes (YarareAdd)
     u8 pad_A8[0x214 - 0xA8];
-    f32 routeAng;         // 0x214 (0x5F4)  Muku towards the route point (player)
+    f32 Pl_dir;         // 0x214 (0x5F4)  Muku towards the route point (player)
     f32 Pl_rot;      // 0x218 (0x5F8)
     f32 Sub_dir;           // 0x21C (0x5FC)  the same for the partner
     f32 Sub_rot;        // 0x220 (0x600)

@@ -35,7 +35,7 @@ struct Obj12Node {
     Vec old;
     Vec spd;
     f32 len;
-    int hit;
+    int reflect;
 };
 
 // Per-frame: motion, parent follow (destroyed with the parent; catch-up blend on be_flag bit 3),
@@ -62,13 +62,13 @@ void cObj12::move()
         ScaleMatrix(l_mat, &scale);
         PSMTXCopy(l_mat, mat);
     }
-    if (w->oya) {
-        if ((w->oya->be_flag & 0x201) != 1) {
+    if (w->pEm_oya) {
+        if ((w->pEm_oya->be_flag & 0x201) != 1) {
             ObjMgr.destroy(this);
             return;
         }
-        if (w->oya->pParts) {
-            PSMTXConcat(w->oya->getPartsPtr(w->oya_parts)->mat, mat, m);
+        if (w->pEm_oya->pParts) {
+            PSMTXConcat(w->pEm_oya->getPartsPtr(w->oya_parts)->mat, mat, m);
             if (!(w->be_flag & 0x80)) {
                 v0.x = m[0][0];
                 v0.y = m[1][0];
@@ -105,7 +105,7 @@ void cObj12::move()
                 m[2][2] = v2.z;
             }
             if (w->oya_hokan < 1.0f) {
-                w->oya_hokan += w->rateSpd;
+                w->oya_hokan += w->oya_hokan_add;
                 if (w->oya_hokan >= 1.0f) {
                     w->oya_hokan = 1.0f;
                     w->be_flag &= ~8;
@@ -128,8 +128,8 @@ void cObj12::move()
                 PSMTXCopy(m, mat);
             }
         }
-        if (w->oya) {
-            if (w->oya->LightInfo.EnableMask & 2) {
+        if (w->pEm_oya) {
+            if (w->pEm_oya->LightInfo.EnableMask & 2) {
                 LightInfo.EnableMask &= ~0x10;
                 LightInfo.EnableMask |= 2;
             }
@@ -143,10 +143,10 @@ void cObj12::move()
         }
         partsWorldCalc();
         chainMove();
-        if (w->oya) {
-            invisible_factor = w->oya->invisible_factor;
-            invisible_factor2 = w->oya->invisible_factor2;
-            if (w->oya->be_flag & 2) {
+        if (w->pEm_oya) {
+            invisible_factor = w->pEm_oya->invisible_factor;
+            invisible_factor2 = w->pEm_oya->invisible_factor2;
+            if (w->pEm_oya->be_flag & 2) {
                 be_flag |= 2;
             } else {
                 be_flag &= ~2;
@@ -194,8 +194,8 @@ cObj12* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
             obj->pos_old = *pos;
             obj->ang = *rot;
             w->oya_hokan = 1.0f;
-            w->rateSpd = 0.0f;
-            w->oya = 0;
+            w->oya_hokan_add = 0.0f;
+            w->pEm_oya = 0;
             w->oya_parts = 0;
             w->Motion_info = 0;
             w->Lost_wait = 0;
@@ -210,7 +210,7 @@ void cObj12::setParent(cModel* oya, int partsNo, int noNormalize)
 {
     Obj12Work* w = &o12;
 
-    w->oya = oya;
+    w->pEm_oya = oya;
     w->oya_parts = partsNo;
     w->be_flag &= ~8;
     w->be_flag &= ~3;
@@ -240,9 +240,9 @@ static void obj12SetRate(cObj* obj, u32 rate)
     if (w->oya_hokan == 0.0) {
         return;
     }
-    w->rateSpd = (f32) rate;
-    if (w->rateSpd < 1.0f) {
-        w->rateSpd = 1.0f;
+    w->oya_hokan_add = (f32) rate;
+    if (w->oya_hokan_add < 1.0f) {
+        w->oya_hokan_add = 1.0f;
     }
 }
 
@@ -255,7 +255,7 @@ void cObj12::setFall(Vec* spd, u8 type)
     f32 r;
 
     w->be_flag |= 4;
-    w->oya = 0;
+    w->pEm_oya = 0;
     for (i = 0; i < 3; i++) {
         if (spd) {
             if (i == 0) {
@@ -352,7 +352,7 @@ void cObj12::fallMove()
         p = &node[i];
         p->spd.y -= 20.0f;
         PSVECAdd(&p->pos, &p->spd, &p->pos);
-        p->hit = 0;
+        p->reflect = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
@@ -370,11 +370,11 @@ void cObj12::fallMove()
             PSVECSubtract(&p->pos, &d, &p->pos);
             if (p->pos.y < floor) {
                 p->pos.y = floor;
-                p->hit = 1;
+                p->reflect = 1;
             }
             if (n->pos.y < floor) {
                 n->pos.y = floor;
-                n->hit = 1;
+                n->reflect = 1;
             }
         }
     }
@@ -387,7 +387,7 @@ void cObj12::fallMove()
         } else {
             n = &node[i + 1];
         }
-        if (p->hit) {
+        if (p->reflect) {
             if (w->fall_se_ck == 0 && p->spd.y < -50.0f) {
                 w->fall_se_ck = 1;
                 if (w->fall_se_id != 0xFF) {

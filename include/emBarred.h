@@ -12,7 +12,7 @@ class cEmBarred;
 struct EmBarredWork {
     u32 be_flag;            // 0x000 (0x3E0)  bit0: never closes (setNoClose), bit1: check what stands under it (setUnderCk)
     int Timer;            // 0x004 (0x3E4)  frames the player stayed away (R1_Set), shake frames (R1_Open/Close)
-    f32 spd;              // 0x008 (0x3E8)  fall speed while closing
+    f32 TmpF;              // 0x008 (0x3E8)  fall speed while closing
     YARARE_INFO hit[4];     // 0x00C (0x3EC)  extra hit boxes of type 6 (YarareAddCube)
     u8 pad_DC[0x214 - 0xDC];
     Vec pos0;             // 0x214 (0x5F4)  closed position

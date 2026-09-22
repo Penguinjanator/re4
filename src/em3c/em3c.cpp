@@ -446,9 +446,9 @@ void cEm3c::move()
         w->HoseiCnt = 0;
     }
     em3cPartsBombControl(this);
-    if (w->bombTimer) {
-        w->bombTimer--;
-        if (w->bombTimer == 0) {
+    if (w->HeadOffTimer) {
+        w->HeadOffTimer--;
+        if (w->HeadOffTimer == 0) {
             cModel* p;
 
             p = getPartsPtr(3);
@@ -551,7 +551,7 @@ static void em3c_R0_Init(cEm3c* em)
     w->Be_flg = zero;
     w->Core_se_wait = 60;
     w->Run_wait = 300;
-    w->bombTimer = zero;
+    w->HeadOffTimer = zero;
     w->timer74 = zero;
     w->Atk_wait = zero;
     w->Set_pos = em->pos;
@@ -559,9 +559,9 @@ static void em3c_R0_Init(cEm3c* em)
     w->Head_hp = (s16) (em->hp_max / 14) + Rnd() % 25 + 1;
     w->Head_cnt = Rnd() % 3 + 1;
     if (em->type != 1 && em->type != 3) {
-        w->female = zero;
+        w->Wep_type = zero;
     } else {
-        w->female = 1;
+        w->Wep_type = 1;
     }
     switch (em->type) {
     default:
@@ -606,7 +606,7 @@ static void em3c_R0_Init(cEm3c* em)
         EmRoutineSet(em, 1, 1, 0, 0);
         break;
     }
-    if (w->female) {
+    if (w->Wep_type) {
         MotionSetCore(em, MOTION(em), ARC(0x2A), 0, 0, 1, 0);
     } else {
         MotionSetCore(em, MOTION(em), ARC(0x10), 0, 0, 1, 0);
@@ -635,7 +635,7 @@ static void em3c_R1_StartWait(cEm3c* em)
         em->hp = 1000;
         em->r_no_2++;
     case 1:
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x33), ARC(0x34), 0, 1, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x19), ARC(0x1A), 0, 1, 0);
@@ -651,7 +651,7 @@ static void em3c_R1_StartWait(cEm3c* em)
         em->hp = em->hp_max;
         w->Be_flg |= 0x80;
         em->atari.throughOff();
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x33), ARC(0x34), 0, 1, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x19), ARC(0x1A), 0, 1, 0);
@@ -659,7 +659,7 @@ static void em3c_R1_StartWait(cEm3c* em)
         em->r_no_2++;
     case 3:
         if (MotionMove(em, 0)) {
-            if (w->targetAngAbs > 2.0943952f) {
+            if (w->Go_rot > 2.0943952f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -685,12 +685,12 @@ static void em3c_R1_AtkWait(cEm3c* em)
     w->Be_flg |= 0x400;
     switch (em->r_no_2) {
     case 0:
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x47), 0, 0, 5, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x45), 0, 0, 5, 0);
         }
-        w->actMode = 0;
+        w->TmpU32 = 0;
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
@@ -722,14 +722,14 @@ static void em3c_R1_AtkWait(cEm3c* em)
         if (w->Timer) {
             w->Timer--;
             if (w->Timer == 0) {
-                w->actMode = (Rnd() & 1) + 1;
+                w->TmpU32 = (Rnd() & 1) + 1;
             }
             break;
         }
         em->r_no_2++;
         break;
     case 4:
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x2F), ARC(0x30), 0, 1, 0);
             EstSet(em, -1, 0, 0, EFF_EM3C, 0x23, 0, ESP_CORE_KIND_NONE, em, 0);
         } else {
@@ -743,7 +743,7 @@ static void em3c_R1_AtkWait(cEm3c* em)
         MotionMove(em, 0);
         em3cAtkCk2(em, 2);
         if (em->Motion.Seq_old.Free & 1) {
-            w->actMode = 0;
+            w->TmpU32 = 0;
         }
         if (w->Atk_ck) {
             w->Act_ck = 1;
@@ -752,7 +752,7 @@ static void em3c_R1_AtkWait(cEm3c* em)
         if (em->Motion.Seq_old.Free & 4) {
             Vec v;
 
-            if (w->female) {
+            if (w->Wep_type) {
                 v.x = 100.0f;
                 v.y = 0.0f;
                 v.z = 1000.0f;
@@ -773,7 +773,7 @@ static void em3c_R1_AtkWait(cEm3c* em)
         break;
     }
     if (w->Act_ck == 0) {
-        switch (w->actMode) {
+        switch (w->TmpU32) {
         case 1:
             ActBtn.set(ACT_GUARD, 5, (void*) plemEscapeAction, em, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_NORMAL, 0);
             break;
@@ -830,7 +830,7 @@ static void plemEscapeAction(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
 
-    w->actMode = 0;
+    w->TmpU32 = 0;
     w->Act_ck = 1;
     pPL->dmg.m_Timer = 2;
     SetPlDamage(em, plemEscape);
@@ -994,7 +994,7 @@ static void em3c_R1_Wait(cEm3c* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x2A), 0, 10, 1, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x10), 0, 10, 1, 0);
@@ -1004,7 +1004,7 @@ static void em3c_R1_Wait(cEm3c* em)
         MotionMove(em, 0);
         em3cFindCk(em);
         if ((w->Be_flg & 0x80) && em3cStayCk(em) == 0 && w->Atk_wait == 0) {
-            if (w->targetAngAbs > 2.0943952f) {
+            if (w->Go_rot > 2.0943952f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -1027,7 +1027,7 @@ static void em3c_R1_Walk(cEm3c* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (w->female) {
+        if (w->Wep_type) {
             u16 fr = (u32) ((f32) (((MotionData*) ARC(0x2B))->maxFrame & 0x3FFF) * (f32) em->r_no_3 / 256.0f);
             MotionSetCore(em, MOTION(em), ARC(0x2B), ARC(0x2C), 10, 5, fr);
         } else {
@@ -1037,7 +1037,7 @@ static void em3c_R1_Walk(cEm3c* em)
         em->r_no_2++;
     case 1:
         if (em->Motion.Hokan_cnt == 0) {
-            em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
+            em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, PI / 64.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0) && em3cStayCk(em)) {
@@ -1070,7 +1070,7 @@ static void em3c_R1_Walk(cEm3c* em)
                     }
                     break;
                 }
-            } else if (w->targetAngAbs > 2.0943952f) {
+            } else if (w->Go_rot > 2.0943952f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else if (pG->Game_level > 9) {
                 EmRoutineSet(em, 1, 4, 0, 0);
@@ -1096,7 +1096,7 @@ static void em3c_R1_Run(cEm3c* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (w->female) {
+        if (w->Wep_type) {
             u16 fr = (u32) ((f32) (((MotionData*) ARC(0x2D))->maxFrame & 0x3FFF) * (f32) em->r_no_3 / 256.0f);
             MotionSetCore(em, MOTION(em), ARC(0x2D), ARC(0x2E), 5, 5, fr);
         } else {
@@ -1106,7 +1106,7 @@ static void em3c_R1_Run(cEm3c* em)
         em->r_no_2++;
     case 1:
         if (em->Motion.Hokan_cnt == 0) {
-            em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 48.0f);
+            em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, PI / 48.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -1144,7 +1144,7 @@ static void em3c_R1_Run(cEm3c* em)
                     }
                     break;
                 }
-            } else if (w->targetAngAbs > 2.0943952f) {
+            } else if (w->Go_rot > 2.0943952f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             }
         }
@@ -1161,19 +1161,19 @@ static void em3c_R1_Turn180(cEm3c* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x35), ARC(0x36), 5, 1, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x1B), ARC(0x1C), 5, 1, 0);
         }
-        w->turnAng = em->ang.y + PI;
+        w->TmpF = em->ang.y + PI;
         em->r_no_2++;
     case 1:
         if (em->Motion.Seq_old.Free & 8) {
-            f32 a = Muku(&em->pos, &w->targetPos, w->turnAng, PI / 32.0f);
+            f32 a = Muku(&em->pos, &w->Go_pos, w->TmpF, PI / 32.0f);
 
-            w->turnAng += a;
-            w->turnAng = LIMIT_ANGLE(w->turnAng);
+            w->TmpF += a;
+            w->TmpF = LIMIT_ANGLE(w->TmpF);
             em->ang.y += a;
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -1223,7 +1223,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
         if (pG->Game_level > 7) {
             w->Timer = 30;
         }
-        if (w->female) {
+        if (w->Wep_type) {
             if (far) {
                 MotionSetCore(em, MOTION(em), ARC(0x39), ARC(0x3A), 5, 5, 0);
                 w->Timer = 0;
@@ -1252,7 +1252,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
     case 1:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, PI / 32.0f);
+            em->ang.y += Muku(&em->pos, &w->Pl_pos, em->ang.y, PI / 32.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -1274,7 +1274,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
         } else {
             em3cAtkCk2(em, w->Atk_type);
             if (em->Motion.Seq_old.Free & 4) {
-                if (w->female) {
+                if (w->Wep_type) {
                     v.x = 100.0f;
                     v.y = 0.0f;
                     v.z = 1000.0f;
@@ -1306,7 +1306,7 @@ static void em3c_R1_CoreAtk(cEm3c* em)
         case 1:
         default:
             em->r_no_3 = 0;
-            if (w->female) {
+            if (w->Wep_type) {
                 MotionSetCore(em, MOTION(em), ARC(0x2A), 0, 10, 1, 0);
             } else {
                 MotionSetCore(em, MOTION(em), ARC(0x10), 0, 10, 1, 0);
@@ -1315,7 +1315,7 @@ static void em3c_R1_CoreAtk(cEm3c* em)
         case 2:
         case 3:
             em->r_no_3 = 1;
-            if (w->female) {
+            if (w->Wep_type) {
                 MotionSetCore(em, MOTION(em), ARC(0x43), 0, 10, 1, 0);
             } else {
                 MotionSetCore(em, MOTION(em), ARC(0x29), 0, 10, 1, 0);
@@ -1432,7 +1432,7 @@ static void em3c_R1_Dm_Normal(cEm3c* em)
         if (Rnd() & 1) {
             dir = 2;
         }
-        if (w->female) {
+        if (w->Wep_type) {
             switch ((u32) dir) {
             case 0:
             default:
@@ -1493,7 +1493,7 @@ static void em3c_R1_Dm_Big(cEm3c* em)
         void* m0;
         void* m1;
 
-        if (w->female) {
+        if (w->Wep_type) {
             m0 = ARC(0x3F);
             m1 = ARC(0x40);
         } else {
@@ -1533,7 +1533,7 @@ static void em3c_R1_Dm_Head(cEm3c* em)
     w->Be_flg |= 0x200;
     switch (em->r_no_2) {
     case 0:
-        if (w->female) {
+        if (w->Wep_type) {
             MotionSetCore(em, MOTION(em), ARC(0x41), ARC(0x42), 5, 1, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x27), ARC(0x28), 5, 1, 0);
@@ -1716,7 +1716,7 @@ int em3cAtkCk2(cEm3c* em, int no)
     if (em3cAtkCk(em, &v, no)) {
         return 1;
     }
-    if (w->female == 0) {
+    if (w->Wep_type == 0) {
         p = GetPartsAddr(em->pParts, 0x1A);
         v.x = 0.0f;
         v.y = 0.0f;
@@ -1797,22 +1797,22 @@ void em3cRouteCk(cEm3c* em)
         }
     }
     top = ofs;
-    if (RouteCkToPos(em, &top, &w->routePos, 0, 0)) {
+    if (RouteCkToPos(em, &top, &w->Pl_pos, 0, 0)) {
         w->Be_flg |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
-    w->routeAngAbs = fabsf(w->routeAng);
+    w->Pl_dir = Muku(&em->pos, &w->Pl_pos, em->ang.y, PI);
+    w->Pl_rot = fabsf(w->Pl_dir);
     if (em->r_no_0 == 0) {
-        w->routeAng = 0.0f;
-        w->routeAngAbs = 0.0f;
+        w->Pl_dir = 0.0f;
+        w->Pl_rot = 0.0f;
         em->plDist2 = 100000000.0f;
     }
     w->L_pl_route = RouteCkPosToPosDis(&em->pos, &pPL->pos);
-    w->targetPos = w->routePos;
-    w->targetAng = w->routeAng;
-    w->targetAngAbs = w->routeAngAbs;
+    w->Go_pos = w->Pl_pos;
+    w->Go_dir = w->Pl_dir;
+    w->Go_rot = w->Pl_rot;
     w->L_go = em->plDist2;
-    w->pTarget = pPL;
+    w->pEm = pPL;
     w->Be_flg &= ~4;
 }
 
@@ -1984,7 +1984,7 @@ void em3cPartsBombHead(cEm3c* em)
         b->spd[j].z = fRand1_1() * 10.0f + v.z;
     }
     b->timer = 0;
-    w->bombTimer = 45;
+    w->HeadOffTimer = 45;
     w->Be_flg |= 0x10;
     EstSet(em, -1, 0, 0, EFF_EM3C, 4, 0, ESP_CORE_KIND_NONE, em, 0);
     SndCall(8, 7, &em->pos, em->id, 0, em);
@@ -2284,7 +2284,7 @@ void em3cSetParasite(cEm3c* em)
         obj = SetObj16(ARC(0x48), ARC(0x49), em, w->pCore, 0x16, 0xC, &pos, &rot);
         if (obj) {
             MotSetObj16(obj, ARC(0x4A), 4, 0);
-            w->pPara[0] = (cObj16*) obj;
+            w->pTen[0] = (cObj16*) obj;
         }
         pos.x = 0.0f;
         pos.y = 0.0f;
@@ -2295,7 +2295,7 @@ void em3cSetParasite(cEm3c* em)
         obj = SetObj16(ARC(0x48), ARC(0x49), em, w->pCore, 0x17, 0xC, &pos, &rot);
         if (obj) {
             MotSetObj16(obj, ARC(0x4A), 4, frame);
-            w->pPara[1] = (cObj16*) obj;
+            w->pTen[1] = (cObj16*) obj;
         }
         pos.x = 0.0f;
         pos.y = 0.0f;
@@ -2306,7 +2306,7 @@ void em3cSetParasite(cEm3c* em)
         obj = SetObj16(ARC(0x48), ARC(0x49), em, w->pCore, 0x18, 0xC, &pos, &rot);
         if (obj) {
             MotSetObj16(obj, ARC(0x4A), 4, frame * 2);
-            w->pPara[2] = (cObj16*) obj;
+            w->pTen[2] = (cObj16*) obj;
         }
         pos.x = 0.0f;
         pos.y = 0.0f;
@@ -2317,7 +2317,7 @@ void em3cSetParasite(cEm3c* em)
         obj = SetObj16(ARC(0x48), ARC(0x49), em, w->pCore, 0x19, 0xC, &pos, &rot);
         if (obj) {
             MotSetObj16(obj, ARC(0x4A), 4, frame * 3);
-            w->pPara[3] = (cObj16*) obj;
+            w->pTen[3] = (cObj16*) obj;
         }
     }
     SndCall(8, 0x36, &em->getPartsPtr(3)->world, em->id, 0, em);
@@ -2389,7 +2389,7 @@ int em3cFindCk(cEm3c* em)
     if (!(w->Be_flg & 1)) {
         return 0;
     }
-    if (w->routeAngAbs < 1.0471976f && em->plDist2 < 100000000.0f) {
+    if (w->Pl_rot < 1.0471976f && em->plDist2 < 100000000.0f) {
         w->Be_flg |= 0x80;
         return 1;
     }

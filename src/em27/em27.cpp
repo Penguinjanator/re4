@@ -150,7 +150,7 @@ void em27DmCk(cEm27* em)
     }
     LifeDownSet2(em, dmg, 0, 0);
     if (em->hp > 0) {
-        if (em->pos.y > w->waterHeight + 300.0f) {
+        if (em->pos.y > w->Water_h + 300.0f) {
             EmDmBloodSet2(em, 0x1F, 6, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, 0x1F, 7, 0, 0, 0);
@@ -160,7 +160,7 @@ void em27DmCk(cEm27* em)
     em->invisible_factor = 1.0f;
     if (em->hp <= 0) {
         EmSetDie(em);
-        if (em->pos.y > w->waterHeight) {
+        if (em->pos.y > w->Water_h) {
             EmRoutineSet(em, 2, 2, 0, 0);
         } else if (Rnd() & 1) {
             EmRoutineSet(em, 2, 0, 0, 0);
@@ -173,13 +173,13 @@ void em27DmCk(cEm27* em)
         // flow2). The first arm must be written else-first (`!(a > b)`) so that after its
         // sub-arms are merged it reads `ble E2; b T2`, identical to the second arm's head.
         if (em->dmg.m_Wep == 0x21) {
-            if (!(em->pos.y > w->waterHeight)) {
+            if (!(em->pos.y > w->Water_h)) {
                 EmRoutineSet(em, 2, 0, 0, 0);
             } else {
                 EmRoutineSet(em, 2, 2, 0, 0);
             }
         } else {
-            if (em->pos.y > w->waterHeight) {
+            if (em->pos.y > w->Water_h) {
                 EmRoutineSet(em, 2, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 2, 0, 0, 0);
@@ -247,7 +247,7 @@ void cEm27::move()
     w->Be_flg &= ~0xD8;
     if (!(w->Be_flg & 0x100)) {
         if (GetWaterHeight(&pos, &wh)) {
-            w->waterHeight = wh - 300.0f;
+            w->Water_h = wh - 300.0f;
         }
     }
     if (plDist2 < 250000.0f) {
@@ -272,7 +272,7 @@ void cEm27::move()
     } else {
         w->Go_timer = Rnd() % 120 + 120;
         if (Rnd() & 1) {
-            w->target = w->home;
+            w->target = w->St_pos;
         } else {
             v.x = fRand1_1() * 10000.0f;
             v.y = 0.0f;
@@ -349,18 +349,18 @@ static void em27_R0_Init(cEm27* em)
     w->Spd_t.y = 0.0f;
     w->Spd_t.z = 0.0f;
     w->Go_timer = zero;
-    w->home = *pos;
-    w->waterHeight = 400.0f;
+    w->St_pos = *pos;
+    w->Water_h = 400.0f;
     if (GetWaterHeight(pos, &wh)) {
-        w->waterHeight = wh;
+        w->Water_h = wh;
     }
-    if (em->pos.y > w->waterHeight) {
-        em->pos.y = w->waterHeight;
+    if (em->pos.y > w->Water_h) {
+        em->pos.y = w->Water_h;
     }
     w->Start_pos = *pos;
     w->Start_ang = em->ang;
     w->pCtrlPlAvoid = GetCtrlCtrl11();
-    w->pCtrl12 = GetCtrlCtrl12();
+    w->pCtrlGroup = GetCtrlCtrl12();
     em->setStatus(EM_STATUS_LOCKOFF);
     AtariOff(at, 0xFDFF);
     EmRoutineSet(em, 1, zero, zero, zero);
@@ -498,7 +498,7 @@ static void em27_R1_Bank(cEm27* em)
         w->Spd_t.x = 0.0f;
         w->Spd_t.y = fRand1_1() * 10.0f;
         v = em->pos;
-        v.y = w->waterHeight + 300.0f;
+        v.y = w->Water_h + 300.0f;
         EstSet(0, -1, &v, &em->ang, EFF_EM27, 0xF, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -702,7 +702,7 @@ static void em27_R1_Dm_Air(cEm27* em)
         PSMTXMultVecSR(m, &w->Spd, &v);
         PSVECAdd(&em->pos, &v, &em->pos);
         MotionMove(em, 0);
-        if (em->pos.y < w->waterHeight) {
+        if (em->pos.y < w->Water_h) {
             em->r_no_2++;
         }
         break;
@@ -713,8 +713,8 @@ static void em27_R1_Dm_Air(cEm27* em)
         PSMTXRotRad(m, 'y', em->ang.y);
         PSMTXMultVecSR(m, &w->Spd, &v);
         PSVECAdd(&em->pos, &v, &em->pos);
-        if (em->pos.y < w->waterHeight - 300.0f) {
-            em->pos.y = w->waterHeight - 300.0f;
+        if (em->pos.y < w->Water_h - 300.0f) {
+            em->pos.y = w->Water_h - 300.0f;
             w->Spd.y = 0.0f;
         }
         MotionMove(em, 0);
@@ -770,17 +770,17 @@ static void em27_R1_Die_Normal(cEm27* em)
         } else {
             flag = 1;
         }
-        w->dieVariant = Rnd() & 1;
-        if (w->dieVariant) {
+        w->Die_type = Rnd() & 1;
+        if (w->Die_type) {
             MotionSetCore(em, MOTION(em), ARC(0x15), 0, 10, flag, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 15, flag, 0);
         }
-        Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM27_DIE, 1);
+        Ctrl12CntAdd(w->pCtrlGroup, CTRL12_ID_CNT_EM27_DIE, 1);
         em->atari.m_flag &= 0xFCFF;
         w->Timer = 120;
         w->Spd.y = fRand1_1() * PI;
-        w->upDown = 0;
+        w->Timer2 = 0;
         switch (em->type) {
         case 0:
         default:
@@ -795,13 +795,13 @@ static void em27_R1_Die_Normal(cEm27* em)
     case 1:
         w->Spd.y += PI / 32.0f;
         w->Spd.y = LIMIT_ANGLE(w->Spd.y);
-        if (w->upDown) {
+        if (w->Timer2) {
             em->pos.y += sinf(w->Spd.y) * 3.0f;
         } else {
             em->pos.y += 5.0f;
-            if (em->pos.y > w->waterHeight + 150.0f) {
-                em->pos.y = w->waterHeight + 150.0f;
-                w->upDown = 1;
+            if (em->pos.y > w->Water_h + 150.0f) {
+                em->pos.y = w->Water_h + 150.0f;
+                w->Timer2 = 1;
             }
         }
         MotionMove(em, 0);
@@ -813,32 +813,32 @@ static void em27_R1_Die_Normal(cEm27* em)
         break;
     case 2:
         w->Timer = Rnd() % 60 + 60;
-        w->upDown = 0;
+        w->Timer2 = 0;
         w->Spd.y = fRand1_1() * PI;
         em->r_no_2++;
     case 3:
         w->Spd.y += PI / 32.0f;
         w->Spd.y = LIMIT_ANGLE(w->Spd.y);
         em->pos.y = SINF(w->Spd.y) * 3.0f + em->pos.y;
-        if (em->pos.y > w->waterHeight + 150.0f) {
-            em->pos.y = em->pos.y * 0.9f + (w->waterHeight + 150.0f) * 0.1f;
+        if (em->pos.y > w->Water_h + 150.0f) {
+            em->pos.y = em->pos.y * 0.9f + (w->Water_h + 150.0f) * 0.1f;
         }
-        if (w->upDown) {
-            w->upDown--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
             cModel* p = em->getPartsPtr(4);
             Vec v;
 
             flag = 1;
             v.x = p->world.x;
-            v.y = w->waterHeight + 300.0f;
+            v.y = w->Water_h + 300.0f;
             v.z = p->world.z;
             EstSet(0, -1, &v, &em->ang, EFF_EM27, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
-            w->upDown = Rnd() % 60 + 5;
+            w->Timer2 = Rnd() % 60 + 5;
             if (em->r_no_3) {
                 flag = 0x41;
             }
-            if (w->dieVariant) {
+            if (w->Die_type) {
                 MotionSetCore(em, MOTION(em), ARC(0x1B), 0, 10, flag, 0);
             } else {
                 MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 10, flag, 0);
@@ -863,11 +863,11 @@ void em27SetSPeed(cEm27* em, f32 rate)
     PSMTXRotRad(m, 'y', em->ang.y);
     PSMTXMultVecSR(m, &w->Spd, &v);
     PSVECAdd(&em->pos, &v, &em->pos);
-    if (em->pos.y < w->waterHeight - 300.0f) {
-        em->pos.y = w->waterHeight - 300.0f;
+    if (em->pos.y < w->Water_h - 300.0f) {
+        em->pos.y = w->Water_h - 300.0f;
     }
-    if (em->pos.y > w->waterHeight) {
-        em->pos.y = w->waterHeight;
+    if (em->pos.y > w->Water_h) {
+        em->pos.y = w->Water_h;
     }
 }
 
@@ -1001,7 +1001,7 @@ void em27WaterEffSet(cEm27* em)
     if (!(em->be_flag & 2)) {
         return;
     }
-    h = w->waterHeight + 300.0f;
+    h = w->Water_h + 300.0f;
     v = em->pos;
     v.y = h;
     p = em->getPartsPtr(0);
@@ -1041,6 +1041,6 @@ void cEm27::setWaterHeight(f32 h)
 {
     Em27Work* w = EM27_WK(this);
 
-    w->waterHeight = h;
+    w->Water_h = h;
     w->Be_flg |= 0x100;
 }

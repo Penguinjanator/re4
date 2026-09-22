@@ -317,7 +317,7 @@ void plemEscape(cPlayer* pl)
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->Motion, w->motion, 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot, 0, 5, 1, 0);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -365,7 +365,7 @@ void cEmBar::setEff(u8 no)
 // The player motion used to pass through the bar.
 void cEmBar::setMotion(void* mot)
 {
-    EMBAR_WK(this)->motion = mot;
+    EMBAR_WK(this)->Mot = mot;
 }
 
 // Melee / explosion check at the bar centre and +-400 along its length (radius 500): a grenade

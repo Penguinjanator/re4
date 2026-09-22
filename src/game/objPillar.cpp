@@ -109,8 +109,8 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     AtariInit(&obj->sub2B4.atari, 0.0f, 0.0f, 0.0f, 400.0f, 400.0f, 400.0f, 5000.0f, 0, 2, 0);
     obj->sub2B4.atari.clrFlag100();
-    w->plMot = 0;
-    w->plMotA = 0;
+    w->Mot_pl_escape = 0;
+    w->Seq_pl_escape = 0;
     w->St_pos = obj->pos;
     w->pEat = 0;
     obj->r_no_0 = 0;
@@ -154,9 +154,9 @@ void objPillar_R0_Break(cObjPillar* obj)
 
     switch (step) {
     case 0:
-        w->Timer = (*(u16*) w->motBreak & 0x3FFF) - 10;
-        MotionSetCore(obj, &obj->Motion, w->motBreak, 0, 0, 0x8001, 0);
-        w->rnd = Rnd() & 1;
+        w->Timer = (*(u16*) w->Mot & 0x3FFF) - 10;
+        MotionSetCore(obj, &obj->Motion, w->Mot, 0, 0, 0x8001, 0);
+        w->TmpU32 = Rnd() & 1;
         w->Act_ck = step;
         w->Seid = step;
         obj->r_no_2++;
@@ -198,7 +198,7 @@ void objPillar_R0_Break(cObjPillar* obj)
         PSMTXInverse(obj->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &v);
         if (v.x > -2000.0f && v.x < 2000.0f && v.z > -1000.0f) {
-            if (w->rnd) {
+            if (w->TmpU32) {
                 ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
             } else {
                 ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction, obj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
@@ -223,8 +223,8 @@ void objPillar_R0_Throw(cObjPillar* obj)
 
     switch (step) {
     case 0:
-        MotionSetCore(obj, &obj->Motion, w->motThrow0, 0, 0, 0x8001, 0x1F);
-        w->rnd = Rnd() & 1;
+        MotionSetCore(obj, &obj->Motion, w->Mot_catch, 0, 0, 0x8001, 0x1F);
+        w->TmpU32 = Rnd() & 1;
         w->Act_ck = 1;
         EstSet(obj, -1, 0, 0, EFF_EM31, 0x22, 0, ESP_CORE_KIND_NONE, obj, (void*) step);
         w->Seid = step;
@@ -250,8 +250,8 @@ void objPillar_R0_Throw(cObjPillar* obj)
             w->Spd.y = d.y / len;
         }
         PSMTXMultVecSR(obj->mat, &w->Spd, &w->Spd);
-        MotionSetCore(obj, &obj->Motion, w->motThrow1, 0, 0, 0x8005, 0);
-        w->rnd = Rnd() & 1;
+        MotionSetCore(obj, &obj->Motion, w->Mot_throw, 0, 0, 0x8005, 0);
+        w->TmpU32 = Rnd() & 1;
         w->Act_ck = 0;
         w->Timer = 90;
         EstSet(obj, -1, 0, 0, EFF_EM31, 0x23, 1, ESP_CORE_KIND_OBJPILLAR, obj, 0);
@@ -333,7 +333,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         if (d.z < 1000.0f) {
             w->Act_ck = 1;
         }
-        if (w->rnd) {
+        if (w->TmpU32) {
             ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, obj, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, 0);
         } else {
             ActBtn.set(ACT_GUARD, 0xB, (void*) EscapeAction2, obj, ACTCTR_WEP_SET_IGNORE, DISP_A_B, ACT_FUNC_NORMAL, 0);
@@ -381,7 +381,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
 
     switch (obj->r_no_2) {
     case 0:
-        MotionSetCore(obj, &obj->Motion, w->motFall0, 0, 0, 0x8004, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_fall, 0, 0, 0x8004, 0);
         w->Spd.x = 0.0f;
         w->Spd.y = -100.0f;
         w->Spd.z = 0.0f;
@@ -393,7 +393,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
         if (obj->pos.y < floor) {
             obj->pos.y = floor;
             SndCall(8, 0x26, &obj->pos, 0x31, 0, obj);
-            MotionSetCore(obj, &obj->Motion, w->motFall1, 0, 0, 0x8001, 0);
+            MotionSetCore(obj, &obj->Motion, w->Mot_landing, 0, 0, 0x8001, 0);
             MotionMove(obj, 0);
             obj->r_no_2++;
         } else {
@@ -429,7 +429,7 @@ void objPillar_R0_Fall(cObjPillar* obj)
 // Sets the break motion.
 void cObjPillar::setMotion(void* mot)
 {
-    pillar.motBreak = mot;
+    pillar.Mot = mot;
 }
 
 // 1 while the pillar is still standing.
@@ -452,8 +452,8 @@ void cObjPillar::setBreak(Vec* pos, void* mot, int a)
     if (fabsf(Muku(&this->pos, &pPL->pos, ang.y, PI)) < PI / 2) {
         ang.y = GetXZAngle(&this->pos, &pPL->pos);
     }
-    w->plMot = mot;
-    w->plMotA = a;
+    w->Mot_pl_escape = mot;
+    w->Seq_pl_escape = a;
     w->Break_pos = *pos;
     sub2B4.atari.throughOn();
     r_no_0 = 1;
@@ -472,11 +472,11 @@ void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, 
     if (fabsf(Muku(&pos, &pPL->pos, ang.y, PI)) < 0.5235988f) {
         ang.y = GetXZAngle(&pos, &pPL->pos);
     }
-    w->motThrow0 = mot0;
-    w->motThrow1 = mot1;
+    w->Mot_catch = mot0;
+    w->Mot_throw = mot1;
     w->Mot_escape = motEscape;
-    w->plMot = plMot;
-    w->plMotA = a;
+    w->Mot_pl_escape = plMot;
+    w->Seq_pl_escape = a;
     sub2B4.atari.throughOn();
     r_no_0 = 2;
     r_no_1 = 0;
@@ -491,8 +491,8 @@ void cObjPillar::setFall(void* mot0, void* mot1)
 
     w->Be_flg &= ~1;
     pos = getPartsPtr(0)->world;
-    w->motFall0 = mot0;
-    w->motFall1 = mot1;
+    w->Mot_fall = mot0;
+    w->Mot_landing = mot1;
     sub2B4.atari.throughOn();
     r_no_0 = 4;
     r_no_1 = 0;
@@ -568,9 +568,9 @@ static void plemEscape(cPlayer* pl)
         ang = 0.0f;
         ang = Muku(&em->pos, &w->Break_pos, em->ang.y, PI);
         if (ang < 0.0f) {
-            MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 3, 0x41, 0);
+            MotionSetCore(em, &em->Motion, w->Mot_pl_escape, (void*) w->Seq_pl_escape, 3, 0x41, 0);
         } else {
-            MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 3, 1, 0);
+            MotionSetCore(em, &em->Motion, w->Mot_pl_escape, (void*) w->Seq_pl_escape, 3, 1, 0);
         }
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
@@ -671,7 +671,7 @@ void plemEscape2(cPlayer* pl)
     switch (step) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &w->St_pos);
-        MotionSetCore(em, &em->Motion, w->plMot, (void*) w->plMotA, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_pl_escape, (void*) w->Seq_pl_escape, 0, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM31, 0x39, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);

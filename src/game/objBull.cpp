@@ -140,7 +140,7 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
     w->pSat2 = 0;
     w->pEat = 0;
     w->Ride_pl = 0;
-    p = w->mot;
+    p = w->Mot_tbl;
     for (i = 0; i < 12; i++) {
         *p++ = 0;
     }
@@ -148,7 +148,7 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
     w->break2nd = 3;
     w->break4th = 3;
     w->break3rd = 1;
-    w->type = type;
+    w->Start_point = type;
     w->Move_point = type;
     w->Ride_mode = 1;
     obj->r_no_0 = 0;
@@ -172,10 +172,10 @@ void objBull_R0_Set(cObjBull* obj)
     BullWork* w = &obj->bull;
 
     objBullPushMtx(obj);
-    w->cnt = 0;
-    w->timer = 0;
-    if (w->mot[0]) {
-        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
+    w->Move_frame = 0;
+    w->Move_frame2 = 0;
+    if (w->Mot_tbl[0]) {
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
     } else {
         obj->matUpdate();
@@ -197,10 +197,10 @@ void objBull_R0_Break1st(cObjBull* obj)
         SndCall(6, 6, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 7, &(obj->pList)[2].world, 0, 0, obj);
         w->Act_ck = 0;
-        w->timer = 0;
+        w->Move_frame2 = 0;
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -208,7 +208,7 @@ void objBull_R0_Break1st(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->Motion, w->mot[0], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[0], 0, 0, 0x8001, 0);
         if (w->break1st == 0 || --w->break1st == 0) {
             obj->bull.Be_flg |= 2;
         }
@@ -234,7 +234,7 @@ void objBull_R0_Break1st(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 2: drives to the second barrier (mot[1]), carrying the riders and hitting enemies.
@@ -245,13 +245,13 @@ void objBull_R0_To2nd(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
-        MotionSetCore(obj, &obj->Motion, w->mot[1], 0, 0, 0x8001, 0);
+        w->Move_frame2 = 0;
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[1], 0, 0, 0x8001, 0);
         SndCall(6, 8, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 9, &(obj->pList)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             obj->r_no_0 = 3;
             obj->r_no_1 = 0;
@@ -268,7 +268,7 @@ void objBull_R0_To2nd(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 3: second barrier (mot[2], break2nd hits, Be_flg 4).
@@ -279,13 +279,13 @@ void objBull_R0_Break2nd(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
+        w->Move_frame2 = 0;
         SndCall(6, 0xA, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 0xB, &(obj->pList)[2].world, 0, 0, obj);
         w->Act_ck = 0;
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->Motion, w->mot[2], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[2], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -293,7 +293,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->Motion, w->mot[2], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[2], 0, 0, 0x8001, 0);
         if (w->break2nd == 0 || --w->break2nd == 0) {
             obj->bull.Be_flg |= 4;
         }
@@ -319,7 +319,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 4: drives onto the lift (mot[3]).
@@ -330,13 +330,13 @@ static void objBull_R0_ToLift(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
+        w->Move_frame2 = 0;
         SndCall(6, 8, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 9, &(obj->pList)[2].world, 0, 0, obj);
-        MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[3], 0, 0, 0x8001, 0);
         obj->r_no_2++;
     case 1:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             obj->r_no_0 = 5;
             obj->r_no_1 = 0;
@@ -353,7 +353,7 @@ static void objBull_R0_ToLift(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 5: waits on the lift holding the last frame of mot[3] until the room sets Room_flg[0]
@@ -366,12 +366,12 @@ void objBull_R0_LiftWait(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
+        w->Move_frame2 = 0;
         SndCall(6, 0xA, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 0xB, &(obj->pList)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->Motion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[3], 0, 0, 0x8001, (u16) ((*(u16*) w->Mot_tbl[3] & 0x3FFF) - 1));
         MotionMove(obj, 0);
         zero = 0;
         if (pG->Room_flg[0] & 0x08000000) {  // RMF_LIFT_START (r30f)
@@ -389,7 +389,7 @@ void objBull_R0_LiftWait(cObjBull* obj)
     }
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 0);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 6: the lift ride (mot[4], Be_flg 0x20 while lifting, 0x100 at the top), then holds until
@@ -402,14 +402,14 @@ void objBull_R0_Lift(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
-        MotionSetCore(obj, &obj->Motion, w->mot[4], 0, 0, 0x8001, 0);
+        w->Move_frame2 = 0;
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[4], 0, 0, 0x8001, 0);
         SndCall(6, 0xA, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 0xB, &(obj->pList)[2].world, 0, 0, obj);
         obj->bull.Be_flg |= 0x20;
         obj->r_no_2++;
     case 1:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             w->Be_flg |= 0x100;
             obj->r_no_2++;
@@ -435,7 +435,7 @@ void objBull_R0_Lift(cObjBull* obj)
     }
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 0);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 7: drives off the lift to the third barrier (mot[5]).
@@ -446,14 +446,14 @@ void objBull_R0_To3rd(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
-        MotionSetCore(obj, &obj->Motion, w->mot[5], 0, 0, 0x8001, 0);
+        w->Move_frame2 = 0;
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[5], 0, 0, 0x8001, 0);
         SndCall(6, 8, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 9, &(obj->pList)[2].world, 0, 0, obj);
         obj->bull.Be_flg &= ~0x20;
         obj->r_no_2++;
     case 1:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             obj->r_no_0 = 8;
             obj->r_no_1 = 0;
@@ -470,7 +470,7 @@ void objBull_R0_To3rd(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 8: third barrier (mot[6], break3rd hits, Be_flg 8).
@@ -481,13 +481,13 @@ void objBull_R0_Break3rd(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
+        w->Move_frame2 = 0;
         SndCall(6, 0xA, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 0xB, &(obj->pList)[2].world, 0, 0, obj);
         w->Act_ck = 0;
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->Motion, w->mot[6], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[6], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -495,7 +495,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->Motion, w->mot[6], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[6], 0, 0, 0x8001, 0);
         if (w->break3rd == 0 || --w->break3rd == 0) {
             obj->bull.Be_flg |= 8;
         }
@@ -521,7 +521,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 9: drives to the fourth barrier (mot[7]).
@@ -532,13 +532,13 @@ void objBull_R0_To4th(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
-        MotionSetCore(obj, &obj->Motion, w->mot[7], 0, 0, 0x8001, 0);
+        w->Move_frame2 = 0;
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[7], 0, 0, 0x8001, 0);
         SndCall(6, 8, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 9, &(obj->pList)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             obj->r_no_0 = 0xA;
             obj->r_no_1 = 0;
@@ -555,7 +555,7 @@ void objBull_R0_To4th(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 10: fourth barrier (mot[8], break4th hits, Be_flg 0x10).
@@ -566,13 +566,13 @@ void objBull_R0_Break4th(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
+        w->Move_frame2 = 0;
         w->Act_ck = 0;
         SndCall(6, 0xA, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 0xB, &(obj->pList)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
-        MotionSetCore(obj, &obj->Motion, w->mot[8], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[8], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
@@ -580,7 +580,7 @@ void objBull_R0_Break4th(cObjBull* obj)
         obj->r_no_2++;
         break;
     case 2:
-        MotionSetCore(obj, &obj->Motion, w->mot[8], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[8], 0, 0, 0x8001, 0);
         if (w->break4th == 0 || --w->break4th == 0) {
             obj->bull.Be_flg |= 0x10;
         }
@@ -606,7 +606,7 @@ void objBull_R0_Break4th(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Rno0 == 11: the truck collision finale: the approach mot[9] (Be_flg 0x40 = truck coming), on
@@ -619,17 +619,17 @@ void objBull_R0_Collision(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 0;
-        MotionSetCore(obj, &obj->Motion, w->mot[9], 0, 0, 0x8001, 0);
+        w->Move_frame2 = 0;
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[9], 0, 0, 0x8001, 0);
         SndCall(6, 8, &(obj->pList)[2].world, 0, 0, obj);
         SndCall(6, 9, &(obj->pList)[2].world, 0, 0, obj);
-        w->frame = (*(u16*) w->mot[9] & 0x3FFF) - 30;
+        w->frame = (*(u16*) w->Mot_tbl[9] & 0x3FFF) - 30;
         obj->bull.Be_flg |= 0x40;
         w->Act_ck = 0;
         w->Truck_down = 0;
         obj->r_no_2++;
     case 1:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             if (w->Truck_down) {
                 obj->r_no_2 = 2;
@@ -639,23 +639,23 @@ void objBull_R0_Collision(cObjBull* obj)
         }
         break;
     case 2:
-        MotionSetCore(obj, &obj->Motion, w->mot[10], 0, 0, 0x8201, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[10], 0, 0, 0x8201, 0);
         if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer(Sub_bull_operation, Sub_dm_bull);
         }
         obj->r_no_2++;
     case 3:
-        w->cnt++;
+        w->Move_frame++;
         if (MotionMove(obj, 0)) {
             w->Be_flg |= 1;
         }
         break;
     case 4:
-        MotionSetCore(obj, &obj->Motion, w->mot[11], 0, 0, 0x8001, 0);
+        MotionSetCore(obj, &obj->Motion, w->Mot_tbl[11], 0, 0, 0x8001, 0);
         obj->bull.Be_flg |= 0x80;
         obj->r_no_2++;
     case 5:
-        w->cnt++;
+        w->Move_frame++;
         MotionMove(obj, 0);
         break;
     }
@@ -667,7 +667,7 @@ void objBull_R0_Collision(cObjBull* obj)
     objBullMoveAdjustEM(obj);
     objBullSatSet(obj, 1);
     objBullHitCk(obj);
-    w->timer++;
+    w->Move_frame2++;
 }
 
 // Disables the bulldozer's collision (SAT, EAT, moving SAT) for this frame.
@@ -733,18 +733,18 @@ void cObjBull::setMotion(void** tbl)
 {
     BullWork* w = &bull;
 
-    w->mot[0] = tbl[0];
-    w->mot[1] = tbl[1];
-    w->mot[2] = tbl[2];
-    w->mot[3] = tbl[3];
-    w->mot[4] = tbl[4];
-    w->mot[5] = tbl[5];
-    w->mot[6] = tbl[6];
-    w->mot[7] = tbl[7];
-    w->mot[8] = tbl[8];
-    w->mot[9] = tbl[9];
-    w->mot[10] = tbl[10];
-    w->mot[11] = tbl[11];
+    w->Mot_tbl[0] = tbl[0];
+    w->Mot_tbl[1] = tbl[1];
+    w->Mot_tbl[2] = tbl[2];
+    w->Mot_tbl[3] = tbl[3];
+    w->Mot_tbl[4] = tbl[4];
+    w->Mot_tbl[5] = tbl[5];
+    w->Mot_tbl[6] = tbl[6];
+    w->Mot_tbl[7] = tbl[7];
+    w->Mot_tbl[8] = tbl[8];
+    w->Mot_tbl[9] = tbl[9];
+    w->Mot_tbl[10] = tbl[10];
+    w->Mot_tbl[11] = tbl[11];
     MotionSetCore(this, &Motion, tbl[0], 0, 0, 0x8001, 0);
 }
 
@@ -987,8 +987,8 @@ void cObjBull::setRide()
         p.z += -500.0f;
         pSUB->setPos(&p);
     }
-    w->timer = zero;
-    switch (w->type) {
+    w->Move_frame2 = zero;
+    switch (w->Start_point) {
     case 0:
     default:
         r_no_0 = 1;
@@ -1305,13 +1305,13 @@ void cObjBull::setSubBullLookBack()
 // Frames spent in the current routine (timer).
 int cObjBull::getMoveFrameToLift()
 {
-    return bull.timer;
+    return bull.Move_frame2;
 }
 
 // Frames spent in the current routine (timer).
 int cObjBull::getMoveFrameRtn()
 {
-    return bull.timer;
+    return bull.Move_frame2;
 }
 
 // Rider adjust mode (0 re-project, 1 displacement) and the room callback.

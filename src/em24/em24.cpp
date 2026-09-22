@@ -368,14 +368,14 @@ static void em24_R1_Free(cEm24* em)
         w->Target_dir += fRand1_1() * (PI / 2.0f);
         w->Target_dir = LIMIT_ANGLE(w->Target_dir);
         w->Timer = Rnd() % 3 + 3;
-        w->turnTimer = Rnd() % 30 + 30;
+        w->Timer2 = Rnd() % 30 + 30;
         w->HoseiCnt = 0;
         em->r_no_2++;
     case 1:
-        if (w->turnTimer) {
-            w->turnTimer--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
-            w->turnTimer = Rnd() % 15 + 15;
+            w->Timer2 = Rnd() % 15 + 15;
             w->Target_dir += fRand1_1() * (PI / 4.0f);
             w->Target_dir = LIMIT_ANGLE(w->Target_dir);
         }

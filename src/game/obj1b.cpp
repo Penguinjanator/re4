@@ -37,7 +37,7 @@ struct Obj1bNode {
     Vec old;
     Vec spd;
     f32 len;
-    int hit;
+    int reflect;
 };
 
 // EspSeqOpt as the spear fills it: flag byte 2, speed vector at 4.
@@ -382,7 +382,7 @@ void obj1b_R1_Fall(cObjSpear* obj)
         p = &node[i];
         p->spd.y -= 20.0f;
         PSVECAdd(&p->pos, &p->spd, &p->pos);
-        p->hit = 0;
+        p->reflect = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
@@ -400,11 +400,11 @@ void obj1b_R1_Fall(cObjSpear* obj)
             PSVECSubtract(&p->pos, &d, &p->pos);
             if (p->pos.y < floor) {
                 p->pos.y = floor;
-                p->hit = 1;
+                p->reflect = 1;
             }
             if (n->pos.y < floor) {
                 n->pos.y = floor;
-                n->hit = 1;
+                n->reflect = 1;
             }
         }
     }
@@ -417,7 +417,7 @@ void obj1b_R1_Fall(cObjSpear* obj)
         } else {
             n = &node[i + 1];
         }
-        if (p->hit) {
+        if (p->reflect) {
             if (w->sePlayed == 0 && p->spd.y < -50.0f) {
                 w->sePlayed = 1;
                 if (w->seBlk != 0xFF) {

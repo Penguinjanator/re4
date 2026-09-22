@@ -559,7 +559,7 @@ static void R226EventRoboStartEnd()
     r226_setEmAll(0);
     SceExec(0x12, (TaskFunc) R226EmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
     rw->r_no_0 = 1;
-    rw->step = 0;
+    rw->r_no_1 = 0;
     robo->SetEndEvent(0);
     SceEventEnd(0);
     SceExit();
@@ -804,7 +804,7 @@ static void R226EventRoboWalkPassageStart()
     SetPlDamage((cEm*) robo, playerRunMovePassage);
     robo->SetEndEvent(0);
     rw->r_no_0 = 2;
-    rw->step = 0;
+    rw->r_no_1 = 0;
     SceEventEnd(0);
     SceExit();
 }
@@ -834,7 +834,7 @@ static void R226EventRoboWalkPassageGoal()
     robo->setPos(-30000.0f, 1000.0f, -15089.0f);
     robo->SetEndEvent(0);
     rw->r_no_0 = 2;
-    rw->step = 0;
+    rw->r_no_1 = 0;
     SceAtSetEnable(SCEAT_SCRAT_PILLAR_DOWN, 1);
     SceEventEnd(0);
     SceExit();
@@ -938,7 +938,7 @@ static void R226EventRoboWalkBridgeStart()
     SetPlDamage((cEm*) robo, playerRunMoveBridge);
     robo->SetEndEvent(0);
     rw->r_no_0 = 4;
-    rw->step = 0;
+    rw->r_no_1 = 0;
     {
         int smd[6] = {0x43, 0x44, 0x4F, 0x50, 0x51, 0x52};
         int n = 6;

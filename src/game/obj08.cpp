@@ -83,8 +83,8 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
     w->gravity = 0.0f;
     w->be_flag = 0;
     w->r = 500.0f;
-    w->life = -1;
-    w->seBlk = 0xFFFF;
+    w->timer = -1;
+    w->blk_no = 0xFFFF;
     w->call_no = 0xFFFF;
     w->hit_type = 0;
     if (flags < 0) {
@@ -115,7 +115,7 @@ void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad)
     w = &obj->o8;
     w->spd = *spd;
     w->gravity = grav;
-    w->life = life;
+    w->timer = life;
     w->r = rad;
     if (w->r < 1.0f) {
         w->r = 1.0f;
@@ -164,7 +164,7 @@ void SetObj08Se(cObj* obj, u16 blk, u16 no)
         return;
     }
     w = &obj->o8;
-    w->seBlk = blk;
+    w->blk_no = blk;
     w->call_no = no;
 }
 
@@ -175,14 +175,14 @@ void cObj08::move()
 {
     Obj08Work* w = &o8;
 
-    if (w->life == 0) {
+    if (w->timer == 0) {
         if (w->estNo[1] && w->estPrm[1]) {
             EstSet(0, -1, &pos, &ang, w->estNo[1], (u8) w->estPrm[1], 0, ESP_CORE_KIND_NONE, 0, 0);
         }
         ObjMgr.destroy(this);
         return;
     }
-    w->life--;
+    w->timer--;
     if (w->be_flag & 1) {
         MotionSetCore(this, &Motion, w->pMot, 0, 0, w->motPrm, 0);
         w->be_flag = (w->be_flag & ~1) | 2;
@@ -228,12 +228,12 @@ int obj08ScrHitCk(cObj08* obj)
     Vec est;
 
     if (EatMgr.hitCheck(&obj->pos_old, &obj->pos, &hit, &nrm, 0, 0x4000)) {
-        if (w->seBlk != 0xFFFF) {
+        if (w->blk_no != 0xFFFF) {
             int id = 0;
             if (w->parent) {
                 id = w->parent->id;
             }
-            SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
+            SndCall(w->blk_no, w->call_no, &obj->pos, id, 0, 0);
         }
         if (nrm.y > 0.7f) {
             if (w->estNo[2] && w->estPrm[2]) {
@@ -352,12 +352,12 @@ int obj08ToPlHitCk(cObj08* obj)
                     }
                 }
             } else {
-                if (w->seBlk != 0xFFFF) {
+                if (w->blk_no != 0xFFFF) {
                     int id = 0;
                     if (w->parent) {
                         id = w->parent->id;
                     }
-                    SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
+                    SndCall(w->blk_no, w->call_no, &obj->pos, id, 0, 0);
                 }
                 VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             }
@@ -380,12 +380,12 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
     f32 dy;
     f32 lim;
 
-    if (w->seBlk != 0xFFFF) {
+    if (w->blk_no != 0xFFFF) {
         int id = 0;
         if (w->parent) {
             id = w->parent->id;
         }
-        SndCall(w->seBlk, w->call_no, &obj->pos, id, 0, 0);
+        SndCall(w->blk_no, w->call_no, &obj->pos, id, 0, 0);
     }
     if (w->hit_type) {
         EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, em, 0);

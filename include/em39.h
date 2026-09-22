@@ -26,18 +26,18 @@ struct Em39Work {
     Vec Spd;              // 0x028 (0x408)  jump: vertical speed
     YARARE_INFO hit[19];    // 0x034 (0x414)  extra hit boxes (YarareAdd / YarareAddCube in em39_R0_Init)
     u8 pad_410[0x444 - 0x410];
-    f32 routeAng;         // 0x444 (0x824)  Muku towards the route point (player)
-    f32 routeAngAbs;      // 0x448 (0x828)
+    f32 Pl_dir;         // 0x444 (0x824)  Muku towards the route point (player)
+    f32 Pl_rot;      // 0x448 (0x828)
     u8 pad_44C[8];
-    f32 targetAng;        // 0x454 (0x834)  copy of the chosen target's angle / distance
-    f32 targetAngAbs;     // 0x458 (0x838)
-    f32 targetDist;       // 0x45C (0x83C)
-    Vec routePos;         // 0x460 (0x840)  RouteCkToPos result towards the player
+    f32 Go_dir;        // 0x454 (0x834)  copy of the chosen target's angle / distance
+    f32 Go_rot;     // 0x458 (0x838)
+    f32 L_go;       // 0x45C (0x83C)
+    Vec Pl_pos;         // 0x460 (0x840)  RouteCkToPos result towards the player
     u8 pad_46C[0xC];
-    Vec targetPos;        // 0x478 (0x858)  chosen target position
+    Vec Go_pos;        // 0x478 (0x858)  chosen target position
     cPlayer* pTarget;     // 0x484 (0x864)
     u8 pad_488[0x580 - 0x488];
-    cEmWep* pWep;         // 0x580 (0x960)  knife
+    cEmWep* pKnife;         // 0x580 (0x960)  knife
     cEmWep* pMachineGun;        // 0x584 (0x964)  machine gun
     cEmWep* pBow;        // 0x588 (0x968)  bow
     cEmWep* pArrow;         // 0x58C (0x96C)  thrown knife (setFall when the enemy moves)
@@ -46,7 +46,7 @@ struct Em39Work {
     f32 Neck_dir_x;             // 0x598 (0x978)  em39NeckMove: smoothed head pitch -> parts 4 addRot.x (PS2 Neck_dir_x)
     f32 Neck_dir_y;             // 0x59C (0x97C)  em39NeckMove: smoothed head yaw -> parts 4 addRot.y (PS2 Neck_dir_y)
     u8 pad_5A0[0x664 - 0x5A0];
-    cModelInfo* pHandInfo;   // 0x664 (0xA44)  em39HandSet: right hand parts info
+    cModelInfo* pHandR;   // 0x664 (0xA44)  em39HandSet: right hand parts info
     cModelInfo* pHandL;  // 0x668 (0xA48)  em39HandSet: left hand parts info
     cModelInfo* pModKnife;     // 0x66C (0xA4C)
     u8 Hand_type;          // 0x670 (0xA50)  em39HandSet type (0xFF = none)
@@ -54,7 +54,7 @@ struct Em39Work {
     cObj12* pCap;       // 0x674 (0xA54)  hanging object (SetObj12)  (PS2 cObj12* pCap, next to Cap_hp)
     int Cap_hp;             // 0x678 (0xA58)
     u8 pad_67C[2];
-    u16 dmgTotal;         // 0x67E (0xA5E)  damage taken
+    u16 Appear_damage;         // 0x67E (0xA5E)  damage taken
     int Atk_wait;             // 0x680 (0xA60)
     int LongAtk_wait;             // 0x684 (0xA64)
     int SuperDashWait;             // 0x688 (0xA68)
@@ -64,24 +64,24 @@ struct Em39Work {
     int Total_damage;             // 0x698 (0xA78)  damage since the last reaction
     int Flash_damage;             // 0x69C (0xA7C)
     int Dash_wait;             // 0x6A0 (0xA80)
-    Vec jumpPos;          // 0x6A4 (0xA84)  jump target (em39JumpUpCk / em39JumpDownCk)
+    Vec Target_pos;          // 0x6A4 (0xA84)  jump target (em39JumpUpCk / em39JumpDownCk)
     f32 Target_dir;          // 0x6B0 (0xA90)  facing during the jump
     Vec Goto_pos;          // 0x6B4 (0xA94)  goto target (em39RouteCk overrides the player target)
     u8 Goto_mode;            // 0x6C0 (0xAA0)
     u8 pad_6C1[3];
     struct EmiEntry* pGotoPoint;  // 0x6C4 (0xAA4)  EMI point the enemy sits / waits at
     class cEmDoor* pDoor; // 0x6C8 (0xAA8)  door the knife swing opens / breaks (em39DoorOpenCk)
-    f32 gunPitch;         // 0x6CC (0xAAC)  machine gun pitch in 1/1024 turns (-255..255)
+    f32 Blend;         // 0x6CC (0xAAC)  aim pitch, the blend rate of em39BlendMotSet (PS2 Blend, with Hokan / Frame / Sub_mot)
     int Hokan;             // 0x6D0 (0xAB0)
     int Frame;             // 0x6D4 (0xAB4)
-    MotionWorkSub blendMot;  // 0x6D8 (0xAB8)  em39BlendMotSet second motion
-    void* bowMot0;        // 0x7A8 (0xB88)  bow shot blend motions (em39BlendMotSet)
-    void* bowMot1;        // 0x7AC (0xB8C)
-    void* bowMot2;        // 0x7B0 (0xB90)
-    void* bowMot3;        // 0x7B4 (0xB94)
+    MotionWorkSub Sub_mot;  // 0x6D8 (0xAB8)  em39BlendMotSet second motion
+    void* Mot_M;        // 0x7A8 (0xB88)  bow shot blend motions (em39BlendMotSet)
+    void* Mot_L;        // 0x7AC (0xB8C)
+    void* Mot_R;        // 0x7B0 (0xB90)
+    void* Seq_M;        // 0x7B4 (0xB94)  sequence passed as em39BlendMotSet's 4th argument (PS2 u32 Seq_M)
     u8 pad_7B8[0xC];
     MotionWorkSub Arm_mot;  // 0x7C4 (0xBA4)  tower form left arm motion (em39ArmControl)
-    int stuckCnt;         // 0x894 (0xC74)  frames the enemy moved less than half of the intended distance
+    int HoseiCnt;         // 0x894 (0xC74)  frames the enemy moved less than half of the intended distance
     int Hide_timer;             // 0x898 (0xC78)
     int Back_atk_wait;             // 0x89C (0xC7C)
     int Fire_timer;             // 0x8A0 (0xC80)  DmgMgr hit guard timer

@@ -17,8 +17,8 @@ struct EmMineWork {
     int Bomb_wait;             // 0x01C (0x3FC)  frames until the mine explodes / the arrow is lost
     int Homing_wait;       // 0x020 (0x400)  frames between homing target searches
     Vec Spd;              // 0x024 (0x404)  flight speed
-    Vec pts[3];           // 0x030 (0x410)  fall: speeds of the three rope nodes
-    f32 grav;             // 0x054 (0x434)  fall: gravity per frame (15)
+    Vec Fall_spd[3];           // 0x030 (0x410)  fall: speeds of the three rope nodes
+    f32 Gravity;             // 0x054 (0x434)  fall: gravity per frame (15)
     Vec Norm;           // 0x058 (0x438)  normal of the surface the mine hit
     u8 Norm_ck;           // 0x064 (0x444)  1: stuck to the scenario (the bomb goes off 1000 along hitNrm)
     u8 Lv;             // 0x065 (0x445)  pG->wep_lv at creation (blast radius of BombWait2)

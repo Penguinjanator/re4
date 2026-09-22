@@ -564,15 +564,15 @@ void em34RouteCk(cEm34* em)
     if (RouteCkToPos(em, &pPL->pos, &w->Pl_pos, 0, 0)) {
         w->Be_flg |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->Pl_pos, em->ang.y, PI);
-    w->Pl_rot = fabsf(w->routeAng);
+    w->Pl_dir = Muku(&em->pos, &w->Pl_pos, em->ang.y, PI);
+    w->Pl_rot = fabsf(w->Pl_dir);
     if (em->r_no_0 == 0) {
-        w->routeAng = 0.0f;
+        w->Pl_dir = 0.0f;
         w->Pl_rot = 0.0f;
         em->plDist2 = 100000000.0f;
     }
     w->Go_pos = w->Pl_pos;
-    w->Go_dir = w->routeAng;
+    w->Go_dir = w->Pl_dir;
     w->Go_rot = w->Pl_rot;
     w->L_go = em->plDist2;
     w->pEm = pPL;

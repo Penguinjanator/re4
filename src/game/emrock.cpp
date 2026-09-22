@@ -192,20 +192,20 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->Gravity = 20.0f;
     w->rollWait = 0;
     em->Motion.pMot = (MotionData*) 0;
-    w->plMot[2] = (void*) 0;
-    w->plMot[3] = (void*) 0;
-    w->plMot[4] = (void*) 0;
-    w->plMot[5] = (void*) 0;
-    w->plMot[6] = (void*) 0;
-    w->plMot[7] = (void*) 0;
-    w->plMot[8] = (void*) 0;
-    w->plMot[9] = (void*) 0;
-    w->plMot[10] = (void*) 0;
-    w->plMot[11] = (void*) 0;
-    w->mot1 = (void*) 0;
-    w->mot0 = (void*) 0;
-    w->mot2 = (void*) 0;
-    w->mot3 = (void*) 0;
+    w->Mot_tbl[2] = (void*) 0;
+    w->Mot_tbl[3] = (void*) 0;
+    w->Mot_tbl[4] = (void*) 0;
+    w->Mot_tbl[5] = (void*) 0;
+    w->Mot_tbl[6] = (void*) 0;
+    w->Mot_tbl[7] = (void*) 0;
+    w->Mot_tbl[8] = (void*) 0;
+    w->Mot_tbl[9] = (void*) 0;
+    w->Mot_tbl[10] = (void*) 0;
+    w->Mot_tbl[11] = (void*) 0;
+    w->Mot_drop = (void*) 0;
+    w->Mot_wait = (void*) 0;
+    w->Mot_pldie = (void*) 0;
+    w->Mot_subdie = (void*) 0;
     w->pSat = (cSat*) 0;
     w->espKind = EspPullCoreKind();
     em->setStatus(EM_STATUS_ACTIVE);
@@ -771,12 +771,12 @@ void emRock_R1_Roll(cEmRock* em)
         if (w->Roll_wait) {
             w->Roll_wait--;
             if (w->Roll_wait == 0) {
-                w->sndId2 = SndCall(6, 5, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 5, &em->pos, 0, 0, em);
             }
             return;
         }
         if (emRockSetRollSpd(em)) {
-            SndStop(w->sndId2, 0);
+            SndStop(w->Seid, 0);
             SndCall(6, 6, &em->pos, 0, 0, em);
             EstSet(0, -1, &em->pos, 0, EFF_ROOM, 0x1F, 0, ESP_CORE_KIND_NONE, 0, 0);
             em->be_flag &= ~2;
@@ -863,7 +863,7 @@ void emRock_R1_Drop(cEmRock* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.m_flag &= ~0x200;
-        MotionSetCore(em, &em->Motion, w->mot0, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_wait, 0, 0, 1, 0);
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
@@ -872,7 +872,7 @@ void emRock_R1_Drop(cEmRock* em)
         }
         em->r_no_2++;
     case 2:
-        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_drop, 0, 0, 1, 0);
         EstSet(em, -1, 0, 0, EFF_ROOM, 4, 0, w->espKind, em, 0);
         SndCall(6, 8, &em->pos, 0, 0, em);
         w->Timer = 37;
@@ -922,7 +922,7 @@ void emRock_R1_Drop2(cEmRock* em)
         em->r_no_2++;
         em->atari.m_flag &= ~0x200;
     case 1:
-        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_drop, 0, 0, 1, 0);
         MotionMove(em, 0);
         if (!(em->flag & 1)) {
             break;
@@ -944,7 +944,7 @@ void emRock_R1_Drop2(cEmRock* em)
         SetPlDamage(em, plemDropFind);
         em->r_no_2++;
     case 3:
-        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_drop, 0, 0, 1, 0);
         MotionMove(em, 0);
         if (w->Timer) {
             w->Timer--;
@@ -953,11 +953,11 @@ void emRock_R1_Drop2(cEmRock* em)
         em->r_no_2++;
         break;
     case 4:
-        MotionSetCore(em, &em->Motion, w->mot1, 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, w->Mot_drop, 0, 0, 1, 0);
         EstSet(0, -1, 0, 0, EFF_ROOM, 5, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(6, 4, &em->pos, 0, 0, em);
         w->Timer = 31;
-        w->rnd = Rnd() & 1;
+        w->TmpU32 = Rnd() & 1;
         w->Act_ck = 0;
         em->r_no_2++;
     case 5:
@@ -984,7 +984,7 @@ void emRock_R1_Drop2(cEmRock* em)
                 }
             }
             if (w->Act_ck == 0) {
-                switch (w->rnd) {
+                switch (w->TmpU32) {
                 case 0:
                 default:
                     ActBtn.set(ACT_GUARD, 5, (void*) plemDropEscAction, em, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, DISP_L_R, ACT_FUNC_NORMAL, 0);
@@ -1022,7 +1022,7 @@ void plemDropFind(cPlayer* pl)
     case 1:
         if (pl->m_Work0) {
             pl->m_Work0--;
-            MotionSetCore(pl, &pl->Motion, w->mot5, 0, 3, 1, 0);
+            MotionSetCore(pl, &pl->Motion, w->Mot_plfind, 0, 3, 1, 0);
             emRockPushCamMove((cEmRock*)pl->pEmCatch);
         } else {
             emRockDropCamMove((cEmRock*)pl->pEmCatch);
@@ -1044,7 +1044,7 @@ void plemDropEscape(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, w->mot4, 0, 3, 1, 0);
+        MotionSetCore(pl, &pl->Motion, w->Mot_plesc, 0, 3, 1, 0);
         EstSet(pl, -1, 0, 0, EFF_PL00, 0x14, 0, ESP_CORE_KIND_NONE, pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
@@ -1518,8 +1518,8 @@ void plemRockEscape(cPlayer* pl)
     int flag;
 
     pl->subArc = pl->pEmCatch->subArc;
-    mot2 = w->plMot[3];
-    mot = w->plMot[2];
+    mot2 = w->Mot_tbl[3];
+    mot = w->Mot_tbl[2];
     switch (pl->r_no_2) {
     case 0:
         pl->m_Work0 = 85;
@@ -1552,7 +1552,7 @@ void plemRockEscape(cPlayer* pl)
         if (pl->m_Work0) {
             pl->m_Work0--;
             emRockPushCamMove((cEmRock*)pl->pEmCatch);
-            MotionSetCore(pl, &pl->Motion, w->plMot[0], w->plMot[1], 0, 1, 0);
+            MotionSetCore(pl, &pl->Motion, w->Mot_tbl[0], w->Mot_tbl[1], 0, 1, 0);
             pl->ang.y += Muku(&pl->pos, &pl->pEmCatch->pos, pl->ang.y, 3.1415927f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionMove(pl, 0);
@@ -1612,28 +1612,28 @@ void plemRockEscape(cPlayer* pl)
             switch (n) {
             case 0:
             default:
-                mot2 = w->plMot[3];
+                mot2 = w->Mot_tbl[3];
                 break;
             case 1:
-                mot2 = w->plMot[4];
+                mot2 = w->Mot_tbl[4];
                 break;
             case 2:
-                mot2 = w->plMot[5];
+                mot2 = w->Mot_tbl[5];
                 break;
             case 3:
-                mot2 = w->plMot[6];
+                mot2 = w->Mot_tbl[6];
                 break;
             case 4:
-                mot2 = w->plMot[7];
+                mot2 = w->Mot_tbl[7];
                 break;
             case 5:
-                mot2 = w->plMot[8];
+                mot2 = w->Mot_tbl[8];
                 break;
             case 6:
-                mot2 = w->plMot[9];
+                mot2 = w->Mot_tbl[9];
                 break;
             case 7:
-                mot2 = w->plMot[10];
+                mot2 = w->Mot_tbl[10];
                 break;
             }
             ratio = pl->Motion.Seq_frame / (f32) pl->Motion.Seq_frame_num;
@@ -1677,7 +1677,7 @@ void plemRockEscape(cPlayer* pl)
         }
         break;
     case 4:
-        mot = w->plMot[11];
+        mot = w->Mot_tbl[11];
         flag = 1;
         if (pl->m_Work5) {
             flag = 0x41;
@@ -1716,22 +1716,22 @@ void cEmRock::setPlMotion(void** mot)
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->plMot[0] = *mot++;
-    w->plMot[1] = *mot++;
-    w->plMot[2] = *mot++;
-    w->plMot[3] = *mot++;
-    w->plMot[4] = *mot++;
-    w->plMot[5] = *mot++;
-    w->plMot[6] = *mot++;
-    w->plMot[7] = *mot++;
-    w->plMot[8] = *mot++;
-    w->plMot[9] = *mot++;
-    w->plMot[10] = *mot++;
-    w->plMot[11] = *mot++;
-    w->plMot[12] = *mot++;
-    w->plMot[13] = *mot++;
-    w->plMot[14] = *mot++;
-    w->plMot[15] = *mot++;
+    w->Mot_tbl[0] = *mot++;
+    w->Mot_tbl[1] = *mot++;
+    w->Mot_tbl[2] = *mot++;
+    w->Mot_tbl[3] = *mot++;
+    w->Mot_tbl[4] = *mot++;
+    w->Mot_tbl[5] = *mot++;
+    w->Mot_tbl[6] = *mot++;
+    w->Mot_tbl[7] = *mot++;
+    w->Mot_tbl[8] = *mot++;
+    w->Mot_tbl[9] = *mot++;
+    w->Mot_tbl[10] = *mot++;
+    w->Mot_tbl[11] = *mot++;
+    w->Mot_tbl[12] = *mot++;
+    w->Mot_tbl[13] = *mot++;
+    w->Mot_tbl[14] = *mot++;
+    w->Mot_tbl[15] = *mot++;
 }
 
 // Uniform scale and the matching collision radius (s x 600).
@@ -2169,13 +2169,13 @@ void emRockPushCk(cEmRock* em, int frame)
         switch (n) {
         case 0:
         default:
-            MotionSetCore(e, &e->Motion, w->plMot[13], 0, 0, 1, (u16) frame);
+            MotionSetCore(e, &e->Motion, w->Mot_tbl[13], 0, 0, 1, (u16) frame);
             break;
         case 1:
-            MotionSetCore(e, &e->Motion, w->plMot[14], 0, 0, 1, (u16) frame);
+            MotionSetCore(e, &e->Motion, w->Mot_tbl[14], 0, 0, 1, (u16) frame);
             break;
         case 2:
-            MotionSetCore(e, &e->Motion, w->plMot[15], 0, 0, 1, (u16) frame);
+            MotionSetCore(e, &e->Motion, w->Mot_tbl[15], 0, 0, 1, (u16) frame);
             break;
         }
         n++;
@@ -2192,10 +2192,10 @@ void cEmRock::setDropMot(void* a, void* b, void* c, void* d)
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->mot0 = a;
-    w->mot1 = b;
-    w->mot2 = c;
-    w->mot3 = d;
+    w->Mot_wait = a;
+    w->Mot_drop = b;
+    w->Mot_pldie = c;
+    w->Mot_subdie = d;
     r_no_0 = 1;
     r_no_1 = 7;
     r_no_2 = 0;
@@ -2208,13 +2208,13 @@ void cEmRock::setDropMot2(void* a, void* b, void* c, void* d, void* e, void* f, 
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->mot1 = a;
-    w->mot2 = b;
-    w->mot4 = c;
-    w->mot5 = d;
-    w->plMot[13] = e;
-    w->plMot[14] = f;
-    w->plMot[15] = g;
+    w->Mot_drop = a;
+    w->Mot_pldie = b;
+    w->Mot_plesc = c;
+    w->Mot_plfind = d;
+    w->Mot_tbl[13] = e;
+    w->Mot_tbl[14] = f;
+    w->Mot_tbl[15] = g;
     r_no_0 = 1;
     r_no_1 = 8;
     r_no_2 = 0;
@@ -2240,7 +2240,7 @@ int emRockDropHitCk(cEmRock* em)
     if (dead) {
         return 0;
     }
-    if (w->mot2 == 0) {
+    if (w->Mot_pldie == 0) {
         return 0;
     }
     p = em->getPartsPtr(0);
@@ -2276,7 +2276,7 @@ int emRockDropHitCkSub(cEmRock* em)
     if (dead) {
         return 0;
     }
-    if (w->mot3 == 0) {
+    if (w->Mot_subdie == 0) {
         return 0;
     }
     p = em->getPartsPtr(0);
@@ -2341,7 +2341,7 @@ void plemDropDie(cPlayer* pl)
     pl->subArc = pl->pEmCatch->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->Motion, w->mot2, 0, 3, 1, 0);
+        MotionSetCore(pl, &pl->Motion, w->Mot_pldie, 0, 3, 1, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xD);
         pl->r_no_2++;
@@ -2366,7 +2366,7 @@ void subemDropDie()
     sub->subArc = sub->pEmCatch->subArc;
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->Motion, w->mot3, 0, 3, 1, 0);
+        MotionSetCore(sub, &sub->Motion, w->Mot_subdie, 0, 3, 1, 0);
         pG->ashley_life = 0;
         sub->r_no_2++;
     case 1:

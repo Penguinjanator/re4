@@ -11,7 +11,7 @@ struct EmItemWork {
     u8 pad_4[8];
     int Status;           // 0x00C (0x3EC)  1 = landed (drop), 2 = broken, 3 = damaged (ckStatus)
     cModel* pParent;      // 0x010 (0x3F0)  model the item follows (setParent)
-    int partsNo;          // 0x014 (0x3F4)
+    int oya_parts;          // 0x014 (0x3F4)
     int noNormalize;      // 0x018 (0x3F8)
     u8 pad_1C[0x224 - 0x1C];
     Vec spd;              // 0x224 (0x604)  drop speed
@@ -19,7 +19,7 @@ struct EmItemWork {
     Vec rotAng;           // 0x23C (0x61C)  medal swing: current angles
     Vec rotSpd;           // 0x248 (0x628)  swing speeds
     Vec rotAmp;           // 0x254 (0x634)  swing amplitudes
-    u8 rotType;           // 0x260 (0x640)  setRotType: 1 = swing, 2 = follow the model rotation
+    u8 Rot_type;           // 0x260 (0x640)  setRotType: 1 = swing, 2 = follow the model rotation
     u8 Eff_id;               // 0x261 (0x641)  setEff: effect number of the break (0xFF = none)
     u8 Etc_no;             // 0x262 (0x642)  etc flag index (type 1: taken flag)
 };

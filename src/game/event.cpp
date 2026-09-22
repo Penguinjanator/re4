@@ -708,7 +708,7 @@ void Event::ControlTransFlag()
             }
             if (m->kindid == 1 && m->id == cObjMgr::ID_EVENT) {
                 w = &((cObj*) m)->o18;
-                if (w->type == OBJ18_TYPE_ADA && w->child != 0 && !(((cObj*) m)->o18.ObjChainFlagCommon & 0x04000000)) {
+                if (w->obj18_type == OBJ18_TYPE_ADA && w->child != 0 && !(((cObj*) m)->o18.ObjChainFlagCommon & 0x04000000)) {
                     if ((m->be_flag & 0x20) == 0) {
                         w->child->be_flag &= ~0x20;
                     } else {
@@ -1252,12 +1252,12 @@ int Event::ExePacket_Mot(Event* evt)
     ClrShape(m);
     if (m->kindid == 1 && m->id == cObjMgr::ID_EVENT) {
         Obj18Work* w = &((cObj*) m)->o18;
-        t = w->type;
+        t = w->obj18_type;
         if ((t >= 1 && t <= 4) || t == 7 || t == 8 || t == 9 || t == 0xA || t == 0x13 || t == 0x14 || t == 0x15 || t == 0x16
             || t == 0xB) {
             m->be_flag |= 0x00200000;
         }
-        if (w->type == 3 && w->child != 0) {
+        if (w->obj18_type == 3 && w->child != 0) {
             w->child->be_flag |= 0x00200000;
         }
     }

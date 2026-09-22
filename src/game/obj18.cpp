@@ -163,7 +163,7 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     if (type == 0x11) {
         lightFlag = 8;
     }
-    w->type = type;
+    w->obj18_type = type;
     info = obj->pModelInfo;
     b = &info->bound;
     sz.x = b->size.x;
@@ -187,11 +187,11 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         obj->ang.z = 0.0f;
     }
     w->oya_hokan = 1.0f;
-    w->rateSpd = 0.0f;
-    w->oya = 0;
+    w->oya_hokan_add = 0.0f;
+    w->pEm_oya = 0;
     w->oya_parts = 0;
     w->ObjChainFlagCommon = 0;
-    switch (w->type) {
+    switch (w->obj18_type) {
     case OBJ18_TYPE_LEON:
         if (pG->pl_type == 0) {
             PlClothSetLeon(obj, &Evt_leonHair, &Evt_leonJacket, &Evt_leonHolster);
@@ -297,9 +297,9 @@ void cObj18::move()
         ScaleMatrix(l_mat, &scale);
         PSMTXCopy(l_mat, mat);
     }
-    if (w->oya) {
-        if ((w->oya->be_flag & 0x201) != 1) {
-            w->oya = 0;
+    if (w->pEm_oya) {
+        if ((w->pEm_oya->be_flag & 0x201) != 1) {
+            w->pEm_oya = 0;
         }
     }
     obj18SetOya(this);
@@ -308,12 +308,12 @@ void cObj18::move()
         partsWorldCalc();
     }
     if (pG->game_costume == 1) {
-        if (w->type == OBJ18_TYPE_ASHLEY) {
+        if (w->obj18_type == OBJ18_TYPE_ASHLEY) {
             w->be_flag &= ~0x40;
         }
     }
     if (!(w->be_flag & 0x40)) {
-        switch (w->type) {
+        switch (w->obj18_type) {
         case OBJ18_TYPE_LEON:
             if (pG->pl_type == 0) {
                 PlClothMoveLeon(this, &Evt_leonHair, &Evt_leonJacket, &Evt_leonHolster);
@@ -386,7 +386,7 @@ void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
         return;
     }
     w = &obj->o18;
-    w->oya = oya;
+    w->pEm_oya = oya;
     w->oya_parts = partsNo;
     w->be_flag &= ~8;
     w->be_flag &= ~3;
@@ -396,13 +396,13 @@ void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
 int obj18GetOya(cModel** out, cObj* obj)
 {
     *out = 0;
-    if (obj->o18.oya == 0) {
+    if (obj->o18.pEm_oya == 0) {
         return 0;
     }
-    if (obj->o18.oya->pParts == 0) {
+    if (obj->o18.pEm_oya->pParts == 0) {
         return 0;
     }
-    *out = obj->o18.oya;
+    *out = obj->o18.pEm_oya;
     return 1;
 }
 
@@ -420,13 +420,13 @@ void obj18SetOya(cObj18* obj)
     Quaternion q1;
     Quaternion q;
 
-    if (w->oya == 0) {
+    if (w->pEm_oya == 0) {
         return;
     }
-    if (w->oya->pParts == 0) {
+    if (w->pEm_oya->pParts == 0) {
         return;
     }
-    PSMTXConcat(w->oya->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
+    PSMTXConcat(w->pEm_oya->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
     v0.x = m[0][0];
     v0.y = m[1][0];
     v0.z = m[2][0];
@@ -450,7 +450,7 @@ void obj18SetOya(cObj18* obj)
     m[1][2] = v2.y;
     m[2][2] = v2.z;
     if (w->oya_hokan < 1.0f) {
-        w->oya_hokan += w->rateSpd;
+        w->oya_hokan += w->oya_hokan_add;
         if (w->oya_hokan >= 1.0f) {
             w->oya_hokan = 1.0f;
             w->be_flag &= ~8;
@@ -460,20 +460,20 @@ void obj18SetOya(cObj18* obj)
         f32 rate = w->oya_hokan;
         f32 inv = 1.0f - rate;
 
-        p.x = m[0][3] * rate + w->mat[0][3] * inv;
-        p.y = m[1][3] * rate + w->mat[1][3] * inv;
-        p.z = m[2][3] * rate + w->mat[2][3] * inv;
+        p.x = m[0][3] * rate + w->hokan_mat[0][3] * inv;
+        p.y = m[1][3] * rate + w->hokan_mat[1][3] * inv;
+        p.z = m[2][3] * rate + w->hokan_mat[2][3] * inv;
         C_QUATMtx(&q0, m);
-        C_QUATMtx(&q1, w->mat);
+        C_QUATMtx(&q1, w->hokan_mat);
         C_QUATSlerp(&q0, &q1, &q, w->oya_hokan);
         PSMTXQuat(obj->mat, &q);
         TransMatrix(obj->mat, &p);
-        PSMTXCopy(obj->mat, w->mat);
+        PSMTXCopy(obj->mat, w->hokan_mat);
     } else {
         PSMTXCopy(m, obj->mat);
     }
-    if (w->oya) {
-        if (w->oya->LightInfo.EnableMask & 2) {
+    if (w->pEm_oya) {
+        if (w->pEm_oya->LightInfo.EnableMask & 2) {
             obj->LightInfo.EnableMask &= ~0x10;
             obj->LightInfo.EnableMask |= 2;
         }
@@ -492,7 +492,7 @@ void Obj18CmfSet(cObj* obj, u32 cmf)
     if (obj->id != 0x18) {
         return;
     }
-    obj->o18.cmf = cmf;
+    obj->o18.CommonFlag = cmf;
 }
 
 // Event control flags of an obj18 (0 for other objects).
@@ -504,7 +504,7 @@ u32 Obj18CmfGet(cObj* obj)
     if (obj->kindid != 1 || obj->id != 0x18) {
         return 0;
     }
-    return obj->o18.cmf;
+    return obj->o18.CommonFlag;
 }
 
 // Sets one event control flag bit.

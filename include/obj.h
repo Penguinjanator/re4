@@ -150,7 +150,7 @@ struct Obj26Work {
     u8 pad_0[8];
     cObj* parent;         // 0x08  followed parts 2 of this object
     u8 pad_C[0xC];
-    Vec tgtScale;         // 0x18
+    Vec Scale;         // 0x18
 };
 
 // Bell work (game/obj14.cpp): a hit-receiving enemy plus a pendulum chain for the swing.
@@ -191,12 +191,12 @@ struct Obj08Work {
     f32 gravity;             // 0x24
     f32 r;              // 0x28  hit radius (min 1.0)
     cModel* parent;       // 0x2C  thrower (its id goes to SndCall)
-    int life;             // 0x30  frames left (-1 = forever)
+    int timer;             // 0x30  frames left (-1 = forever)
     EmAtkInfo* pAtk;      // 0x34  attack record for EmAtkHitCk
     u32 atkFlags;         // 0x38  low 16 bits: GetWepTargetList flag, low byte: damage kind
     u32 estNo[4];         // 0x3C  effects: 0 ?, 1 scenario hit / timeout, 2 floor hit, 3 enemy / player hit
     u32 estPrm[4];        // 0x4C
-    u16 seBlk;            // 0x5C  hit SE (0xFFFF = none)
+    u16 blk_no;            // 0x5C  hit SE (0xFFFF = none)
     u16 call_no;             // 0x5E
     u8 hit_type;           // 0x60  1: the enemy-hit effect follows the target instead of the hit point
 };
@@ -208,10 +208,10 @@ struct Obj00Work {
     void* pMot;           // 0x04
     int motA;             // 0x08  MotionSetCore 4th argument
     u32 mot_attr;           // 0x0C  low 16 bits: MotionSetCore 6th argument
-    cModel* oya;          // 0x10  parent
+    cModel* pEm_oya;          // 0x10  parent
     int oya_parts;          // 0x14  parts of the parent to follow
     f32 oya_hokan;             // 0x18  blend rate (1.0 = parent matrix)
-    f32 rateSpd;          // 0x1C
+    f32 oya_hokan_add;          // 0x1C
     s16 fallSpd[3][3];    // 0x20  rope point speeds * 10
     u8 pad_32[2];
     Mtx hokan_mat;              // 0x34  previous parent matrix
@@ -228,10 +228,10 @@ struct Obj12Work {
     void* pMot;           // 0x04
     int Motion_info;        // 0x08  MotionMove result of this frame
     u32 mot_attr;           // 0x0C
-    cModel* oya;          // 0x10  parent
+    cModel* pEm_oya;          // 0x10  parent
     int oya_parts;          // 0x14
     f32 oya_hokan;             // 0x18  blend rate (1.0 = parent matrix)
-    f32 rateSpd;          // 0x1C
+    f32 oya_hokan_add;          // 0x1C
     s16 fallSpd[3][3];    // 0x20  rope point speeds * 10 (fallSpd[0] is the throw speed)
     u8 pad_32[2];
     Mtx hokan_mat;              // 0x34  previous parent matrix
@@ -278,15 +278,15 @@ enum OBJ18_TYPE {
 struct Obj18Work {
     u32 be_flag;            // 0x00  bit3: blending toward the parent, bit6: cloth simulation off
     u8 pad_4[0xC];
-    cModel* oya;          // 0x10  parent
+    cModel* pEm_oya;          // 0x10  parent
     int oya_parts;          // 0x14
     f32 oya_hokan;             // 0x18  blend rate (1.0 = parent matrix)
-    f32 rateSpd;          // 0x1C
+    f32 oya_hokan_add;          // 0x1C
     u8 pad_20[0x14];
-    Mtx mat;              // 0x34  previous parent matrix
+    Mtx hokan_mat;              // 0x34  previous parent matrix
     u32 x64;              // 0x64
-    u32 type;             // 0x68  OBJ18_TYPE (SetObj18 type, cloth set)
-    u32 cmf;              // 0x6C  Obj18CmfSet/Get flag bits
+    u32 obj18_type;             // 0x68  OBJ18_TYPE (SetObj18 type, cloth set)
+    u32 CommonFlag;              // 0x6C  Obj18CmfSet/Get flag bits
     cObj* child;          // 0x70  ribbon / rope object created by SetObj18
     int ObjChainFlagCommon;              // 0x74  bit26 (0x04000000): event ControlTransFlag skips the child flags
     char NameMod[12];     // 0x78  event model name of the packet that created it (event ExePacket_SetOm; PS2 NameMod)
@@ -305,22 +305,22 @@ struct Obj01Work {
     Vec spd;              // 0x18
     f32 gravity;             // 0x24
     f32 r;              // 0x28  bounce radius
-    int life;             // 0x2C  frames until the explosion (0 = now)
+    int timer;             // 0x2C  frames until the explosion (0 = now)
     cModel* hold;         // 0x30  model holding it (follows `holdParts`)
-    int holdParts;        // 0x34
+    int parts_no;        // 0x34
     Vec offset;          // 0x38
     Vec ang;          // 0x44
-    int estNo0;           // 0x50  explosion effects (-1 = none: fade out instead)
+    int eff;           // 0x50  explosion effects (-1 = none: fade out instead)
     int est;          // 0x54
-    int estNo1;           // 0x58
+    int eff2;           // 0x58
     int est2;          // 0x5C
-    int estNo2;           // 0x60  water splash
+    int eff3;           // 0x60  water splash
     int est3;          // 0x64
-    int estNo3;           // 0x68  underwater explosion
+    int eff4;           // 0x68  underwater explosion
     int est4;          // 0x6C
     u32 eff_action;             // 0x70  0 plain, 1 hand grenade, 2 incendiary, 3 flash, 4 ?
     int release_timer;        // 0x74  frames until it leaves the holder's hand
-    u8 seDone;            // 0x78  landing SE state
+    u8 Bound_se_ck;            // 0x78  landing SE state
     u8 pad_79[3];
     u32 flag;          // 0x7C  bit3: water splash done
 };
@@ -336,18 +336,18 @@ struct WepItemWork {
     Vec spd;              // 0x18
     f32 gravity;             // 0x24
     f32 r;              // 0x28  bounce radius
-    int life;             // 0x2C  frames until the explosion (0 = now)
+    int timer;             // 0x2C  frames until the explosion (0 = now)
     cModel* hold;         // 0x30  model holding it (follows `holdParts`)
-    int holdParts;        // 0x34
+    int parts_no;        // 0x34
     Vec offset;          // 0x38
     Vec ang;          // 0x44
-    int estNo0;           // 0x50  explosion effects (-1 = none: fade out instead)
+    int eff;           // 0x50  explosion effects (-1 = none: fade out instead)
     int est;          // 0x54
-    int estNo1;           // 0x58
+    int eff2;           // 0x58
     int est2;          // 0x5C
-    int estNo2;           // 0x60  water splash
+    int eff3;           // 0x60  water splash
     int est3;          // 0x64
-    int estNo3;           // 0x68  underwater explosion
+    int eff4;           // 0x68  underwater explosion
     int est4;          // 0x6C
     u32 eff_action;             // 0x70  0 plain, 1 water bomb, 2 explosive
     int release_timer;        // 0x74  frames until it leaves the holder's hand
@@ -386,10 +386,10 @@ struct GatlingWork {
 struct MissileWork {
     u32 Be_flg;              // 0x00
     int Timer;            // 0x04  fire wait / flight frames
-    int hitWait;          // 0x08  frames before the hit checks start
+    int Timer2;          // 0x08  frames before the hit checks start
     cModel* parent;       // 0x0C
-    int partsNo;          // 0x10
-    int noNormalize;      // 0x14  keep the parent parts matrix as it is
+    int oya_parts;          // 0x10
+    int scale_mode;      // 0x14  keep the parent parts matrix as it is
     Vec Target;           // 0x18
     class cEmHit* pHit;    // 0x24
     u8 Target_ok;         // 0x28
@@ -409,10 +409,10 @@ struct GondolaWork {
     Vec Spd;              // 0x14
     class cEm* pEm[5]; // 0x20
     class cSat* pSat[5];   // 0x34
-    class cSat* sat2[5];  // 0x48
+    class cSat* pEat[5];  // 0x48
     struct MotionWork* subWork;  // 0x5C  sub (vibration / break) motion work (setSubMotion)
-    void* subMot;         // 0x60  vibration motion (setVib)
-    void* breakMot;       // 0x64  break motion (R0_Break)
+    void* Sub_mot1;         // 0x60  vibration motion (setVib)
+    void* Sub_mot2;       // 0x64  break motion (R0_Break)
 };
 
 // Mine trolley work (game/objTrolley.cpp `cObjTrolley`): three cars (parts 0 / 4 / 8) with a
@@ -420,7 +420,7 @@ struct GondolaWork {
 struct TrolleyWork {
     u32 Be_flg;            // 0x00  bit0: start (setStart), bit1: 2nd start, bit2: stopped (ckStop)
     int Timer;            // 0x04
-    void* mot[9];         // 0x08  setMotion table: 0 run, 1 2nd run, 2/3 break (xFF), 4..8 player escape / die
+    void* Mot_tbl[9];         // 0x08  setMotion table: 0 run, 1 2nd run, 2/3 break (xFF), 4..8 player escape / die
     class cSat* pSat[3];   // 0x2C  scenario pieces per car (the SetTrolley / SatClear loops run over 5)
     class cSat* pEat[5];  // 0x38  effect pieces per car
     u8 Ride_pl;              // 0x4C  the player rides the trolley
@@ -430,15 +430,15 @@ struct TrolleyWork {
 struct PillarWork {
     u32 Be_flg;            // 0x00  bit0: set (ckSet), cleared by setBreak / setThrow / setFall
     int Timer;            // 0x04  frames before the fade out
-    int rnd;              // 0x08  Rnd() & 1: action button type 3 / 4
-    void* motBreak;       // 0x0C  setMotion
-    void* motThrow0;      // 0x10  setThrow: lift, throw
-    void* motThrow1;      // 0x14
+    int TmpU32;              // 0x08  Rnd() & 1: action button type 3 / 4
+    void* Mot;       // 0x0C  setMotion
+    void* Mot_catch;      // 0x10  setThrow: lift, throw
+    void* Mot_throw;      // 0x14
     void* Mot_escape;      // 0x18  R0_Escape
-    void* motFall0;       // 0x1C  setFall: fall, land
-    void* motFall1;       // 0x20
-    void* plMot;          // 0x24  player escape motion (plemEscape MotionSetCore)
-    int plMotA;           // 0x28  its 4th argument
+    void* Mot_fall;       // 0x1C  setFall: fall, land
+    void* Mot_landing;       // 0x20
+    void* Mot_pl_escape;          // 0x24  player escape motion (plemEscape MotionSetCore)
+    int Seq_pl_escape;           // 0x28  its 4th argument
     Vec St_pos;          // 0x2C  position at R0_Set (attack line end, plemEscape2 heading)
     Vec Break_pos;           // 0x38  setBreak position (plemEscape heading)
     Vec Spd;              // 0x44  throw / fall speed
@@ -549,7 +549,7 @@ struct SpearWork {
 // player over the bridge; two scenario / effect collision pieces per side, 14 hit boxes.
 struct RoboWork {
     s8 r_no_0;           // 0x00  R0Tbl index
-    s8 step;              // 0x01
+    s8 r_no_1;              // 0x01
     u8 pad_2[6];
     int pillar;           // 0x08  r226: index of the bridge pillar being pushed over (playerPillarDownCk)
     class cSat* pSat[2];   // 0x0C  scenario pieces (front / back)
@@ -589,14 +589,14 @@ struct BullWork {
     u32 Be_flg;            // 0x00  bit0 goal, bit1..4 break 1st..4th done, bit5 lift, bit6 truck go, bit7, bit8 lift wait
     int frame;            // 0x04  Collision: motion frames - 30
     u8 pad_8[4];
-    void* mot[12];        // 0x0C  setMotion table: 0 break1st/set, 1 to2nd, 2 break2nd, 3 to lift, 4 lift, 5 to3rd, 6 break3rd, 7 to4th, 8 break4th, 9..11 collision
+    void* Mot_tbl[12];        // 0x0C  setMotion table: 0 break1st/set, 1 to2nd, 2 break2nd, 3 to lift, 4 lift, 5 to3rd, 6 break3rd, 7 to4th, 8 break4th, 9..11 collision
     class cSat* pSat;      // 0x3C  scenario piece (type 1)
     class cSat* pSat2;     // 0x40  scenario piece (type 8) while moving
     class cSat* pEat;      // 0x44  effect piece (type 7)
-    int cnt;              // 0x48  MotionMove calls of the current routine
-    int timer;            // 0x4C  frames in the current routine (getMoveFrame*)
+    int Move_frame;              // 0x48  MotionMove calls of the current routine
+    int Move_frame2;            // 0x4C  frames in the current routine (getMoveFrame*)
     u32 Move_point;              // 0x50  SetBull 5th argument
-    u32 type;             // 0x54  SetBull 5th argument: setRide start routine (0: break1st, 1: break2nd, 2: lift wait, 3: to3rd, 4: break3rd)
+    u32 Start_point;             // 0x54  SetBull 5th argument: setRide start routine (0: break1st, 1: break2nd, 2: lift wait, 3: to3rd, 4: break3rd)
     u8 break1st;          // 0x58  break repeats left
     u8 break2nd;          // 0x59
     u8 break3rd;          // 0x5A
@@ -633,7 +633,7 @@ struct LadderWork {
 struct Obj16Work {
     u32 Be_flag;            // 0x00  bit0: the lost-wait timer runs (setLostWait / clearLostWait)
     int Timer;            // 0x04  routine step timer
-    int atkTimer;         // 0x08  R1_Atk: attack frames left
+    int Timer2;         // 0x08  R1_Atk: attack frames left
     u8 pad_C[4];
     cModel* target;       // 0x10  enemy whose position / id the SEs use (SetObj16 3rd argument)
     cModel* body;         // 0x14  enemy the head is attached to (SetObj16 4th argument)

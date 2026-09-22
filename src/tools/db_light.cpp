@@ -2038,7 +2038,7 @@ static void edit_light_parent()
                 eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x : EVENT MODEL", 0x18);
                 w = (Obj18Work*) obj->work;
                 eprintf(0x40, 0xE0, 0, pTool->color, "NAME %s", ((Obj18Work*) obj->work)->NameMod);
-                eprintf(0x40, 0xEE, 0, pTool->color, "TYPE %2d", w->type);
+                eprintf(0x40, 0xEE, 0, pTool->color, "TYPE %2d", w->obj18_type);
                 break;
             }
             default:

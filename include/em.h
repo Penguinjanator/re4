@@ -200,8 +200,8 @@ class cEmRack : public cEm {
     static u32 classFreeSize;
 public:
     u8 free[0xD60 - 0x3E0];   // 0x3E0  the rack's own work (emrack.h FREE_EMRACK)
-    Mtx rackMat;          // 0xD60  push range matrix (setRange: rot * trans of the rack)
-    Mtx rackInvMat;       // 0xD90  its inverse (adjustRange transforms the position into range space)
+    Mtx baseMat;          // 0xD60  push range matrix (setRange: rot * trans of the rack)
+    Mtx baseInvMat;       // 0xD90  its inverse (adjustRange transforms the position into range space)
     f32 rackRange[4];     // 0xDC0  push limits (adjustRange dir 0: [1], 1: -[2], 2: [0], 3: -[3])
     u8 rackFlags;         // 0xDD0  bit4 (0x10) range set; SetRack initialises it to 0xF
 

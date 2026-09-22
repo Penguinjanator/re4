@@ -13,7 +13,7 @@ class cEmDoor;
 struct EmDoorWork {
     u32 Be_flg;            // 0x000 (0x3E0)  bit0: locked (setOpenLock / setCloseLock, setNormal clears), bit1: setLock strong mode (lock hp drops by 4 per hit)
     int Timer;            // 0x004 (0x3E4)  shake frames (R1_Open / Close / Shock / OpenLock)
-    int kickCnt;          // 0x008 (0x3E8)  R1_Open / Down: enemies still to be hit by the opening door
+    int Timer2;          // 0x008 (0x3E8)  R1_Open / Down: enemies still to be hit by the opening door
     f32 Spd;              // 0x00C (0x3EC)  R1_Down: fall rotation speed
     u8 pad_10[0x10];
     f32 Height;           // 0x020 (0x400)  door height (2300, type 6: 4400)
