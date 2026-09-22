@@ -8,15 +8,23 @@ Counts are from the date given next to them; the placeholder counts go down as f
 
 The `G4BE08` discs are a debug build. They ship `files/Bio4.sym` for `main.dol` and one
 `files/Bio4.<mod>.sym` per REL module. Those files list every function with its address, size and
-name as Capcom's linker saw it. `config/G4BE08/sym_map.tsv` and `config/G4BE08/modules/<mod>/sym_map.tsv`
-are those tables, one row per symbol: address, size, section, unit, scope, the linker symbol, the
-readable name. Every function in the tree is defined under its row's name; the build fails to link
-otherwise.
+its demangled name without a parameter list (`cAtariInfo::init`, `CameraControl::HermiteExport`;
+`python3 tools/re4sym.py orig/G4BE08/files/Bio4.sym` prints them). `config/G4BE08/sym_map.tsv` and
+`config/G4BE08/modules/<mod>/sym_map.tsv` are those tables, one row per symbol: address, size, section,
+unit, scope, the linker symbol, the readable name. Every function in the tree is defined under its
+row's name; the build fails to link otherwise.
 
-The linker symbols are C++-mangled in the GNU v2 scheme (`HermiteExport__13CameraControlP9CameraCutPUc`
-is `CameraControl::HermiteExport(CameraCut*, unsigned char*)`). That is the direct evidence that the
-game was written in C++ and compiled as C++: class names, member functions, overloads and parameter
-types are all in the symbol table. The game code is `.cpp` for that reason. The units that are `.c` are
+The linker symbols in `sym_map.tsv` are GNU v2 C++ manglings (`HermiteExport__13CameraControlP9CameraCutPUc`
+is `CameraControl::HermiteExport(CameraCut*, unsigned char*)`). The class, member and overload structure
+in them is the vendor's (the `.sym` names carry it); the parameter types are OURS: the `.sym` has none,
+so each mangling was written from the declaration this tree gives the function, and it changes when the
+declaration does. A mangled symbol is therefore not evidence for a parameter type. Parameter types come
+from the code (which registers a function reads and how) and, where a twin exists, from the PS2 debug
+symbols (below); when a declaration is retyped, its `sym_map.tsv`/`symbols.txt` row is re-mangled to
+match (PRs #5/#7 did this for ~75 functions; `git log -S'<old mangling>' -- config/G4BE08/sym_map.tsv`).
+Int/float order between the two register classes is not observable in the bytes (ints fill r3.., floats
+f1.., each in declaration order), so the PS2 order is taken. The game code is `.cpp` because of the
+class structure the `.sym` shows. The units that are `.c` are
 the ones whose symbols are unmangled C names: the newlib pieces linked into the DOL (`src/game/atof.c`,
 `fopen.c`, ...), the Nintendo SDK (`src/lib/OS*`, `GX*`, ...), the CRI middleware (`src/lib/adx_*`,
 `sfd_*`, `mpv_*`, ...) and SN's runtime. The exception is SN's libm (`src/lib/sf_sin.cpp`, ...): fdlibm
@@ -85,26 +93,17 @@ Bytes never change under a rename; the clean rebuild check enforces that.
 `python3 tools/ps2sym.py --struct <Name>` prints the alignment side by side (GC field, PS2 field,
 confidence, reasons). A GC field with a PS2 field on its right at confidence 1.00 is a vendor name.
 Where the vendor renamed a type between the ports, the alias table at the top of `ps2sym.py` says so
-(`Em10Work` is the PS2's `FREE_EM10`, `MotionWork` is `MOTION_INFO`). Type names that appear in the
-mangled GC symbols (`P10MotionWork` in `sym_map.tsv`) are GC vendor names and keep the GC spelling even
-when the PS2 used another.
+(`Em10Work` is the PS2's `FREE_EM10`, `MotionWork` is `MOTION_INFO`). Type names in the `sym_map.tsv` manglings
+(`P10MotionWork`) are this tree's spellings, not vendor evidence; the `.sym` names carry class names
+only.
 
-The same symbols fix parameter types. A declaration is retyped from the PS2 prototype (a pointer or a
-callback where we had `int`, the PS2 float order) only when the GC linker symbol is unmangled
-(`SceSetItemEvent`, `EmCatchPLSet`, `getRoomEtcDoor`: `extern "C"`, no type information) or when the
-change is in the return type, which GNU v2 mangling does not encode (`SetObj12__FPvT0P3VecT2` returns
-`cObj12*` as on the PS2). A mangled symbol is the GC compiler's record of the parameter list and wins
-over the PS2: `EmCatchSubSet__FP3cEmT0Uliffff` keeps its `int a` callback slot, `set__5cMot3P6cModelPvN22iUciUsUs`
-its `int` motion argument, and the `(int)` casts at those calls stay.
-
-The tree does not follow that rule everywhere yet. The merged PRs #5 and #7 (2026-09-19/20) put about
-75 declarations into the PS2 parameter order or types and edited their `sym_map.tsv` rows to the new
-mangling (`init__10cAtariInfofffffffiii` where the `.sym` has `init__10cAtariInfoiiifffffff`;
-`setYarareCube__7cEmRockfffP3Vec`, `setCk__8IDSystemi`, `ReadCheck__4cDvdiP11DvdReadInfo`, the
-`beginEvent__*` overrides, `EstSet`, `create__7cSatMgr...`, ...). The bytes are unchanged (symbol names
-are not in the objects), but for those rows `sym_map.tsv` is no longer the `.sym` spelling
-(`git log -S'<old mangling>' -- config/G4BE08/sym_map.tsv` finds each change). Whether they go back
-to the `.sym` mangling, with the declarations following, is an open decision.
+Parameter types follow the PS2 prototype where a twin exists (`ps2_functions.h`; `ps2sym.py --params`
+renamed 434 functions' parameters from it): a pointer or a callback where we had `int`, the PS2 float
+order, the return type. The mangled symbol in `sym_map.tsv` is updated to the new declaration in the
+same commit (see above; it is not evidence). Type names that appear in those manglings are the GC
+spelling only where the `.sym`'s demangled names show it (`MotionWork` is ours; the PS2's `MOTION_INFO`
+is the vendor's, and `docs/matching.md` notes the alias). Casts left at a call because "the mangling
+pins the parameter" are not justified and are removed as the audit reaches them.
 
 The tool aligns on names first, so a wrong name already in the header can pull a PS2 field onto the
 wrong row. `Em10Work` had that: the `Vec` at 0x4EC, between `Keep_pos` and `Return_ck_pos` exactly as
