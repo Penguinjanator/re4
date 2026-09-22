@@ -729,7 +729,7 @@ cEm10::~cEm10()
         w->pCart = 0;
     }
     if (w->Wep_type == 4) {
-        SndStop(w->sndId, 0);
+        SndStop(w->Csaw_se_id, 0);
     }
     if (w->pGunBelt) {
         if (w->pGunBelt->isAlive()) {
@@ -2683,12 +2683,12 @@ void cEm10::move()
             w->Csaw_se_wait--;
             if ((s16) w->Csaw_se_wait == 0) {
                 w->Csaw_se_wait = 60;
-                w->sndId = SndCall(6, 0x4D, &pos, 0, 0, this);
+                w->Csaw_se_id = SndCall(6, 0x4D, &pos, 0, 0, this);
             }
         }
-    } else if (w->sndId) {
-        SndStop(w->sndId, 0);
-        w->sndId = 0;
+    } else if (w->Csaw_se_id) {
+        SndStop(w->Csaw_se_id, 0);
+        w->Csaw_se_id = 0;
     }
     if (w->pCart && (r_no_0 != 1 || r_no_1 != 9)) {
         if (w->mot[51]) {
@@ -2850,7 +2850,7 @@ void em10InitRtnSet(cEm10* em)
     w->Arrow_num = 2;
     w->Compress_y = 1.0f;
     w->Anger_timer = 0;
-    w->sndId = 0;
+    w->Csaw_se_id = 0;
     w->Throw_timer = 0;
     w->Atk_no_wait = 0;
     w->Goto_mode = 0;
@@ -3360,9 +3360,9 @@ static void em10_R0_Init(cEm10* em)
     }
     w->pCtrlSe = GetCtrlCtrl11();
     w->pCtrlGroup = GetCtrlCtrl12();
-    w->startPos = em->pos;
-    w->startRotY = em->ang.y;
-    w->Keep_pos = w->startPos;
+    w->St_pos = em->pos;
+    w->St_dir = em->ang.y;
+    w->Keep_pos = w->St_pos;
     w->St_set = em->set;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -25335,7 +25335,7 @@ void cEm10::chgSet(u8 no)
 }
 
 // Resets the Ganado to its start state for a room re-entry: visible, full hp, head back on, body
-// scale from emset_no, the accessories hidden again, weapon / shield recreated, Keep_pos = startPos,
+// scale from emset_no, the accessories hidden again, weapon / shield recreated, Keep_pos = St_pos,
 // the start routine (em10InitRtnSet) and one R0_Move frame.
 void cEm10::setReset()
 {
@@ -25376,13 +25376,13 @@ void cEm10::setReset()
     p->scale.x = 1.0f;
     p->scale.y = 1.0f;
     p->scale.z = 1.0f;
-    pos = w->startPos;
+    pos = w->St_pos;
     pos_old = pos;
     ang.x = 0.0f;
-    ang.y = w->startRotY;
+    ang.y = w->St_dir;
     ang.z = 0.0f;
     hp = hp_max;
-    w->Keep_pos = w->startPos;
+    w->Keep_pos = w->St_pos;
     set = w->St_set;
     if (w->pHood) {
         w->pHood->be_flag |= 8;

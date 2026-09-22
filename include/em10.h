@@ -53,8 +53,8 @@ struct Em10Work {
     Camera Cam;           // 0x3CC (0x7AC)  takeaway camera (em10CamMoveTakeaway installs it as CamCtrl.x250)
     u8 St_set;              // 0x4C4 (0x8A4)  chgSet value (cEm::x38D copy)  (PS2 St_set)
     u8 pad_4C5[3];
-    Vec startPos;         // 0x4C8 (0x8A8)  pos at init
-    f32 startRotY;        // 0x4D4 (0x8B4)  rot.y at init
+    Vec St_pos;           // 0x4C8 (0x8A8)  pos at init (PS2 St_pos)
+    f32 St_dir;           // 0x4D4 (0x8B4)  rot.y at init (PS2 St_dir)
     Vec Keep_pos;             // 0x4D8 (0x8B8)  guard position: L_guard / L_pl_guard measured from it (PS2 Keep_pos)
     class cObjLadder* pLadder;  // 0x4E4 (0x8C4)  ladder being climbed / reset
     cModel* pSwitch;      // 0x4E8 (0x8C8)  setGotoSwitch: the switch object walked to
@@ -140,7 +140,7 @@ struct Em10Work {
     s16 Frame_timer;             // 0x682 (0xA62)  em10_R1_TorchFrame: 60 (PS2 Frame_timer)
     u16 Csaw_se_wait;             // 0x684 (0xA64)  chainsaw idle SE every 60 frames (PS2 Csaw_se_wait)
     u16 Claw_hp;             // 0x686 (0xA66)  damage left before Dm_Claw (Rnd % 150 + 150) (PS2 Claw_hp)
-    u32 sndId;            // 0x688 (0xA68)  SndCall handle (chainsaw)
+    u32 Csaw_se_id;       // 0x688 (0xA68)  SndCall handle of the chainsaw (PS2 Csaw_se_id)
     u32 Eff_timer;             // 0x68C (0xA6C)  burn effect (0x10 / 0x1E) interval: 120 (PS2 Eff_timer)
     u8 pad_690[4];
     u8 Eff_wait;              // 0x694 (0xA74)  parasite effect (0x10 / 0x33) interval: 29 (PS2 Eff_wait)
