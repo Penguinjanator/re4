@@ -6,7 +6,8 @@
 
 cObjWep* equipWeapon(cPlayer* pl);
 
-// Motion table stores go through wep_mod.h's PSet: the original reloads pG after every one.
+// The motion table stores are plain `pl->m_MotTbl[i] = ...` (global.h WEP_MOT); the pG reload after each
+// one is the compiler's own (mem-flags patch).
 
 // WeaponInitFunc of the module (cPlayer::weaponInit -> pl_wep.cpp calls it with the player):
 // creates the hand object, stores it as the player's weapon (Wep->m_pWep) and installs the hand

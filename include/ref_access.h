@@ -4,10 +4,12 @@
 #include "types.h"
 #include "vec.h"
 
-// Reads and writes of a variable through a reference parameter. The original code reaches many globals and
-// struct fields through inline helpers like these: the access is then a plain scalar load or store, which
-// GCC 2.95 assumes may alias anything, so a following pointer load (pG, pPL) is not shared with the one
-// before it, and a repeated read is not folded. Written directly, the same access compiles differently.
+// Reads and writes of a variable through a reference parameter. Each helper below has one or two use
+// sites whose plain form still compiles differently with the shipped-build-mem-flags compiler (checked
+// 2026-09-22 with variant.sh: model.cpp U8Set, sce_sys.cpp U8SetI, room_jmp.cpp S8Set, t_esp DEACTIVATE
+// ISet, trans.cpp IRef, and VecSet in r202 / r208 / r219); the reference makes the access a scalar MEM
+// that GCC 2.95 orders and reloads differently from a member access. Do not add uses: a plain store is the
+// form everywhere else.
 static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void U8SetI(u8& d, int v) { d = v; }
 static inline void S8Set(s8& d, s8 v) { d = v; }

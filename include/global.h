@@ -295,9 +295,11 @@ extern SYSTEM_SAVE_WORK SystemSave;
 // stage_no/room_no read as one u16 (stage << 8 | room), as cRoomData::getRoomSavePtr wants it.
 #define G_ROOM_ID (*(u16*) &pG->stage_no)
 
-// Flag helpers. The original sets/clears bits through an inline helper taking a reference: the
-// store is then a plain scalar access, so GCC 2.95 assumes it may clobber `pG` and reloads it
-// (and does not merge consecutive updates). A direct `pG->flags |= x` compiles differently.
+// Flag helpers: `f |= b` / `f &= ~b` through a reference. Not an aliasing device: the pG reload after a
+// store is the compiler's own (docs/matching.md, "Compiler", mem-flags patch), and a plain `pG->x = v` is
+// the form. They are kept where the original keeps consecutive updates of one word as separate
+// read-modify-write pairs with the constant in its own register, and (BitOff16) where a 16-bit clear
+// is the 32-bit `rlwinm` mask rather than `andi.`; use them where the asm shows that.
 static inline void BitOn(u32& f, u32 b) { f |= b; }
 static inline void BitOff(u32& f, u32 b) { f &= ~b; }
 

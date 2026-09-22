@@ -834,8 +834,8 @@ void init_corn()
 // uses `cnt = n - 2` as the strip bound.
 // Shapes: the command loop is `do { if (cmd >= part) break; ... } while (1);` (expand_end_loop's
 // "condjump near the end" rule ends the loop early and skips the rotation: test at the top, `b top`
-// from every case, no duplicated bottom test); `DB_poly_num` is stored through an `int&` setter so
-// the `part->size` load is not hoisted above it; `idx` is an 8-byte ADDRESSOF aggregate, so its
+// from every case, no duplicated bottom test); `DB_poly_num = DB_poly_num + part->nPoly` is a plain
+// global store (the `part->size` load stays below it with the mem-flags compiler); `idx` is an 8-byte ADDRESSOF aggregate, so its
 // element stores are written `*pidx++ = ...` (cse1 rewrites `(mem pidx)` to the addressof / frame
 // address: frame-direct `sth 56..62(r1)`, while `idx[k] = ...` creates an address temp that cse merges
 // with the `pidx = idx` pseudo -> `sth 2(r29)`); the strip's `idx[2] = idx[1]; pidx = &idx[1];` puts the

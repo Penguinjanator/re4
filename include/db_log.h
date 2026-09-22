@@ -56,8 +56,11 @@ public:
 
 // The log pointer is wrapped in a struct: the original loads `pLog` as a struct member (GCC 2.95's
 // MEM_IN_STRUCT_P alias heuristic then keeps the load after preceding stores through `this`
-// pointers, e.g. cTexSys::Init stores nTexObj = 0 before loading pLog). A plain `cLog*` global
-// lets the scheduler hoist the pLog load above such stores.
+// pointers). With the shipped-build-mem-flags compiler a plain `cLog*` global is byte-identical in
+// 305 of the 308 units that use pLog; it still moves the load in game/esp (EspDispInfo, 19 words),
+// game/sscrn (.text size) and pl0f (pl0f_R1_Drop), so the wrapper stays (tested 2026-09-22 by a clean
+// rebuild with `extern cLog* pLog`). The `pLog.p->err` spellings in some units bypass the inline
+// operator-> for the block-note reasons given at those sites.
 struct cLogPtr {
     cLog* p;
     cLog* operator->() { return p; }

@@ -22,11 +22,6 @@
 
 int SetToolLight(int no);  // db_light_tools.cpp
 
-// Reference stores (global.h FSet/BitSet): a scalar MEM, so the following global load (pG, pFlrSys)
-// is not hoisted above it and is reloaded.
-static inline void ASet(FlrAt*& d, FlrAt* v) { d = v; }
-// Reference read: a MEM with neither flag stays below the preceding struct stores (the save counter).
-
 // Tool-side view of the FlrAt record (flr_at.h), 0x84 bytes.
 struct TFlrAt {
     u8 be_flg;        // 0x00  bit 0 enabled, bit 1 created

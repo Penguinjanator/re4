@@ -17,9 +17,6 @@ void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
 FlrSys FlrAt_sys;
 FlrSys* pFlrSys;
 
-// Reference store: a scalar (non-struct) MEM, so the following pFlrSys load is not hoisted
-// above it and is reloaded (light.cpp PSet).
-
 // Room init: binds the room archive's "FSE" block (version 0x103) as the floor attribute list.
 void FlrAtInit()
 {

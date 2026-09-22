@@ -16,12 +16,9 @@
 #define ST_STR(x) ST_STR2(x)
 asm(".comm common_" ST_STR(REL_MODULE) ",52,4");
 
-// Scalar stores through a reference: the store is not a struct-member access, so GCC 2.95 assumes
-// it may clobber `pG` / the room work pointer and reloads them afterwards, and keeps following
-// loads below the store (see global.h BitOn). The rooms store into pG and their work this way.
+// The rooms store into pG and their work with plain `pG->x = v` / `w->x = v`; ref_access.h keeps the
+// few reference helpers that still change the code (VecSet in r202 / r208 / r219).
 #include "ref_access.h"
-static inline void FAdd(f32& d, f32 v) { d += v; }
-static inline void FSub(f32& d, f32 v) { d -= v; }
 
 
 #endif

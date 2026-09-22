@@ -5,7 +5,8 @@
 
 cObjWep* equipWeapon(cPlayer* pl);
 
-// Motion table stores go through wep_mod.h's PSet: the original reloads pG after every one.
+// The motion table stores are plain `pl->m_MotTbl[i] = ...` (global.h WEP_MOT); the pG reload after each
+// one is the compiler's own (mem-flags patch).
 // One of the four per-character empty-hand modules (wep34..wep37, the same code with the
 // character's hand model / motion table); like wep00 there is no weapon routine.
 

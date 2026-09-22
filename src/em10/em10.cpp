@@ -499,9 +499,6 @@ extern "C" int em10HideRtnCk(cEm10* em);
 extern "C" int em10GatlingHitCk(cEm10* em);
 
 
-// Reference store (same mechanism as FSet): keeps the following global load after the store.
-// Same for an int work field (Dm_Roof: `w->TmpU32 = 1` before the pG load of the water-effect room check).
-
 // Dead test on a cDmgInfo taken by pointer (m_Flag or m_Timer set), EmDeadCk without the cEm.
 static inline int em10DmgDeadCk(cDmgInfo* d)
 {

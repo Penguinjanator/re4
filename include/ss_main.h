@@ -13,9 +13,6 @@
 
 class cLit;
 
-// Scalar reference setters: a store through a reference keeps the following loads of other globals
-// below it (global.h FSet/BitSet).
-#include "ref_access.h"
 
 // game/sscrn.cpp id systems of the sub screen (sub screen ids / number digits).
 extern IDSystem IdSub;
