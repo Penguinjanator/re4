@@ -1,7 +1,9 @@
 # sngdbg — the SN GCC 2.95.3 (v1.79) debug cc1plus/cc1
 
-Built 2026-09-11 from `tools/sn-gcc/src` (linux-host + shipped-build-temp-flags patches, i.e. the
-installed production source) plus `patches/dbg-hooks.patch`: env-var-gated `fprintf(stderr)` hooks.
+Built from `tools/sn-gcc/src` (linux-host + the installed compiler patch, `shipped-build-mem-flags` since
+2026-09-22; a build from before that date carries `shipped-build-temp-flags` and differs on the aliasing
+rules, so rebuild it with `rebuild.sh` after `tools/sn-gcc/build.sh`) plus `patches/dbg-hooks.patch`:
+env-var-gated `fprintf(stderr)` hooks.
 **With no env var set the binary produces byte-identical objects to the production compiler**
 (verified: `game/title.o` compiled through tools/ngccc.py with `--native-dir $SNGDBG_DIR`
 `cmp`s equal to `build/G4BE08/src/game/title.o`; it also stays identical with all hooks ON, the
@@ -13,7 +15,7 @@ sha1 (2026-09-11): cc1plus 6756521fb374df53537bc1029720aed49aefe546, cc1 0402c03
 ## Layout
 The binaries are NOT in the repo: `rebuild.sh` builds them into `$SNGDBG_DIR` (default
 `<repo>/build/sngdbg`, untracked) from `tools/sn-gcc/src` — which itself is produced by
-`tools/sn-gcc/build.sh` from the SN GPL source drop (`SN_GCC_SRC`, see tools/sn-gcc/README.md).
+`tools/sn-gcc/build.sh` from the SN GPL source drop (`SN_GCC_SRC`, see the header of tools/sn-gcc/build.sh).
 - `$SNGDBG_DIR/cc1plus`, `cc1` — the hooked binaries (`--native-dir $SNGDBG_DIR` works as-is: ngccc.py
   looks for `<native-dir>/cc1plus` or `/cc1`). There is no env override in tools/ngccc.py; swap it via
   the `--native-dir` argument, which is what the kit's `CC1DIR=` does.

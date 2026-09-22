@@ -7,8 +7,8 @@ function. Building the repository reproduces `main.dol` and all 114 REL overlays
 
 | | |
 |---|---|
-| Objects | 1083 (675 in the DOL, 408 across the 114 RELs), all byte-identical; 15641 functions |
-| Source | ~555k lines of C/C++ (`src/`), ~33k lines of headers (`include/`); no assembly files |
+| Objects | 1083 (675 in the DOL, 408 across the 114 RELs), all byte-identical; 23289 function symbols (14587 distinct names; template and inline copies repeat per module) |
+| Source | ~571k lines of C/C++ (`src/`: 635 `.cpp`, 380 `.c`), ~43k lines in 417 headers (`include/`); no assembly files |
 | Game code | SN Systems ProDG 3.9.3 — GCC 2.95.3 "SN BUILD v1.79", built natively from SN's GPL source drop |
 | CRI middleware (`src/lib/adx_*`, `sfd_*`, `mpv_*`, …) | Metrowerks CodeWarrior 2.4.7 (GC/2.7), the compiler CRI shipped the libraries with |
 | Nintendo SDK (`src/lib/OS*`, `GX*`, …) | Metrowerks CodeWarrior GC/1.2.5n, sources from [dolsdk2004](https://github.com/doldecomp/dolsdk2004) |
@@ -58,7 +58,7 @@ the original word by word and `python3 tools/fdiff.py game/foo <symbol>` shows o
 
 Every unit compiles to the original bytes with the original compilers. Where the compiler needed a
 particular source shape to reproduce a register choice or a schedule and no natural spelling was
-found, the construct is marked with a `// COMPILER-DIFF:` comment (644 of them: dead tests, empty
+found, the construct is marked with a `// COMPILER-DIFF:` comment (578 of them: dead tests, empty
 `asm("")` launders and anchors, `register T x asm("rN")` pins, padding statements). None of them
 emits an instruction: `python3 tools/asmcheck.py --all` compiles every GCC unit with its asm templates
 marked and lists the instructions that came from a template — the only hits are the hardware kernels
@@ -77,10 +77,10 @@ compilers had no other way to express it:
   GQR setup in `main`/`scheduler`, and the libsn `sndvd` exception handler.
 - MWCC CRI libraries: the paired-single / cache / SPR kernels (`mpv_umc`, `mpv_mc`, `dct_fsri`,
   `cftyp422_ppc`, `mpv_lib`), the SDK's `mtx`/`vec`/`quat`/`GX` intrinsics, and one register-steering
-  block in `dct_ac` (`dctac_Init`: the vendor's compiler build pooled `.bss` but not the function's
+  block in `dct_ac` (`DCT_AcInit`: the vendor's compiler build pooled `.bss` but not the function's
   8-byte literals; ours pools both). Codeless `asm { mr r11, x; mr x, r11 }` pins (both moves are
   deleted by the allocator; they narrow the colour set by one register) and `asm { mr v, v }` self
-  copies (an opaque second definition) remain in 27 places.
+  copies (an opaque second definition) remain in 28 places.
 - Eight asm-bodied units: crt0 (`__start`), `eabi`, SN's `tealeaf`/`fileserver`/`ppcdown`/`proview`
   (`src/lib/<name>.c`), and Capcom's `memset_2` and `yz2asm` (`src/game/<name>.cpp`). The originals
   were assembly (SN's libsn/crt0 objects and Capcom's own asm; no compiler idiom in the bytes), so
@@ -97,7 +97,9 @@ from the `D:/Bio4/Prog/<file>.cpp` strings the asserts left in the binaries. Str
 of three kinds: the vendor's, from the PS2 debug build's type information (matched to the GameCube
 layouts by `tools/ps2sym.py`); ours, named from usage and marked as such; and placeholders `xNN`
 (offset in hex, meaning unknown). Vendor names keep the vendor's spelling, so the tree mixes
-conventions on purpose. `#line` directives reproduce the vendor's line numbers in the assert strings.
+conventions on purpose. Constants are the PS2 build's enums, imported as declared, and the `pG` flag
+bits are read through the `XxxFlagChk/On/Off` macros of `include/global.h` with the PS2 bit names.
+`#line` directives reproduce the vendor's line numbers in the assert strings.
 `docs/naming.md` has the full account and the counts.
 
 ## Contributing

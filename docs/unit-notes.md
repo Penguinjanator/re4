@@ -55,7 +55,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 ## `game/cam_extra.cpp`
 
-- 43/43 zero code, no tags. CameraBinocular ctor 17 -> 0 (`PlRef(pPL)->getPartsPtr` makes the pPL load wait for the member stores; dying-store order permuted), CameraPushObject::move 62 -> 0 (`getColumn(inv, 2, ..)` frame-offset-0 pointer shape, single VecAngle call, `!(a < b) && !(m >= c)` negated float tests), CameraBinocular::move 79 -> 0 (two-arm clamps cross-jumped, zoom clamp as a value, PlRef(pPL)->mat, orientation call after the mode block), CameraScope::move 91 -> 0 (Key.on & 0x10, angle_min/angle_max clamp, worldMat, `u8 c = sct--`, FRef(ytime)/FRef(xtime), Joy word-0 read, block-scoped cModel* pl), IdBinocular::move 271 -> 0 (getColumn(cam->mat, 2, &dir); `cnt` crosses no call: `unitPtr(cnt + 1)` + `cnt++` after the stores, cse makes the increment a copy of the call-crossing temp, so `li cnt,0/1` are anchored below the unitPtr calls and cnt takes the temp's r30 by copy preference; `i = cnt` for the while loop and the digit loop, block-scoped `k` for the unit loops; `MessageControl* mc = &cMes` after setLayout so `&mc->mes[1]` stays `addi 240` off a pseudo; FRef on every read of ratio/m/n with `u->v0 = FRef(ratio)` before `u->v1 = 1.0f`; scr2.x not scr3.x)
+- 43/43 zero code, no tags. CameraBinocular ctor 17 -> 0 (`PlRef(pPL)->getPartsPtr` makes the pPL load wait for the member stores; dying-store order permuted), CameraPushObject::move 62 -> 0 (`getColumn(inv, 2, ..)` frame-offset-0 pointer shape, single VecAngle call, `!(a < b) && !(m >= c)` negated float tests), CameraBinocular::move 79 -> 0 (two-arm clamps cross-jumped, zoom clamp as a value, PlRef(pPL)->mat, orientation call after the mode block), CameraScope::move 91 -> 0 (Key.on & 0x10, angle_min/angle_max clamp, worldMat, `u8 c = sct--`, FRef(ytime)/FRef(xtime), Joy word-0 read, block-scoped cModel* pl), IdBinocular::move 271 -> 0 (getColumn(cam->mat, 2, &dir); `cnt` crosses no call: `unitPtr(cnt + 1)` + `cnt++` after the stores, cse makes the increment a copy of the call-crossing temp, so `li cnt,0/1` are anchored below the unitPtr calls and cnt takes the temp's r30 by copy preference; `i = cnt` for the while loop and the digit loop, block-scoped `k` for the unit loops; `MessageControl* mc = &cMes` after setLayout so `&mc->mes[1]` stays `addi 240` off a pseudo; FRef on every read of ratio/m/n with `u->v0 = FRef(ratio)` before `u->v1 = 1.0f`; scr2.x not scr3.x). The `PlRef`/`FRef` reference views named here are gone (mem-flags patch, `docs/matching.md` "Compiler"): the unit reads `pPL` and the statics directly.
 
 ## `game/cam_qfps.cpp`
 
@@ -83,7 +83,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 ## `game/dbmodule.cpp`
 
-- DrawObjWireframe: do{..}while(1) command loop (no rotation), ISet(DB_poly_num), `*pidx++ =` idx stores, `idx[2] = idx[1]; pidx = &idx[1];`, one `s16* v`, own `u32 m2` for the strip emit loop
+- DrawObjWireframe: do{..}while(1) command loop (no rotation), `DB_poly_num = DB_poly_num + n` (was `ISet`; plain since the mem-flags patch), `*pidx++ =` idx stores, `idx[2] = idx[1]; pidx = &idx[1];`, one `s16* v`, own `u32 m2` for the strip emit loop
 
 ## `game/debug.cpp`
 
@@ -451,7 +451,7 @@ were replaced by C (`docs/research/compiler.md`, section "Asm-removal pass", has
 
 ## `game/snd.cpp`
 
-- SndCall RefU32 flags read (param stores rank above lwz pG), SndSetReverb one `p` for both arms, SndRoomBgmStart nested do-while weights, sndVolCalcSub dead `dist > vol` test (r -> f2)
+- SndCall flags read (was `RefU32`; plain since the mem-flags patch: param stores rank above lwz pG), SndSetReverb one `p` for both arms, SndRoomBgmStart nested do-while weights, sndVolCalcSub dead `dist > vol` test (r -> f2)
 
 ## `game/sscrn.cpp`
 

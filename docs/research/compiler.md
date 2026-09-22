@@ -1,3 +1,5 @@
+Note (2026-09-22): the compiler patch adopted in these passes (`shipped-build-temp-flags.patch`) was replaced by `tools/sn-gcc/patches/shipped-build-mem-flags.patch`; the current mechanism and its evidence are in `docs/matching.md`, "Compiler". Entries below are the record at their date.
+
 ### Inline-vs-macro sweep (integrate.c levers; model 93->94, cam_extra 32->33, r214 15->17, mercenaries 16->3 words, em35 10->4, Espgen42 122->72; 2026-09-10)
 
 Generic mechanisms (all read off tools/sn-gcc/src/gcc/integrate.c / cse.c / gcse.c / haifa-sched.c and

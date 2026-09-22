@@ -56,6 +56,15 @@ without touching `build/` (about a second per variant).
 - **Names.** `docs/naming.md` says where every class of name comes from. Vendor names (from the symbol
   files or the PS2 debug symbols) keep the vendor's spelling. New names follow the surrounding struct.
   Placeholders `xNN`/`pad_NN` are renamed only with evidence (below).
+- **Constants.** A magic number at a typed call site or in a flag test is spelled with the PS2 enum
+  (`docs/naming.md`, "Structs, fields, enums") and a `pG` flag bit with the `XxxFlagChk/On/Off(pG, NAME)`
+  macros of `include/global.h`. Do not introduce a `#define` or a local enum for a value the PS2 dump
+  names; do not rename an imported enumerator.
+- **Plain member stores.** `pG->x = v`, `pPL->pos.y = f`, `work->field = p`. The compiler patch
+  (`docs/matching.md`, "Compiler") reproduces the vendor's pointer reloads from that form. Do not
+  reintroduce reference-view setters (`U32Set`, `FSet`, `PSet`, ...), struct views of a global pointer
+  (`pGS`) or one-member `XxxWorkPtr` wrappers; the few `BitOn`/`BitOff16`/`U16Set` helpers that remain
+  in `global.h` are register-choice levers, not aliasing workarounds.
 - **`#line` directives and `// COMPILER-DIFF:` tags** stay where they are. Both are load-bearing;
   `docs/naming.md` explains each.
 - **Notes.** Per-unit observations go in `docs/unit-notes.md`; a compiler mechanism you worked out, with

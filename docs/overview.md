@@ -59,7 +59,7 @@ records) and maps cut types onto R0 routines; the default is the over-the-should
 (`cam_qfps.cpp`: per character/weapon offset tables, blending, floor tilt, collision pull-in,
 overridable per room). Scope, binocular, push, look-down and motion-attached cameras are `cCamera`
 extras (`cam_extra.cpp`). `CameraMove` writes the result to `pG->Cam` unless the debug camera
-(`db_cam.cpp`, `Debug_flg[0] & 0x10000000`) owns it.
+(`db_cam.cpp`, `DbgFlagChk(pG, DBG_DBG_CAM)`) owns it.
 
 ## Effects
 
@@ -76,7 +76,7 @@ event-owned tiers). `Espgen42.cpp` (water height field) and `Espgen43.cpp` (defo
 
 ## Enemies (`src/em*`)
 
-`em.cpp` is the `cEm` base (`move` = damage volumes `xxDmCk` -> R0 table -> `EmAtCheck` / `atari.move`
+`em.cpp` is the `cEm` base (`move` = damage volumes `emNNDmCk` -> R0 table -> `EmAtCheck` / `atari.move`
 / `SatMgr.check`). `em10.cpp` is the Ganado (village, castle zealot, island soldier: `Em10Work::
 Ganado` 0/1/2 scales damage ×1, ×0.556, ×0.4545) shared by the 16 modules em10..em20 whose own object
 is an `emNN_set.cpp` (models, voice tables); the other `emNN` directories are one enemy each
@@ -97,7 +97,7 @@ start/goal/trigger, 0x10 no-climb.
 ## Player and weapons (`src/pl*`, `src/wep*`, `game/pl_*.cpp`)
 
 `pl_leon.cpp` and friends implement `cPlayer` on top of `cEm`; `pl_wep.cpp` the weapon state
-(`cPlWep`), `pl_dmg.cpp` damage and death, `pl_act*.cpp` context actions (`ActionButton`). Weapons
+(`cPlWep`), `pl_dmg.cpp` damage and death, `act_btn.cpp` context actions (`cActionButton ActBtn`). Weapons
 are REL modules `wepNN` each holding the weapon's `cObj` class plus the player routine object of its
 class (`wep/pl_handgun.cpp`, `pl_shotgun.cpp`, `pl_rifle.cpp`, ...: ready/fire/reload states written
 into the player's `Rno` bytes). `ItemWork::lv` packs the upgrade nibbles (fire << 12 | mag << 8 |
@@ -107,7 +107,7 @@ the mercenaries).
 
 ## Items, merchant, sub screen
 
-`item.cpp`/`itemMgr.cpp` keep two inventory sets (`type` 0 Leon, 1 Ashley/Ada); `merchant.cpp`
+`item.cpp` (`cItemMgr`) keeps two inventory sets (`type` 0 Leon, 1 Ashley/Ada); `merchant.cpp`
 merges stock and tune tables room by room on first pass (`RoomData.checkPassed`), prices are
 table × 10 with a sell discount and 50% buy-back. The sub screen is the `Sscrn` REL (`ss_*.cpp`):
 `SubScreenTask` builds Init/Main widget pairs per screen and links them; tabs are `menu_no` 0 key
