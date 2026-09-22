@@ -107,8 +107,8 @@ void CameraMove()
         C_MTXOrtho(cam->ProjMat, ORTHO_T, ORTHO_B, ORTHO_L, ORTHO_R, 0.0f, ZFAR);
         break;
     }
-    cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
+    cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->Up, &cam->param.at);
     View.move();
     CameraDebugInformation();
 }
@@ -150,7 +150,7 @@ ViewFrustum* CameraViewFrustumPtr(Camera* cam)
 // The camera's up vector.
 void CameraGetUpVec(Camera* cam, Vec* up)
 {
-    *up = cam->up;
+    *up = cam->Up;
 }
 
 // The camera's look vector (pos - at, normalised: points backwards).

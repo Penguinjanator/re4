@@ -869,7 +869,7 @@ void DrawObjWireframe(cObj* obj, int color)
         return;
     }
     Draw_line3d_init();
-    md = obj->pModelInfo->pData;
+    md = obj->pModelInfo->model_addr;
     scale = 1.0f / (f32) (1 << md->shift);
     vtx = (s16*) md->vtxOrig;
     part = md->pParts;

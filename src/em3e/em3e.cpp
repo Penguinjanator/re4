@@ -101,27 +101,27 @@ void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
         tpl = EM_ARC(this, 0x10);
         break;
     case 0xA:
-        bin = SmdGetObjPtr(5)->pModelInfo->pData;
+        bin = SmdGetObjPtr(5)->pModelInfo->model_addr;
         tpl = SmdGetObjPtr(5)->pModelInfo->tpl_addr;
         break;
     case 0xB:
-        bin = SmdGetObjPtr(6)->pModelInfo->pData;
+        bin = SmdGetObjPtr(6)->pModelInfo->model_addr;
         tpl = SmdGetObjPtr(6)->pModelInfo->tpl_addr;
         break;
     case 0xC:
-        bin = SmdGetObjPtr(0x33)->pModelInfo->pData;
+        bin = SmdGetObjPtr(0x33)->pModelInfo->model_addr;
         tpl = SmdGetObjPtr(0x33)->pModelInfo->tpl_addr;
         break;
     case 0xD:
-        bin = SmdGetObjPtr(0x34)->pModelInfo->pData;
+        bin = SmdGetObjPtr(0x34)->pModelInfo->model_addr;
         tpl = SmdGetObjPtr(0x34)->pModelInfo->tpl_addr;
         break;
     case 0xE:
-        bin = SmdGetObjPtr(0x35)->pModelInfo->pData;
+        bin = SmdGetObjPtr(0x35)->pModelInfo->model_addr;
         tpl = SmdGetObjPtr(0x35)->pModelInfo->tpl_addr;
         break;
     case 0xF:
-        bin = SmdGetObjPtr(0x36)->pModelInfo->pData;
+        bin = SmdGetObjPtr(0x36)->pModelInfo->model_addr;
         tpl = SmdGetObjPtr(0x36)->pModelInfo->tpl_addr;
         break;
     }
@@ -455,14 +455,14 @@ void cEmMark::damageCheck()
         }
         if (hp <= 0) {
             setEff(1, eff);
-            R22cHitMark(type, eff != 0, &dmg.m_pDamageYarare->pos, 1, EMMARK(this)->age);
+            R22cHitMark(type, eff != 0, &dmg.m_pDamageYarare->cross, 1, EMMARK(this)->age);
             r_no_0 = 1;
             r_no_1 = 0;
             r_no_2 = 0;
             r_no_3 = 0;
         } else {
             setEff(0, eff);
-            R22cHitMark(type, eff != 0 ? 3 : 2, &dmg.m_pDamageYarare->pos, 0, EMMARK(this)->age);
+            R22cHitMark(type, eff != 0 ? 3 : 2, &dmg.m_pDamageYarare->cross, 0, EMMARK(this)->age);
             ang.x -= PI / 7.0f;
             dmg.clear();
         }
@@ -497,7 +497,7 @@ int cEmMark::setEff(int a, int kind)
     } else if (type == 2) {
         int k = dmg.m_Wep == 7;
 
-        EstSet(this, -1, &dmg.m_pDamageYarare->pos, 0, EFF_EM3E, k, 0, ESP_CORE_KIND_NONE, this, 0);
+        EstSet(this, -1, &dmg.m_pDamageYarare->cross, 0, EFF_EM3E, k, 0, ESP_CORE_KIND_NONE, this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
     } else if (kind == 2) {
         modelInit(EM_ARC(this, 0x13), EM_ARC(this, 0x14));
@@ -512,14 +512,14 @@ int cEmMark::setEff(int a, int kind)
 
         headBomb();
         if (type != 3) {
-            PSVECAdd(&pos, &up, &dmg.m_pDamageYarare->pos);
+            PSVECAdd(&pos, &up, &dmg.m_pDamageYarare->cross);
         } else {
-            PSVECAdd(&pos, &down, &dmg.m_pDamageYarare->pos);
+            PSVECAdd(&pos, &down, &dmg.m_pDamageYarare->cross);
         }
     } else {
         int k = dmg.m_Wep == 7;
 
-        EstSet(this, -1, &dmg.m_pDamageYarare->pos, 0, EFF_EM3E, k, 0, ESP_CORE_KIND_NONE, this, 0);
+        EstSet(this, -1, &dmg.m_pDamageYarare->cross, 0, EFF_EM3E, k, 0, ESP_CORE_KIND_NONE, this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
     }
     return 1;
@@ -580,7 +580,7 @@ int cEmMark::setEffWallNormal()
 
     int k = dmg.m_Wep == 7;
 
-    EstSet(this, -1, &dmg.m_pDamageYarare->pos, 0, EFF_EM3E, k, 0, ESP_CORE_KIND_NONE, this, 0);
+    EstSet(this, -1, &dmg.m_pDamageYarare->cross, 0, EFF_EM3E, k, 0, ESP_CORE_KIND_NONE, this, 0);
     p.x = pos.x;
     p.y = pos.y + 1000.0f;
     p.z = pos.z;

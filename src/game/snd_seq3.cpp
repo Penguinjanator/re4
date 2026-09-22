@@ -143,13 +143,13 @@ void Snd_iss_new_seq_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
     }
     seq->status = 0x11;
     seq->snd_id = req->snd_id;
-    seq->type = req->type;
+    seq->type = req->use_type;
     seq_work_init_track(seq);
     seq->aram = blk->aram;
     seq->wt = blk->dls;
     seq->sit = sit;
     SYNInitSynth(&seq->synth, seq->wt, seq->aram, Snd_ctrl_work.aram_base, 30, 30, 1);
-    bank = (u16) ((u16) (sit->prog >> 8) & 0xFF);
+    bank = (u16) ((u16) (sit->note >> 8) & 0xFF);
     tbl = blk->seq;
     ofs = ((u32*) tbl)[bank + 1];
     seq->seq_top = blk->seq + ofs;

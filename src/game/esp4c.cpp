@@ -16,8 +16,8 @@ struct Esp4cWork {
     u8 wave_ratio_base;        // 0x03
     u16 Shimmer_pow1;       // 0x04
     u16 Shimmer_pow2;       // 0x06
-    f32 spread;   // 0x08
-    f32 damp;     // 0x0C
+    f32 Prm_a;   // 0x08
+    f32 Prm_dmp;     // 0x0C
     Vec ang;      // 0x10
     u8 flag;      // 0x1C
     u8 MaskTex_id; // 0x1D  gen->MaskTex_id (unused after set-up)
@@ -98,14 +98,14 @@ int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
     w->wave_ratio_base = gen->WorkSp8[2];
     w->Type = gen->Work8[0];
     if (w->Type == 2) {
-        w->spread = 0.5f - (f32)(s8)gen->Work8[1] * 0.005f;
-        if (w->spread > 0.5f) {
-            w->spread = 0.5f;
+        w->Prm_a = 0.5f - (f32)(s8)gen->Work8[1] * 0.005f;
+        if (w->Prm_a > 0.5f) {
+            w->Prm_a = 0.5f;
         }
-        if (w->spread < 0.0f) {
-            w->spread = 0.0f;
+        if (w->Prm_a < 0.0f) {
+            w->Prm_a = 0.0f;
         }
-        w->damp = 0.99f - gen->Work8[2] * 0.001f;
+        w->Prm_dmp = 0.99f - gen->Work8[2] * 0.001f;
     }
     w->Spec_Tex = gen->Tex_id;
     w->Shimmer_pow1 = gen->prm.h.xCE;

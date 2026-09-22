@@ -14,11 +14,11 @@ cPlBody::cPlBody(cModel* model)
     pRightData = 0;
     pLeftData = 0;
     pWepHand = 0;
-    pShape = 0;
+    m_pFace = 0;
     m_pArmR = 0;
     m_pArmL = 0;
-    pRight = 0;
-    pLeft = 0;
+    m_pHandR = 0;
+    m_pHandL = 0;
     m_WaistY = 0.0f;
 }
 

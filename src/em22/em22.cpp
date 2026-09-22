@@ -138,7 +138,7 @@ void em22DmCk(cEm22* em)
         em->dmg.m_Timer = 0x11;
     }
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     LifeDownSet2(em, em22SetDmVal(em), 0, 0);
@@ -2153,20 +2153,20 @@ void em22NeckMove(cEm22* em)
     }
     f = w->neckY * 0.33333334f;
     p = (cParts*) em->getPartsPtr(3);
-    p->addRot.z = 0.0f;
-    p->addRot.x = 0.0f;
-    p->addRot.y = f;
+    p->inv_offset.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = f;
     p->motParts.flags |= 0x40000000;
     p = (cParts*) em->getPartsPtr(4);
-    p->addRot.z = 0.0f;
-    p->addRot.x = 0.0f;
-    p->addRot.y = f;
+    p->inv_offset.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = f;
     p->motParts.flags |= 0x40000000;
     p = (cParts*) em->getPartsPtr(5);
-    p->addRot.x = 0.0f;
-    p->addRot.y = f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = f;
     p->motParts.flags |= 0x40000000;
-    p->addRot.z = 0.0f;
+    p->inv_offset.z = 0.0f;
     f = fabsf(w->neckX);
     if (!(f < 0.01f)) {
         f = w->neckX * 0.33333334f;
@@ -2202,7 +2202,7 @@ void em22BloodSet(cEm22* em)
     int near;
 
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     switch (em->dmg.m_Wep) {
@@ -2267,7 +2267,7 @@ int em22SetDmVal(cEm22* em)
     int dm;
 
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     dm = 100;
@@ -2345,10 +2345,10 @@ void em22CamMove(cEm22* em, int type)
         }
         PSVECSubtract(&w->cam.param.pos, &d, &w->cam.param.pos);
     }
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;

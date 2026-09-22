@@ -131,7 +131,7 @@ void pzlPiece::orientation(int o)
 {
     int i;
 
-    cx = m_p_data->cx;
+    m_center_x = m_p_data->center_x;
     m_center_y = m_p_data->center_y;
     m_orientation = 0;
     if (o <= 3) {
@@ -168,8 +168,8 @@ void pzlPiece::rotate(int dir)
                 }
             }
         }
-        f32 t = cx;
-        cx = -m_center_y;
+        f32 t = m_center_x;
+        m_center_x = -m_center_y;
         m_center_y = t;
         break;
     }
@@ -187,8 +187,8 @@ void pzlPiece::rotate(int dir)
                 }
             }
         }
-        f32 t = cx;
-        cx = m_center_y;
+        f32 t = m_center_x;
+        m_center_x = m_center_y;
         m_center_y = -t;
         break;
     }
@@ -227,7 +227,7 @@ void pzlPiece::mirror(int axis)
             m_orientation = 1;
             break;
         }
-        cx = -cx;
+        m_center_x = -m_center_x;
         break;
     case 1:
         switch (m_orientation) {
@@ -266,16 +266,16 @@ void pzlPiece::init(PieceData* p_data)
 {
     m_p_data = p_data;
     be_flag |= 1;
-    cx = p_data->cx;
+    m_center_x = p_data->center_x;
     m_center_y = p_data->center_y;
-    state = 0;
+    m_place = 0;
     m_orientation = 0;
 }
 
 // Board x of the piece's top-left cell (centre minus the centre offset).
 f32 pzlPiece::ver0_x()
 {
-    return m_pos_x - cx;
+    return m_pos_x - m_center_x;
 }
 
 // Board y of the piece's top-left cell.
@@ -300,7 +300,7 @@ int pzlPiece::size_x()
         break;
     case 1:
     case 5:
-        size = -m_p_data->h;
+        size = -m_p_data->size_y;
         break;
     case 2:
     case 4:
@@ -308,7 +308,7 @@ int pzlPiece::size_x()
         break;
     case 3:
     case 7:
-        size = m_p_data->h;
+        size = m_p_data->size_y;
         break;
     default:
         goto none;
@@ -333,7 +333,7 @@ int pzlPiece::size_y()
     switch (m_orientation) {
     case 0:
     case 4:
-        size = m_p_data->h;
+        size = m_p_data->size_y;
         return size;
     case 1:
     case 7:
@@ -341,7 +341,7 @@ int pzlPiece::size_y()
         return size;
     case 2:
     case 6:
-        size = -m_p_data->h;
+        size = -m_p_data->size_y;
         return size;
     case 3:
     case 5:
@@ -423,7 +423,7 @@ int pzlPiece::shape(int px, int py)
         rx = (s8) -rx;
         break;
     }
-    if (rx < 0 || rx >= m_p_data->size_x || ry < 0 || ry >= m_p_data->h) {
+    if (rx < 0 || rx >= m_p_data->size_x || ry < 0 || ry >= m_p_data->size_y) {
         return 0;
     }
     return m_p_data->shape[rx + m_p_data->size_x * ry] == '1';
@@ -437,7 +437,7 @@ static void dispShape(pzlPiece* p, int px, int py)
     int i;
     int j;
 
-    for (j = 0; j < p->m_p_data->h; j++) {
+    for (j = 0; j < p->m_p_data->size_y; j++) {
         for (i = 0; i < p->m_p_data->size_x; i++) {
             f32 x = (f32) (px + i) * 8.0f + 14.0f;
             eprintf((int) x, py + j, 0, 0, p->shape(i, j) ? "#" : "");
@@ -662,7 +662,7 @@ int pzlBoard::putPiece(pzlPiece* p)
                     }
                 }
             }
-            p->state = 1;
+            p->m_place = 1;
             return 1;
         }
     }
@@ -759,7 +759,7 @@ int pzlBoard::rmPiece(pzlPiece* p)
             break;
         }
     }
-    p->state = 0;
+    p->m_place = 0;
     return 1;
 }
 
@@ -873,8 +873,8 @@ int pzlPlayer::init(int type)
         __builtin_delete(m_space);
         return 0;
     }
-    pieces = (pzlPiece*) __builtin_vec_new(piece_max * sizeof(pzlPiece));
-    if (pieces == 0) {
+    m_piece = (pzlPiece*) __builtin_vec_new(piece_max * sizeof(pzlPiece));
+    if (m_piece == 0) {
         pLog->err(0, 0, "Can't create pzlPlayer()");
         m_board->quit();
         __builtin_delete(m_board);
@@ -886,12 +886,12 @@ int pzlPlayer::init(int type)
     {
         int j;
         for (j = 0; j < m_piece_max; j++) {
-            pieces[j].be_flag = 0;
+            m_piece[j].be_flag = 0;
         }
     }
     {
         int k = 0;
-        for (i = 0; i < ItemMgr.nItems; i++) {
+        for (i = 0; i < ItemMgr.m_array_num; i++) {
             ItemWork* item = ItemMgr.at(i);
             int ok;
             if (item->flags & 1) {
@@ -900,7 +900,7 @@ int pzlPlayer::init(int type)
                 ok = 0;
             }
             if (ok) {
-                p = &pieces[k];
+                p = &m_piece[k];
                 PieceData* d = searchItemPieceData(item->id, piece_info);
                 if (d) {
                     k++;
@@ -914,7 +914,7 @@ int pzlPlayer::init(int type)
         }
     }
     for (i = 0; i < m_piece_max; i++) {
-        p = &pieces[i];
+        p = &m_piece[i];
         // `!(bool)`: the flag test is `xori; andi.; bne` (the negated bool materialised).
         if (!((bool) (p->be_flag & 1))) {
             continue;
@@ -927,7 +927,7 @@ int pzlPlayer::init(int type)
             }
         }
     }
-    cur = m_board;
+    m_p_active_board = m_board;
     return 1;
 }
 
@@ -942,8 +942,8 @@ void pzlPlayer::quit()
         m_space->quit();
         __builtin_delete(m_space);
     }
-    if (pieces) {
-        __builtin_vec_delete(pieces);
+    if (m_piece) {
+        __builtin_vec_delete(m_piece);
     }
 }
 
@@ -954,7 +954,7 @@ int pzlPlayer::pieceNum()
     int i;
 
     for (i = 0; i < m_piece_max; i++) {
-        if (!(pieces[i].be_flag & 1)) {
+        if (!(m_piece[i].be_flag & 1)) {
             continue;
         }
         n++;
@@ -969,11 +969,11 @@ pzlPiece* pzlPlayer::piecePtr(int no)
     int i;
 
     for (i = 0; i < m_piece_max; i++) {
-        if (!(pieces[i].be_flag & 1)) {
+        if (!(m_piece[i].be_flag & 1)) {
             continue;
         }
         if (n == no) {
-            return &pieces[i];
+            return &m_piece[i];
         }
         n++;
     }
@@ -986,11 +986,11 @@ pzlPiece* pzlPlayer::piecePtr(ItemWork* item)
     int i;
 
     for (i = 0; i < m_piece_max; i++) {
-        if (!(pieces[i].be_flag & 1)) {
+        if (!(m_piece[i].be_flag & 1)) {
             continue;
         }
-        if (item == pieces[i].item) {
-            return &pieces[i];
+        if (item == m_piece[i].item) {
+            return &m_piece[i];
         }
     }
     return 0;
@@ -1003,7 +1003,7 @@ void pzlPlayer::save()
     int i;
 
     for (i = 0; i < m_piece_max; i++) {
-        pzlPiece* p = &pieces[i];
+        pzlPiece* p = &m_piece[i];
         ItemWork* item;
         if (!(p->be_flag & 1)) {
             continue;
@@ -1036,7 +1036,7 @@ int pzlPlayer::appendExtraPiece(ItemWork* item)
         return 0;
     }
     for (i = 0; i < m_piece_max; i++) {
-        pzlPiece* q = &pieces[i];
+        pzlPiece* q = &m_piece[i];
         if (!(q->be_flag & 1)) {
             p = q;
             break;
@@ -1056,7 +1056,7 @@ int pzlPlayer::appendExtraPiece(ItemWork* item)
 // Discards the extra piece: off its board, the item erased from the inventory, the model freed.
 int pzlPlayer::removeExtraPiece()
 {
-    if (m_extra->state & 1) {
+    if (m_extra->m_place & 1) {
         pzlBoard* b;
         if (m_board->search(m_extra)) {
             b = m_board;
@@ -1082,7 +1082,7 @@ int pzlPlayer::removeExtraPiece()
 // Puts the extra piece in the player's hand (state 2).
 void pzlPlayer::inHandExtraPiece()
 {
-    m_extra->state = 2;
+    m_extra->m_place = 2;
     m_inhand = m_extra;
 }
 
@@ -1205,11 +1205,11 @@ void pzlPlayer::getPiece(pzlBoard* b)
     pzlPiece* p = b->rmPiece(b->m_cur_x, b->m_cur_y);
 
     if (p) {
-        p->state = 2;
+        p->m_place = 2;
         m_piece_bak_pos_x = p->m_pos_x;
         m_piece_bak_pos_y = p->m_pos_y;
-        handOrient = p->m_orientation;
-        m_piece_bak_board = cur;
+        m_piece_bak_orientation = p->m_orientation;
+        m_piece_bak_board = m_p_active_board;
     }
     m_inhand = p;
 }
@@ -1237,13 +1237,13 @@ int pzlPlayer::relPiece(pzlBoard* b)
     if (m_inhand) {
         m_inhand->m_pos_x = m_piece_bak_pos_x;
         m_inhand->m_pos_y = m_piece_bak_pos_y;
-        m_inhand->orientation(handOrient);
+        m_inhand->orientation(m_piece_bak_orientation);
         if (m_piece_bak_board) {
             if (putPiece(m_piece_bak_board)) {
-                cur = m_piece_bak_board;
+                m_p_active_board = m_piece_bak_board;
                 return 1;
             } else {
-                cur = m_piece_bak_board;
+                m_p_active_board = m_piece_bak_board;
                 return 0;
             }
         }
@@ -1264,12 +1264,12 @@ int pzlPlayer::chgPiece(pzlBoard* b)
     if (p != 0) {
         b->rmPiece(p);
         b->putPiece(m_inhand);
-        p->state = 2;
+        p->m_place = 2;
         m_inhand = p;
         m_piece_bak_pos_x = p->m_pos_x;
         m_piece_bak_pos_y = p->m_pos_y;
-        handOrient = p->m_orientation;
-        m_piece_bak_board = cur;
+        m_piece_bak_orientation = p->m_orientation;
+        m_piece_bak_board = m_p_active_board;
         return 1;
     }
     return 0;
@@ -1321,7 +1321,7 @@ pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
         }
         if (!used) {
             if (rel) {
-                relPiece(cur);
+                relPiece(m_p_active_board);
             }
         } else {
             m_inhand = 0;
@@ -1397,14 +1397,14 @@ int pzlPlayer::movePiece()
             ret = 1;
         } else if (joy->trg & 0x20) {
             p->rotate(0);
-            if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->m_size_y + 2)) {
+            if (fabsf((f32) (s8) p->size_y()) > (f32) (m_p_active_board->m_size_y + 2)) {
                 p->rotate(0);
             }
             ret = 2;
             goto cursor;
         } else if (joy->trg & 0x40) {
             p->rotate(1);
-            if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->m_size_y + 2)) {
+            if (fabsf((f32) (s8) p->size_y()) > (f32) (m_p_active_board->m_size_y + 2)) {
                 p->rotate(1);
             }
             ret = 2;
@@ -1419,12 +1419,12 @@ int pzlPlayer::movePiece()
             goto cursor;
         }
         if (Key.rep & 0x0F000000) {
-            int out = cur->outPiece(p) == 1;
-            int wall = cur->ckInsideWall(p) == 0;
+            int out = m_p_active_board->outPiece(p) == 1;
+            int wall = m_p_active_board->ckInsideWall(p) == 0;
             if (out || wall) {
                 dir = 0;
                 if (wall) {
-                    switch (cur->m_wall_miss_flag) {
+                    switch (m_p_active_board->m_wall_miss_flag) {
                     case 0:
                         dir = 0;
                         break;
@@ -1442,7 +1442,7 @@ int pzlPlayer::movePiece()
                         break;
                     }
                 } else if (out) {
-                    switch (cur->m_out_miss_flag) {
+                    switch (m_p_active_board->m_out_miss_flag) {
                     case 0:
                         break;
                     case 1:
@@ -1465,20 +1465,20 @@ int pzlPlayer::movePiece()
                     f32 fy;
                     pzlBoard* cb = m_board;
                     f32 ny = 0.0f;
-                    if (cur == cb) {
-                        cur = m_space;
+                    if (m_p_active_board == cb) {
+                        m_p_active_board = m_space;
                         ny = p->m_pos_y - -2.0f;
-                    } else if (cur == m_space) {
-                        cur = cb;
+                    } else if (m_p_active_board == m_space) {
+                        m_p_active_board = cb;
                         ny = p->m_pos_y + -2.0f;
                     }
                     p->m_pos_y = ny;
-                    if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->m_size_y + 2)) {
+                    if (fabsf((f32) (s8) p->size_y()) > (f32) (m_p_active_board->m_size_y + 2)) {
                         p->rotate(1);
                         p->snap();
                     }
                     if (dir == 1) {
-                        edge = cur->m_size_x;
+                        edge = m_p_active_board->m_size_x;
                         if (p->size_x() > 0) {
                             edge -= (int) (fabsf((f32) (s8) p->size_x()) - 1.0f);
                         }
@@ -1488,11 +1488,11 @@ int pzlPlayer::movePiece()
                             edge = (int) (fabsf((f32) (s8) p->size_x()) - 1.0f) - 1;
                         }
                     }
-                    p->m_pos_x = (f32) edge + p->cx;
+                    p->m_pos_x = (f32) edge + p->m_center_x;
                     if (p->size_y() < 0) {
                         f32 vy = p->ver0_y();
-                        int ch = cur->m_size_y;
-                        if (vy > (f32) cur->m_size_y) {
+                        int ch = m_p_active_board->m_size_y;
+                        if (vy > (f32) m_p_active_board->m_size_y) {
                             p->m_pos_y = (f32) ch + p->m_center_y;
                         }
                         fy = p->ver0_y() + (f32) (p->size_y() + 1);
@@ -1502,8 +1502,8 @@ int pzlPlayer::movePiece()
                         }
                     } else {
                         fy = p->ver0_y() + (f32) (p->size_y() - 1);
-                        edge = cur->m_size_y;
-                        if (fy > (f32) cur->m_size_y) {
+                        edge = m_p_active_board->m_size_y;
+                        if (fy > (f32) m_p_active_board->m_size_y) {
                             int sy = p->size_y();
                             asm volatile("" : "+r"(edge)); // COMPILER-DIFF: the target re-extends edge after the size_y call (extsb r30,r30; addi r30,r30,1); ours proves it sign-extended and, edge crossing calls, would hoist the two above the call
                             edge = (s8) edge;
@@ -1515,7 +1515,7 @@ int pzlPlayer::movePiece()
                             p->m_pos_y = p->m_center_y + -1.0f;
                         }
                     }
-                    if (cur->outPiece(p) == 1) {
+                    if (m_p_active_board->outPiece(p) == 1) {
                         if (fabsf((f32) (s8) p->size_x()) == 1.0f && fabsf((f32) (s8) p->size_y()) == 1.0f) {
                             switch (dir) {
                             case 1:
@@ -1526,23 +1526,23 @@ int pzlPlayer::movePiece()
                                 break;
                             }
                         }
-                        if (fabsf((f32) (s8) p->size_y()) == 1.0f && cur->outPiece(p) == 1) {
+                        if (fabsf((f32) (s8) p->size_y()) == 1.0f && m_p_active_board->outPiece(p) == 1) {
                             int step = -1;
-                            if (p->m_pos_y < (f32) (s8) (cur->m_size_y / 2)) {
+                            if (p->m_pos_y < (f32) (s8) (m_p_active_board->m_size_y / 2)) {
                                 step = 1;
                             }
                             do {
                                 p->m_pos_y += (f32) step;
-                            } while (cur->outPiece(p) == 1);
+                            } while (m_p_active_board->outPiece(p) == 1);
                         }
-                        if (fabsf((f32) (s8) p->size_x()) == 1.0f && cur->outPiece(p) == 1) {
+                        if (fabsf((f32) (s8) p->size_x()) == 1.0f && m_p_active_board->outPiece(p) == 1) {
                             int step = -1;
-                            if (p->m_pos_x < (f32) (s8) (cur->m_size_x / 2)) {
+                            if (p->m_pos_x < (f32) (s8) (m_p_active_board->m_size_x / 2)) {
                                 step = 1;
                             }
                             do {
                                 p->m_pos_x += (f32) step;
-                            } while (cur->outPiece(p) == 1);
+                            } while (m_p_active_board->outPiece(p) == 1);
                         }
                     }
                 } else {
@@ -1550,24 +1550,24 @@ int pzlPlayer::movePiece()
                         if (dir == 3) {
                             do {
                                 p->m_pos_y += 1.0f;
-                            } while (cur->outPiece(p) == 0);
+                            } while (m_p_active_board->outPiece(p) == 0);
                             p->m_pos_y -= 1.0f;
                         } else {
                             do {
                                 p->m_pos_y -= 1.0f;
-                            } while (cur->outPiece(p) == 0);
+                            } while (m_p_active_board->outPiece(p) == 0);
                             p->m_pos_y += 1.0f;
                         }
                     } else {
                         if (dir == 3) {
                             do {
                                 p->m_pos_y += 1.0f;
-                            } while (cur->ckInsideWall(p) == 1);
+                            } while (m_p_active_board->ckInsideWall(p) == 1);
                             p->m_pos_y -= 1.0f;
                         } else {
                             do {
                                 p->m_pos_y -= 1.0f;
-                            } while (cur->ckInsideWall(p) == 1);
+                            } while (m_p_active_board->ckInsideWall(p) == 1);
                             p->m_pos_y += 1.0f;
                         }
                     }
@@ -1576,24 +1576,24 @@ int pzlPlayer::movePiece()
         }
     }
 cursor:
-    cur->m_cur_x = (s8) (p->m_pos_x + 0.5f);
-    cur->m_cur_y = (s8) (p->m_pos_y + 0.5f);
-    if (cur->m_cur_x & 0x80) {
-        cur->m_cur_x = 0;
+    m_p_active_board->m_cur_x = (s8) (p->m_pos_x + 0.5f);
+    m_p_active_board->m_cur_y = (s8) (p->m_pos_y + 0.5f);
+    if (m_p_active_board->m_cur_x & 0x80) {
+        m_p_active_board->m_cur_x = 0;
     }
     {
-        int wm = cur->m_size_x - 1;
-        if (cur->m_cur_x > wm) {
-            cur->m_cur_x = wm;
+        int wm = m_p_active_board->m_size_x - 1;
+        if (m_p_active_board->m_cur_x > wm) {
+            m_p_active_board->m_cur_x = wm;
         }
     }
-    if (cur->m_cur_y & 0x80) {
-        cur->m_cur_y = 0;
+    if (m_p_active_board->m_cur_y & 0x80) {
+        m_p_active_board->m_cur_y = 0;
     }
     {
-        int hm = cur->m_size_y - 1;
-        if (cur->m_cur_y > hm) {
-            cur->m_cur_y = hm;
+        int hm = m_p_active_board->m_size_y - 1;
+        if (m_p_active_board->m_cur_y > hm) {
+            m_p_active_board->m_cur_y = hm;
         }
     }
     return ret;
@@ -1605,12 +1605,12 @@ void pzlPlayer::rehash()
     int i;
 
     for (i = 0; i < m_piece_max; i++) {
-        pzlPiece* p = &pieces[i];
+        pzlPiece* p = &m_piece[i];
         if (!(p->be_flag & 1)) {
             continue;
         }
         if (p->item->flags == 0) {
-            if (p->state & 1) {
+            if (p->m_place & 1) {
                 if (m_board->search(p)) {
                     m_board->rmPiece(p);
                 } else if (m_space->search(p)) {
@@ -1626,26 +1626,26 @@ void pzlPlayer::rehash()
 // Remembers the current board and cursor.
 void pzlPlayer::saveCursor()
 {
-    m_board_sav = cur;
-    m_cur_x_sav = cur->m_cur_x;
-    m_cur_y_sav = cur->m_cur_y;
+    m_board_sav = m_p_active_board;
+    m_cur_x_sav = m_p_active_board->m_cur_x;
+    m_cur_y_sav = m_p_active_board->m_cur_y;
 }
 
 // Restores the board and cursor saved by saveCursor.
 void pzlPlayer::loadCursor()
 {
-    cur = m_board_sav;
-    cur->m_cur_x = m_cur_x_sav;
-    cur->m_cur_y = m_cur_y_sav;
+    m_p_active_board = m_board_sav;
+    m_p_active_board->m_cur_x = m_cur_x_sav;
+    m_p_active_board->m_cur_y = m_cur_y_sav;
 }
 
 // If the cursor was on the spare board, moves it to the case at (0, 0).
 void pzlPlayer::salvCursor()
 {
-    if (m_space == cur) {
-        cur = m_board;
-        cur->m_cur_x = 0;
-        cur->m_cur_y = 0;
+    if (m_space == m_p_active_board) {
+        m_p_active_board = m_board;
+        m_p_active_board->m_cur_x = 0;
+        m_p_active_board->m_cur_y = 0;
     }
 }
 
@@ -1722,7 +1722,7 @@ int PutInCase(ITEM_ID id, u16 num, int type)
         s8 bw = pl->m_board->m_size_x;
         for (i = 0; i < bh; i++) {
             for (j = 0; j < bw; j++) {
-                p->m_pos_x = (f32) j + p->cx;
+                p->m_pos_x = (f32) j + p->m_center_x;
                 p->m_pos_y = (f32) i + p->m_center_y;
                 if (pl->putPiece(pl->m_board)) {
                     ok = 1;
@@ -1733,7 +1733,7 @@ int PutInCase(ITEM_ID id, u16 num, int type)
         p->orientation(1);
         for (i = 0; i < bh; i++) {
             for (j = 0; j < bw; j++) {
-                p->m_pos_x = (f32) j + p->cx;
+                p->m_pos_x = (f32) j + p->m_center_x;
                 p->m_pos_y = (f32) i + p->m_center_y;
                 if (pl->putPiece(pl->m_board)) {
                     ok = 1;

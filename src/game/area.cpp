@@ -98,10 +98,10 @@ int AreaViewCheck(AreaData* area, GeoCone* cone)
     case AREA_TYPE_CYLINDER:
         break;
     case AREA_TYPE_EYE:
-        if (area->u.eye.open == 0.0f) {
+        if (area->u.eye.open_ang == 0.0f) {
             ang = PI;
         } else {
-            ang = area->u.eye.open * 0.5f;
+            ang = area->u.eye.open_ang * 0.5f;
         }
         pos.x = area->u.eye.xz;
         pos.y = area->u.eye.floor;
@@ -245,7 +245,7 @@ void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height)
         a->floor = pos->y;
         a->height = height;
         a->radius = size * 0.5f;
-        a->open = 0.0f;
+        a->open_ang = 0.0f;
         a->ang_x = 0.0f;
         a->ang_y = 0.0f;
         a->pad00 = 0.0f;
@@ -624,12 +624,12 @@ void area_eye_trigger_Edit(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx, u
         if (pEtg->radius < 0.0f) {
             pEtg->radius = 0.0f;
         }
-        pEtg->open += dx * 0.0005f;
-        if (pEtg->open < 0.0f) {
-            pEtg->open = 0.0f;
+        pEtg->open_ang += dx * 0.0005f;
+        if (pEtg->open_ang < 0.0f) {
+            pEtg->open_ang = 0.0f;
         }
-        if (pEtg->open > 6.28f) {
-            pEtg->open = 6.28f;
+        if (pEtg->open_ang > 6.28f) {
+            pEtg->open_ang = 6.28f;
         }
         break;
     case 2:
@@ -875,7 +875,7 @@ void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx)
     c.z = pEtg->z;
     area_Draw_sphere(c, 10.0f, color, mtx);
     area_Draw_sphere(c, pEtg->radius, color, mtx);
-    if (pEtg->open != 0.0f) {
+    if (pEtg->open_ang != 0.0f) {
         Mtx m;
         Vec dir;
         Vec rot;
@@ -887,7 +887,7 @@ void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx)
         rot.z = 0.0f;
         RotMatrix(m, &rot);
         PSMTXMultVecSR(m, &dir, &dir);
-        Draw_corn2(&c, &dir, 1000.0f, pEtg->open * 360.0f / 6.28f, color);
+        Draw_corn2(&c, &dir, 1000.0f, pEtg->open_ang * 360.0f / 6.28f, color);
     }
 }
 
@@ -962,10 +962,10 @@ void AreaDataInfoDisp(AreaData* area, int x, s16 y)
         y += 16;
         eprintf(x, y, 0, 0, "RADIUS[%6.0f]", a->radius);
         y += 16;
-        if (a->open == 0.0f) {
+        if (a->open_ang == 0.0f) {
             eprintf(x, y, 0, 0, "OPEN ANGLE[360]");
         } else {
-            eprintf(x, y, 0, 0, "OPEN ANGLE[%3.0f]", a->open * 57.295776f);
+            eprintf(x, y, 0, 0, "OPEN ANGLE[%3.0f]", a->open_ang * 57.295776f);
         }
         y += 16;
         eprintf(x, y, 0, 0, "ANGLE_X[%3.0f]", a->ang_x * 57.295776f);

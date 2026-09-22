@@ -7,7 +7,7 @@
 // Debug page 11: model work viewer (game/db_work.cpp), `DbWork` in game.cpp.
 class cDbWork {
 public:
-    int mode;  // 0x00  0 = enemies, 1 = objects, 2 = lights
+    int wkType;  // 0x00  0 = enemies, 1 = objects, 2 = lights
     u32 wkNo;    // 0x04  work index shown
 
     cDbWork();

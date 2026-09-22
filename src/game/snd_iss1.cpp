@@ -25,9 +25,9 @@ int se_set_paras_sub(u32 snd_id)
     if (req == NULL) {
         return 1;
     }
-    req->status = 1;
-    req->type = 4;
-    req->cmd = 1;
+    req->be_flag = 1;
+    req->use_type = 4;
+    req->cmd_no = 1;
     req->snd_id = snd_id;
     Snd_req_work_copy_para(&Snd_ctrl_work, req);
     return 0;
@@ -76,9 +76,9 @@ int se_cmd_req_work(u16 cmd, u32 snd_id, u16 para)
     if (req == NULL) {
         return 1;
     }
-    req->status = 1;
-    req->type = 4;
-    req->cmd = cmd;
+    req->be_flag = 1;
+    req->use_type = 4;
+    req->cmd_no = cmd;
     req->snd_id = snd_id;
     req->para = para;
     return 0;
@@ -185,16 +185,16 @@ int se_pro_ck_req_work(int bank)
 
     for (i = 0; i < SND_REQ_MAX; i++) {
         req = &Snd_req_work[bank][i];
-        if (req->status == 0) {
+        if (req->be_flag == 0) {
             continue;
         }
-        if (req->type & 0x4) {
+        if (req->use_type & 0x4) {
             continue;
         }
-        if (!(req->type & 0x2)) {
+        if (!(req->use_type & 0x2)) {
             continue;
         }
-        if (req->sit->flag & 0x3) {
+        if (req->sit_ptr->flag & 0x3) {
             return 0x10;
         }
     }

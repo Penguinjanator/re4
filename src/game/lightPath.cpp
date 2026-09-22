@@ -12,10 +12,10 @@ u32 cLightPathHeader::getSize()
 {
     u8* p;
 
-    if (num == 0) {
+    if (nPath == 0) {
         return 4;
     }
-    p = (u8*) this + (*(u32*) ((u8*) this + num * 4) + 4);
+    p = (u8*) this + (*(u32*) ((u8*) this + nPath * 4) + 4);
     while (*p != 0xFF) {
         p++;
     }
@@ -26,7 +26,7 @@ u32 cLightPathHeader::getSize()
 // Path string `no` (0 with an error log when out of range).
 cLightPathData* cLightPathHeader::getPathData(u32 no)
 {
-    if (no >= num) {
+    if (no >= nPath) {
         pLog->err(0, 0, "cLightPathHeader::getPathData() IDX OVER %d", no);
         return 0;
     }

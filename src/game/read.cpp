@@ -37,7 +37,7 @@ extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll p
 // game/game.cpp: GAME_WORK Game seen through this unit's own view struct (not global.h's declaration)
 struct GameWork {
     u8 pad_0[0x18];
-    void* pWepBuf;   // 0x18  weapon data buffer (Klauser)
+    void* omake_wep_addr;   // 0x18  weapon data buffer (Klauser)
     u8 pad_1C[0x1C - 0x1C];
 };
 extern GameWork Game;
@@ -822,7 +822,7 @@ void ReadWepData(u32 no, u32 type)
     void* bss;
 
     if (pG->pl_type == 4) {
-        data = (u8*) Game.pWepBuf;
+        data = (u8*) Game.omake_wep_addr;
     } else {
         data = (u8*) WEP_DATA_ADDR;
     }

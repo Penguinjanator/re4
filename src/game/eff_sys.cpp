@@ -266,7 +266,7 @@ void EspRoomInit()
     PSMTXIdentity(g_EffParentWorld.mat);
     sys->SstSetFlag = 0xFFFFFFFF;
     sys->CoreKindTop = 0x45;
-    sys->pEspBuf = NULL;
+    sys->EspArray = NULL;
     tw = sys->Esp_tex_tbl;
     for (i = 0; i < 0x100; i++) {
         tw->Owner = EFF_NONE;
@@ -415,11 +415,11 @@ int EspDataLoad(u32 addr, u32 owner, int flag)
 // Installs the room's effect area table (used by EffAreaUpdate); an error if one is present.
 int EffAreaDataLoad(SstArea* area)
 {
-    if (g_pEspSys->pSstArea != NULL) {
+    if (g_pEspSys->Area_addr != NULL) {
         pLog->err(0, 0, "EffAreaDataLoad() : data already regist.");
         return 0;
     }
-    g_pEspSys->pSstArea = area;
+    g_pEspSys->Area_addr = area;
     return 1;
 }
 
@@ -476,11 +476,11 @@ void EspTexSet(int id, int ptn)
         pLog->err(0, 0, "ESP : TexId[%x] no data", id);
         return;
     }
-    GXLoadTexObj(&w->pTexObj[ptn], 0);
+    GXLoadTexObj(&w->pTex_obj_start[ptn], 0);
     if (w->texHdr->format - 8 <= 1) {
         GXLoadTlut(&w->tlut, 0);
     }
-    GXLoadTexMtxImm(w->mtx, 0x1E, 1);
+    GXLoadTexMtxImm(w->_Mtx, 0x1E, 1);
 }
 
 // GXTexObj of pattern `ptn` of texture `id`; NULL with an error when unregistered.
@@ -492,7 +492,7 @@ GXTexObj* EspGetTexObj(int id, int ptn)
         pLog->err(0, 0, "ESP : TEX_ID[%x] no data", id);
         return NULL;
     }
-    return &w->pTexObj[ptn];
+    return &w->pTex_obj_start[ptn];
 }
 
 // TLUT of texture `id` for CI4 / CI8 textures; NULL otherwise (error when unregistered).
@@ -518,7 +518,7 @@ int EspGetTplAddr(int id, void** out)
     if (w->Owner == EFF_NONE) {
         return 0;
     }
-    *out = w->pTpl;
+    *out = w->Tpl_addr;
     return 1;
 }
 
@@ -543,7 +543,7 @@ int EspGetAnmAddr(int id, EspAnmData** out)
     if (w->Owner == EFF_NONE) {
         return 0;
     }
-    *out = w->pAnm;
+    *out = w->Anm_addr;
     return 1;
 }
 
@@ -605,17 +605,17 @@ int espTexRegist(TEXPalette* tpl, EspAnmData* anm, u8 id, u32 owner)
     EspCalcTplAddr(tpl);
     desc = TEXGet(tpl, 0);
     w->nTexObj = anm->Frames;
-    w->pTexObj = EspPullTexObj(w->nTexObj);
-    if (w->pTexObj == NULL) {
+    w->pTex_obj_start = EspPullTexObj(w->nTexObj);
+    if (w->pTex_obj_start == NULL) {
         pLog->err(0, 0, "ESP : ID[%02x] PullTexObj() work full!!", id);
         return 0;
     }
     w->texHdr = desc->textureHeader;
-    w->pAnm = anm;
+    w->Anm_addr = anm;
     w->Owner = owner;
-    w->pTpl = tpl;
+    w->Tpl_addr = tpl;
     for (i = 0; i < w->nTexObj; i++) {
-        obj = &w->pTexObj[i];
+        obj = &w->pTex_obj_start[i];
         desc = TEXGet(tpl, i);
         hdr = desc->textureHeader;
         if (hdr->format - 8 <= 1) {
@@ -626,7 +626,7 @@ int espTexRegist(TEXPalette* tpl, EspAnmData* anm, u8 id, u32 owner)
             GXInitTexObj(obj, hdr->data, hdr->width, hdr->height, hdr->format, 0, 0, 0);
         }
     }
-    PSMTXIdentity(w->mtx);
+    PSMTXIdentity(w->_Mtx);
     return 1;
 }
 
@@ -821,7 +821,7 @@ int espTexRelease(u32 owner)
 
     for (i = 0; i < 0x100; i++, w++) {
         if (w->Owner == owner) {
-            j = w->pTexObj - sys->texObj;
+            j = w->pTex_obj_start - sys->texObj;
             start = j;
             w->Owner = EFF_NONE;
             for (; j < start + w->nTexObj; j++) {
@@ -963,7 +963,7 @@ int cEspSystem::GetTexObjFlag(u32 no)
         pLog->err(0, 0, "cEspSystem::GetTexObjFlag : TexNo over [%d/%d]", no, EFF_TEXOBJ_MAX);
         return 0;
     }
-    if ((texObjFlag[no >> 3] >> (no & 7)) & 1) {
+    if ((TexObj_flg[no >> 3] >> (no & 7)) & 1) {
         return 1;
     }
     return 0;
@@ -979,9 +979,9 @@ void cEspSystem::SetTexObjFlag(u32 no, int flag)
     }
     bit = 1 << (no & 7);
     if (flag == 1) {
-        texObjFlag[no >> 3] |= bit;
+        TexObj_flg[no >> 3] |= bit;
     } else {
-        texObjFlag[no >> 3] &= ~bit;
+        TexObj_flg[no >> 3] &= ~bit;
     }
 }
 
@@ -1117,8 +1117,8 @@ extern "C" void EffSetToolStateCallBack(int no, void (*on)(), void (*off)())
 {
     cEspSystem* sys = g_pEspSys;
 
-    sys->toolCb[no] = on;
-    sys->toolCb2[no] = off;
+    sys->pFuncOn[no] = on;
+    sys->pFuncOff[no] = off;
 }
 
 // After the effect update: runs callback 0's `on` function while tool state bits 0-1 are set,
@@ -1128,12 +1128,12 @@ void EffCallToolStateCallBack()
     cEspSystem* sys = g_pEspSys;
 
     if (EffGetToolState() & 3) {
-        if (sys->toolCb[0] != NULL) {
-            sys->toolCb[0]();
+        if (sys->pFuncOn[0] != NULL) {
+            sys->pFuncOn[0]();
         }
     } else {
-        if (sys->toolCb2[0] != NULL) {
-            sys->toolCb2[0]();
+        if (sys->pFuncOff[0] != NULL) {
+            sys->pFuncOff[0]();
         }
     }
 }
@@ -1141,7 +1141,7 @@ void EffCallToolStateCallBack()
 // Registers a room scroll model's data / TPL as effect model `id` under the room owner (1).
 void RoomEfmRegist(cModel* m, u8 id)
 {
-    efmRegist(m->pModelInfo->pData, m->pModelInfo->tpl_addr, NULL, NULL, id, 1);
+    efmRegist(m->pModelInfo->model_addr, m->pModelInfo->tpl_addr, NULL, NULL, id, 1);
 }
 
 // Same with raw model data and TPL pointers.

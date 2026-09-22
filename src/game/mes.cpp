@@ -308,7 +308,7 @@ void MessageControl::setLayout(int no, int layout)
 
     p_layout = layout_tbl[MesData.lang][layout];
     setFontSize(no, p_layout[0], p_layout[1]);
-    U16Set(MES(no)->charSpace, p_layout[3]);
+    U16Set(MES(no)->m_char_gap, p_layout[3]);
     MES(no)->m_line_gap = p_layout[5];
 }
 
@@ -350,7 +350,7 @@ void MessageControl::setupFont(int w, int h, TEXPalette* tpl, int no)
 {
     MesFontFile* f = (MesFontFile*) tpl;
 
-    fontBuf[no] = tpl;
+    m_font_addr[no] = tpl;
     MesFont[no].create(w, h, (TEXPalette*) ((u8*) f + f->tplOfs), (u8*) f + f->widthOfs);
 }
 
@@ -364,13 +364,13 @@ void MessageControl::releaseFont(int no)
 #line 703 "D:/Bio4/Prog/mes.cpp"
 int MessageControl::loadFont(int w, int h, const char* name, int no)
 {
-    int req = DvdReadN(name, fontBuf[no], 0, 0, 0, 0x11, __FILE__, __LINE__);
+    int req = DvdReadN(name, m_font_addr[no], 0, 0, 0, 0x11, __FILE__, __LINE__);
 
     if (Dvd.ReadCheck(req, 0, 0, 0) != 1) {
         pLog->err(0, 0, "MesCtrl::fontLoad() Font load failed");
         return 0;
     }
-    setupFont(w, h, (TEXPalette*) fontBuf[no], no);
+    setupFont(w, h, (TEXPalette*) m_font_addr[no], no);
     return 1;
 }
 
@@ -388,7 +388,7 @@ void MessageControl::init()
     }
     if (sz != 0) {
 #line 734 "D:/Bio4/Prog/mes.cpp"
-        fontBuf[0] = mem_alloc(sz, __FILE__, __LINE__, 1, 0xD);
+        m_font_addr[0] = mem_alloc(sz, __FILE__, __LINE__, 1, 0xD);
     } else {
         pLog->err(0, 0, "MesCtrl::init() Font file not found.");
     }
@@ -397,7 +397,7 @@ void MessageControl::init()
     }
     if (sz != 0) {
 #line 748 "D:/Bio4/Prog/mes.cpp"
-        fontBuf[1] = mem_alloc(sz, __FILE__, __LINE__, 1, 0xD);
+        m_font_addr[1] = mem_alloc(sz, __FILE__, __LINE__, 1, 0xD);
     } else {
         pLog->err(0, 0, "MesCtrl::init() Font file not found.");
     }
@@ -406,7 +406,7 @@ void MessageControl::init()
     setLanguage(pSys->language);
     x11F8 = 0;
     m_state = 0;
-    m = mes;
+    m = m_Msg;
     for (i = 0; i < 16; m++, i++) {
         if (i <= 2) {
             m->qbase = MsgQueue[i];
@@ -464,7 +464,7 @@ void MessageControl::loadSystemFont()
     if (pSys->language == 0) {
         loadFont(0x14, 0x14, "Font/system_j.fnt", 1);
     } else {
-        setupFont(0x20, 0x20, (TEXPalette*) fontBuf[0], 1);
+        setupFont(0x20, 0x20, (TEXPalette*) m_font_addr[0], 1);
     }
 }
 
@@ -493,7 +493,7 @@ void MessageControl::stageInit()
     if (sz != 0) {
 #line 874 "D:/Bio4/Prog/mes.cpp"
         (pG->pStFnt = mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
-        fontBuf[2] = pG->pStFnt;
+        m_font_addr[2] = pG->pStFnt;
     } else {
         pLog->err(0, 0, "MesCtrl::init() Font file not found.");
     }
@@ -545,8 +545,8 @@ int MessageControl::checkState(u32 b)
 // Per-frame: runs slot 15 (the system/pause message) first, then every active slot 0..15.
 void MessageControl::Move()
 {
-    Message* m = &mes[15];
-    Message* p = &mes[0];
+    Message* m = &m_Msg[15];
+    Message* p = &m_Msg[0];
     int act = 0;
     int i;
 
@@ -571,7 +571,7 @@ void MessageControl::Move()
 // Per-frame draw of every active slot (slot 15 first) while the HUD is on (Disp_flg 0x800).
 void MessageControl::Trans()
 {
-    Message* p = &mes[0];
+    Message* p = &m_Msg[0];
     Message* m;
     int act;
     int i;
@@ -579,7 +579,7 @@ void MessageControl::Trans()
     if (DpfFlagChk(pG, DPF_MESSAGE)) {
         return;
     }
-    m = &mes[15];
+    m = &m_Msg[15];
     act = 0;
     if (m->be_flag & 1) {
         act = 1;
@@ -646,7 +646,7 @@ void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, i
         pLog->err(0, 0, "MesSet(): Font not found", 0);
         return;
     }
-    m = &mes[slot];
+    m = &m_Msg[slot];
     m->init(no, x, y, attr, col, font);
     m->m_scale_w = (f32) m->m_font_w / (f32) font->m_char_w;
     m->m_scale_h = (f32) m->m_font_h / (f32) font->m_char_h;
@@ -667,7 +667,7 @@ void MessageControl::Delete(int no)
         return;
     }
     MES(no)->clrActive();
-    mes[no].flags2 &= ~1;
+    m_Msg[no].m_state &= ~1;
 }
 
 // Requests slot `no` to finish its current wait.
@@ -676,7 +676,7 @@ void MessageControl::WaitEnd(int no)
     if (no > 15) {
         return;
     }
-    mes[no].WaitEnd();
+    m_Msg[no].WaitEnd();
 }
 
 // Resets a slot for message `no`: routine numbers, position, colour, speed (attr 0x40 = 0 frames
@@ -688,7 +688,7 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
 
     m_pFont = fnt;
     be_flag |= 3;
-    flags2 = (flags2 & ~2) | 1;
+    m_state = (m_state & ~2) | 1;
     r_no_3 = 0;
     r_no_2 = 0;
     r_no_1 = 0;
@@ -706,7 +706,7 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
     qp = qbase;
     this->m_attr = attr;
     m_wait_cnt = 0;
-    waitCnt = 0;
+    m_bttn_wait = 0;
     m_sel = 0;
     m_pRetAddr = NULL;
     m_pRetFont = NULL;
@@ -750,7 +750,7 @@ void Message::move()
 
     if (!(be_flag & 2) && (m_attr & 0x80)) {
         be_flag &= ~1;
-        flags2 &= ~1;
+        m_state &= ~1;
     }
     be_flag &= ~2;
     if (Key.trg & 0xC0000000) {
@@ -799,14 +799,14 @@ void Message::WidthCk()
 
     qp = qbase;
     m_pos_y = m_pos0_y;
-    flags2 |= 8;
+    m_state |= 8;
     save = m_pMes;
     m_width_max = 0;
     m_number_width = 0;
     for (i = 15; i >= 0; i--) {
         m_width[i] = 0;
     }
-    while (flags2 & 8) {
+    while (m_state & 8) {
         if (isCtrlCode(*m_pMes)) {
             switch (*m_pMes) {
             case 3:
@@ -817,7 +817,7 @@ void Message::WidthCk()
                 if ((s16) m_width[n] > 0) {
                     n++;
                 }
-                flags2 &= ~8;
+                m_state &= ~8;
                 break;
             case 2:
                 CommandExec();
@@ -835,7 +835,7 @@ void Message::WidthCk()
                 if (CommandExec() != 2) {
                     break;
                 }
-                flags2 &= ~8;
+                m_state &= ~8;
                 // falls through into case 0xF (the original has no break here)
             case 0xF:
                 CommandExec();
@@ -862,7 +862,7 @@ void Message::WidthCk()
             asm("" : "+r"(code));  // COMPILER-DIFF: candidate (combine: the original keeps the call-result copy and `cmpwi` apart, ours fuses them into `mr.`)
             if (code != 0) {
                 s16 w = m_pFont->getSize(code, &l, &r);
-                int a = (s16) ((f32) w * m_scale_w) + charSpace;
+                int a = (s16) ((f32) w * m_scale_w) + m_char_gap;
                 m_width[n] += a;
             } else {
                 m_width[n] += (s16) ((f32) MesData.getSpaceWidth() * m_scale_w);
@@ -915,7 +915,7 @@ void Message::QueSet(int code, MessageFont* fnt)
     }
     w = (s16) ((f32) fnt->getSize(code, &l, &r) * m_scale_w);
     h = (s16) ((f32) (int) fnt->m_char_h * m_scale_h);
-    if (!(flags2 & 8)) {
+    if (!(m_state & 8)) {
         if (qp != NULL) {
             qp->x = m_pos_x;
             qp->y = m_pos_y;
@@ -937,7 +937,7 @@ void Message::QueSet(int code, MessageFont* fnt)
             messageTrans(&q);
         }
     }
-    m_pos_x += w + (s16) charSpace;
+    m_pos_x += w + (s16) m_char_gap;
 }
 
 // Sets the number shown by control code 0x0A (`digits` 0 = as many as needed).
@@ -1218,9 +1218,9 @@ int Message::code01()
         r_no_0++;
         break;
     case 1:
-        flags2 |= 2;
+        m_state |= 2;
         if (!(m_attr & 0x01000000)) {
-            flags2 &= ~1;
+            m_state &= ~1;
             be_flag &= ~1;
             if (!(m_attr & 0x10)) {
                 pG->Stop_flg = stop_bak;
@@ -1332,8 +1332,8 @@ int Message::code08()
         m_btn = 1;
         return 2;
     }
-    if (waitCnt != 0) {
-        waitCnt--;
+    if (m_bttn_wait != 0) {
+        m_bttn_wait--;
         return 2;
     }
     if (m_selTbl_size != 0) {
@@ -1483,7 +1483,7 @@ int Message::code0a()
         fnt = m_pFont;
     }
     w = fnt->getSize(code, &l, &r);
-    a = (s16) ((f32) w * m_scale_w) + charSpace;
+    a = (s16) ((f32) w * m_scale_w) + m_char_gap;
     m_number_width += a;
     QueSet(code, fnt);
     m_number -= d * digit;
@@ -1498,7 +1498,7 @@ int Message::code0a()
                 code = 0xAC;
             }
             w = fnt->getSize(code, &l, &r);
-            a = (s16) ((f32) w * m_scale_w) + charSpace;
+            a = (s16) ((f32) w * m_scale_w) + m_char_gap;
             m_number_width += a;
             QueSet(code, fnt);
         }

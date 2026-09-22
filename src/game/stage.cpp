@@ -375,7 +375,7 @@ void subMissionSt1()
             GetScreenPos(&pos, &scr);
             scr.x = (scr.x - 256.0f) * 1.25f;
             scr.y = (scr.y - 224.0f) * -1.0714285f;
-            u->scr = scr;
+            u->pos0 = scr;
         }
         for (i = 0; i <= 1; i++) {
             switch (i) {

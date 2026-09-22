@@ -140,7 +140,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
     void* mod;
     int skip;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         r120_setTrans(0);
         IdSys.dispSw(IDC_LIFE_METER, 0);
@@ -277,7 +277,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
     int skip;
     int i;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         r120_setTrans(0);
         for (i = 0x17; i <= 0x1A; i++) {

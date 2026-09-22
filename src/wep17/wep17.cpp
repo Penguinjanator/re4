@@ -133,16 +133,16 @@ static void wep17_r2_ready(cPlayer* pl)
         pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
-        if (pl->Wep->knifeStance != 0) {
-            pl->Wep->knifeStance = 0;
+        if (pl->Wep->m_WepUd != 0) {
+            pl->Wep->m_WepUd = 0;
         }
     } else if (Key.on & 2) {
-        if (pl->Wep->knifeStance != 2) {
-            pl->Wep->knifeStance = 2;
+        if (pl->Wep->m_WepUd != 2) {
+            pl->Wep->m_WepUd = 2;
         }
     } else {
-        if (pl->Wep->knifeStance != 1) {
-            pl->Wep->knifeStance = 1;
+        if (pl->Wep->m_WepUd != 1) {
+            pl->Wep->m_WepUd = 1;
         }
     }
     func_tbl[pl->r_no_3](pl);
@@ -708,7 +708,7 @@ static void wep17_r2_reload(cPlayer* pl)
         }
         MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
         MotionMove(pl, 0);
-        pl->Wep->knifeStance = 1;
+        pl->Wep->m_WepUd = 1;
         pl->r_no_3 = 1;
         obj = WEP_OBJ(pl);
         obj->wep.mode = 4;

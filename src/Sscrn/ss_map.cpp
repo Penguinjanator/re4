@@ -462,7 +462,7 @@ int getAreaNo(u32 room)
 void mapInitViewport(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0xFE, IDC_SSCRN_NEAR_0);
-    f32 sx = fabsf(u->sizeX);
+    f32 sx = fabsf(u->size_W);
     f32 sy = fabsf(u->size_H);
     Vec p;
 
@@ -471,16 +471,16 @@ void mapInitViewport(SUB_SCREEN* wk)
     } else {
         sx = sy / 0.75f;
     }
-    wk->pMapWk->cx = u->scr.x;
-    wk->pMapWk->cy = u->scr.y;
-    wk->pMapWk->sw = sx;
-    wk->pMapWk->sh = sy;
-    p.x = u->scr.x;
-    p.y = -u->scr.y;
-    wk->pMapWk->vp.x = p.x - sx * 0.5f + 320.0f;
-    wk->pMapWk->vp.y = (p.y - sy * 0.5f + 240.0f) * 448.0f / 480.0f;
-    wk->pMapWk->vp.w = sx;
-    wk->pMapWk->vp.h = sy * 448.0f / 480.0f;
+    wk->map->cx = u->pos0.x;
+    wk->map->cy = u->pos0.y;
+    wk->map->sw = sx;
+    wk->map->sh = sy;
+    p.x = u->pos0.x;
+    p.y = -u->pos0.y;
+    wk->map->vp.x = p.x - sx * 0.5f + 320.0f;
+    wk->map->vp.y = (p.y - sy * 0.5f + 240.0f) * 448.0f / 480.0f;
+    wk->map->vp.w = sx;
+    wk->map->vp.h = sy * 448.0f / 480.0f;
 }
 
 // Per frame: queues the map viewport before OT 9 (the room models) and the full screen viewport
@@ -497,7 +497,7 @@ void mapChangeViewport(SUB_SCREEN* wk)
         vp.h = Screen.height;
         map_vp_save = vp;
     }
-    AddOtDirect(9, &wk->pMapWk->vp, (void (*)()) setViewport, 0, 0x1000, 0, 0.0f);
+    AddOtDirect(9, &wk->map->vp, (void (*)()) setViewport, 0, 0x1000, 0, 0.0f);
     AddOtDirect(0xC, &map_vp_save, (void (*)()) setViewport, 7, 0x1000, 0, 0.0f);
 }
 
@@ -515,7 +515,7 @@ void stageNameDisp(SUB_SCREEN* wk)
     IdSub.unitPtr(0x31, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
     IdSub.unitPtr(0x32, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
     IdSub.unitPtr(0x33, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
-    switch ((s8) wk->stage) {
+    switch ((s8) wk->stage_no) {
     case 1:
         id = 0x31;
         break;
@@ -549,7 +549,7 @@ void markCharDisp(IdUnit* u, Mtx m)
     dir.z = m[2][2];
     ang = atan2f(dir.x, dir.z);
     if (mapPos2screenPos(&pos, &scr)) {
-        u->scr = scr;
+        u->pos0 = scr;
         u->rot0.z = ang * 180.0f / 3.1415927f + 180.0f;
     }
 }
@@ -571,7 +571,7 @@ void markPlayerDisp(SUB_SCREEN* wk, int sw)
         u->be_flag |= 8;
         u = IdSub.unitPtr(1, IDC_SSCRN_0);
         if (pSUB) {
-            markCharDisp(u, wk->pMapWk->subMapMat);
+            markCharDisp(u, wk->map->subMapMat);
             u->be_flag |= 8;
         }
     }
@@ -581,14 +581,14 @@ void markPlayerDisp(SUB_SCREEN* wk, int sw)
 // parts per possible goal) or the common single mark; its parts positions are the goal candidates.
 void markGoalInit(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     cModel* mdl;
 
     m->pGoal = new (&m->goal) cModel();
     if (mark_model_tbl[m->area][0]) {
-        m->pGoal->modelInit(SS_ARC_PTR(wk->pMapArea, 6), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pGoal->modelInit(SS_ARC_PTR(wk->pMapObj, 6), SS_ARC_PTR(wk->pMapDat, 0x10));
     } else {
-        m->pGoal->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pGoal->modelInit(SS_ARC_PTR(wk->pMapDat, 0xF), SS_ARC_PTR(wk->pMapDat, 0x10));
     }
     mdl = m->pGoal;
     RotMatrix(mdl->l_mat, &mdl->ang);
@@ -605,7 +605,7 @@ void markGoalInit(SUB_SCREEN* wk)
 // Destroys the goal mark model.
 void markGoalQuit(SUB_SCREEN* wk)
 {
-    cModel* mdl = wk->pMapWk->pGoal;
+    cModel* mdl = wk->map->pGoal;
 
     if (mdl) {
         delete mdl;
@@ -629,7 +629,7 @@ int markGoalPosition(SUB_SCREEN* wk, Vec* pos)
     int st4e[1] = {0};
     int st4f[1] = {0};
     int st4g[1] = {0};
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     int* tbl;
     int n;
     int no;
@@ -714,7 +714,7 @@ void markGoalDisp(SUB_SCREEN* wk, int sw)
         u->be_flag &= ~8;
         if (markGoalPosition(wk, &pos)) {
             if (mapPos2screenPos(&pos, &scr)) {
-                u->scr = scr;
+                u->pos0 = scr;
                 u->be_flag |= 8;
             }
         }
@@ -725,14 +725,14 @@ void markGoalDisp(SUB_SCREEN* wk, int sw)
 // merchant positions.
 void markMerchantInit(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     cModel* mdl;
 
     m->pMerchant = new (&m->merchant) cModel();
     if (mark_model_tbl[m->area][1]) {
-        m->pMerchant->modelInit(SS_ARC_PTR(wk->pMapArea, 7), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pMerchant->modelInit(SS_ARC_PTR(wk->pMapObj, 7), SS_ARC_PTR(wk->pMapDat, 0x10));
     } else {
-        m->pMerchant->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pMerchant->modelInit(SS_ARC_PTR(wk->pMapDat, 0xF), SS_ARC_PTR(wk->pMapDat, 0x10));
     }
     mdl = m->pMerchant;
     RotMatrix(mdl->l_mat, &mdl->ang);
@@ -749,7 +749,7 @@ void markMerchantInit(SUB_SCREEN* wk)
 // Destroys the merchant mark model.
 void markMerchantQuit(SUB_SCREEN* wk)
 {
-    cModel* mdl = wk->pMapWk->pMerchant;
+    cModel* mdl = wk->map->pMerchant;
 
     if (mdl) {
         delete mdl;
@@ -764,7 +764,7 @@ int markMerchantPosition(SUB_SCREEN* wk, int no, Vec* pos)
     int st1b[6] = {0x22, 5, 0x0B, 1, 0x19, 2};
     int st1c[6] = {0x22, 6, 0x1C, 4, 0x0B, 3};
     int st1d[2] = {0x0B, 7};
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     cModel* p;
     int ret;
 
@@ -872,7 +872,7 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
         for (i = 0; i < 7; i++) {
             u = IdSub.unitPtr(getMerchantMarkNo(i), IDC_SSCRN_0);
             if (markMerchantPosition(wk, i, &pos[i]) && mapPos2screenPos(&pos[i], &scr)) {
-                u->scr = scr;
+                u->pos0 = scr;
                 u->be_flag |= 8;
             } else {
                 u->be_flag &= ~8;
@@ -884,14 +884,14 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
 // Constructs the treasure mark model (area sub-file 8 or the common mark); nTreasure = its parts.
 void markTreasureInit(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     cModel* mdl;
 
     m->pTreasure = new (&m->treasure) cModel();
     if (mark_model_tbl[m->area][2]) {
-        m->pTreasure->modelInit(SS_ARC_PTR(wk->pMapArea, 8), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pTreasure->modelInit(SS_ARC_PTR(wk->pMapObj, 8), SS_ARC_PTR(wk->pMapDat, 0x10));
     } else {
-        m->pTreasure->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pTreasure->modelInit(SS_ARC_PTR(wk->pMapDat, 0xF), SS_ARC_PTR(wk->pMapDat, 0x10));
     }
     mdl = m->pTreasure;
     RotMatrix(mdl->l_mat, &mdl->ang);
@@ -909,7 +909,7 @@ void markTreasureInit(SUB_SCREEN* wk)
 // Destroys the treasure mark model.
 void markTreasureQuit(SUB_SCREEN* wk)
 {
-    cModel* mdl = wk->pMapWk->pTreasure;
+    cModel* mdl = wk->map->pTreasure;
 
     if (mdl) {
         delete mdl;
@@ -919,7 +919,7 @@ void markTreasureQuit(SUB_SCREEN* wk)
 // Position of treasure mark `no` (parts `no` of the treasure model).
 int markTreasurePosition(SUB_SCREEN* wk, int no, Vec* pos)
 {
-    cModel* p = wk->pMapWk->pTreasure->getPartsPtr(no);
+    cModel* p = wk->map->pTreasure->getPartsPtr(no);
 
     *pos = p->pos;
     return 1;
@@ -939,7 +939,7 @@ int markTreasureExist(int no)
     u8 st4c[12] = {0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52};
     u8 st4d[12] = {0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E};
 
-    switch (SubScreenWk.pMapWk->area) {
+    switch (SubScreenWk.map->area) {
     case 1:
         return FlagChkVar((u32) pG->Item_flg, st1[no]) == 0;
     case 2:
@@ -968,7 +968,7 @@ int markTreasureExist(int no)
 // (i + 0x10) on collected ones, or hides them.
 void markTreasureDisp(SUB_SCREEN* wk, int sw)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     IdUnit* u;
     IdUnit* u2;
 
@@ -989,7 +989,7 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
             if (i < m->nTreasure) {
                 markTreasurePosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
-                    u->scr = scr;
+                    u->pos0 = scr;
                     if (markTreasureExist(i)) {
                         u->be_flag |= 8;
                         u2->be_flag &= ~8;
@@ -1013,14 +1013,14 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
 // mark); nCoin = its parts.
 void markCoinInit(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     cModel* mdl;
 
     m->pCoin = new (&m->coin) cModel();
     if (mark_model_tbl[m->area][3]) {
-        m->pCoin->modelInit(SS_ARC_PTR(wk->pMapArea, 9), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pCoin->modelInit(SS_ARC_PTR(wk->pMapObj, 9), SS_ARC_PTR(wk->pMapDat, 0x10));
     } else {
-        m->pCoin->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pCoin->modelInit(SS_ARC_PTR(wk->pMapDat, 0xF), SS_ARC_PTR(wk->pMapDat, 0x10));
     }
     mdl = m->pCoin;
     RotMatrix(mdl->l_mat, &mdl->ang);
@@ -1038,7 +1038,7 @@ void markCoinInit(SUB_SCREEN* wk)
 // Destroys the medallion mark model.
 void markCoinQuit(SUB_SCREEN* wk)
 {
-    cModel* mdl = wk->pMapWk->pCoin;
+    cModel* mdl = wk->map->pCoin;
 
     if (mdl) {
         delete mdl;
@@ -1048,7 +1048,7 @@ void markCoinQuit(SUB_SCREEN* wk)
 // Position of medallion mark `no`.
 int markCoinPosition(SUB_SCREEN* wk, int no, Vec* pos)
 {
-    cModel* p = wk->pMapWk->pCoin->getPartsPtr(no);
+    cModel* p = wk->map->pCoin->getPartsPtr(no);
 
     *pos = p->pos;
     return 1;
@@ -1064,7 +1064,7 @@ int markCoinExist(int stage, int no)
 // remaining count digits (IdSub 0x14/0x15 of 0x10), or hides them.
 void markCoinDisp(SUB_SCREEN* wk, int sw)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     IdUnit* u;
 
     if (!sw) {
@@ -1087,8 +1087,8 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
             if (i < m->nCoin) {
                 markCoinPosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
-                    u->scr = scr;
-                    if (markCoinExist((s8) wk->stage, i)) {
+                    u->pos0 = scr;
+                    if (markCoinExist((s8) wk->stage_no, i)) {
                         u->be_flag |= 8;
                     } else {
                         u->be_flag &= ~8;
@@ -1108,7 +1108,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
         }
         cnt = 0;
         for (int i = 0; i < m->nCoin; i++) {
-            if (markCoinExist((s8) wk->stage, i)) {
+            if (markCoinExist((s8) wk->stage_no, i)) {
                 cnt++;
             }
         }
@@ -1140,14 +1140,14 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
 // Constructs the typewriter mark model (area sub-file 10 or the common mark); nSave = its parts.
 void markSaveInit(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     cModel* mdl;
 
     m->pSave = new (&m->save) cModel();
     if (mark_model_tbl[m->area][4]) {
-        m->pSave->modelInit(SS_ARC_PTR(wk->pMapArea, 10), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pSave->modelInit(SS_ARC_PTR(wk->pMapObj, 10), SS_ARC_PTR(wk->pMapDat, 0x10));
     } else {
-        m->pSave->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
+        m->pSave->modelInit(SS_ARC_PTR(wk->pMapDat, 0xF), SS_ARC_PTR(wk->pMapDat, 0x10));
     }
     mdl = m->pSave;
     RotMatrix(mdl->l_mat, &mdl->ang);
@@ -1165,7 +1165,7 @@ void markSaveInit(SUB_SCREEN* wk)
 // Destroys the typewriter mark model.
 void markSaveQuit(SUB_SCREEN* wk)
 {
-    cModel* mdl = wk->pMapWk->pSave;
+    cModel* mdl = wk->map->pSave;
 
     if (mdl) {
         delete mdl;
@@ -1175,7 +1175,7 @@ void markSaveQuit(SUB_SCREEN* wk)
 // Position of typewriter mark `no`.
 int markSavePosition(SUB_SCREEN* wk, int no, Vec* pos)
 {
-    cModel* p = wk->pMapWk->pSave->getPartsPtr(no);
+    cModel* p = wk->map->pSave->getPartsPtr(no);
 
     *pos = p->pos;
     return 1;
@@ -1184,7 +1184,7 @@ int markSavePosition(SUB_SCREEN* wk, int no, Vec* pos)
 // Shows (sw) the typewriter marks (IdNum i/0x14) at their positions, or hides them.
 void markSaveDisp(SUB_SCREEN* wk, int sw)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     IdUnit* u;
     int i;
 
@@ -1202,7 +1202,7 @@ void markSaveDisp(SUB_SCREEN* wk, int sw)
             if (i < m->nSave) {
                 markSavePosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
-                    u->scr = scr;
+                    u->pos0 = scr;
                     u->be_flag |= 8;
                     continue;
                 }
@@ -1233,13 +1233,13 @@ int mapPos2screenPos(Vec* pos, Vec* out)
     az = fabsf(out->z);
     h = az * tanf(ang);
     w = h * 1.3333334f;
-    kx = wk->pMapWk->sw * 0.5f / w;
-    ky = wk->pMapWk->sh * 0.5f / h;
+    kx = wk->map->sw * 0.5f / w;
+    ky = wk->map->sh * 0.5f / h;
     out->x = out->x * kx;
     out->y = out->y * ky;
     out->z = out->z * 0.0f;
-    out->x += wk->pMapWk->cx;
-    out->y += wk->pMapWk->cy;
+    out->x += wk->map->cx;
+    out->y += wk->map->cy;
     return 1;
 }
 
@@ -1593,7 +1593,7 @@ cSatHeader* mapHitAddr(MapRoomData* p, int no)
 
 #define MAP_ROOM(no, ofs)                       \
     p->room = no;                               \
-    p->bin = SS_ARC_PTR(wk->pMapArea, ofs);     \
+    p->bin = SS_ARC_PTR(wk->pMapObj, ofs);     \
     p++;
 
 // Room list of the village map (area 0/1): room numbers -> map_obj1.dat sub-files; returns the count.
@@ -1851,7 +1851,7 @@ void mapTblInit(SUB_SCREEN* wk)
 {
     int i;
 
-    switch (wk->pMapWk->area) {
+    switch (wk->map->area) {
     case 0:
     case 1:
         map_room_num = mapDataInit_St1(wk);
@@ -1906,11 +1906,11 @@ void mapTblInit(SUB_SCREEN* wk)
         break;
     }
     wk->map_obj_num = 0;
-    wk->pMapWk->roomIdx = -1;
+    wk->map->roomIdx = -1;
     for (i = 0; i < map_room_num; i++) {
         wk->map_obj_num += mapRoomNum(&map_room[i]);
         if (wk->room_no == map_room[i].room) {
-            wk->pMapWk->roomIdx = i;
+            wk->map->roomIdx = i;
         }
     }
 }
@@ -1977,7 +1977,7 @@ void mapModelInit(SUB_SCREEN* wk)
         for (j = 0; j < n; j++) {
             MapMgr.create(i, no);
             mdl = MapMgr.getWork(no);
-            mdl->modelInit(mapBinAddr(&map_room[i], j), SS_ARC_PTR(wk->pMapCmn, 0xE));
+            mdl->modelInit(mapBinAddr(&map_room[i], j), SS_ARC_PTR(wk->pMapDat, 0xE));
             if (map_room[i].room == 0x10E) {
                 mdl->scale.x = 10.0f;
                 mdl->scale.y = 10.0f;
@@ -1992,19 +1992,19 @@ void mapModelInit(SUB_SCREEN* wk)
             no++;
         }
     }
-    m = wk->pMapWk;
+    m = wk->map;
     if (m->roomIdx == -1) {
         PSMTXIdentity(wk->pl_mat_map);
     } else {
         hitA = mapHitAddr(&map_room[m->roomIdx], 0);
-        hitB = mapHitAddr(&map_room[wk->pMapWk->roomIdx], 1);
-        parts = MapMgr.room(wk->pMapWk->roomIdx, 0)->getPartsPtr(0);
+        hitB = mapHitAddr(&map_room[wk->map->roomIdx], 1);
+        parts = MapMgr.room(wk->map->roomIdx, 0)->getPartsPtr(0);
         mapPositionCheck(hitB, hitA, wk->pl_mat, parts->mat, wk->pl_mat_map,
-                         mapRoomNum(&map_room[wk->pMapWk->roomIdx]) - 1);
+                         mapRoomNum(&map_room[wk->map->roomIdx]) - 1);
         if (pSUB) {
-            parts = MapMgr.room(wk->pMapWk->roomIdx, 0)->getPartsPtr(0);
-            mapPositionCheck(hitB, hitA, wk->sub_mat, parts->mat, wk->pMapWk->subMapMat,
-                             mapRoomNum(&map_room[wk->pMapWk->roomIdx]) - 1);
+            parts = MapMgr.room(wk->map->roomIdx, 0)->getPartsPtr(0);
+            mapPositionCheck(hitB, hitA, wk->sub_mat, parts->mat, wk->map->subMapMat,
+                             mapRoomNum(&map_room[wk->map->roomIdx]) - 1);
         }
     }
     y = wk->pl_mat_map[1][3] / 100.0f;
@@ -2081,21 +2081,21 @@ void doorModelInit(SUB_SCREEN* wk)
     void* tpl;
     void* bin;
 
-    if ((int) wk->pMapArea >= 0) {
-        wk->pMapArea = (SsArc*) ((u8*) wk->pMapArea + (u32) wk->pBuf);
+    if ((int) wk->pMapObj >= 0) {
+        wk->pMapObj = (SsArc*) ((u8*) wk->pMapObj + (u32) wk->pBuf);
     }
-    m = wk->pMapWk;
+    m = wk->map;
     base = (s8) wk->map_obj_num;
     e = map_door_tbl[m->area].p;
     n = map_door_tbl[m->area].n;
     for (i = 0; i < n; i++) {
-        tpl = SS_ARC_PTR(wk->pMapCmn, 0xD);
+        tpl = SS_ARC_PTR(wk->pMapDat, 0xD);
         MapMgr.create(e[i].parts, base + i);
         mdl = MapMgr.getWork(base + i);
         if (e[i].parts == -1) {
-            bin = SS_ARC_PTR(wk->pMapArea, 4);
+            bin = SS_ARC_PTR(wk->pMapObj, 4);
         } else {
-            bin = SS_ARC_PTR(wk->pMapCmn, 0xC);
+            bin = SS_ARC_PTR(wk->pMapDat, 0xC);
         }
         mdl->modelInit(bin, tpl);
         if (e[i].parts == -1) {
@@ -2118,7 +2118,7 @@ void doorModelInit(SUB_SCREEN* wk)
 // colour, locked 0x11, locked with the key item in the inventory 0x12; parts bit 7 skips the entry.
 void doorModelDisp(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     MapDoor* e = map_door_tbl[m->area].p;
     int base = (s8) wk->map_obj_num;
     int n = map_door_tbl[m->area].n;
@@ -2172,9 +2172,9 @@ void doorModelDisp(SUB_SCREEN* wk)
 void mapCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     mapCameraEntire(wk, &cam->param);
-    cam->up.x = 0.0f;
-    cam->up.y = 0.0f;
-    cam->up.z = -1.0f;
+    cam->Up.x = 0.0f;
+    cam->Up.y = 0.0f;
+    cam->Up.z = -1.0f;
     CameraSetOrientationUp(cam);
     wk->Key_disable = 0;
 }
@@ -2185,7 +2185,7 @@ void mapCameraMove(SUB_SCREEN* wk)
 {
     Vec d;
 
-    map_cam_speed = map_cam_speed_base * (pG->Camera.dist / 5000.0f);
+    map_cam_speed = map_cam_speed_base * (pG->Camera.Distance / 5000.0f);
     memclr_asm(&d, sizeof(Vec));
     if (Key.on & 0x0C000000) {
         if (Key.on & 0x08000000) {
@@ -2228,13 +2228,13 @@ void mapCameraMove(SUB_SCREEN* wk)
 // Camera height of the whole-stage view (map_cam_entire of the stage).
 f32 zoomOutLimit()
 {
-    return map_cam_entire[(s8) SubScreenWk.stage].pos.y;
+    return map_cam_entire[(s8) SubScreenWk.stage_no].pos.y;
 }
 
 // Whole-stage camera of the stage into `out`; swaps the "zoom in" / "zoom out" button hints.
 void mapCameraEntire(SUB_SCREEN* wk, CameraParam* out)
 {
-    *out = map_cam_entire[(s8) wk->stage];
+    *out = map_cam_entire[(s8) wk->stage_no];
     IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->be_flag |= 8;
     IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->rev_flag &= 0xF0;
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->rev_flag |= 0xF;
@@ -2304,7 +2304,7 @@ int zoomMove(SsMapWork* m, int max, int cnt)
     PSVECScale(&from->at, &b, s);
     PSVECAdd(&a, &b, &pG->Camera.param.at);
     // pG loads pG separately from the earlier pG loads, so pG is reloaded for the call after the copy
-    pG->Camera.up = up;
+    pG->Camera.Up = up;
     CameraSetOrientationUp(&pG->Camera);
     return t >= 1.0f;
 }
@@ -2374,7 +2374,7 @@ void mapAreaFilename(int area, char* name)
 // SS_OPEN_MAP (type 2, the in-game map key).
 void SsMapInit::init(SUB_SCREEN* wk)
 {
-    if (wk->type == 2) {
+    if (wk->open_flag == 2) {
         state = 2;
     } else {
         state = 0;
@@ -2410,12 +2410,12 @@ void SsMapInit::move(SUB_SCREEN* wk)
     case 2:
         IdSys.dispSw(IDC_LIFE_METER, 0);
         sscrnDataFilename(wk, "ss_map.dat");
-        if (wk->type == 2) {
+        if (wk->open_flag == 2) {
 #line 3250 "D:/Bio4/Prog/ss_map.cpp"
-            map_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x11);
+            map_read_req = DVD_READ_N(wk->filename, wk->pSwitchDat, 0, 0, 0, 0x11);
         } else {
 #line 3253 "D:/Bio4/Prog/ss_map.cpp"
-            map_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
+            map_read_req = DVD_READ_N(wk->filename, wk->pSwitchDat, 0, 0, 0, 0x10);
         }
         if (map_read_req <= 0) {
             break;
@@ -2437,12 +2437,12 @@ void SsMapInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(map_read_req, &result, &size, 0) != 1) {
             break;
         }
-        wk->pMapCmn = wk->pSwitchDat;
-        wk->pMapArea = (SsArc*) ((u8*) wk->pSwitchDat + result);
+        wk->pMapDat = wk->pSwitchDat;
+        wk->pMapObj = (SsArc*) ((u8*) wk->pSwitchDat + result);
         state++;
     }
     case 4:
-        if (wk->type == 2) {
+        if (wk->open_flag == 2) {
             FadeSetW(0x80000000, 5, 0, 0);
         }
         transit(0, wk);
@@ -2476,24 +2476,24 @@ void SsMapMain::init(SUB_SCREEN* wk)
     modeSel->connect(0, entire);
     modeSel->connect(1, read);
     cur = focus;
-    IdTexDataLoad(SS_ARC_PTR(wk->pMapCmn, 4), TEX_OWNER_ID_SSCRN);
+    IdTexDataLoad(SS_ARC_PTR(wk->pMapDat, 4), TEX_OWNER_ID_SSCRN);
     if (!IdSub.setCk(IDC_SSCRN_NEAR_1)) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_NEAR_1, 0xF, 1, 0);
     }
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 5), 0xFF, IDC_SSCRN_FAR_1, 9, 2, 0);
-    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 0xA), 0xFF, IDC_SSCRN_2, 0xC, 6, 0);
-    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 9), 0xFF, IDC_SSCRN_1, 0xC, 6, 0);
-    IdNum.set(SS_ARC_PTR(wk->pMapCmn, 8), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 6), 0xFF, IDC_SSCRN_0, 0xC, 5, 0);
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 7), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 2, 0);
-    IdSub.set(SS_ARC_PTR(wk->pMapCmn, 0xB), 0xFF, IDC_SSCRN_CKPT_1, 0x13, 8, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapDat, 5), 0xFF, IDC_SSCRN_FAR_1, 9, 2, 0);
+    IdNum.set(SS_ARC_PTR(wk->pMapDat, 0xA), 0xFF, IDC_SSCRN_2, 0xC, 6, 0);
+    IdNum.set(SS_ARC_PTR(wk->pMapDat, 9), 0xFF, IDC_SSCRN_1, 0xC, 6, 0);
+    IdNum.set(SS_ARC_PTR(wk->pMapDat, 8), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapDat, 6), 0xFF, IDC_SSCRN_0, 0xC, 5, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapDat, 7), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pMapDat, 0xB), 0xFF, IDC_SSCRN_CKPT_1, 0x13, 8, 0);
     IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->rev_flag |= 0xF;
     IdSub.unitPtr(0x10, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
     IdSub.unitPtr(0, IDC_SSCRN_NEAR_0)->be_flag &= ~8;
     IdSub.unitPtr(0, IDC_SSCRN_NEAR_0)->rev_flag |= 0xF;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x13));
 #line 3409 "D:/Bio4/Prog/ss_map.cpp"
-    wk->pMapWk = (SsMapWork*) MEM_ALLOC(sizeof(SsMapWork), 1, 0xD);
+    wk->map = (SsMapWork*) MEM_ALLOC(sizeof(SsMapWork), 1, 0xD);
     mapInitViewport(wk);
     mapCameraInit(wk, &pG->Camera);
     IdSub.unitPtr(1, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
@@ -2515,7 +2515,7 @@ void SsMapMain::init(SUB_SCREEN* wk)
     markTreasureDisp(wk, 0);
     markCoinDisp(wk, 0);
     markSaveDisp(wk, 0);
-    wk->pMapWk->area = getAreaNo(wk->room_no);
+    wk->map->area = getAreaNo(wk->room_no);
     state = 2;
     step = 0;
     SndCall(0, 0x1E, 0, 0, 0, 0);
@@ -2524,7 +2524,7 @@ void SsMapMain::init(SUB_SCREEN* wk)
 // Mark availability of the area (the mode menu entries).
 int scf_check_merchant()
 {
-    SsMapWork* m = SubScreenWk.pMapWk;
+    SsMapWork* m = SubScreenWk.map;
 
     if (m->area == 1) {
         if (ScfFlagChk(pG, SCF_R104_MEET_MERCHANT)) {
@@ -2539,7 +2539,7 @@ int scf_check_merchant()
 // (0xA9 village, 0x54 castle, 0x55 island).
 int scf_check_treasure()
 {
-    int area = SubScreenWk.pMapWk->area;
+    int area = SubScreenWk.map->area;
 
     switch (area) {
     case 1:
@@ -2572,7 +2572,7 @@ int scf_check_treasure()
 // (item 0xB0) or the mission started (Scenario_flg bit 22).
 int scf_check_submission()
 {
-    SsMapWork* m = SubScreenWk.pMapWk;
+    SsMapWork* m = SubScreenWk.map;
 
     if (m->area == 1) {
         if (ItemMgr.num(0xB0) != 0 || (ScfFlagChk(pG, SCF_CONTACT_MERCHANT))) {
@@ -2586,7 +2586,7 @@ int scf_check_submission()
 // Typewriter marks are shown when the area has them (mark_model_tbl column 4).
 int scf_check_typewriter()
 {
-    return mark_model_tbl[SubScreenWk.pMapWk->area][4];
+    return mark_model_tbl[SubScreenWk.map->area][4];
 }
 
 // Map screen frame. state 0 runs the zoom widget chain (in MapRead: Y / B-or-Z on the in-game map
@@ -2603,7 +2603,7 @@ void SsMapMain::move(SUB_SCREEN* wk)
         w->move(wk);
         cur = w->cur;
         if (cur == read) {
-            if (wk->type == 2) {
+            if (wk->open_flag == 2) {
                 if (Key.trg & 0x40200000) {
                     wk->close_flag |= 4;
                     transit(4, wk);
@@ -2655,9 +2655,9 @@ void SsMapMain::move(SUB_SCREEN* wk)
         char name[64];
 
         stageNameDisp(wk);
-        mapAreaFilename(wk->pMapWk->area, name);
+        mapAreaFilename(wk->map->area, name);
 #line 3637 "D:/Bio4/Prog/ss_map.cpp"
-        readReq = DVD_READ_N(name, wk->pMapArea, 0, 0, 0, 0x10);
+        readReq = DVD_READ_N(name, wk->pMapObj, 0, 0, 0, 0x10);
         if (readReq <= 0) {
             break;
         }
@@ -2736,7 +2736,7 @@ void SsMapMain::quit(SUB_SCREEN* wk)
     markTreasureQuit(wk);
     markCoinQuit(wk);
     markSaveQuit(wk);
-    Mem_free(wk->pMapWk);
+    Mem_free(wk->map);
     wk->close_flag |= 4;
     sscrn_map_out_init(wk);
     wk->scrn_out_func = sscrn_map_out;
@@ -2766,7 +2766,7 @@ static int sscrn_map_out(SUB_SCREEN* wk)
         IdSub.kill(0xFF, IDC_SSCRN_0);
         IdNumErase();
     }
-    if (u->end & 1) {
+    if (u->anima_state & 1) {
         return 1;
     }
     return 0;
@@ -2775,10 +2775,10 @@ static int sscrn_map_out(SUB_SCREEN* wk)
 // First widget: starts the zoom from the current camera to the player/goal view (MapZoomIn).
 void MapFocus::move(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
 
     m->from = pG->Camera.param;
-    mapCameraZoomIn(wk, &wk->pMapWk->to);
+    mapCameraZoomIn(wk, &wk->map->to);
     transit(0, wk);
 }
 
@@ -2787,13 +2787,13 @@ void MapFocus::move(SUB_SCREEN* wk)
 void MapEntire::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0xC0000000) {
-        SsMapWork* m = wk->pMapWk;
+        SsMapWork* m = wk->map;
 
         m->from = pG->Camera.param;
-        mapCameraZoomIn(wk, &wk->pMapWk->to);
+        mapCameraZoomIn(wk, &wk->map->to);
         transit(0, wk);
     } else if (Key.trg & 0x00020000) {
-        wk->pMapWk->modeSel = 0;
+        wk->map->modeSel = 0;
         transit(1, wk);
     }
 }
@@ -2809,13 +2809,13 @@ void MapZoomIn::init(SUB_SCREEN* wk)
 void MapZoomIn::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0x80000000) {
-        SsMapWork* m = wk->pMapWk;
+        SsMapWork* m = wk->map;
 
         m->from = pG->Camera.param;
-        mapCameraEntire(wk, &wk->pMapWk->to);
+        mapCameraEntire(wk, &wk->map->to);
         transit(1, wk);
     } else {
-        if (zoomMove(wk->pMapWk, 10, count++)) {
+        if (zoomMove(wk->map, 10, count++)) {
             transit(0, wk);
         }
     }
@@ -2832,13 +2832,13 @@ void MapZoomOut::init(SUB_SCREEN* wk)
 void MapZoomOut::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0x40000000) {
-        SsMapWork* m = wk->pMapWk;
+        SsMapWork* m = wk->map;
 
         m->from = pG->Camera.param;
-        mapCameraZoomIn(wk, &wk->pMapWk->to);
+        mapCameraZoomIn(wk, &wk->map->to);
         transit(1, wk);
     } else {
-        if (zoomMove(wk->pMapWk, 10, count++)) {
+        if (zoomMove(wk->map, 10, count++)) {
             transit(0, wk);
         }
     }
@@ -2849,13 +2849,13 @@ void MapZoomOut::move(SUB_SCREEN* wk)
 void MapRead::move(SUB_SCREEN* wk)
 {
     if (Key.trg & 0x80000000) {
-        SsMapWork* m = wk->pMapWk;
+        SsMapWork* m = wk->map;
 
         m->from = pG->Camera.param;
-        mapCameraEntire(wk, &wk->pMapWk->to);
+        mapCameraEntire(wk, &wk->map->to);
         transit(1, wk);
     } else if (Key.trg & 0x00020000) {
-        wk->pMapWk->modeSel = 1;
+        wk->map->modeSel = 1;
         transit(2, wk);
     } else {
         mapCameraMove(wk);
@@ -2867,7 +2867,7 @@ void MapRead::move(SUB_SCREEN* wk)
 // without item 0xA9, medallions without 0xB0 / the mission), swaps the button hints.
 void MapModeSelect::init(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     IdUnit* u;
     IdUnit* u2;
 
@@ -2876,7 +2876,7 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     m->modeCursor = 0;
     u = IdSub.unitPtr(0x20, IDC_SSCRN_NEAR_0);
     u2 = IdSub.unitPtr(0x60, IDC_SSCRN_NEAR_0);
-    u->scr = u2->scr;
+    u->pos0 = u2->pos0;
     u->timer[3] = 0;
     u->timer[2] = 0;
     u->timer[1] = 0;
@@ -2929,7 +2929,7 @@ void mapModeChange(SUB_SCREEN* wk, s8 no)
 // 0x50.. shown for enabled kinds).
 void MapModeSelect::move(SUB_SCREEN* wk)
 {
-    SsMapWork* m = wk->pMapWk;
+    SsMapWork* m = wk->map;
     IdUnit* u;
 
     if (Key.trg & 0x40020000) {
@@ -2995,7 +2995,7 @@ void MapModeSelect::move(SUB_SCREEN* wk)
 
             u = IdSub.unitPtr(0x20, IDC_SSCRN_NEAR_0);
             u2 = IdSub.unitPtr(0x60 + m->modeCursor, IDC_SSCRN_NEAR_0);
-            u->scr = u2->scr;
+            u->pos0 = u2->pos0;
             u->timer[3] = 0;
             u->timer[2] = 0;
             u->timer[1] = 0;

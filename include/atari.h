@@ -84,7 +84,7 @@ public:
     u16 m_nSlope;          // 0x1A  group B
     u16 m_nWall;          // 0x1C  group C (walls: flag 0x80 checks [n0 + n1, n0 + n1 + n2))
     u16 m_Flag;        // 0x1E  bit0: `idx` holds a child cSatBlock
-    cSatBlock* next; // 0x20
+    cSatBlock* m_pList; // 0x20
     u16 idx[0];      // 0x24  polygon indices
 
     int lineOverlap(Vec* p, Vec* dir, Vec* absDir);
@@ -108,7 +108,7 @@ public:
     u16 normal_num;     // 0x28
     s8 m_Flag;        // 0x2A  bit1: pFile was allocated by cSatMgr::create (freed by destroy), bit2: piece takes part in the collision checks (signed: `&= ~4` is a word rlwinm)
     u8 pad_2B;
-    u16 nEdge;       // 0x2C
+    u16 edge_num;       // 0x2C
     u8 pad_2E[2];
     cSatBlock* block_p;  // 0x30  root block
     u8 pad_34[0x58 - 0x34];
@@ -146,7 +146,7 @@ inline int cSat::isAlive()
 // Scenario collision manager (game/atari.cpp; SatMgr is the room, EatMgr the effect set).
 class cSatMgr : public cManager<cSat> {
 public:
-    int seCk;        // 0x34  copied to SEck (at_sub attribute filter bypass) by every hitCheck2
+    int type;        // 0x34  copied to SEck (at_sub attribute filter bypass) by every hitCheck2
 
     cSatMgr();
 #line 381 "D:/Bio4/Prog/atari.h"
@@ -203,7 +203,7 @@ enum EAT_EFFECT_TYPE {
 class cEatMgr : public cSatMgr {
 public:
     AtEffInfo effInfo[8];  // 0x38  per effect type hit effect ids
-    u8 effOn[8];           // 0x258  effInfo[i] registered
+    u8 useFlag[8];           // 0x258  effInfo[i] registered
 
     cEatMgr();
     virtual void log(const char* fmt, ...);

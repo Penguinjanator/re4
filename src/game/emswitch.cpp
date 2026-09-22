@@ -39,7 +39,7 @@ static void emSwitchDmCk(cEmSwitch* em)
     }
     em->dmg.m_Flag = 0;
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     wep = em->dmg.m_Wep;

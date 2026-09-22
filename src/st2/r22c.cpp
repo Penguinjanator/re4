@@ -1935,7 +1935,7 @@ void ScoreSet(int pt, Vec* pos)
     GetScreenPos(&v, &scr);
     scr.x = (scr.x - 256.0f) * 1.25f;
     scr.y = (scr.y - 224.0f) * -1.0714285f;
-    u->scr = scr;
+    u->pos0 = scr;
     if (pt < 0) {
         IdUnit* m;
 

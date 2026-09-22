@@ -135,7 +135,7 @@ public:
     void* pFrame;    // 0x10
     void* pLoadDat;  // 0x14  load frame
     void* pBg;       // 0x18  message background
-    s32 action;      // 0x1C  1 up, 2 down, 4 decided, 8 moving
+    s32 m_act_flag;      // 0x1C  1 up, 2 down, 4 decided, 8 moving
     IDSystem m_IdSave;  // 0x20
     s32 m_mode;        // 0x70
     s8 rno0;        // 0x74
@@ -275,8 +275,8 @@ void cCard::slotSelect()
     case 0:
         if (unmount(0) == 1) {
             for (i = 0; i < 20; i++) {
-                slotw[0].fileFlag[i] = 0;
-                slotw[2].fileFlag[i] = 0;
+                m_Slot[0].fileFlag[i] = 0;
+                m_Slot[2].fileFlag[i] = 0;
             }
             m_Rno1++;
         }
@@ -332,7 +332,7 @@ void cCard::inSlotCheck()
         }
         break;
     case 1:
-        ret = existCheck(m_SlotNo, &slotw[m_SlotNo]);
+        ret = existCheck(m_SlotNo, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -341,7 +341,7 @@ void cCard::inSlotCheck()
         }
         break;
     case 2:
-        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
+        ret = mount(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -350,7 +350,7 @@ void cCard::inSlotCheck()
         }
         break;
     case 3:
-        ret = verifyCheck(&m_Rno2, &slotw[m_SlotNo]);
+        ret = verifyCheck(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -362,22 +362,22 @@ void cCard::inSlotCheck()
         }
         break;
     case 4:
-        if (saveFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+        if (saveFileCheck(&m_Rno2, &m_Slot[m_SlotNo]) == 1) {
             m_Rno1++;
         }
         break;
     case 5:
-        if (systemFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+        if (systemFileCheck(&m_Rno2, &m_Slot[m_SlotNo]) == 1) {
             m_Rno1++;
         }
         break;
     case 6:
-        ret = freeCheck(&m_Rno2, &slotw[m_SlotNo]);
+        ret = freeCheck(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
         } else if (ret < 0) {
-            if (type == 2) {
+            if (m_aMode == 2) {
                 errorSet(m_ResultCode);
             } else {
                 m_Rno1++;
@@ -386,7 +386,7 @@ void cCard::inSlotCheck()
         break;
     case 7:
         if (m_SlotNo != 2) {
-            ret = CARDGetSerialNo(m_SlotNo, &slotw[m_SlotNo].serial);
+            ret = CARDGetSerialNo(m_SlotNo, &m_Slot[m_SlotNo].serial);
             if (ret == -1) {
                 break;
             }
@@ -414,7 +414,7 @@ void cCard::inSlotCheck()
         }
         break;
     case 8:
-        s = &slotw[m_SlotNo];
+        s = &m_Slot[m_SlotNo];
         if (s->flags & 0x200) {
                         m_Rno0 = 8;
             m_Rno1 = 0;
@@ -451,17 +451,17 @@ void cCard::dataSelect()
             errorSet(-3);
             return;
         }
-        eprintf(32, 300, 0, 0, "Card    : %2dMbit", slotw[m_SlotNo].memSize);
-        eprintf(32, 320, 0, 0, "Sector  : 0x%x", slotw[m_SlotNo].sectorSize);
-        eprintf(32, 340, 0, 0, "F size  : %d", slotw[m_SlotNo].freeBytes);
-        eprintf(32, 360, 0, 0, "F entry : %d", slotw[m_SlotNo].freeFiles);
-        eprintf(32, 380, 0, 0, "F block : %d", FREE_BLOCKS(slotw[m_SlotNo]));
+        eprintf(32, 300, 0, 0, "Card    : %2dMbit", m_Slot[m_SlotNo].memSize);
+        eprintf(32, 320, 0, 0, "Sector  : 0x%x", m_Slot[m_SlotNo].sectorSize);
+        eprintf(32, 340, 0, 0, "F size  : %d", m_Slot[m_SlotNo].freeBytes);
+        eprintf(32, 360, 0, 0, "F entry : %d", m_Slot[m_SlotNo].freeFiles);
+        eprintf(32, 380, 0, 0, "F block : %d", FREE_BLOCKS(m_Slot[m_SlotNo]));
     }
-    if (slotw[m_SlotNo].fileFlag[m_SaveNo] & 1) {
-        info = (SaveInfo*) pInfo[m_SaveNo];
+    if (m_Slot[m_SlotNo].fileFlag[m_SaveNo] & 1) {
+        info = (SaveInfo*) m_pSaveInfo[m_SaveNo];
         if (info->magic != 0x116) {
             eprintf2(12, 16, 220, 380, 0, 0, "DATA IS CORRUPTED");
-            slotw[m_SlotNo].fileFlag[m_SaveNo] |= 2;
+            m_Slot[m_SlotNo].fileFlag[m_SaveNo] |= 2;
         } else {
             eprintf2(12, 16, 220, 380, 0, 0, "R%03X", info->room);
             eprintf2(12, 16, 220, 400, 0, 0, "%02d/%02d/%02d %02d:%02d:%02d", info->time.year % 100, info->time.mon + 1,
@@ -473,13 +473,13 @@ void cCard::dataSelect()
 
     switch (m_Rno1) {
     case 0: {
-        if (pG->card_serial == slotw[m_SlotNo].serial) {
+        if (pG->card_serial == m_Slot[m_SlotNo].serial) {
             m_SaveNo = pG->CardLastSelNo;
         } else {
             int found = 0;
             u32 n;
             for (n = 0; n < 20; n++) {
-                if (slotw[m_SlotNo].fileFlag[n] & 1) {
+                if (m_Slot[m_SlotNo].fileFlag[n] & 1) {
                     m_SaveNo = n;
                     found = 1;
                     break;
@@ -490,9 +490,9 @@ void cCard::dataSelect()
             } else {
                 n = m_SaveNo + 1;
                 while (n <= 19) {
-                    if (slotw[m_SlotNo].fileFlag[n] & 1) {
-                        info = (SaveInfo*) pInfo[m_SaveNo];
-                        if (OSCalendarTimeToTicks(&((SaveInfo*) pInfo[n])->time) > OSCalendarTimeToTicks(&info->time)) {
+                    if (m_Slot[m_SlotNo].fileFlag[n] & 1) {
+                        info = (SaveInfo*) m_pSaveInfo[m_SaveNo];
+                        if (OSCalendarTimeToTicks(&((SaveInfo*) m_pSaveInfo[n])->time) > OSCalendarTimeToTicks(&info->time)) {
                             m_SaveNo = n;
                             n = m_SaveNo + 1;
                             continue;
@@ -509,7 +509,7 @@ void cCard::dataSelect()
     }
         // fallthrough
     case 1:
-        if (g_id->action != 0) {
+        if (g_id->m_act_flag != 0) {
             break;
         }
         if (Key.rep & (KEY_UP | KEY_DOWN)) {
@@ -541,10 +541,10 @@ void cCard::dataSelect()
         break;
     case 2: {
         int blocks;
-        s = &slotw[m_SlotNo];
+        s = &m_Slot[m_SlotNo];
         blocks = FREE_BLOCKS(*s);
         if (s->fileFlag[m_SaveNo] != 0) {
-            if (type == 1) {
+            if (m_aMode == 1) {
                 m_Rno1 = 3;
                 if (m_SlotNo == 2) {
                     break;
@@ -564,7 +564,7 @@ void cCard::dataSelect()
                 }
             }
         } else {
-            if (type == 1) {
+            if (m_aMode == 1) {
                 if (m_SlotNo == 2) {
                     m_Rno1 = 4;
                     break;
@@ -588,30 +588,30 @@ void cCard::dataSelect()
     case 3:
         setMsgWindow(1, 1);
         cardMesSet(MES_OVERWRITE_CONFIRM, 0, 0);
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1 = 6;
         break;
     case 4:
         setMsgWindow(1, 1);
         cardMesSet(MES_SAVEFILE_CONFIRM, 0, 0);
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1 = 6;
         break;
     case 5:
         setMsgWindow(1, 1);
         cardMesSet(MES_LOADFILE_CONFIRM, 0, 0);
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1 = 6;
         break;
     case 6:
         if (Key.trg & KEY_B) {
             sel = 2;
         } else {
-            sel = cMes.mes[0].m_sel;
+            sel = cMes.m_Msg[0].m_sel;
         }
         switch (sel) {
         case 1:
-            if (type == 0) {
+            if (m_aMode == 0) {
                 CoreSeCall(0x38, 0, 0, 0, 0);
             } else {
                 CoreSeCall(4, 0, 0, 0, 0);
@@ -623,7 +623,7 @@ void cCard::dataSelect()
             m_Rno3 = 0;
 /*/BF*/
             pG->CardLastSelNo = m_SaveNo;
-            pG->card_serial = slotw[m_SlotNo].serial;
+            pG->card_serial = m_Slot[m_SlotNo].serial;
             deleteAllMes();
             break;
         case 2:
@@ -648,12 +648,12 @@ void cCard::loadMain()
     int ret;
 
     if (m_SlotNo == 2) {
-        sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
+        sprintf(m_Name, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
     } else {
-        sprintf(fileName, "bh4_data%02d", m_SaveNo);
+        sprintf(m_Name, "bh4_data%02d", m_SaveNo);
     }
-    name = fileName;
-    if (slotw[m_SlotNo].fileFlag[m_SaveNo] & 4) {
+    name = m_Name;
+    if (m_Slot[m_SlotNo].fileFlag[m_SaveNo] & 4) {
         errorSet(-0x202);
         return;
     }
@@ -670,7 +670,7 @@ void cCard::loadMain()
         m_Rno1++;
         // fallthrough
     case 1:
-        ret = fileOpen(&slotw[m_SlotNo]);
+        ret = fileOpen(&m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -693,7 +693,7 @@ void cCard::loadMain()
             }
             m_Rno1++;
         } else {
-            ret = fileRead(&m_Rno2, pSaveBuf, m_SaveSize << 13, 0, &slotw[m_SlotNo]);
+            ret = fileRead(&m_Rno2, pSaveBuf, m_SaveSize << 13, 0, &m_Slot[m_SlotNo]);
             if (ret == 0) {
             } else if (ret > 0) {
                 m_Rno1++;
@@ -705,7 +705,7 @@ void cCard::loadMain()
     case 3:
         if (CRCVerify(pSaveBuf, SAVE_CRC, *(u32*) (pSaveBuf + SAVE_CRC)) == 0) {
             if (m_RetryCtr == 3) {
-                slotw[m_SlotNo].fileFlag[m_SaveNo] |= 2;
+                m_Slot[m_SlotNo].fileFlag[m_SaveNo] |= 2;
                 errorSet(-0x202);
             } else {
                 m_Rno1 = 2;
@@ -720,7 +720,7 @@ void cCard::loadMain()
         }
         break;
     case 4:
-        ret = fileClose(&slotw[m_SlotNo]);
+        ret = fileClose(&m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -857,16 +857,16 @@ void cCard::saveMain()
     int ret;
 
     if (m_Rno0 == 3) {
-        isSystem = 0;
+        m_mMode = 0;
     } else {
-        isSystem = 1;
+        m_mMode = 1;
     }
-    if (isSystem == 0) {
+    if (m_mMode == 0) {
         if (m_SlotNo == 2) {
-            name = fileName;
+            name = m_Name;
             sprintf(name, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
         } else {
-            name = fileName;
+            name = m_Name;
             sprintf(name, "bh4_data%02d", m_SaveNo);
         }
         blocks = m_SaveSize;
@@ -875,10 +875,10 @@ void cCard::saveMain()
         nextMode = 8;
     } else {
         if (m_SlotNo == 2) {
-            name = fileName;
+            name = m_Name;
             sprintf(name, "d:\\bio4/room/sysdata.dat");
         } else {
-            name = fileName;
+            name = m_Name;
             sprintf(name, "bh4_system");
         }
         blocks = m_SysSize;
@@ -891,7 +891,7 @@ void cCard::saveMain()
     case 0:
         setMsgWindow(1, 1);
         SysFlagOn(pG, SYS_CARD_ACCESS);
-        if (isSystem == 0) {
+        if (m_mMode == 0) {
             cardMesSet(MES_SAVING, 0, 0);
             m_Rno1 = 2;
             if (m_SlotNo == 2) {
@@ -925,7 +925,7 @@ void cCard::saveMain()
         }
         break;
     case 2:
-        ret = fileOpen(&slotw[m_SlotNo]);
+        ret = fileOpen(&m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             if (m_ResultCode == 0) {
@@ -940,7 +940,7 @@ void cCard::saveMain()
         }
         break;
     case 3:
-        ret = fileCreate(&m_Rno2, blocks, &slotw[m_SlotNo]);
+        ret = fileCreate(&m_Rno2, blocks, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno2 = 0;
@@ -955,7 +955,7 @@ void cCard::saveMain()
         }
         break;
     case 4:
-        ret = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
+        ret = CARDGetStatus(m_SlotNo, m_Slot[m_SlotNo].fileInfo.fileNo, &m_Slot[m_SlotNo].stat);
         if (ret == -1) {
             break;
         }
@@ -967,9 +967,9 @@ void cCard::saveMain()
         break;
     case 5:
         (this->*makeFunc)();
-        if (isSystem == 0) {
-            slotw[m_SlotNo].fileFlag[m_SaveNo] = 1;
-            memcpy(pInfo[m_SaveNo], pSaveBuf + 0x2000, 0x200);
+        if (m_mMode == 0) {
+            m_Slot[m_SlotNo].fileFlag[m_SaveNo] = 1;
+            memcpy(m_pSaveInfo[m_SaveNo], pSaveBuf + 0x2000, 0x200);
             g_id->setAction(4);
             m_Status &= ~1;
         }
@@ -1009,7 +1009,7 @@ void cCard::saveMain()
             m_Rno2 = 0;
             m_Rno3 = 0;
         } else {
-            ret = fileWrite(&m_Rno2, buf, blocks, &slotw[m_SlotNo]);
+            ret = fileWrite(&m_Rno2, buf, blocks, &m_Slot[m_SlotNo]);
             if (ret == 0) {
             } else if (ret > 0) {
                 m_Rno1++;
@@ -1023,8 +1023,8 @@ void cCard::saveMain()
         }
         break;
     case 7:
-        makeCardStatus(&slotw[m_SlotNo]);
-        CARDSetStatusAsync(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat, 0);
+        makeCardStatus(&m_Slot[m_SlotNo]);
+        CARDSetStatusAsync(m_SlotNo, m_Slot[m_SlotNo].fileInfo.fileNo, &m_Slot[m_SlotNo].stat, 0);
         m_Rno1++;
         // fallthrough
     case 8:
@@ -1043,7 +1043,7 @@ void cCard::saveMain()
         }
         break;
     case 9:
-        ret = fileClose(&slotw[m_SlotNo]);
+        ret = fileClose(&m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             if (m_Rno0 == 3) {
@@ -1111,7 +1111,7 @@ void cCard::exit()
         break;
     case 1:
         deleteAllMes();
-        if (type == 2) {
+        if (m_aMode == 2) {
             pG->CardStatus |= 0x80000000;
             systemVISetBlack(1);
             workDestroy();
@@ -1140,15 +1140,15 @@ void cCard::exit()
             pG->Disp_flg = m_DPFbak;
             SndStrReq(m_SndId, 4, 200, 0);
             ScreenReSizeI(m_Width_bak, 448);
-            if (type != 0 || !(pG->CardStatus & 4)) {
+            if (m_aMode != 0 || !(pG->CardStatus & 4)) {
                 if (!(pG->CardStatus & 0x10)) {
                     c0 = 0xFF;
                     c1 = 0;
                     FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
                 }
                 for (i = 0; i < 4; i++) {
-                    if (str[i].id != 0 && SndStrStatusCk(str[i].id, 0x10) != 0) {
-                        SndStrReq(str[i].id, 4, 100, str[i].vol);
+                    if (m_StrInfo[i].id != 0 && SndStrStatusCk(m_StrInfo[i].id, 0x10) != 0) {
+                        SndStrReq(m_StrInfo[i].id, 4, 100, m_StrInfo[i].vol);
                     }
                 }
                 SndSePauseAll(0);
@@ -1165,8 +1165,8 @@ void cCard::exit()
 // Frees the CARD work areas and the save / system / info buffers.
 void cCard::workDestroy()
 {
-    if (slotw[0].workArea) {
-        Mem_free(slotw[0].workArea);
+    if (m_Slot[0].workArea) {
+        Mem_free(m_Slot[0].workArea);
     }
     if (pSaveBuf) {
         Mem_free(pSaveBuf);
@@ -1194,16 +1194,16 @@ void cCard::format()
     ret = CARDProbeEx(m_SlotNo, 0, 0);
     switch (m_Rno1) {
     case 0:
-        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
+        ret = mount(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno1 = 3;
             } else {
                 m_Rno1++;
             }
         } else if (ret < 0) {
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
                 m_Rno1 = 0;
                 m_Rno2 = 0;
@@ -1216,7 +1216,7 @@ void cCard::format()
     case 1:
         setMsgWindow(0, 1);
         cardMesSet(MES_NEED_FORMAT, 0, 0x800000);
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1++;
         // fallthrough
     case 2:
@@ -1224,7 +1224,7 @@ void cCard::format()
             noCard = 1;
             break;
         }
-        sel = cMes.mes[0].m_sel;
+        sel = cMes.m_Msg[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
@@ -1241,7 +1241,7 @@ void cCard::format()
         break;
     case 3:
         cardMesSet(MES_FORMAT_CONFIRM, 0, 0x800000);
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1++;
         // fallthrough
     case 4:
@@ -1249,7 +1249,7 @@ void cCard::format()
             noCard = 1;
             break;
         }
-        sel = cMes.mes[0].m_sel;
+        sel = cMes.m_Msg[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
@@ -1277,7 +1277,7 @@ void cCard::format()
             m_Rno1++;
             break;
         case -3:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
                 m_Rno1 = 0;
                 m_Rno2 = 0;
@@ -1302,7 +1302,7 @@ void cCard::format()
         }
         if (Key.trg & KEY_A) {
             deleteAllMes();
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
             } else {
                 m_Rno0 = 0;
@@ -1315,7 +1315,7 @@ void cCard::format()
         break;
     }
     if (noCard == 1) {
-        if (type == 2) {
+        if (m_aMode == 2) {
             m_Rno0 = 0;
             m_Rno1 = 0;
             m_Rno2 = 0;
@@ -1335,20 +1335,20 @@ void cCard::fileDelete()
 
     switch (m_Rno1) {
     case 0:
-        if (type == 2) {
+        if (m_aMode == 2) {
             cardMesSet(MES_SYS_DELETE, 0, 0x800000);
-            sprintf(fileName, "bh4_system");
+            sprintf(m_Name, "bh4_system");
         } else {
             setMsgWindow(0, 1);
             cardMesSet(MES_DATA_DELETE, 0, 0x800000);
-            sprintf(fileName, "bh4_data%02d", m_SaveNo);
+            sprintf(m_Name, "bh4_data%02d", m_SaveNo);
         }
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1++;
         // fallthrough
     case 1:
         if (CARDProbeEx(m_SlotNo, 0, 0) == -3) {
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
                 m_Rno1 = 0;
                 m_Rno2 = 0;
@@ -1358,13 +1358,13 @@ void cCard::fileDelete()
             }
             break;
         }
-        sel = cMes.mes[0].m_sel;
+        sel = cMes.m_Msg[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
             m_Timer = 0;
             m_Rno1++;
-            CARDDeleteAsync(m_SlotNo, fileName, 0);
+            CARDDeleteAsync(m_SlotNo, m_Name, 0);
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
@@ -1386,7 +1386,7 @@ void cCard::fileDelete()
             m_Rno1++;
             break;
         case -3:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
                 m_Rno1 = 0;
                 m_Rno2 = 0;
@@ -1401,13 +1401,13 @@ void cCard::fileDelete()
         }
         break;
     case 3:
-        if (type != 2) {
-            slotw[m_SlotNo].fileFlag[m_SaveNo] &= ~1;
+        if (m_aMode != 2) {
+            m_Slot[m_SlotNo].fileFlag[m_SaveNo] &= ~1;
         }
         cardMesSet(MES_DELETE_DONE, 0, 0);
         if (Key.trg & KEY_A) {
             deleteAllMes();
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
             } else {
                 m_Rno0 = 0;
@@ -1441,7 +1441,7 @@ void cCard::errorDisp()
         cardcheck = 1;
         switch (m_ErrCode) {
         case -3:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 mesNo = MES_NO_CARD_START;
             } else {
                 setMsgWindow(0, 1);
@@ -1449,7 +1449,7 @@ void cCard::errorDisp()
             }
             break;
         case -2:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 mesNo = MES_WRONG_DEVICE_START;
             } else {
                 setMsgWindow(0, 1);
@@ -1458,7 +1458,7 @@ void cCard::errorDisp()
             break;
         case -0x80:
         case -5:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 mesNo = MES_CARD_BROKEN_START;
             } else {
                 setMsgWindow(0, 1);
@@ -1467,7 +1467,7 @@ void cCard::errorDisp()
             break;
         case -6:
             if (formatted == 1) {
-                if (type == 2) {
+                if (m_aMode == 2) {
                     mesNo = MES_CARD_BROKEN_START;
                 } else {
                     setMsgWindow(0, 1);
@@ -1477,7 +1477,7 @@ void cCard::errorDisp()
             }
             // fallthrough
         case -0xD:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 mesNo = MES_NEED_FORMAT_START;
             } else {
                 m_Rno0 = 6;
@@ -1492,7 +1492,7 @@ void cCard::errorDisp()
             break;
         case -0x201:
             cMes.getWork()->setNumber(m_SaveSize + m_SysSize, 2);
-            if (type == 2) {
+            if (m_aMode == 2) {
                 mesNo = MES_NO_CAPA_START;
             } else {
                 setMsgWindow(0, 1);
@@ -1540,7 +1540,7 @@ void cCard::errorDisp()
             mesNo = MES_NO_SYSFILE;
             break;
         case -0x20A:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 mesNo = MES_SYSFILE_NOT_SAVE_START;
             } else if (pG->CardStatus & 0x80) {
                 mesNo = MES_NO_CAPA_SYSFILE;
@@ -1559,7 +1559,7 @@ void cCard::errorDisp()
             m_Rno1 = 1;
         } else {
             m_Rno1 = 3;
-            cMes.mes[0].m_cur = 1;
+            cMes.m_Msg[0].m_cur = 1;
         }
         m_Rno2 = 0;
         m_Rno3 = 0;
@@ -1570,7 +1570,7 @@ void cCard::errorDisp()
         }
         break;
     case 2:
-        switch (type) {
+        switch (m_aMode) {
         case 0:
             setMsgWindow(0, 1);
             mesNo = MES_LOAD_CONFIRM;
@@ -1593,16 +1593,16 @@ void cCard::errorDisp()
         }
         cardMesSet(mesNo, 0, 0x800000);
         if (pG->CardStatus & 0x80) {
-            cMes.mes[0].m_cur = 0;
+            cMes.m_Msg[0].m_cur = 0;
         } else {
-            cMes.mes[0].m_cur = 1;
+            cMes.m_Msg[0].m_cur = 1;
         }
         m_Rno1++;
         break;
     case 3:
-        switch (cMes.mes[0].m_sel) {
+        switch (cMes.m_Msg[0].m_sel) {
         case 1:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 CoreSeCall(4, 0, 0, 0, 0);
                 m_Rno0 = 3;
             } else if (pG->CardStatus & 0x80) {
@@ -1618,7 +1618,7 @@ void cCard::errorDisp()
             deleteAllMes();
             break;
         case 2:
-            if (type == 2) {
+            if (m_aMode == 2) {
                 CoreSeCall(5, 0, 0, 0, 0);
                 m_Rno0 = 0;
             } else if (pG->CardStatus & 0x80) {
@@ -1658,9 +1658,9 @@ void cCard::errorDisp()
     if (m_SlotNo != 2 && cardcheck == 1 && probe != -1) {
         switch (probe) {
         case -3:
-            if (!(slotw[m_SlotNo].flags & 2)) {
+            if (!(m_Slot[m_SlotNo].flags & 2)) {
                 deleteAllMes();
-                if (type == 2) {
+                if (m_aMode == 2) {
                     m_Rno0 = 0;
                 } else {
                     m_Rno0 = 1;
@@ -1674,9 +1674,9 @@ void cCard::errorDisp()
         case -0x80:
         case -2:
         case 0:
-            if (slotw[m_SlotNo].flags & 2) {
+            if (m_Slot[m_SlotNo].flags & 2) {
                 deleteAllMes();
-                if (type == 2) {
+                if (m_aMode == 2) {
                     m_Rno0 = 0;
                 } else {
                     m_Rno0 = 1;
@@ -1689,7 +1689,7 @@ void cCard::errorDisp()
             break;
         }
     }
-    if (type != 2 && m_Rno0 != 5) {
+    if (m_aMode != 2 && m_Rno0 != 5) {
         setMsgWindow(0, 0);
     }
     eprintf(470, 10, 0, 0, "%d", m_ErrCode);
@@ -1713,7 +1713,7 @@ int cCard::initialize(int type)
     u8 heap;
     u32 addr;
 
-    this->type = type;
+    this->m_aMode = type;
     if (pSys->eff_country == 0) {
         idpath[12] = fileext[0];
     } else if (pSys->eff_country == 1) {
@@ -1767,7 +1767,7 @@ int cCard::initialize(int type)
         if (!(pG->CardStatus & 0x80)) {
             SndPlayWork* s;
             int i;
-            g_id->init(this->type, (CardArc*) m_IdDataAddr);
+            g_id->init(this->m_aMode, (CardArc*) m_IdDataAddr);
             m_Width_bak = (int) Screen.width;
             ScreenReSize(640, 448);
             c0 = 0xFF;
@@ -1775,28 +1775,28 @@ int cCard::initialize(int type)
             FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
             FadeKill(FADE_NO_ROOM);
             FadeKill(FADE_NO_SCENARIO);
-            s = Snd.str_work;
+            s = Snd.str_state;
             i = 0;
             do {
                 if (s->used == 1 && s->stat == 0) {
-                    str[i].id = s->id;
-                    str[i].vol = s->vol;
+                    m_StrInfo[i].id = s->id;
+                    m_StrInfo[i].vol = s->vol;
                     SndStrReq(s->id, 4, 100, 1);
                 } else {
-                    str[i].id = 0;
+                    m_StrInfo[i].id = 0;
                 }
                 i++;
                 s++;
-            } while (s <= &Snd.str_work[3]);
+            } while (s <= &Snd.str_state[3]);
             SndRoomBgmMuteAll(1, -1);
             SndSeAbsPause();
         }
     }
     dispFlag = 1;
     CRCInit();
-    slotw[0].chan = 0;
-    slotw[1].chan = 1;
-    slotw[2].chan = 2;
+    m_Slot[0].chan = 0;
+    m_Slot[1].chan = 1;
+    m_Slot[2].chan = 2;
     return 1;
 }
 
@@ -1829,8 +1829,8 @@ int cCard::workAlloc()
     int i;
 
 #line 2190 "D:/Bio4/Prog/card.cpp"
-    slotw[0].workArea = MEM_ALLOC(0xA000, 1, 13);
-    if (slotw[0].workArea == 0) {
+    m_Slot[0].workArea = MEM_ALLOC(0xA000, 1, 13);
+    if (m_Slot[0].workArea == 0) {
         OSReport("CARD workarea alloc error!!\n");
         return 0;
     }
@@ -1854,7 +1854,7 @@ int cCard::workAlloc()
             return 0;
         }
         for (i = 0; i < 20; i++) {
-            pInfo[i] = m_pInfoAddr + i * 0x200;
+            m_pSaveInfo[i] = m_pInfoAddr + i * 0x200;
         }
     }
     return 1;
@@ -1892,7 +1892,7 @@ int cCard::fileCreate(u8* sub, int blocks, CardSlot* s)
 
     switch (*sub) {
     case 0:
-        CARDCreateAsync(s->chan, fileName, blocks << 13, &s->fileInfo, 0);
+        CARDCreateAsync(s->chan, m_Name, blocks << 13, &s->fileInfo, 0);
         (*sub)++;
         // fallthrough
     case 1:
@@ -1963,7 +1963,7 @@ void cCard::firstCheck00()
         }
         break;
     case 2:
-        ret = existCheck(m_SlotNo, &slotw[m_SlotNo]);
+        ret = existCheck(m_SlotNo, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -1973,7 +1973,7 @@ void cCard::firstCheck00()
         }
         break;
     case 3:
-        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
+        ret = mount(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -1983,7 +1983,7 @@ void cCard::firstCheck00()
         }
         break;
     case 4:
-        ret = verifyCheck(&m_Rno2, &slotw[m_SlotNo]);
+        ret = verifyCheck(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -1993,17 +1993,17 @@ void cCard::firstCheck00()
         }
         break;
     case 5:
-        if (systemFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+        if (systemFileCheck(&m_Rno2, &m_Slot[m_SlotNo]) == 1) {
             m_Rno1++;
         }
         break;
     case 6:
-        if (saveFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+        if (saveFileCheck(&m_Rno2, &m_Slot[m_SlotNo]) == 1) {
             m_Rno1++;
         }
         break;
     case 7:
-        if (freeCheck(&m_Rno2, &slotw[m_SlotNo]) != 0) {
+        if (freeCheck(&m_Rno2, &m_Slot[m_SlotNo]) != 0) {
             m_Rno1 = 2;
             m_SlotNo++;
         }
@@ -2011,7 +2011,7 @@ void cCard::firstCheck00()
     }
     if (m_SlotNo == 1) {
         m_SlotNo = 0;
-        if (slotw[0].flags & 0x200) {
+        if (m_Slot[0].flags & 0x200) {
             m_Rno0++;
         } else if (pG->IsDevConsole == 1) {
             m_SlotNo = 2;
@@ -2032,7 +2032,7 @@ void cCard::firstCheck10()
     u8* buf = pSysBuf;
     int ret;
 
-    sprintf(fileName, "%s", "bh4_system");
+    sprintf(m_Name, "%s", "bh4_system");
     switch (m_Rno1) {
     case 0:
         m_Timer = 30;
@@ -2083,7 +2083,7 @@ void cCard::firstCheck10()
 // otherwise done.
 void cCard::firstCheck20()
 {
-    u32 f = slotw[0].flags;
+    u32 f = m_Slot[0].flags;
 
     if (f & 2) {
         errorSet(-3);
@@ -2147,7 +2147,7 @@ void cCard::MainLoop(int arg)
         m_Rno1 = 2;
     }
     while (exitFlag == 0) {
-        if (type != 2) {
+        if (m_aMode != 2) {
             if (m_StrTimer == 0) {
                 m_SndId = SndStrReq(0, 0x1D, 0x80000003, 0, 0, 0.0f);
                 m_StrTimer = 0xA8C;
@@ -2227,7 +2227,7 @@ void CardSave(int no, int f)
     if (f & 0x20) {
         pG->CardStatus |= 0x98;
     }
-    pG->snd_tbl_no = no;
+    pG->terminal_no = no;
     TaskExec(1, (TaskFunc) CardMainTask, 1);
     TaskSleep(1);
 }
@@ -2355,7 +2355,7 @@ int cCard::unmount(int chan)
     }
     if (ret == 1) {
         OSReport("Slot %c Unmount\n", chan + 'A');
-        slotw[chan].flags = 0;
+        m_Slot[chan].flags = 0;
     }
     return ret;
 }
@@ -2479,7 +2479,7 @@ int cCard::fileOpen(CardSlot* s)
 {
     int ret = 0;
 
-    m_ResultCode = CARDOpen(s->chan, fileName, &s->fileInfo);
+    m_ResultCode = CARDOpen(s->chan, m_Name, &s->fileInfo);
     switch (m_ResultCode) {
     case 0:
     case -4:
@@ -2559,21 +2559,21 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             if (DBIsDebuggerPresent()) {
                 SysFlagOn(pG, SYS_SN_PC_READ);
             }
-            sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
-            if (file_exist(fileName)) {
+            sprintf(m_Name, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
+            if (file_exist(m_Name)) {
                 CfgFlagOn(pSys, CFG_06);
                 s->fileFlag[m_SaveNo] |= 1;
                 bit = 1 << m_SaveNo;
                 if (DBG_CACHED & bit) {
-                    memcpy(pInfo[m_SaveNo], pDbgSaveInfo[m_SaveNo], 0x200);
+                    memcpy(m_pSaveInfo[m_SaveNo], pDbgSaveInfo[m_SaveNo], 0x200);
                     OSReport("save Info data%d from cache.\n", m_SaveNo);
                 } else {
-                    HDReadSeekLen(fileName, pInfo[m_SaveNo], 0x2000, 0x200);
-                    memcpy(pDbgSaveInfo[m_SaveNo], pInfo[m_SaveNo], 0x200);
+                    HDReadSeekLen(m_Name, m_pSaveInfo[m_SaveNo], 0x2000, 0x200);
+                    memcpy(pDbgSaveInfo[m_SaveNo], m_pSaveInfo[m_SaveNo], 0x200);
                     isDbgInfoCached |= 1 << m_SaveNo;
                     OSReport("save Info data%d cached.\n", m_SaveNo);
                 }
-                if (((SaveInfo*) pInfo[m_SaveNo])->magic != 0x116) {
+                if (((SaveInfo*) m_pSaveInfo[m_SaveNo])->magic != 0x116) {
                     s->fileFlag[m_SaveNo] |= 4;
                 }
             } else {
@@ -2584,7 +2584,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             }
             m_SaveNo++;
         } else {
-            sprintf(fileName, "bh4_data%02d", m_SaveNo);
+            sprintf(m_Name, "bh4_data%02d", m_SaveNo);
             r = fileOpen(s);
             if (r == 0) {
             } else if (r > 0) {
@@ -2592,7 +2592,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
                     CfgFlagOn(pSys, CFG_06);
                     s->fileFlag[m_SaveNo] |= 1;
                     s->flags |= 0x100;
-                    if (type == 2) {
+                    if (m_aMode == 2) {
                         *sub = 3;
                     } else {
                         (*sub)++;
@@ -2602,7 +2602,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
                     m_SaveNo++;
                 }
             } else if (r < 0) {
-                if (type == 2) {
+                if (m_aMode == 2) {
                     m_Rno0 = 0;
                     m_Rno1 = 0;
                 } else {
@@ -2612,7 +2612,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         }
         break;
     case 2:
-        r = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
+        r = CARDGetStatus(m_SlotNo, m_Slot[m_SlotNo].fileInfo.fileNo, &m_Slot[m_SlotNo].stat);
         if (r == -1) {
             break;
         }
@@ -2628,10 +2628,10 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         }
         break;
     case 3:
-        r = fileRead(&m_Rno3, pInfo[m_SaveNo], 0x200, 0x2000, s);
+        r = fileRead(&m_Rno3, m_pSaveInfo[m_SaveNo], 0x200, 0x2000, s);
         if (r == 0) {
         } else if (r > 0) {
-            if (CRCVerify(pInfo[m_SaveNo] + 4, 0x1FC, ((SaveInfo*) pInfo[m_SaveNo])->crc) == 0) {
+            if (CRCVerify(m_pSaveInfo[m_SaveNo] + 4, 0x1FC, ((SaveInfo*) m_pSaveInfo[m_SaveNo])->crc) == 0) {
                 if (m_RetryCtr == 3) {
                     s->fileFlag[m_SaveNo] |= 2;
                     (*sub)++;
@@ -2640,7 +2640,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
                 }
             } else {
                 (*sub)++;
-                if (((SaveInfo*) pInfo[m_SaveNo])->magic != 0x116) {
+                if (((SaveInfo*) m_pSaveInfo[m_SaveNo])->magic != 0x116) {
                     s->fileFlag[m_SaveNo] |= 6;
                 }
             }
@@ -2676,7 +2676,7 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
     switch (*sub) {
     case 0:
         m_SaveNo = 0;
-        sprintf(fileName, "bh4_system");
+        sprintf(m_Name, "bh4_system");
         (*sub)++;
         // fallthrough
     case 1:
@@ -2691,7 +2691,7 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
                 *sub = 0;
             }
         } else if (r < 0) {
-            if (type == 2) {
+            if (m_aMode == 2) {
                 m_Rno0 = 0;
                 m_Rno1 = 0;
             } else {
@@ -2779,7 +2779,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             *sub = 2;
             break;
         }
-        r = fileOpen(&slotw[m_SlotNo]);
+        r = fileOpen(&m_Slot[m_SlotNo]);
         if (r == 0) {
         } else if (r > 0) {
             (*sub)++;
@@ -2792,7 +2792,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         }
         break;
     case 1:
-        r = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
+        r = CARDGetStatus(m_SlotNo, m_Slot[m_SlotNo].fileInfo.fileNo, &m_Slot[m_SlotNo].stat);
         if (r == -1) {
             break;
         }
@@ -2804,7 +2804,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             ret = -1;
             break;
         }
-        if (slotw[m_SlotNo].stat.commentAddr != 0xFFFFFFFF) {
+        if (m_Slot[m_SlotNo].stat.commentAddr != 0xFFFFFFFF) {
             (*sub)++;
         } else {
             if (errMode != 0) {
@@ -2823,8 +2823,8 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             if (DBIsDebuggerPresent()) {
                 SysFlagOn(pG, SYS_SN_PC_READ);
             }
-            sprintf(fileName, "d:\\bio4/room/sysdata.dat");
-            r = HDRead(fileName, pSysBuf);
+            sprintf(m_Name, "d:\\bio4/room/sysdata.dat");
+            r = HDRead(m_Name, pSysBuf);
             if (dbg == 0) {
                 SysFlagOff(pG, SYS_SN_PC_READ);
             }
@@ -2834,7 +2834,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
                 *sub = 3;
             }
         } else {
-            r = fileRead(sub2, pSysBuf, m_SysSize << 13, 0, &slotw[m_SlotNo]);
+            r = fileRead(sub2, pSysBuf, m_SysSize << 13, 0, &m_Slot[m_SlotNo]);
             if (r == 0) {
             } else if (r > 0) {
                 (*sub)++;
@@ -2868,7 +2868,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         }
         break;
     case 4:
-        r = fileClose(&slotw[m_SlotNo]);
+        r = fileClose(&m_Slot[m_SlotNo]);
         if (r == 0) {
         } else if (r > 0) {
             ret = 1;
@@ -2897,11 +2897,11 @@ void cCard::createSysfile()
     int sel;
 
     ret = CARDProbeEx(m_SlotNo, 0, 0);
-    sprintf(fileName, "bh4_system");
+    sprintf(m_Name, "bh4_system");
     switch (m_Rno1) {
     case 0:
         cardMesSet(MES_SYS_MAKE_CONFIRM, 0, 0x800000);
-        cMes.mes[0].m_cur = 1;
+        cMes.m_Msg[0].m_cur = 1;
         m_Rno1++;
         // fallthrough
     case 1:
@@ -2909,7 +2909,7 @@ void cCard::createSysfile()
             noCard = 1;
             break;
         }
-        sel = cMes.mes[0].m_sel;
+        sel = cMes.m_Msg[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
@@ -2929,7 +2929,7 @@ void cCard::createSysfile()
         }
         break;
     case 2:
-        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
+        ret = mount(&m_Rno2, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -2938,7 +2938,7 @@ void cCard::createSysfile()
         }
         break;
     case 3:
-        ret = fileCreate(&m_Rno2, m_SysSize, &slotw[m_SlotNo]);
+        ret = fileCreate(&m_Rno2, m_SysSize, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno2 = 0;
@@ -2953,7 +2953,7 @@ void cCard::createSysfile()
         }
         break;
     case 4:
-        ret = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
+        ret = CARDGetStatus(m_SlotNo, m_Slot[m_SlotNo].fileInfo.fileNo, &m_Slot[m_SlotNo].stat);
         if (ret == -1) {
             break;
         }
@@ -2968,7 +2968,7 @@ void cCard::createSysfile()
         m_Rno1++;
         // fallthrough
     case 6:
-        ret = fileWrite(&m_Rno2, pSysBuf, m_SysSize, &slotw[m_SlotNo]);
+        ret = fileWrite(&m_Rno2, pSysBuf, m_SysSize, &m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
@@ -2981,8 +2981,8 @@ void cCard::createSysfile()
         }
         break;
     case 7:
-        makeCardStatus(&slotw[m_SlotNo]);
-        CARDSetStatusAsync(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat, 0);
+        makeCardStatus(&m_Slot[m_SlotNo]);
+        CARDSetStatusAsync(m_SlotNo, m_Slot[m_SlotNo].fileInfo.fileNo, &m_Slot[m_SlotNo].stat, 0);
         m_Rno1++;
         // fallthrough
     case 8:
@@ -3002,7 +3002,7 @@ void cCard::createSysfile()
         }
         break;
     case 9:
-        ret = fileClose(&slotw[m_SlotNo]);
+        ret = fileClose(&m_Slot[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             m_Timer = 0xF;
@@ -3036,11 +3036,11 @@ void cCard::createSysfile()
 // Debug: prints the state numbers (dev mode).
 void cCard::screenTrans()
 {
-    if (type != 2) {
-        debugInfoDisp(m_SlotNo, type);
+    if (m_aMode != 2) {
+        debugInfoDisp(m_SlotNo, m_aMode);
     }
     eprintf(24, 16, 0, 0, "%02d%02d%02d%02d", m_Rno0, m_Rno1, m_Rno2, m_Rno3);
-    if (type != 2 && !(pG->CardStatus & 0x80)) {
+    if (m_aMode != 2 && !(pG->CardStatus & 0x80)) {
         g_id->move(this);
         g_id->m_IdSave.move();
         g_id->m_IdSave.trans();
@@ -3082,7 +3082,7 @@ void cCard::calcTplAddr(TEXPalette* tpl)
 // Shows / hides the message window backdrop ids.
 void cCard::setMsgWindow(int a, int sw)
 {
-    if (type != 2) {
+    if (m_aMode != 2) {
         if (pG->CardStatus & 0x80) {
             Cckpt.msgWindow(sw);
         } else {
@@ -3353,12 +3353,12 @@ void CardID::updateSaveInfo(cCard* pCard)
             no -= 20;
         }
         g_id->m_IdSave.unitPtr(0x15, type)->be_flag |= 8;
-        f = (&pCard->slotw[sl])->fileFlag[no];
+        f = (&pCard->m_Slot[sl])->fileFlag[no];
         if (f & 1) {
             if (f & 2) {
-                dispSaveInfo(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
+                dispSaveInfo(no, (SaveInfo*) pCard->m_pSaveInfo[(s8) no], type, 1);
             } else {
-                dispSaveInfo(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
+                dispSaveInfo(no, (SaveInfo*) pCard->m_pSaveInfo[(s8) no], type, 0);
             }
         } else {
             dispSaveInfo(no, 0, type, 0);
@@ -3413,21 +3413,21 @@ void CardID::init(int type, CardArc* data)
         IdUnit* p = g_id->m_IdSave.unitPtr(0x15, 0x40 + j);
         IdUnit* q = g_id->m_IdSave.unitPtr((u8) (j + 0x10), IDC_SSCRN_FAR_0);
         q->type = 1;
-        p->scr.z = zero;
-        p->scr.y = zero;
-        p->scr.x = zero;
+        p->pos0.z = zero;
+        p->pos0.y = zero;
+        p->pos0.x = zero;
         g_id->m_IdSave.unitParent(q, p);
     }
     u = g_id->m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0);
     g_p_path_org[0] = u->path0;
     g_p_hrmt_org[0] = u->curve[0];
     g_p_spln_org[0] = u->path1;
-    g_pos0_org = u->scr;
+    g_pos0_org = u->pos0;
     v = g_id->m_IdSave.unitPtr(0xA, IDC_SSCRN_FAR_0);
     u->path0 = 0;
     u->curve[0] = 0;
     u->path1 = 0;
-    u->scr = v->scr;
+    u->pos0 = v->pos0;
     u->rev_flag |= 0xF;
     IdSys.unitPtr(5, IDC_SSCRN_NEAR_0)->rev_flag |= 0xF;
     {
@@ -3467,7 +3467,7 @@ void CardID::move(cCard* pCard)
             a->path0 = b->path0;
             a->curve[0] = b->curve[0];
             a->path1 = b->path1;
-            a->scr = b->scr;
+            a->pos0 = b->pos0;
             FuncPathParametrize(a->path0, a->path1);
             m_IdSave.setTime(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
             a->rev_flag |= 0xF;
@@ -3495,7 +3495,7 @@ void CardID::wait(cCard* pCard)
         a->path0 = b->path0;
         a->curve[0] = b->curve[0];
         a->path1 = b->path1;
-        a->scr = b->scr;
+        a->pos0 = b->pos0;
         FuncPathParametrize(a->path0, a->path1);
         IdSys.setTime(a, 0);
         a->rev_flag &= ~0xF;
@@ -3510,7 +3510,7 @@ void CardID::wait(cCard* pCard)
 void CardID::start(cCard* pCard)
 {
     rno0 = 2;
-    if (m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0)->end & 1) {
+    if (m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0)->anima_state & 1) {
         rno0 = 2;
     }
 }
@@ -3520,17 +3520,17 @@ void CardID::normal(cCard* pCard)
 {
     IdUnit* u;
 
-    if (action & 4) {
+    if (m_act_flag & 4) {
         u = IdSys.unitPtr(1, IDC_SSCRN_NEAR_0);
         u->rev_flag &= ~0xF;
         IdSys.setTime(u, 0);
         rno0 = 5;
         SndCall(0, 0x2D, 0, 0, 0, 0);
-    } else if (action & 1) {
+    } else if (m_act_flag & 1) {
         rno0 = 3;
         updateSaveInfo(pCard);
         up_down(pCard);
-    } else if (action & 2) {
+    } else if (m_act_flag & 2) {
         rno0 = 4;
         updateSaveInfo(pCard);
         up_down(pCard);
@@ -3578,28 +3578,28 @@ void CardID::up_down(cCard* pCard)
         a->path0 = b->path0;
         a->curve[0] = b->curve[0];
         a->path1 = b->path1;
-        a->scr = b->scr;
+        a->pos0 = b->pos0;
         FuncPathParametrize(a->path0, a->path1);
         IdSys.setTime(a, 0);
         rno1++;
         break;
     case 1:
-        if (m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0)->end & 1) {
+        if (m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0)->anima_state & 1) {
             IdUnit* u = m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0);
             u->path0 = g_p_path_org[0];
             u->curve[0] = (Hermite1*) g_p_hrmt_org[0];
             u->path1 = g_p_spln_org[0];
-            u->scr = g_pos0_org;
+            u->pos0 = g_pos0_org;
             FuncPathParametrize(u->path0, u->path1);
             IdSys.setTime(u, 0);
             setAction(0);
             rno0 = 2;
             rno1 = 0;
         } else {
-            if (action & 1) {
+            if (m_act_flag & 1) {
                 rno0 = 3;
                 rno1 = 0;
-            } else if (action & 2) {
+            } else if (m_act_flag & 2) {
                 rno0 = 4;
                 rno1 = 0;
             }
@@ -3627,7 +3627,7 @@ void CardID::save(cCard* pCard)
         u->rev_flag |= 0xF;
         return;
     }
-    if (u->end & 1) {
+    if (u->anima_state & 1) {
         setAction(0);
         return;
     }
@@ -3663,7 +3663,7 @@ void CardID::quit()
 // Queues a cursor action (bit0 show, bit1 hide, bit2 highlight) for the id modes.
 void CardID::setAction(int a)
 {
-    action = a;
+    m_act_flag = a;
 }
 
 // Shows / hides the message backdrop id `a`.

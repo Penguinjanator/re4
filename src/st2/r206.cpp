@@ -291,7 +291,7 @@ static void Evt_R206S00_Func(Event* e)
     void* bin;
     void* bin2;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         setRoomEtcDisp(0x11, 0, 1);
         break;
@@ -355,10 +355,10 @@ static void Evt_R206S00_Func(Event* e)
                     ((cModel*) mod)->ot_type = 1;
                     TexRenderModSet((cModel*) mod, 0, r206_work->texTbl, r206_work->tex, 0, 1, 1, 1, 1.0f);
                 }
-                EffectEspDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
-                EffectEspgenDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
-                EffectEfmDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspDelete(r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspgenDelete(r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEfmDelete(r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
             }
             break;
         default:
@@ -366,9 +366,9 @@ static void Evt_R206S00_Func(Event* e)
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
                     TexRenderModRes((cModel*) mod, 0);
                 }
-                EffectEspDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
-                EffectEspgenDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
-                EffectEfmDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEspDelete(r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspgenDelete(r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEfmDelete(r206_work->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_ROOM00, 0);
             }
             break;
         }
@@ -383,7 +383,7 @@ static void Evt_R206S00_Func(Event* e)
 // Event r206s10 callback: hides scroll objects 0xC/0xD/0xE and etc model 0x11 for the event, restores them after.
 static void Evt_R206S10_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdSetTrans(0xC, 0);
         SmdSetTrans(0xD, 0);
@@ -401,7 +401,7 @@ static void Evt_R206S10_Func(Event* e)
 // Event r206s20 callback (the reunion): scroll object 0x12 hidden during the event.
 static void Evt_R206S20_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:

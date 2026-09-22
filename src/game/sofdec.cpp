@@ -167,7 +167,7 @@ void cSofdec::drawTex()
 {
     Mtx tm;
 
-    switch (mode) {
+    switch (m_draw_mode) {
     case 0:
         if (drw.tex.yuv.bufY == NULL) {
             return;
@@ -267,7 +267,7 @@ void cSofdec::loadMvFrmFx(MWPLY hn, MWS_FRM* frm)
 {
     SofdecTex* tex = &drw.tex;
 
-    switch (mode) {
+    switch (m_draw_mode) {
     case 0:
         if (tex->yuv.bufY == NULL) {
             allocTexMem(tex, frm->width, frm->height);
@@ -292,7 +292,7 @@ void cSofdec::loadMvFrmFx(MWPLY hn, MWS_FRM* frm)
 // clears it to black.
 void cSofdec::allocTexMem(SofdecTex* tex, int w, int h)
 {
-    switch (mode) {
+    switch (m_draw_mode) {
     case 0: {
         u16 w2 = (w / 2 + 31) & ~31;
         u16 h2 = h / 2;
@@ -332,7 +332,7 @@ void cSofdec::allocTexMem(SofdecTex* tex, int w, int h)
 // Clears the frame texture to black (Y 0, UV 0x80 / ARGB 0).
 void cSofdec::clrTexMem(SofdecTex* tex)
 {
-    switch (mode) {
+    switch (m_draw_mode) {
     case 0:
         if (tex->yuv.bufY != NULL) {
             memset_asm(tex->yuv.bufY, 0, tex->yuv.sizeY);
@@ -373,7 +373,7 @@ void cSofdec::initApp(const char* fname)
     Dvd.ReadCheck(req, NULL, NULL, NULL);
     mwPlyGetHdrInf(buf, 0x5000, &info);
     Mem_free(buf);
-    width = info.width;
+    m_width = info.width;
     m_height = info.height;
 }
 
@@ -388,7 +388,7 @@ int cSofdec::startApp()
     cprm->ftype = 1;
     cprm->max_bps = 8000000;
     cprm->nfrm_pool_wk = 4;
-    cprm->max_width = width;
+    cprm->max_width = m_width;
     cprm->max_height = m_height;
     cprm->max_stm = 2;
     cprm->wksize = mwPlyCalcWorkCprmSfd(cprm);
@@ -488,12 +488,12 @@ void cSofdec::finishMovie()
         ScreenReSize(0x280, 0x1C0);
     }
     pG->Disp_flg = m_disp_flg_bak;
-    pG->Stop_flg = save170;
+    pG->Stop_flg = m_stop_flg_bak;
     SetSystemVcnt(m_vcnt_save);
     StaFlagOff(pG, STA_MOVIE_ON);
     if (!StaFlagChk(pG, STA_TITLE)) {
         MemDestroyHeap(11);
-        Aram.DmaTransReq(1, 0x740000, heapStart, 0x500000, 1);
+        Aram.DmaTransReq(1, 0x740000, m_clrsize, 0x500000, 1);
         MemSignalHeap(m_save_cur_heap);
         MemSetCurrentHeap(m_save_cur_heap);
     }
@@ -511,21 +511,21 @@ int cSofdec::initWork(const char* fname)
 {
     if (Dvd.FileExistCheck(fname, NULL) == -1) {
         OSReport("File not found : %s\n", fname);
-        sprintf(path, "movie/dmy.sfd");
-        if (Dvd.FileExistCheck(path, NULL) == -1) {
+        sprintf(m_fname, "movie/dmy.sfd");
+        if (Dvd.FileExistCheck(m_fname, NULL) == -1) {
             return 0;
         }
     }
-    save170 = pG->Stop_flg;
+    m_stop_flg_bak = pG->Stop_flg;
     pG->Stop_flg = 0xFFFFFFFF;
     m_disp_flg_bak = pG->Disp_flg;
     pG->Disp_flg = 0xFFFFFFFF;
     if (!StaFlagChk(pG, STA_TITLE)) {
         m_save_cur_heap = MemGetCurrentHeap();
-        heapStart = MemGetHeapStartAddr(m_save_cur_heap);
-        Aram.DmaTransReq(0, heapStart, 0x740000, 0x500000, 1);
+        m_clrsize = MemGetHeapStartAddr(m_save_cur_heap);
+        Aram.DmaTransReq(0, m_clrsize, 0x740000, 0x500000, 1);
         MemSuspendHeap(m_save_cur_heap);
-        MemCreateHeap(11, heapStart, heapStart + 0x500000);
+        MemCreateHeap(11, m_clrsize, m_clrsize + 0x500000);
         MemSetCurrentHeap(11);
     }
     SysFlagOn(pG, SYS_TRANS_STOP);
@@ -551,7 +551,7 @@ int cSofdec::initSub(const char* fname, u32 flags)
     if (StaFlagChk(pG, STA_MOVIE_ON)) {
         return 0;
     }
-    sprintf(path, "%s", fname);
+    sprintf(m_fname, "%s", fname);
     if (!(flags & 0x200)) {
         TaskSuspend(0);
         TaskExec(1, (TaskFunc) ThreadMove, (int) this);
@@ -559,7 +559,7 @@ int cSofdec::initSub(const char* fname, u32 flags)
         if (!initWork(fname)) {
             return 0;
         }
-        initApp(path);
+        initApp(m_fname);
         startApp();
         StaFlagOn(pG, STA_MOVIE_ON);
         initSync();
@@ -586,10 +586,10 @@ int cSofdec::Move()
 // Task body: plays the movie to its end, then resumes slot 0 and exits.
 void cSofdec::ThreadMove(cSofdec* s)
 {
-    int r = s->initWork(s->path);
+    int r = s->initWork(s->m_fname);
 
     if (r == 1) {
-        s->initApp(s->path);
+        s->initApp(s->m_fname);
         s->startApp();
         StaFlagOn(pG, STA_MOVIE_ON);
         s->initSync();

@@ -94,16 +94,16 @@ static void wep19_r2_ready(cPlayer* pl)
         pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
-        if (pl->Wep->knifeStance != 0) {
-            pl->Wep->knifeStance = 0;
+        if (pl->Wep->m_WepUd != 0) {
+            pl->Wep->m_WepUd = 0;
         }
     } else if (Key.on & 2) {
-        if (pl->Wep->knifeStance != 2) {
-            pl->Wep->knifeStance = 2;
+        if (pl->Wep->m_WepUd != 2) {
+            pl->Wep->m_WepUd = 2;
         }
     } else {
-        if (pl->Wep->knifeStance != 1) {
-            pl->Wep->knifeStance = 1;
+        if (pl->Wep->m_WepUd != 1) {
+            pl->Wep->m_WepUd = 1;
         }
     }
     func_tbl[pl->r_no_3](pl);
@@ -438,9 +438,9 @@ static void wep19_r3_fire10(cPlayer* pl)
     if (MotionCheckCrossFrame(&pl->Motion, throwFrame)) {
         itemThrow(pl);
         if (ItemMgr.bulletNum()) {
-            pl->Wep->pObj2->setDisp(1, 0);
+            pl->Wep->m_pWepHand->setDisp(1, 0);
         } else {
-            pl->Wep->pObj2->setDisp(0, 0);
+            pl->Wep->m_pWepHand->setDisp(0, 0);
         }
     }
     if (pl->m_Work4 == 0) {
@@ -560,7 +560,7 @@ static void wep19_r2_next(cPlayer* pl)
 // item left the belt grenade m_pWep is hidden (unless Debug_flg[2] bit22 keeps it).
 void readyWeapon(cPlayer* pl)
 {
-    pl->Wep->pObj2->setDisp(1, 1);
+    pl->Wep->m_pWepHand->setDisp(1, 1);
     if (!DbgFlagChk(pG, DBG_INF_BULLET) && ItemMgr.bulletNum() == 1) {
         pl->Wep->m_pWep->setDisp(0, 0);
     }

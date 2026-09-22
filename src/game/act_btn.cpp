@@ -47,7 +47,7 @@ void cActionButton::move()
     u32 tag;
     ActBtnWork* w;
 
-    Cckpt.action.no = 0;
+    Cckpt.m_ActBttn.m_disp_flag = 0;
     m_active_flag = 0;
     if (SpfFlagChk(pG, SPF_ACTBTN) || (StaFlagChk(pG, STA_DIEDEMO)) || m_stop_flag_old) {
         init();
@@ -124,24 +124,24 @@ void cActionButton::disp(ActBtnWork* w)
     case DISP_STICK_A:
     case DISP_STICK_UP:
         u = IdSys.unitPtr(1, IDC_ACT_BUTTON);
-        sx = (s16) u->scr.x;
-        sy = (s16) u->scr.y;
+        sx = (s16) u->pos0.x;
+        sy = (s16) u->pos0.y;
         x = (s16) (((f32) sx + 320.0f) * 0.8f);
-        y = cMes.mes[1].m_font_h / 2;
+        y = cMes.m_Msg[1].m_font_h / 2;
         y = (s16) ((240.0f - (f32) sy) * 0.8f) - y;
         cMes.MesSet(kind + 0x16, x, (s16) y, 0x200F1, 1, col, 4);
         break;
     default:
         u = IdSys.unitPtr(0xF0, IDC_ACT_BUTTON);
-        sx = (s16) u->scr.x;
-        sy = (s16) u->scr.y;
+        sx = (s16) u->pos0.x;
+        sy = (s16) u->pos0.y;
         x = (s16) (((f32) sx + 320.0f) * 0.8f);
-        y = cMes.mes[1].m_font_h / 2;
+        y = cMes.m_Msg[1].m_font_h / 2;
         y = (s16) ((240.0f - (f32) sy) * 0.8f) - y;
         cMes.MesSet(kind + 0x16, x, (s16) y, 0xF1, 1, col, 4);
         break;
     }
-    Cckpt.action.no = btn;
+    Cckpt.m_ActBttn.m_disp_flag = btn;
 }
 
 // 1 when the prompt's button is pressed this frame: by button kind, trigger or hold (flags

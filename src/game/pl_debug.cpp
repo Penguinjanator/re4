@@ -281,7 +281,7 @@ void PlWepMotSet(int no)
 cPlMaho::cPlMaho()
 {
     reset();
-    num = 0;
+    nWork = 0;
 }
 
 // Resets every cheat's input progress (rno).
@@ -290,20 +290,20 @@ void cPlMaho::reset()
     int i;
 
     for (i = 0; i < 30; i++) {
-        tbl[i].rno = 0;
+        work[i].rno = 0;
     }
 }
 
 // Adds a cheat: `code` is the button sequence, `func` runs when it is completed.
 void cPlMaho::regist(const char* code, void (*func)())
 {
-    PlMahoEntry* e = &tbl[num];
+    PlMahoEntry* e = &work[nWork];
 
     e->rno = 0;
     e->timer = 0;
-    e->func = func;
+    e->pFunc = func;
     e->pSpell = code;
-    num++;
+    nWork++;
 }
 
 // DrawGage: `len` is the one variable for both widths and the right edge (a multi-set pseudo is

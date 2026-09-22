@@ -446,7 +446,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         r10b_work->island[0]->setNoSuspend(1);
         r10b_work->island[2]->setNoSuspend(1);
@@ -586,7 +586,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
@@ -677,7 +677,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
@@ -728,7 +728,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);
@@ -760,7 +760,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
 // boat stand-in on cut 0, Leon's parts per cut.
 extern "C" void Evt_R10BS22_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         if (DbgFlagChk(pG, DBG_EVENT_TOOL)) {
             r10b_effDelete(2);

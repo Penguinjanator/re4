@@ -46,11 +46,11 @@ public:
     void* pLeftData;             // 0x04  left hand model data (0 = none)
     void* pHeadData;             // 0x08  head model data
     void* pWepHand;              // 0x0C  weapon hand model data (initWepHand; setRightHand(1) uses it)
-    cModelInfo* pShape;          // 0x10  head model info (face shape animation target of ShapeSet/ShapeEnd)
+    cModelInfo* m_pFace;          // 0x10  head model info (face shape animation target of ShapeSet/ShapeEnd)
     cModelInfo* m_pArmR;         // 0x14  (PS2 m_pArmR; only cleared on GC)
     cModelInfo* m_pArmL;         // 0x18  (PS2 m_pArmL; only cleared on GC)
-    cModelInfo* pRight;          // 0x1C  right hand model info
-    cModelInfo* pLeft;           // 0x20  left hand model info
+    cModelInfo* m_pHandR;          // 0x1C  right hand model info
+    cModelInfo* m_pHandL;           // 0x20  left hand model info
     cModelInfo* pHair;           // 0x24
     cModelInfo* pEye;            // 0x28  (flags |= 0x40)
     cModelInfo* pFace;           // 0x2C  face model info (pl_knife zeroes/ones its 0x5C/0x70/0x84)

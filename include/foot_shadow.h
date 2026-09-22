@@ -16,7 +16,7 @@ struct FootShadowDat {
 
 // Foot shadow table (cEm::pFootShadowTbl): entry count and the entries.
 struct FootShadowTbl {
-    u32 num;
+    u32 nTbl;
     FootShadowDat* dat;
 };
 

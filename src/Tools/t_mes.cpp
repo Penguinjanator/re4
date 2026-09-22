@@ -34,7 +34,7 @@ public:
     u8 r_no_1;               // 0x01
     u8 r_no_2;                // 0x02
     u8 r_no_3;                // 0x03
-    u8* buf;              // 0x04
+    u8* m_MesAddr;              // 0x04
     cIdToolMenu* m_pMenu;   // 0x08
     int m_language;               // 0x0C
     u32 m_type;             // 0x10
@@ -133,7 +133,7 @@ void cMessageDebug::init()
     m_mes = 0;
     m_mesNum = 0;
     m_pMenu = 0;
-    buf = new u8[0x200000];
+    m_MesAddr = new u8[0x200000];
 }
 
 // -MENU-: MESSAGE / LOCATE / COLOR / TYPE / LANGUAGE / LOAD / QUIT (B = QUIT) -> r_no_0.
@@ -192,7 +192,7 @@ void cMessageDebug::message()
     MessageControl* pm = &cMes;
     int i;
 
-    if (pm->mes[0].flags2 & 1) {
+    if (pm->m_Msg[0].m_state & 1) {
         pm->Move();
         return;
     }
@@ -411,7 +411,7 @@ void cMessageDebug::data()
 // QUIT: ends the loop (r_no_0 past the table).
 void cMessageDebug::quit()
 {
-    delete buf;
+    delete m_MesAddr;
     r_no_0 = 8;
 }
 

@@ -12,7 +12,7 @@ public:
     u32 m_SwapAaddr;  // 0x08  ARAM copy address
     u32 m_SwapSize;  // 0x0C
     u32 m_CurHeapNo;  // 0x10  heap that was current at SwapOut
-    void* mram;// 0x14  MRAM copy (mem_alloc)
+    void* m_alloc_addr;// 0x14  MRAM copy (mem_alloc)
 
     cDataSwap();
     ~cDataSwap();

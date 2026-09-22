@@ -236,7 +236,7 @@ static void em30_R0_Init(cEm30* em)
     if (info) {
         em->addModel(info);
     }
-    em->pFootShadowTbl = &Em10_fs_tbl;
+    em->pFsdTbl = &Em10_fs_tbl;
     Em30ClothSet1(em, &w->cloth1);
     Em30ClothSet2(em, &w->cloth2);
     {
@@ -463,9 +463,9 @@ void em30NeckMove(cEm30* em)
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.x = 0.0f;
-    ((cParts*) p)->addRot.y = w->neckAng;
-    ((cParts*) p)->addRot.z = 0.0f;
+    ((cParts*) p)->inv_offset.x = 0.0f;
+    ((cParts*) p)->inv_offset.y = w->neckAng;
+    ((cParts*) p)->inv_offset.z = 0.0f;
 }
 
 // Creates head `no` (0..2, spread 120 degrees apart on parts 3) as a cObj16 (model 0x15/0x16)

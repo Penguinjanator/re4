@@ -213,13 +213,13 @@ class cEtcTbl {
 public:
     int stat;            // 0x00  1: a model is registered
     EtcSetData* pData;   // 0x04  its etc list record
-    cModel* pModel;      // 0x08  the model
+    cModel* m_pPtr;      // 0x08  the model
 
     cEtcTbl() { Init(); }
     void Init() {
         stat = 0;
         pData = 0;
-        pModel = 0;
+        m_pPtr = 0;
     }
     void RegistData(EtcSetData* d, cModel* model) {
         if (stat == 1) {
@@ -227,7 +227,7 @@ public:
         } else {
             stat = 1;
             pData = d;
-            pModel = model;
+            m_pPtr = model;
         }
     }
 };
@@ -277,7 +277,7 @@ int getRoomEtc(int no, ETCMODEL_ID id, cEm** out, int flag)
         }
         return 0;
     }
-    *out = (cEm*) t->pModel;
+    *out = (cEm*) t->m_pPtr;
     return 1;
 }
 
@@ -293,7 +293,7 @@ int getRoomEtc2(int no, cEm** out, int flag)
         }
         return 0;
     }
-    *out = (cEm*) t->pModel;
+    *out = (cEm*) t->m_pPtr;
     return 1;
 }
 
@@ -336,7 +336,7 @@ void EtcModelInit()
     for (i = 0; i < 0x40; i++) {
         g_EtcTbl[i].stat = 0;
         g_EtcTbl[i].pData = 0;
-        g_EtcTbl[i].pModel = 0;
+        g_EtcTbl[i].m_pPtr = 0;
     }
     for (j = 0; j < 0x68; j++) {
         g_Etc_das_addr[j] = 0;
@@ -354,7 +354,7 @@ void EtcModelRoomInit()
     for (i = 0; i < 0x40; i++) {
         g_EtcTbl[i].stat = 0;
         g_EtcTbl[i].pData = 0;
-        g_EtcTbl[i].pModel = 0;
+        g_EtcTbl[i].m_pPtr = 0;
     }
     for (j = 0; j < 0x68; j++) {
         g_Etc_das_addr[j] = 0;

@@ -87,7 +87,7 @@ void iss_voice_work_init(SND_VOICE_WORK* vw, SND_AXV_WORK* axv, SND_REQ_WORK* re
     axv->snd_id = req->snd_id;
     axv->srd_type = req->srd_type;
     axv->upd = 0;
-    axv->flag = req->se_flag;
+    axv->flag = req->req_bit;
     axv->vw = vw;
 }
 
@@ -97,7 +97,7 @@ void iss_ax_set_wt_ptr(SND_AXV_WORK* axv, SND_SIT* sit)
 {
     u16 prog;
 
-    prog = sit->prog;
+    prog = sit->note;
     axv->hdr = (SND_WT_HDR*) axv->wt;
     axv->inst = (WTINST*) (axv->wt + axv->hdr->inst_ofs);
     axv->inst += (u16) (prog >> 8);
@@ -226,25 +226,25 @@ void iss_ax_set_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 
     rgn = axv->rgn;
     axv->rate = (f64) axv->sample->sampleRate;
-    cents = (u16) (sit->prog & 0xFF) - rgn->unityNote;
+    cents = (u16) (sit->note & 0xFF) - rgn->unityNote;
     cents *= 100;
     cents += rgn->fineTune;
     cents += req->pitch;
     cents += req->pitch_add;
     axv->pitch_base = cents;
-    axv->pitch_ofs = req->pitch_ofs;
+    axv->pitch_ofs = req->dop_p;
     axv->pitch = axv->pitch_base + axv->pitch_ofs;
 }
 
 // Low-pass filter number from the request (-1 = off).
 void iss_ax_set_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req)
 {
-    if (req->lpf_no == -1) {
+    if (req->lpf == -1) {
         axv->lpf_on = 0;
     } else {
         axv->lpf_on = 1;
     }
-    axv->lpf_no = req->lpf_no;
+    axv->lpf_no = req->lpf;
 }
 
 // Programs the AX voice: ADPCM sample addresses in ARAM (nibble addressing, 14 samples per 16

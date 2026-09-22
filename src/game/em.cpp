@@ -199,7 +199,7 @@ int cEmMgr::construct(cEm* p, u32 id)
         p->id = 0x10;
         break;
     }
-    p->serial = Guid;
+    p->guid = Guid;
     Guid++;
     p->emset_no = 0xFF;
     p->be_flag |= 0x40;

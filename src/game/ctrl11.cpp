@@ -16,8 +16,8 @@ void cCtrl11::move()
     int i;
 
     for (i = 0; i < 15; i++) {
-        if (w->timer[i] != 0) {
-            w->timer[i]--;
+        if (w->Se_wait[i] != 0) {
+            w->Se_wait[i]--;
         }
     }
 }
@@ -56,11 +56,11 @@ u32 Ctrl11SetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx)
         return 0;
     }
     w = (Ctrl11Work*) pCtrl->work;
-    if (w->timer[idx] != 0) {
+    if (w->Se_wait[idx] != 0) {
         return 0;
     }
     w->Se_id[idx] = SndCall(8, no, &m->pos, m->id, 0, m);
-    w->timer[idx] = time;
+    w->Se_wait[idx] = time;
     return w->Se_id[idx];
 }
 
@@ -77,7 +77,7 @@ u32 Ctrl11SetSe2(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx, u16 blk)
     }
     w = (Ctrl11Work*) pCtrl->work;
     w->Se_id[idx] = SndCall(blk, no, &m->getPartsPtr(0)->world, m->id, 0, m);
-    w->timer[idx] = time;
+    w->Se_wait[idx] = time;
     return w->Se_id[idx];
 }
 
@@ -95,7 +95,7 @@ u32 Ctrl11StopAndSetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx)
     w = (Ctrl11Work*) pCtrl->work;
     SndStop(w->Se_id[idx], 0);
     w->Se_id[idx] = SndCall(8, no, &m->getPartsPtr(0)->world, m->id, 0, m);
-    w->timer[idx] = time;
+    w->Se_wait[idx] = time;
     return w->Se_id[idx];
 }
 

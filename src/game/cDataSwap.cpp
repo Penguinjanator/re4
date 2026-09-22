@@ -39,8 +39,8 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
     m_CurHeapNo = MemGetCurrentHeap();
     this->m_SwapSize = size;
 #line 64 "D:/Bio4/Prog/cDataSwap.cpp"
-    mram = MEM_ALLOC(size, 0, 13);
-    if (mram == NULL) {
+    m_alloc_addr = MEM_ALLOC(size, 0, 13);
+    if (m_alloc_addr == NULL) {
         this->m_SwapAaddr = DC.getAramFree(size);
         if (this->m_SwapAaddr != 0) {
             m_be_flag |= 2;
@@ -58,7 +58,7 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
             Aram.DmaTransReq(0, addr, this->m_SwapAaddr, this->m_SwapSize, 1);
         }
     } else {
-        this->m_SwapMaddr = (u32) mram;
+        this->m_SwapMaddr = (u32) m_alloc_addr;
         m_be_flag |= 1;
     }
     if (m_be_flag & 3) {
@@ -84,8 +84,8 @@ void cDataSwap::SwapIn()
         }
         MemSignalHeap(m_CurHeapNo);
         MemSetCurrentHeap(m_CurHeapNo);
-        if (mram != NULL) {
-            Mem_free(mram);
+        if (m_alloc_addr != NULL) {
+            Mem_free(m_alloc_addr);
         }
         m_be_flag = 0;
     }

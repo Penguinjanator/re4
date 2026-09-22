@@ -23,11 +23,11 @@ void CameraSetOrientationUp(Camera* cam)
     PSVECSubtract(&cam->param.pos, &cam->param.at, &cam->Look);
 #line 33 "D:/Bio4/Prog/cam_sys.cpp"
     VECNormalize(&cam->Look, &cam->Look);
-    PSVECCrossProduct(&cam->up, &cam->Look, &cam->Right);
+    PSVECCrossProduct(&cam->Up, &cam->Look, &cam->Right);
 #line 37 "D:/Bio4/Prog/cam_sys.cpp"
     VECNormalize(&cam->Right, &cam->Right);
-    PSVECCrossProduct(&cam->Look, &cam->Right, &cam->up);
-    setColumns(cam->mat, &cam->Right, &cam->up, &cam->Look, &cam->param.pos);
+    PSVECCrossProduct(&cam->Look, &cam->Right, &cam->Up);
+    setColumns(cam->mat, &cam->Right, &cam->Up, &cam->Look, &cam->param.pos);
 }
 
 // Rebuilds mat from pos / at with world up, then rolls right / up about the look axis by
@@ -67,7 +67,7 @@ void CameraSetOrientationRoll(Camera* cam)
         VECNormalize(&dir, &dir);
     }
     setColumns(cam->mat, &right, &up, &dir, &cam->param.pos);
-    cam->up = up;
+    cam->Up = up;
     cam->Look = dir;
     cam->Right = right;
 }
@@ -98,7 +98,7 @@ void CameraSetOrientationZeroRoll(Camera* cam)
 #line 151 "D:/Bio4/Prog/cam_sys.cpp"
     VECNormalize(&dir, &dir);
     setColumns(cam->mat, &right, &up, &dir, &cam->param.pos);
-    cam->up = up;
+    cam->Up = up;
     cam->Look = dir;
     cam->Right = right;
 }
@@ -127,7 +127,7 @@ void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad)
     MtxRotAxisPosRad(m, axis, pos, rad);
     PSMTXMultVec(m, &cam->param.at, &cam->param.at);
     PSMTXMultVec(m, &cam->param.pos, &cam->param.pos);
-    PSMTXMultVecSR(m, &cam->up, &cam->up);
+    PSMTXMultVecSR(m, &cam->Up, &cam->Up);
     CameraSetOrientationUp(cam);
     cam->param.roll = CameraGetRoll(cam);
 }
@@ -193,7 +193,7 @@ void CameraTargetDistance(Camera* cam, f32 dist)
     getColumn(cam->mat, 2, &v);
     PSVECScale(&v, &v, dist);
     PSVECSubtract(&cam->param.pos, &v, &cam->param.at);
-    cam->dist = dist;
+    cam->Distance = dist;
     CameraSetOrientationUp(cam);
 }
 
@@ -205,7 +205,7 @@ void CameraCamposDistance(Camera* cam, f32 dist)
     getColumn(cam->mat, 2, &v);
     PSVECScale(&v, &v, dist);
     PSVECAdd(&cam->param.at, &v, &cam->param.pos);
-    cam->dist = dist;
+    cam->Distance = dist;
     CameraSetOrientationUp(cam);
 }
 

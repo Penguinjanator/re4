@@ -22,11 +22,11 @@ struct Espgen01Work {
     Vec pos;           // 0x20 world position
     Vec dir_vec;           // 0x2C light direction
     f32 dir_ang;           // 0x38 half of the visible cone angle
-    f32 sizeRate;      // 0x3C
-    f32 scaleRate;     // 0x40
-    f32 dist;          // 0x44 fade distance
+    f32 center_dist_ratio;      // 0x3C
+    f32 size_ratio;     // 0x40
+    f32 del_dist;          // 0x44 fade distance
     u8 pad_48[4];
-    u16 parts;         // 0x4C
+    u16 Null_parts_no;         // 0x4C
     u8 pad_4E[2];
     cModel* pMod;     // 0x50
     u8 parts_no;        // 0x54
@@ -142,7 +142,7 @@ void SetEsp(EspgenWork* w)
         v.y = Screen.height * 0.5f;
         v.z = 0.0f;
         PSVECSubtract(&v, &scr, &d);
-        alpha = PSVECMag(&d) / (Screen.height * (p->sizeRate * 0.7f));
+        alpha = PSVECMag(&d) / (Screen.height * (p->center_dist_ratio * 0.7f));
         alpha *= alpha;
         alpha = 1.0f - alpha;
         if (p->flg & 1) {
@@ -164,8 +164,8 @@ void SetEsp(EspgenWork* w)
             esp->m_Pos.x = p->pos_x;
             esp->m_Pos.y = p->pos_y;
             esp->m_Col_a *= alpha;
-            if (p->scaleRate != 0.0f) {
-                s = alpha * p->scaleRate + (1.0f - p->scaleRate);
+            if (p->size_ratio != 0.0f) {
+                s = alpha * p->size_ratio + (1.0f - p->size_ratio);
                 if (s < 0.0f) {
                     s = 0.0f;
                 }
@@ -184,8 +184,8 @@ void SetEsp(EspgenWork* w)
                 esp->m_Pos.x = p->pos_x;
                 esp->m_Pos.y = p->pos_y;
                 esp->m_Col_a *= alpha;
-                if (p->scaleRate != 0.0f) {
-                    s = alpha * p->scaleRate + (1.0f - p->scaleRate);
+                if (p->size_ratio != 0.0f) {
+                    s = alpha * p->size_ratio + (1.0f - p->size_ratio);
                     if (s < 0.0f) {
                         s = 0.0f;
                     }
@@ -230,12 +230,12 @@ static f32 GetDistAlpha(EspgenWork* w)
     Vec d;
     f32 a;
 
-    if (p->dist != 0.0f) {
+    if (p->del_dist != 0.0f) {
         cam = &pG->Camera;
         d.x = p->pos.x - cam->param.pos.x;
         d.y = p->pos.y - cam->param.pos.y;
         d.z = p->pos.z - cam->param.pos.z;
-        a = PSVECMag(&d) / p->dist;
+        a = PSVECMag(&d) / p->del_dist;
         if (a > 1.0f) {
             a = 1.0f;
         }
@@ -371,7 +371,7 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->owner = rec->Work8[0];
     p->est_id = rec->Work8[1];
     p->flg = 0;
-    p->parts = parts;
+    p->Null_parts_no = parts;
     p->pMod = model;
     p->parts_no = rec->Parts_no;
     fov = rec->Vec2.z;
@@ -392,12 +392,12 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         VECNormalize(&p->dir_vec, &p->dir_vec);
         p->flg |= 1;
     }
-    p->sizeRate = 1.0f - rec->Vec0.x * 0.01f;
-    if (p->sizeRate > 1.0f) {
-        p->sizeRate = 1.0f;
+    p->center_dist_ratio = 1.0f - rec->Vec0.x * 0.01f;
+    if (p->center_dist_ratio > 1.0f) {
+        p->center_dist_ratio = 1.0f;
     }
-    p->scaleRate = rec->Vec0.y * 0.01f;
-    p->dist = rec->Vec0.z;
+    p->size_ratio = rec->Vec0.y * 0.01f;
+    p->del_dist = rec->Vec0.z;
     if (rec->Vec1.x != 0.0f) {
         p->hide_r = rec->Vec1.x;
         p->flg |= 2;

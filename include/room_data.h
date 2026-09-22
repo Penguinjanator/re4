@@ -48,11 +48,11 @@ public:
     u16 num;                  // 0x02  rooms with a save record
     u16 flag;                 // 0x04  bit 0: room DLL unlinked (stopRelData)
     u8 pad_6[2];
-    OSModuleHeader* pModule;  // 0x08  linked room DLL (exception.cpp loads its symbols)
+    OSModuleHeader* m_pModule;  // 0x08  linked room DLL (exception.cpp loads its symbols)
     void* m_pModule_bss;               // 0x0C  DLL bss
     void* m_pModule_bss_bak;            // 0x10  bss copy kept while the DLL is unlinked
-    RoomSaveHdr* pSaveBuf;    // 0x14
-    u8* pSave;                // 0x18  room save records, 0xD8 bytes each
+    RoomSaveHdr* m_pRoomSaveHead;    // 0x14
+    u8* m_pRoomSaveData;                // 0x18  room save records, 0xD8 bytes each
     u16 m_RelNo;              // 0x1C  FileTbl index (rel_no) of the room dll loaded; cleared before linkRelData (stage.cpp)
     u16 x1E;                  // 0x1E
 

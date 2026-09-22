@@ -64,9 +64,9 @@ class ssDbgPzzl {
 public:
     void* m_p_save_bak;
     u8 m_size_bak;
-    s8 cursor;
+    s8 m_menu_no;
     s8 m_set_no;
-    s8 bullet;
+    s8 m_bllt_no;
 
     void init(SUB_SCREEN* wk);
     void quit(SUB_SCREEN* wk);
@@ -262,7 +262,7 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
             getPieceVertex(arm, &pos, 1);
             puzzlePos2screenPos(&pos, &scr);
             id[0]->be_flag |= 8;
-            id[0]->scr = scr;
+            id[0]->pos0 = scr;
             col = colorRRGGBBAA(id[0]->col0[0], id[0]->col0[1], id[0]->col0[2], 0x20);
             pieceFrameDisp(arm->model, col, 3);
         }
@@ -282,7 +282,7 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
                 getPieceVertex(p, &pos, 1);
                 puzzlePos2screenPos(&pos, &scr);
                 id[i + 1]->be_flag |= 8;
-                id[i + 1]->scr = scr;
+                id[i + 1]->pos0 = scr;
                 col = colorRRGGBBAA(id[i + 1]->col0[0], id[i + 1]->col0[1], id[i + 1]->col0[2], 0x20);
                 pieceFrameDisp(p->model, col, 3);
             }
@@ -306,7 +306,7 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
     IdUnit* u0 = IdSub.unitPtr(0x20, IDC_SSCRN_ETC);
     IdUnit* u1 = IdSub.unitPtr(0x21, IDC_SSCRN_ETC);
     IdUnit* u2 = IdSub.unitPtr(0x22, IDC_SSCRN_ETC);
-    pzlBoard* b = wk->puzzlePlayer->cur;
+    pzlBoard* b = wk->puzzlePlayer->m_p_active_board;
     int x = b->m_cur_x;
     int y = b->m_cur_y;
     pzlPiece* p;
@@ -320,7 +320,7 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         return;
     }
     drawCursorInit(wk, &pzzl_cursor);
-    drawCursor(wk, wk->puzzlePlayer->cur, x, y, &pzzl_cursor, 0);
+    drawCursor(wk, wk->puzzlePlayer->m_p_active_board, x, y, &pzzl_cursor, 0);
     switch (wk->cursor_mode) {
     case 1:
         if (wk->cursor_flag & 3) {
@@ -328,7 +328,7 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         }
         pzzlEquipDisp(wk, 1);
         drawCursorInit(wk, &pzzl_cursor);
-        drawCursor(wk, wk->puzzlePlayer->cur, x, y, &pzzl_cursor, 1);
+        drawCursor(wk, wk->puzzlePlayer->m_p_active_board, x, y, &pzzl_cursor, 1);
         col = colorRRGGBBAA((u8) u0->col[0], (u8) u0->col[1], (u8) u0->col[2], (u8) u0->col[3]);
         {
             // COMPILER-DIFF: 5 (sched1 tie). Case 1 of the target issues the `col` copy before the
@@ -338,7 +338,7 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
             // anti-dependence on the `col` copy (which reads r3) orders it after the copy.
             register pzlPlayer* pl asm("r3");
             pl = wk->puzzlePlayer;
-            p = pl->ptrPiece(pl->cur);
+            p = pl->ptrPiece(pl->m_p_active_board);
         }
         if (p) {
             pieceFrameDisp(p->model, col, 1);
@@ -353,9 +353,9 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         }
         pzzlEquipDisp(wk, 1);
         drawCursorInit(wk, &pzzl_cursor);
-        drawCursor(wk, wk->puzzlePlayer->cur, x, y, &pzzl_cursor, 1);
+        drawCursor(wk, wk->puzzlePlayer->m_p_active_board, x, y, &pzzl_cursor, 1);
         col = colorRRGGBBAA((u8) u1->col[0], (u8) u1->col[1], (u8) u1->col[2], (u8) u1->col[3]);
-        p = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur);
+        p = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board);
         if (p) {
             pieceFrameDisp(p->model, col, 1);
         }
@@ -370,7 +370,7 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         u2->be_flag &= ~8;
         pzzlEquipDisp(wk, 1);
         drawCursorInit(wk, &pzzl_cursor);
-        drawCursor(wk, wk->puzzlePlayer->cur, x, y, &pzzl_cursor, 0);
+        drawCursor(wk, wk->puzzlePlayer->m_p_active_board, x, y, &pzzl_cursor, 0);
         break;
     }
     wk->cursor_flag = 0;
@@ -814,7 +814,7 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
         m->ang.z = -1.5707964f;
         break;
     }
-    if (!(p->state & 2)) {
+    if (!(p->m_place & 2)) {
         if (wk->puzzlePlayer->m_board->search(p)) {
             b = wk->puzzlePlayer->m_board;
         } else {
@@ -824,7 +824,7 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
             b = wk->puzzlePlayer->m_space;
         }
     } else {
-        b = wk->puzzlePlayer->cur;
+        b = wk->puzzlePlayer->m_p_active_board;
     }
     m->pos.x = pzlGrid::size * (p->m_pos_x + 0.5f);
     m->pos.y = -pzlGrid::size * (p->m_pos_y + 0.5f);
@@ -1013,7 +1013,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
         } else {
             m->ot_type = 3;
         }
-        if ((p->state & 1) || (hand && hand == p)) {
+        if ((p->m_place & 1) || (hand && hand == p)) {
             m->be_flag |= 2;
             id = 0x41 + no;
             if (hand && p == hand) {
@@ -1079,11 +1079,11 @@ void pieceModelInit(SUB_SCREEN* wk)
 
     pieceTblInit(wk);
     for (i = 0; i < pl->m_piece_max; i++) {
-        pzlPiece* p = &pl->pieces[i];
+        pzlPiece* p = &pl->m_piece[i];
         pzlPiece* q;
 
         p->model = MapMgr.getWork(i + 4);
-        q = &pl->pieces[i];
+        q = &pl->m_piece[i];
         q->model->be_flag &= ~2;
     }
     for (i = 0; i < pl->pieceNum(); i++) {
@@ -1231,7 +1231,7 @@ void caseModelMove(int sw)
         mat[2][3] = t.z;
         MTX_COPY_DO(mat, b->m_mat);
         puzzlePos2screenPos(&q, &scr2);
-        u->scr.y = scr2.y;
+        u->pos0.y = scr2.y;
     }
 }
 
@@ -1266,11 +1266,11 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
         IdSub.dispSw(IDC_SSCRN_PESETA, 1);
         sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 1682 "D:/Bio4/Prog/ss_pzzl.cpp"
-        pzzl_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
+        pzzl_read_req = DVD_READ_N(wk->filename, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (pzzl_read_req <= 0) {
             break;
         }
-        if (wk->menu_old == 2 && wk->type != 4) {
+        if (wk->menu_old == 2 && wk->open_flag != 4) {
             sscrnModelFree(wk);
             generalModelAlloc(wk);
             playerModelInit();
@@ -1297,7 +1297,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
         state++;
     }
     case 4:
-        if (wk->type == 4) {
+        if (wk->open_flag == 4) {
             FadeSetW(0x80000000, 5, 0, 0);
         }
         transit(0, wk);
@@ -1413,7 +1413,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     }
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, IDC_SSCRN_CKPT_2, 0x13, 1, 0);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    if (wk->menu_old == 2 && wk->type != 4) {
+    if (wk->menu_old == 2 && wk->open_flag != 4) {
         wk->alpha_flag = 0;
         wk->alpha_cnt = 10;
     }
@@ -1422,7 +1422,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         delete wk->puzzlePlayer;
     }
     pieceModelInit(wk);
-    if (wk->type & 4) {
+    if (wk->open_flag & 4) {
         pzlPlayer* pl;
         pzlPiece* p;
         int w;
@@ -1443,7 +1443,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         w = pl->m_space->m_size_x;
         for (y = 0; y < h; y++) {
             for (x = 0; x < w; x++) {
-                p->m_pos_x = (f32) x + p->cx;
+                p->m_pos_x = (f32) x + p->m_center_x;
                 p->m_pos_y = (f32) y + p->m_center_y;
                 if (pl->putPiece(pl->m_space)) {
                     goto PUT;
@@ -1453,7 +1453,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         p->orientation(1);
         for (y = 0; y < h; y++) {
             for (x = 0; x < w; x++) {
-                p->m_pos_x = (f32) x + p->cx;
+                p->m_pos_x = (f32) x + p->m_center_x;
                 p->m_pos_y = (f32) y + p->m_center_y;
                 if (pl->putPiece(pl->m_space)) {
                     goto PUT;
@@ -1461,14 +1461,14 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
             }
         }
     PUT:
-        pl->cur = pl->m_space;
+        pl->m_p_active_board = pl->m_space;
         pl->getPiece(pl->m_space);
         pieceModelSet(wk->puzzlePlayer->m_extra);
         cur = thinking;
         cur->init(wk);
     } else {
         if ((wk->flags & 4) && wk->puzzlePlayer->m_space->getPieceNum() != 0) {
-            wk->puzzlePlayer->cur = wk->puzzlePlayer->m_space;
+            wk->puzzlePlayer->m_p_active_board = wk->puzzlePlayer->m_space;
             thinking->init(wk);
         }
         cur = select;
@@ -1512,9 +1512,9 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
             item = pl->m_inhand->item;
             on = 1;
             id = item->id;
-        } else if (pl->ptrPiece(pl->cur)) {
+        } else if (pl->ptrPiece(pl->m_p_active_board)) {
             on = 1;
-            item = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur)->item;
+            item = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board)->item;
             id = item->id;
         }
         x = (int) ((u->pos.x + 320.0f) * 0.8f);
@@ -1523,7 +1523,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
         if (on && caseMove == 0) {
             cMes.setFontSize(0, pzzl_font_w[1], pzzl_font_h[1]);
             cMes.getMes(0)->m_line_gap = 0;
-            cMes.getMes(0)->charSpace = pzzl_font_space[3];
+            cMes.getMes(0)->m_char_gap = pzzl_font_space[3];
             cMes.MesSet(id, x, y, 0x20088, 0, 0, 4);
         } else {
             cMes.Delete(0);
@@ -1554,7 +1554,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
                     transit(4, wk);
                     break;
                 default:
-                    if (wk->type != 4 && next == cur && wk->puzzlePlayer->m_space->getPieceNum() == 0 &&
+                    if (wk->open_flag != 4 && next == cur && wk->puzzlePlayer->m_space->getPieceNum() == 0 &&
                         (Key.trg & 0x00400000)) {
                         wk->close_flag = 0;
                         wk->menu_old = 1;
@@ -1594,7 +1594,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
                 select->mode = 0;
                 sscrnMainMenuInit(wk, 0);
                 state = 0;
-                wk->puzzlePlayer->cur = wk->puzzlePlayer->m_board;
+                wk->puzzlePlayer->m_p_active_board = wk->puzzlePlayer->m_board;
                 if (Key.trg & 0x01000000) {
                     int h = wk->puzzlePlayer->m_board->m_size_y;
 
@@ -1650,7 +1650,7 @@ void SsPzzlMain::quit(SUB_SCREEN* wk)
 {
     pzzlCursorDisp(wk, 0);
     pzzlEquipDisp(wk, 0);
-    if (wk->type & 4) {
+    if (wk->open_flag & 4) {
         pzlPlayer* pl = wk->puzzlePlayer;
 
         if (pl->m_extra && pl->m_space->search(pl->m_extra)) {
@@ -1714,7 +1714,7 @@ static int sscrn_pzzl_out(SUB_SCREEN* wk)
     pzzlCursorDisp(wk, 1);
     u = IdSub.unitPtr(0xFE, IDC_SSCRN_BACK_GROUND);
     u2 = IdSub.unitPtr(0xFD, IDC_SSCRN_BACK_GROUND);
-    if ((u->end & 1) && (u2->end & 4)) {
+    if ((u->anima_state & 1) && (u2->anima_state & 4)) {
         return 1;
     }
     return 0;
@@ -1765,11 +1765,11 @@ void PzzlThinking::move(SUB_SCREEN* wk)
     pzlPlayer* pl;
 
     if (Key.trg & 0x80020000) {
-        if (wk->puzzlePlayer->putPiece(wk->puzzlePlayer->cur)) {
+        if (wk->puzzlePlayer->putPiece(wk->puzzlePlayer->m_p_active_board)) {
             transit(0, wk);
             SndCall(0, 0xC, 0, 0, 0, 0);
         } else {
-            pzlPiece* p = wk->puzzlePlayer->cmbPiece(wk->puzzlePlayer->cur);
+            pzlPiece* p = wk->puzzlePlayer->cmbPiece(wk->puzzlePlayer->m_p_active_board);
 
             if (p) {
                 ItemInfo info;
@@ -1799,12 +1799,12 @@ void PzzlThinking::move(SUB_SCREEN* wk)
                     }
                     SndCall(0, se, 0, 0, 0, 0);
                 }
-            } else if (wk->puzzlePlayer->chgPiece(wk->puzzlePlayer->cur)) {
+            } else if (wk->puzzlePlayer->chgPiece(wk->puzzlePlayer->m_p_active_board)) {
                 SndCall(0, 0xD, 0, 0, 0, 0);
             }
         }
     } else if (Key.trg & 0x40000000) {
-        if (wk->puzzlePlayer->relPiece(wk->puzzlePlayer->cur)) {
+        if (wk->puzzlePlayer->relPiece(wk->puzzlePlayer->m_p_active_board)) {
             transit(0, wk);
             SndCall(0, 0xC, 0, 0, 0, 0);
         }
@@ -1893,7 +1893,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
     wk->cursor_mode = 1;
     {
         pzlPlayer* pl = wk->puzzlePlayer;
-        b = pl->cur;
+        b = pl->m_p_active_board;
         if (b == pl->m_board) {
             other = pl->m_space;
         } else {
@@ -1918,7 +1918,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 SndCall(0, 0x2A, 0, 0, 0, 0);
             }
         } else if (Key.trg & 0x40000000) {
-            if (wk->type & 4) {
+            if (wk->open_flag & 4) {
                 mode = 1;
                 if (!isTerminable(wk)) {
                     mode |= 8;
@@ -1953,20 +1953,20 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 }
             }
         } else if (Key.trg & 0x80000000) {
-            if (wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur) && link[0]) {
+            if (wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board) && link[0]) {
                 pzlPiece** psel = &pzzl_sel;
 
-                *psel = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur);
+                *psel = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board);
                 transit(0, wk);
             }
         } else if (Key.trg & 0x00020000) {
-            if (wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur)) {
-                wk->puzzlePlayer->getPiece(wk->puzzlePlayer->cur);
+            if (wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board)) {
+                wk->puzzlePlayer->getPiece(wk->puzzlePlayer->m_p_active_board);
                 transit(1, wk);
                 SndCall(0, 0xD, 0, 0, 0, 0);
             }
         } else {
-            int r = wk->puzzlePlayer->selPiece(wk->puzzlePlayer->cur);
+            int r = wk->puzzlePlayer->selPiece(wk->puzzlePlayer->m_p_active_board);
             int n;
 
             if (r == 5) {
@@ -1975,7 +1975,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
             }
             switch (r) {
             case 1:
-                if (link[3] == 0 && (n = space->getPieceNum()) == 0 && wk->type != 4) {
+                if (link[3] == 0 && (n = space->getPieceNum()) == 0 && wk->open_flag != 4) {
                     mode = 2;
                     wk->menu_next = 0;
                     wk->menu_no = 0;
@@ -1988,7 +1988,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 }
                 break;
             case 2:
-                if (link[3] == 0 && space->getPieceNum() == 0 && wk->type != 4) {
+                if (link[3] == 0 && space->getPieceNum() == 0 && wk->open_flag != 4) {
                     mode = r;
                     wk->menu_next = st;
                     wk->menu_no = st;
@@ -2002,8 +2002,8 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 if (other->getPieceNum() != 0) {
                     int w;
 
-                    wk->puzzlePlayer->cur = other;
-                    b = wk->puzzlePlayer->cur;
+                    wk->puzzlePlayer->m_p_active_board = other;
+                    b = wk->puzzlePlayer->m_p_active_board;
                     w = b->m_size_x;
                     b->m_cur_x = w - 1;
                 } else {
@@ -2015,8 +2015,8 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 break;
             case 4:
                 if (other->getPieceNum() != 0) {
-                    wk->puzzlePlayer->cur = other;
-                    b = wk->puzzlePlayer->cur;
+                    wk->puzzlePlayer->m_p_active_board = other;
+                    b = wk->puzzlePlayer->m_p_active_board;
                     b->m_cur_x = 0;
                 } else {
                     b->m_cur_x = 0;
@@ -2041,7 +2041,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
         }
         closeMsgWindow(wk);
         if (r == 1) {
-            if (wk->type & 4) {
+            if (wk->open_flag & 4) {
                 if (wk->puzzlePlayer->m_extra) {
                     ItemMgr.offboardDump(wk->p_get_item);
                 } else {
@@ -2124,7 +2124,7 @@ void PieceCombine::move(SUB_SCREEN* wk)
     pzlBoard* other;
 
     wk->cursor_mode = 2;
-    b = pl->cur;
+    b = pl->m_p_active_board;
     if (b == pl->m_board) {
         other = pl->m_space;
     } else {
@@ -2135,11 +2135,11 @@ void PieceCombine::move(SUB_SCREEN* wk)
         if (Key.trg & 0x40000000) {
             pzlPiece** psel = &pzzl_sel;
             wk->puzzlePlayer->loadCursor();
-            *psel = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur);
+            *psel = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board);
             transit(1, wk);
         } else if (Key.trg & 0x80000000) {
             if (wk->puzzlePlayer->ptrPiece(b)) {
-                pzlPiece* p = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->cur);
+                pzlPiece* p = wk->puzzlePlayer->ptrPiece(wk->puzzlePlayer->m_p_active_board);
                 pzlPiece* sel = pzzl_sel;
                 int extra = p == wk->puzzlePlayer->m_extra;
                 u16 idA;
@@ -2222,8 +2222,8 @@ void PieceCombine::move(SUB_SCREEN* wk)
             case 3: {
                 int w;
                 if (other->getPieceNum() != 0) {
-                    wk->puzzlePlayer->cur = other;
-                    b = wk->puzzlePlayer->cur;
+                    wk->puzzlePlayer->m_p_active_board = other;
+                    b = wk->puzzlePlayer->m_p_active_board;
                 }
                 w = b->m_size_x;
                 b->m_cur_x = w - 1;
@@ -2235,8 +2235,8 @@ void PieceCombine::move(SUB_SCREEN* wk)
             } while (0);
             case 4:
                 if (other->getPieceNum() != 0) {
-                    wk->puzzlePlayer->cur = other;
-                    b = wk->puzzlePlayer->cur;
+                    wk->puzzlePlayer->m_p_active_board = other;
+                    b = wk->puzzlePlayer->m_p_active_board;
                 }
                 b->m_cur_x = 0;
                 break;
@@ -2271,8 +2271,8 @@ void PieceCommand::init(SUB_SCREEN* wk)
     int i;
     int corner;
 
-    half.x = (f32) pl->cur->m_size_x * 0.5f;
-    half.y = (f32) pl->cur->m_size_y * 0.5f;
+    half.x = (f32) pl->m_p_active_board->m_size_x * 0.5f;
+    half.y = (f32) pl->m_p_active_board->m_size_y * 0.5f;
     pc.x = pzzl_sel->m_pos_x;
     pc.y = pzzl_sel->m_pos_y;
     if (pl->m_board->search(pzzl_sel)) {
@@ -2296,9 +2296,9 @@ void PieceCommand::init(SUB_SCREEN* wk)
         corner = lower ? 2 : 1;
     }
     pos = pzzl_cursor.v[corner];
-    puzzlePos2screenPos(&pos, &id[0]->scr);
+    puzzlePos2screenPos(&pos, &id[0]->pos0);
     if (lower) {
-        id[0]->scr.y += id[2]->size_H;
+        id[0]->pos0.y += id[2]->size_H;
     }
     cursorOld = 1;
     mode = 0;
@@ -2322,9 +2322,9 @@ void PieceCommand::move(SUB_SCREEN* wk)
         corner = lower ? 2 : 1;
     }
     pos = pzzl_cursor.v[corner];
-    puzzlePos2screenPos(&pos, &id[0]->scr);
+    puzzlePos2screenPos(&pos, &id[0]->pos0);
     if (lower) {
-        id[0]->scr.y += id[2]->size_H;
+        id[0]->pos0.y += id[2]->size_H;
     }
     switch (mode) {
     case 0:
@@ -2622,7 +2622,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
             sub[i]->be_flag |= 8;
             sub[i]->rev_flag &= 0xF0;
         }
-        PSVECAdd(&id[6 + wk->cmd_menu_no * 2]->scr, &id[6 + wk->cmd_menu_no * 2]->pParent->scr, &sub[0]->scr);
+        PSVECAdd(&id[6 + wk->cmd_menu_no * 2]->pos0, &id[6 + wk->cmd_menu_no * 2]->pParent->pos0, &sub[0]->pos0);
         mode = 2;
     }
     case 2:
@@ -2644,7 +2644,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
                     ItemMgr.m_to_whom = 1;
                 }
                 if (ItemMgr.m_to_whom == 1) {
-                    switch (wk->healing) {
+                    switch (wk->sub_cure_flag) {
                     case -1:
                         mode = 3;
                         openMsgWindow(wk, 0x26);
@@ -2749,7 +2749,7 @@ void CaseChange::init(SUB_SCREEN* wk)
 // models, then returns to PieceSelect.
 void CaseChange::move(SUB_SCREEN* wk)
 {
-    if ((a->end & 1) && (b->end & 4)) {
+    if ((a->anima_state & 1) && (b->anima_state & 4)) {
         wk->puzzlePlayer->quit();
         delete wk->puzzlePlayer;
         wk->board_size = wk->board_next;

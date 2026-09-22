@@ -50,8 +50,8 @@ public:
 // Scope reticle ids (IdSys unit 0x25).
 class IdScope : public IDApplication {
 public:
-    s32 save_a;  // 0x04
-    s32 save_b;  // 0x08
+    s32 m_pos_time_sav;  // 0x04
+    s32 m_size_time_sav;  // 0x08
 
     virtual void init(void* type);
     virtual void move(void* zoom);
@@ -76,14 +76,14 @@ struct FocusAnimation {
 class CameraScope : public cCamera {
 public:
     Vec pos_ofs;      // 0x0FC
-    Vec dir;          // 0x108
+    Vec m_rad;          // 0x108
     f32 angle_x;      // 0x114
     u8 pad_118[8];
     f32 angle_min;    // 0x120
     u8 pad_124[8];
     f32 angle_max;    // 0x12C
     u8 pad_130[8];
-    f32 zoom;         // 0x138
+    f32 m_zoom_ratio;         // 0x138
     Vec m_rnd;         // 0x13C  (x, y used; z = x144)
     u8 pad_148[13];
     u8 type;          // 0x155
@@ -117,12 +117,12 @@ public:
 
 class CameraBinocular : public cCamera {
 public:
-    s32 mode;          // 0x0FC
+    s32 m_flag;          // 0x0FC
     Vec m_rad;         // 0x100  view angles (x yaw, y pitch), clamped between m_rad_low / m_rad_up
     Vec m_rad_low;     // 0x10C  setRange lower limits (default -60 deg)
     Vec m_rad_up;      // 0x118  setRange upper limits (default 60 deg)
     f32 m_zoom_ratio;  // 0x124  zoom 0..1 (fovy gain = 1 - 0.9 * zoom)
-    IdBinocular id;    // 0x128
+    IdBinocular m_id;    // 0x128
     FocusAnimation m_focus;  // 0x168
     Vec m_campos;     // 0x178
     Vec m_target;      // 0x184
@@ -146,7 +146,7 @@ public:
 class CameraLookAt : public cCamera {
 public:
     u8 pad_FC[4];
-    cModel* parts;  // 0x100  hand parts looked at
+    cModel* m_target_parts;  // 0x100  hand parts looked at
 
     CameraLookAt(Camera* cam);
     virtual ~CameraLookAt();
@@ -155,7 +155,7 @@ public:
 
 class CameraLookDownEm : public cCamera {
 public:
-    cModel* parts;  // 0xFC
+    cModel* m_target_parts;  // 0xFC
 
     CameraLookDownEm(void* em, Vec* ofs);
     virtual ~CameraLookDownEm();

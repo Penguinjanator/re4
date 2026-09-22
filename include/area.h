@@ -40,7 +40,7 @@ struct AreaEyeTrigger {
     f32 ang_x;     // 0x14  view direction (rotation about X)
     f32 ang_y;     // 0x18  view direction (rotation about Y)
     f32 pad00;     // 0x1C  zeroed by AreaDataInit (PS2 AREA_EYE_TRIGGER pad00)
-    f32 open;      // 0x20  opening angle in radians (0 = all round)
+    f32 open_ang;      // 0x20  opening angle in radians (0 = all round)
     f32 pad[2];    // 0x24  zeroed by AreaDataInit (PS2 AREA_EYE_TRIGGER pad[2])
 };
 

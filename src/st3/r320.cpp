@@ -2182,7 +2182,7 @@ static void Evt_R320S00_Func(Event* e)
     Vec rot = {0.0f, 0.0f, 0.0f};
     cObj* obj;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdSetTrans(0x25, 1);
         SmdSetTrans(0x27, 1);
@@ -2283,7 +2283,7 @@ static void Evt_R320S01_Func(Event* e)
     Vec rot = {0.0f, 0.0f, 0.0f};
     cObj* obj;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdSetTrans(0x25, 1);
         SmdSetTrans(0x27, 1);

@@ -471,22 +471,22 @@ void ItemExamine::idSet()
             for (kind = 0; kind <= 3; kind++) {
                 switch (kind) {
                 case 0:
-                    val = (int) (getPowerRatio(m_item_id, lv[0]) * 10.0f + 0.5f);
+                    val = (int) (getPowerRatio(m_item_id, m_level[0]) * 10.0f + 0.5f);
                     base = 0x11;
                     base2 = 0xF1;
                     break;
                 case 1:
-                    val = (int) (getSpeedRatio(m_item_id, lv[1]) * 100.0f + 0.5f);
+                    val = (int) (getSpeedRatio(m_item_id, m_level[1]) * 100.0f + 0.5f);
                     base = 0x21;
                     base2 = 0xE1;
                     break;
                 case 2:
-                    val = (int) (getReloadRatio(m_item_id, lv[2]) * 100.0f + 0.5f);
+                    val = (int) (getReloadRatio(m_item_id, m_level[2]) * 100.0f + 0.5f);
                     base = 0x31;
                     base2 = 0xD1;
                     break;
                 case 3:
-                    val = (int) getBulletRatio(m_item_id, lv[3]);
+                    val = (int) getBulletRatio(m_item_id, m_level[3]);
                     base = 0x41;
                     base2 = 0xC1;
                     break;
@@ -531,7 +531,7 @@ void ItemExamine::idSet()
                     a = IdSub.unitPtr(1, IDC_DATA);
                     b = IdSub.unitPtr(2, IDC_DATA);
                     c = IdSub.unitPtr(3, IDC_DATA);
-                    l = lv[kind];
+                    l = m_level[kind];
                     if (n < l) {
                         if (l > WeaponId2MaxLevel(m_item_id, kind)) {
                             c = a;
@@ -590,7 +590,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     m_pModel->be_flag |= 0x4000;
     m_pList_pParent_bak = m_pModel->pParts->pParent;
     m_pModel->pParts->pParent = m_pModel;
-    h = m_pModel->pModelInfo->pData->pHead;
+    h = m_pModel->pModelInfo->model_addr->pHead;
     m_pList_pos_bak = m_pModel->pParts->pos;
     m_pModel->pParts->pos.x = h->center.x;
     m_pModel->pParts->pos.y = h->center.y;
@@ -649,7 +649,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         PSVECAdd(&mid, &p, &at);
         itemCamera.param.at = mid;
         itemCamera.param.pos = at;
-        itemCamera.dist = cap_dist_max;
+        itemCamera.Distance = cap_dist_max;
         g_rad_x = 0.0f;
     } else {
         arc = pG->pCore;
@@ -704,10 +704,10 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
 // Sets the weapon levels shown by the bars (-1 = not upgradable).
 void ItemExamine::level(s8 pwr, s8 spd, s8 rld, s8 blt)
 {
-    lv[0] = pwr;
-    lv[1] = spd;
-    lv[2] = rld;
-    lv[3] = blt;
+    m_level[0] = pwr;
+    m_level[1] = spd;
+    m_level[2] = rld;
+    m_level[3] = blt;
 }
 
 // Per-frame: spins the model pi/60 rad per frame about the axis chosen by ExamInfo rot0/rot1
@@ -790,7 +790,7 @@ void ItemExamine::move()
     m_pModel->partsWorldCalc();
     if (m_scrn_flag == 2) {
         if (Key.on & 0xC00000) {
-            f32 d = itemCamera.dist;
+            f32 d = itemCamera.Distance;
             if (Key.on & 0x400000) {
                 d += dist_add;
             }
@@ -838,8 +838,8 @@ void ItemExamine::move()
         if (m_pInfo) {
             len /= m_pInfo->scale;
         }
-        a = m_pIdSys->unitPtr(0xF2, IDC_EXAMINE)->scr;
-        c = m_pIdSys->unitPtr(0xF3, IDC_EXAMINE)->scr;
+        a = m_pIdSys->unitPtr(0xF2, IDC_EXAMINE)->pos0;
+        c = m_pIdSys->unitPtr(0xF3, IDC_EXAMINE)->pos0;
         PSVECAdd(&a, &c, &e);
         PSVECScale(&e, &e, 0.5f);
         h = 0.5f;
@@ -856,11 +856,11 @@ void ItemExamine::move()
         _campos.z = z;
         itemCamera.param.pos = _campos;
         itemCamera.param.at = _target;
-        itemCamera.up = _up;
+        itemCamera.Up = _up;
         itemCamera.param.fovy = _fovy;
     }
     C_MTXPerspective(itemCamera.ProjMat, itemCamera.param.fovy, 1.3333334f, ZNEAR, ZFAR);
-    C_MTXLookAt(itemCamera.v_mat, &itemCamera.param.pos, &itemCamera.up, &itemCamera.param.at);
+    C_MTXLookAt(itemCamera.v_mat, &itemCamera.param.pos, &itemCamera.Up, &itemCamera.param.at);
     LightMgr.setModel2(m_pModel);
     if (!StaFlagChk(pG, STA_SUB_SCRN)) {
         AddOtDirect(ot_type, (void*) 0xCDCDCDCD, render, ot_no, ot_kind, 0, 0.0f);

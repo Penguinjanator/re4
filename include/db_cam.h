@@ -16,7 +16,7 @@ public:
     u8 m_timer;          // 0x04  frames until the Z trigger is checked again
     u8 m_draw_timer;     // 0x05  frames left to draw the target cross
     u8 pad_6[2];
-    int save_mode;     // 0x08  pG->debug_mode saved while the tool is open
+    int m_printNo_bak;     // 0x08  pG->debug_mode saved while the tool is open
     s8 m_cam_no;         // 0x0C  camera cut to play (menuCamera)
     s8 m_cam_play;           // 0x0D  cut playback state
     s8 m_key_type;       // 0x0E  camera_type_tbl index

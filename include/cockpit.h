@@ -10,7 +10,7 @@ class LifeMeter {
 public:
     u32 flags;         // 0x00
     u8 pad_4[0x18];    // 0x04
-    f32 life;          // 0x1C  smoothed player life
+    f32 m_life;          // 0x1C  smoothed player life
     s8 m_life_level;          // 0x20  lifeLevel(20, pl_life_max, 1200)
     u8 pad_21[3];
     f32 m_color0[4];       // 0x24  smoothed player meter colours (unit 0x12 col0 / col1)
@@ -34,7 +34,7 @@ public:
 class BulletInfo {
 public:
     u8 pad_0[0x10];
-    s32 markNo;        // 0x10  bullet icon currently shown (type 0x32 id), -1 none
+    s32 m_mark_old;        // 0x10  bullet icon currently shown (type 0x32 id), -1 none
     u8 pad_14[0x2C - 0x14];
 
     void roomInit();
@@ -56,7 +56,7 @@ public:
     u32 m_state;         // 0x00  TIMER_STATE bits: ALIVE running, PAUSE by the game flags, ERASE hidden
     s8 m_minute;            // 0x04
     s8 m_second;            // 0x05
-    s8 cs;             // 0x06  1/100 s
+    s8 m_centisecond;             // 0x06  1/100 s
     u8 pad_7;
     u32 m_frame;         // 0x08  remaining time in frames
     u32 m_warn_frame;     // 0x0C  frame count below which the digits take unit 8's colour
@@ -80,7 +80,7 @@ public:
 
 class ActionButton {
 public:
-    u8 no;             // 0x00  button prompt to show (0 none)
+    u8 m_disp_flag;             // 0x00  button prompt to show (0 none)
     u8 m_disp_flag_old;            // 0x01  prompt shown last frame
     u8 pad_2[2];
 
@@ -91,9 +91,9 @@ public:
 class Cockpit {
 public:
     LifeMeter m_LifeMeter;         // 0x00
-    BulletInfo bullet;      // 0x84
-    CountDown countDown;    // 0xB0
-    ActionButton action;    // 0xC8  sizeof == 0xCC
+    BulletInfo m_BlltInfo;      // 0x84
+    CountDown m_CountDown;    // 0xB0
+    ActionButton m_ActBttn;    // 0xC8  sizeof == 0xCC
 
     void gameInit();
     void roomInit();
@@ -101,7 +101,7 @@ public:
     void msgWindow(int mode);
     void lifeMeterDisp(int sw);
     // sscrn reaches the count-down through this: `&Cckpt` is computed first, then + 0xB0
-    CountDown* getCountDown() { return &countDown; }
+    CountDown* getCountDown() { return &m_CountDown; }
 };
 
 extern Cockpit Cckpt;

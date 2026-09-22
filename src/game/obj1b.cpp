@@ -585,16 +585,16 @@ int obj1bHitCk(cObjSpear* obj)
     if (GetWepTargetList2(&obj->pos_old, &obj->pos, &target, 1, &hit, &nrm, &attr, 0x15, 0)) {
         part = target.part;
         em = target.em;
-        em->dmg.set(0, 10, 0x15, &em->pos_old, part->rad, part);
-        if (part->flags & YAT_FLAG_DMPOS) {
+        em->dmg.set(0, 10, 0x15, &em->pos_old, part->len, part);
+        if (part->flag & YAT_FLAG_DMPOS) {
             Mtx inv;
             Vec v;
             cModel* parts;
 
-            no = part->partsNo ? part->partsNo - 1 : 0;
+            no = part->parts_no ? part->parts_no - 1 : 0;
             parts = em->getPartsPtr(no);
             PSMTXInverse(parts->mat, inv);
-            PSMTXMultVec(inv, &part->pos, &obj->pos);
+            PSMTXMultVec(inv, &part->cross, &obj->pos);
 #line 825 "D:/Bio4/Prog/obj1b.cpp"
             VECNormalize(&obj->pos, &v);
             PSVECScale(&v, &v, -50.0f);

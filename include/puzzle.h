@@ -12,9 +12,9 @@ class cModel;
 // Piece shape data (piece_info entry + 4).
 struct PieceData {
     s8 size_x;             // 0x00
-    s8 h;             // 0x01
+    s8 size_y;             // 0x01
     u8 pad_2[2];
-    f32 cx;           // 0x04  centre offset in cells
+    f32 center_x;           // 0x04  centre offset in cells
     f32 center_y;           // 0x08
     char shape[0x40]; // 0x0C  row-major, '1' = filled
 };
@@ -33,13 +33,13 @@ public:
     u8 pad_1[3];
     PieceData* m_p_data;  // 0x04
     u32 x8;           // 0x08
-    f32 cx;           // 0x0C  rotated centre offset
+    f32 m_center_x;           // 0x0C  rotated centre offset
     f32 m_center_y;           // 0x10
     f32 m_pos_x;            // 0x14  centre position on the board (cells)
     f32 m_pos_y;            // 0x18
     u32 x1C;
     s8 m_orientation;        // 0x20  0..3 rotations, 4..7 mirrored
-    u8 state;         // 0x21  1 = on a board, 2 = in hand
+    u8 m_place;         // 0x21  1 = on a board, 2 = in hand
     u8 pad_22[2];
     ItemWork* item;   // 0x24
     cModel* model;    // 0x28
@@ -90,21 +90,21 @@ class pzlPlayer {
 public:
     pzlBoard* m_board;   // 0x00
     pzlBoard* m_space;  // 0x04
-    pzlPiece* pieces;      // 0x08
+    pzlPiece* m_piece;      // 0x08
     u8 m_piece_max;          // 0x0C
     u8 pad_D[3];
     pzlPiece* m_inhand;        // 0x10
     pzlPiece* m_extra;       // 0x14
     f32 m_piece_bak_pos_x;             // 0x18
     f32 m_piece_bak_pos_y;             // 0x1C
-    s8 handOrient;         // 0x20
+    s8 m_piece_bak_orientation;         // 0x20
     u8 pad_21[3];
     pzlBoard* m_piece_bak_board;   // 0x24
     pzlBoard* m_board_sav;   // 0x28
     s8 m_cur_x_sav;              // 0x2C
     s8 m_cur_y_sav;              // 0x2D
     u8 pad_2E[2];
-    pzlBoard* cur;         // 0x30
+    pzlBoard* m_p_active_board;         // 0x30
 
     int init(int type);
     void quit();

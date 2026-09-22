@@ -35,7 +35,7 @@ cPlHunk::cPlHunk()
     arc = pG->pPlayer;
     EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), EFF_PL00, 0);
     startUp();
-    pFootShadowTbl = pl_fs_tbl;
+    pFsdTbl = pl_fs_tbl;
 }
 
 // Installs the character's event / action motions (m_MotTbl 0x5F..0x6C from the player archive
@@ -80,11 +80,11 @@ void cPlHunk::setModel()
     }
     if ((info = ModInfoMgr.create(PL_ARC(0x12), PL_ARC(0x11))) != 0) {
         addModel(info);
-        Body->pRight = info;
+        Body->m_pHandR = info;
     }
     if ((info = ModInfoMgr.create(PL_ARC(0x14), PL_ARC(0x11))) != 0) {
         addModel(info);
-        Body->pLeft = info;
+        Body->m_pHandL = info;
     }
     TevScaleGroup = 1;
     setFace(0);
@@ -100,9 +100,9 @@ void cPlHunk::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (Body->pRight) {
-        deleteModelInfo(Body->pRight);
-        Body->pRight = 0;
+    if (Body->m_pHandR) {
+        deleteModelInfo(Body->m_pHandR);
+        Body->m_pHandR = 0;
         Body->pRightData = 0;
     }
     switch (no) {
@@ -118,7 +118,7 @@ void cPlHunk::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(0x11))) != 0) {
         addModel(info);
-        Body->pRight = info;
+        Body->m_pHandR = info;
         Body->pRightData = data;
     }
     if (!info) {
@@ -134,9 +134,9 @@ void cPlHunk::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (Body->pLeft) {
-        deleteModelInfo(Body->pLeft);
-        Body->pLeft = 0;
+    if (Body->m_pHandL) {
+        deleteModelInfo(Body->m_pHandL);
+        Body->m_pHandL = 0;
         Body->pLeftData = 0;
     }
     if (no == 0x63) {
@@ -161,7 +161,7 @@ void cPlHunk::setLeftHand(u32 no)
         pLog->err(0, 0, "cPlHunk::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        Body->pLeft = info;
+        Body->m_pHandL = info;
         Body->pLeftData = data;
     }
 }
@@ -195,7 +195,7 @@ void cPlHunk::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (Body->pShape == 0) {
+    if (Body->m_pFace == 0) {
         return;
     }
     deleteModelInfo(Body->pHair);

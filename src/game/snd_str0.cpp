@@ -80,11 +80,11 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     if (str->flag & 0x1) {
         str->blk_half = 0x4000;
         str->read_size = str->blk_half * 2;
-        str->read_end = shd->len / 2 * 2;
+        str->read_end = shd->nibbles / 2 * 2;
     } else {
         str->blk_half = 0x8000;
         str->read_size = str->blk_half;
-        str->read_end = shd->len / 2;
+        str->read_end = shd->nibbles / 2;
     }
     if (str->read_end % str->read_size != 0) {
         str->read_end = str->read_end / str->read_size + 1;
@@ -94,7 +94,7 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     str->play_nbl = 0;
     str->play_pos = 0;
     str->blk_end = str->blk_size;
-    str->loop_start = shd->loop_start;
+    str->loop_start = shd->lptop_nbl;
     str->loop_end = shd->lpend_nbl;
     str->play_blk = -1;
     str->prev_blk = -1;

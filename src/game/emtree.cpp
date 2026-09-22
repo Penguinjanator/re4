@@ -661,15 +661,15 @@ void emTree_R1_Shot(cEmTree* em)
             EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
         }
         EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
-        if ((part->flags & YAT_FLAG_DMPOS) == 0) {
+        if ((part->flag & YAT_FLAG_DMPOS) == 0) {
             em->setFall();
         } else {
             no = 0;
-            if (part->partsNo != 0) {
-                no = part->partsNo - 1;
+            if (part->parts_no != 0) {
+                no = part->parts_no - 1;
             }
             PSMTXInverse(pPL->getPartsPtr(no)->mat, inv);
-            PSMTXMultVec(inv, &part->pos, &em->pos);
+            PSMTXMultVec(inv, &part->cross, &em->pos);
             len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
             em->ang.x = -atan2f(-em->pos.y, len);
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);

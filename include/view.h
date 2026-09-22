@@ -23,7 +23,7 @@ struct ViewSphere {
 class VIEW {
 public:
     u8 pad_0[4];
-    Camera* pCam;             // 0x04
+    Camera* _p_camera;             // 0x04
     f32 _aspect;               // 0x08
     f32 _fovy;                 // 0x0C
     f32 _zfar;                 // 0x10
@@ -36,8 +36,8 @@ public:
     ViewFrustum localFull;    // 0x1D4  full frustum, camera space
     ViewFrustum worldFull;    // 0x294  full frustum, world space
     u8 pad_354[0x37C - 0x354];
-    ViewSphere sphere;        // 0x37C  camera space
-    ViewSphere sphereWorld;   // 0x390  world space
+    ViewSphere _l_sphere_outer;        // 0x37C  camera space
+    ViewSphere _sphere_outer;   // 0x390  world space
 
     void gameInit(Camera* cam);
     void roomInit();

@@ -683,7 +683,7 @@ static inline void texBlendTbl(u8* tbl, TexRenderMng* t)
     tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[5] = t->texId;
+    tbl[5] = t->m_Tex_no;
 }
 
 #define INFO0(m) ((m)->pModelInfo)
@@ -707,10 +707,10 @@ static inline void StrCpy(char* d, const char* s) { strcpy(d, s); }
 // field reads sum `rr + pModel` (`add rX,r26,rP`), the name/bin/tpl addresses `pModel + rr` (`add r4,r4,r26`, the natural
 // EXPAND_SUM order of `&pModel[i].name`); M0 is the pScr block's view through its own `lis/addi` (#13, see ed0), MJ the
 // j loop's (EvtDebug_j)
-#define M (*(EvtDebugModel*) (rr + (u32) EvtDebug.pModel))
-#define MA ((EvtDebugModel*) ((u32) EvtDebug.pModel + rr))
-#define M0 ((EvtDebugModel*) (rr + (u32) ed0->pModel))
-#define MJ ((EvtDebugModel*) ((u32) EvtDebug_j.pModel + rr))
+#define M (*(EvtDebugModel*) (rr + (u32) EvtDebug.PMod))
+#define MA ((EvtDebugModel*) ((u32) EvtDebug.PMod + rr))
+#define M0 ((EvtDebugModel*) (rr + (u32) ed0->PMod))
+#define MJ ((EvtDebugModel*) ((u32) EvtDebug_j.PMod + rr))
 
 // Effect tool start: tool flags, viewer started; when entered from the event tool, loads the
 // event's stage / cut numbers (from EvtDebug), its .eff, camera and model set (every event model
@@ -852,7 +852,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             // the add (priority 6 > 5) and `prod` dies at the add (tied into the sum's r9 like the target).
             prod = i * sizeof(EvtDebugModel);
             asm("" : "=r"(rr), "=m"(buf3[2]) : "0"(prod));
-            if (flagOn(*(u32*) (prod + (u32) EvtDebug.pModel + 0x63C), 0x20000000)) {
+            if (flagOn(*(u32*) (prod + (u32) EvtDebug.PMod + 0x63C), 0x20000000)) {
                 int idx;
                 int parentModel;
 
@@ -860,7 +860,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 parent = (s8) M.pad_63A[1];
                 Vec ofs = {0.0f, 0.0f, 0.0f};
                 // an int local: `(s8)` of the field itself narrows the load to `lbz 0x637`
-                parentModel = (int) EvtDebug.pModel[idx].pModel;
+                parentModel = (int) EvtDebug.PMod[idx].pModel;
                 dbModelParentChild((s8) i, (s8) parentModel, ((s8*) pParent)[3], &ofs, &ofs);
             } else {
                 NAME_SET(MA->name);
@@ -876,7 +876,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             ed0 = &EvtDebug;
             s = M0->pScr;
             if (s) {
-                bin.append(s->pModelInfo->pData);
+                bin.append(s->pModelInfo->model_addr);
                 tpl.append(s->pModelInfo->tpl_addr);
             } else {
                 nBin = M0->nBin;

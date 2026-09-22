@@ -226,7 +226,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
     void* mod;
     int skip;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         pG->Room_flg[0] &= ~0x80000000;
         r11f_actNo = (Rnd() & 1) ? 3 : 4;
@@ -347,7 +347,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
 // 2/4/5, shows them otherwise.
 extern "C" void Evt_R11FS01_Func(Event* e)
 {
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         if (e->NowFrame == 0) {
             if (e->NowCut <= 5) {
                 if (e->NowCut == 2 || e->NowCut == 4 || e->NowCut == 5) {
@@ -372,7 +372,7 @@ extern "C" void Evt_R11FS02_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {
@@ -415,7 +415,7 @@ extern "C" void Evt_R11FS10_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         if (e->NowCut == 0) {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm3500", 0, 0) == 1) {
@@ -434,7 +434,7 @@ extern "C" void Evt_R11FS10_Func(Event* e)
 // restores.
 extern "C" void Evt_R11FS11_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:

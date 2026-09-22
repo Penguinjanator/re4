@@ -97,18 +97,18 @@ public:
     s8 CursolFog;            // 0x27  fog menu cursor
     s8 CursolFocus;          // 0x28  focus menu cursor
     u8 pad_29[3];
-    void* pEvd;           // 0x2C  event file (8,000,000 bytes)
+    void* PFil;           // 0x2C  event file (8,000,000 bytes)
     u8 DebugCameraFlag;           // 0x30  debug camera on
     u8 DebugCameraTimer;            // 0x31
     char ToolFileName[0x22];  // 0x32  selected file name
     EvtHdrCopy hdr;       // 0x54
     u8 pad_94[4];
-    cLightTool* pLightTool;  // 0x98
-    JOY* pJoy0;           // 0x9C  &Joy[0] (&Joy[2] while a sub tool runs)
+    cLightTool* pTl;  // 0x98
+    JOY* pJoy1;           // 0x9C  &Joy[0] (&Joy[2] while a sub tool runs)
     JOY* pJoy2;           // 0xA0  &Joy[1] (&Joy[3])
-    EvtFogData fog;       // 0xA4
-    EvtFocusData focus;   // 0x8AC
-    DbSctrlWork* pSctrl;  // 0x10BC  (1,000,000 bytes)
+    EvtFogData DatFogWk;       // 0xA4
+    EvtFocusData DatFocusWk;   // 0x8AC
+    DbSctrlWork* PDatDbSctrl;  // 0x10BC  (1,000,000 bytes)
     u32 x10C0[8];         // 0x10C0
     u8 pad_10E0[0x28];
     u32 x1108;            // 0x1108

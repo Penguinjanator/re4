@@ -93,7 +93,7 @@ void em23DmCk(cEm23* em)
     if (em->dmg.m_Flag) {
         em->dmg.m_Flag = 0;
         near = 0;
-        if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+        if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
             near = 1;
         }
         switch (em->dmg.m_Wep) {
@@ -1054,7 +1054,7 @@ void em23SetWing(cEm23* em, int on)
     }
     w->wing = on;
     if (w->pWingInfo) {
-        em->deleteModelData(w->pWingInfo->pData);
+        em->deleteModelData(w->pWingInfo->model_addr);
         w->pWingInfo = 0;
     }
     // bin and tpl both assigned in each arm (two-set pseudos, tails cross-jumped into the join with

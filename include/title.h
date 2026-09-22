@@ -31,24 +31,24 @@ struct TitleWork {
     u8 pad_D[7];
     int req;          // 0x14  DvdReadN request
     u32 se_id;        // 0x18  SndCall handle of the title BGM
-    struct TitleArc* pDat;  // 0x1C  title.dat (offset table)
+    struct TitleArc* pIdDat;  // 0x1C  title.dat (offset table)
     int counter;          // 0x20  frame counter (setTime reads its low half)
     int menu_num;      // 0x24  menu entries
     int cursor;       // 0x28
-    IdUnit* menu[5];  // 0x2C  menu id units
+    IdUnit* p_menu[5];  // 0x2C  menu id units
     int scroll;       // 0x40  1 = the background scroll follows the stick (titleLoop)
     f32 scroll_add;        // 0x44  background scroll speed
     int dbg_mode;          // 0x48  1 = the title logo time was pushed forward (debug menu)
     struct TitleArc* pOmk;  // 0x4C  omk_tX.dat (offset table)
-    int omkSize;      // 0x50
+    int data_size;      // 0x50
     s8 omk_menu_no;     // 0x54  omake menu: 0 start, 1 back
     s8 omk_char_no;       // 0x55  mercenaries character select (0..4)
     s8 omk_stage_no;      // 0x56  mercenaries stage select (0..3)
-    u8 saveStep;      // 0x57  mode 5 state saved while the omake screens run
-    u8 saveSub;       // 0x58
-    u8 saveX3;        // 0x59
+    u8 Rno1_bak;      // 0x57  mode 5 state saved while the omake screens run
+    u8 Rno2_bak;       // 0x58
+    u8 Rno3_bak;        // 0x59
     u8 pad_5A[2];
-    int saveCnt;      // 0x5C
+    int counter_bak;      // 0x5C
     s8 Stage;      // 0x60  debug menu: stage
     s8 Room[10];   // 0x61  debug menu: room index per stage
     s8 JumpPoint;      // 0x6B  debug menu: jump point

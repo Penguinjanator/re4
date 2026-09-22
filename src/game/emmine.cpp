@@ -1252,14 +1252,14 @@ int emMineHitCk(cEmMine* em)
     if (GetWepTargetList2(&em->pos_old, &em->pos, &list, 1, &hit, &nrm, &attr, type, 0) != 0) {
         hitEm = list.em;
         part = list.part;
-        hitEm->dmg.set(0, 2, type, &em->pos_old, part->rad, part);
-        if (part->flags & YAT_FLAG_DMPOS) {
+        hitEm->dmg.set(0, 2, type, &em->pos_old, part->len, part);
+        if (part->flag & YAT_FLAG_DMPOS) {
             partsNo = 0;
-            if (part->partsNo != 0) {
-                partsNo = part->partsNo - 1;
+            if (part->parts_no != 0) {
+                partsNo = part->parts_no - 1;
             }
             PSMTXInverse(hitEm->getPartsPtr(partsNo)->mat, inv);
-            PSMTXMultVec(inv, &part->pos, &em->pos);
+            PSMTXMultVec(inv, &part->cross, &em->pos);
 #line 1723 "D:/Bio4/Prog/emmine.cpp"
             VECNormalize(&em->pos, &dir);
             PSVECScale(&dir, &dir, -50.0f);

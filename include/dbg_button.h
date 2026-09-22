@@ -12,12 +12,12 @@
 // inline virtuals then come out of that unit).
 class cDbgButtonBase {
 public:
-    u32 x;        // 0x00  text column
-    u32 y;        // 0x04  text row
-    int cx;       // 0x08  cursor cell
-    int cy;       // 0x0C
+    u32 m_px;        // 0x00  text column
+    u32 m_py;        // 0x04  text row
+    int m_cx;       // 0x08  cursor cell
+    int m_cy;       // 0x0C
     char* m_pStr;   // 0x10  (allocated; freed by the destructor)
-    u32 w;        // 0x14  width in characters
+    u32 m_strlen;        // 0x14  width in characters
     // 0x18 vptr
 
     virtual ~cDbgButtonBase() { delete m_pStr; }
@@ -26,7 +26,7 @@ public:
             pLog->err(0, 0, "cDbgButtonBase::Init(): new failed.");
             return 0;
         }
-        w = n;
+        m_strlen = n;
         return 1;
     }
     const char* cursorMark() { return ">"; }
@@ -46,8 +46,8 @@ public:
 // derived window (ss_term.cpp cDbgWindow) fills in.
 class cDbgWindowBase {
 public:
-    u32 x;        // 0x00  window column
-    u32 y;        // 0x04  window row
+    u32 m_px;        // 0x00  window column
+    u32 m_py;        // 0x04  window row
     int m_wx;
     int m_wy;
     int m_max_cx;    // 0x10  cursor wraps past this column

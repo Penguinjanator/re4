@@ -21,11 +21,11 @@ struct Camera {
     u8 pad_60[4];
     Mtx44 ProjMat;      // 0x64 projection matrix
     CameraParam param;  // 0xA4 (pos 0xA4, at 0xB0, roll 0xBC, fovy 0xC0)
-    Vec up;             // 0xC4 up vector (C_MTXLookAt)
+    Vec Up;             // 0xC4 up vector (C_MTXLookAt)
     Vec Look;            // 0xD0 pos - at, normalised (matrix column 2)
     Vec Right;          // 0xDC up x dir (matrix column 0)
     u8 pad_E8[0xF4 - 0xE8];
-    f32 dist;           // 0xF4 |pos - at| (db_cam keeps it current for the debug camera)
+    f32 Distance;           // 0xF4 |pos - at| (db_cam keeps it current for the debug camera)
 };
 
 // Matrix from four column vectors (Vec*: right, up, look, position), as twelve stores.

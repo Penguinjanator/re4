@@ -40,10 +40,10 @@ struct DbgToolFileHeader {
 // Replaces a button label (truncated to the allocated length).
 static inline void DbgButtonSetName(cDbgButtonBase* b, const char* s)
 {
-    if (strlen(s) > b->nameLen) {
+    if (strlen(s) > b->m_strlen) {
         u32 i;
 
-        for (i = 0; i < b->nameLen - 2; i++) {
+        for (i = 0; i < b->m_strlen - 2; i++) {
             b->m_pStr[i] = s[i];
         }
         b->m_pStr[i] = 0;
@@ -94,7 +94,7 @@ inline void cDbgFileSelectWindow::Init(int wx, int wy, const char* name, const c
     m_wy = 1;
     m_max_cx = 1;
     m_max_cy = 1;
-    pName = name;
+    m_pTitle = name;
     x1C = 0;
     x20 = 0;
     m_nBut = 0;
@@ -114,7 +114,7 @@ inline void cDbgFileSelectWindow::Init(int wx, int wy, const char* name, const c
     m_pFname = path2;
     m_pExt = ext;
     m_pStartBut = 0;
-    pBottom = 0;
+    m_pEndBut = 0;
     do {
     } while (0);
     m_no = 0;
@@ -241,7 +241,7 @@ inline void cDbgOkCancelWindow::Init(int wx, int wy, const char* name)
     m_wy = 1;
     m_max_cx = 1;
     m_max_cy = 1;
-    pName = name;
+    m_pTitle = name;
     x1C = 0;
     x20 = 0;
     m_nBut = 0;
@@ -249,7 +249,7 @@ inline void cDbgOkCancelWindow::Init(int wx, int wy, const char* name)
     {
         cDbgButton* z;
         asm("li %0,0" : "=r"(z) : "m"(m_wx)); // COMPILER-DIFF: #13 (asm-emitted zero, reload-placed li)
-        pBottom = m_pStartBut = m_pCurrentBut = z;
+        m_pEndBut = m_pStartBut = m_pCurrentBut = z;
     }
     AddButton(1, 2, " [OK] ", 0, 0, 0, 0);
     AddButton(9, 2, "[CANCEL]", 1, 0, 0, 0);
@@ -263,12 +263,12 @@ inline void cDbgOkCancelWindow::InitLast(int wx, int wy, const char* name)
     m_wy = 1;
     m_max_cx = 1;
     m_max_cy = 1;
-    pName = name;
+    m_pTitle = name;
     x1C = 0;
     x20 = 0;
     m_nBut = 0;
     do { } while (0); // COMPILER-DIFF: #13 (sched region split)
-    pBottom = m_pStartBut = m_pCurrentBut = 0;
+    m_pEndBut = m_pStartBut = m_pCurrentBut = 0;
     AddButton(1, 2, " [OK] ", 0, 0, 0, 0);
     AddButton(9, 2, "[CANCEL]", 1, 0, 0, 0);
 }
@@ -383,7 +383,7 @@ public:
         m_wy = 1;
         m_max_cx = 1;
         m_max_cy = 1;
-        pName = name;
+        m_pTitle = name;
         x1C = 0;
         x20 = 0;
         // rows before pWork/numWork: the dying stores come out rows, pWork, numWork and the
@@ -826,7 +826,7 @@ template <class T> void cDbgEditWindow<T>::LocalDisp()
                 f32 mgn = 2.0f;
                 f32 zero = 0.0f;
 
-                DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->m_py) * 14) - mgn, (f32) (cur->nameLen * 8) + zero,
+                DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->m_py) * 14) - mgn, (f32) (cur->m_strlen * 8) + zero,
                                fh + mgn, 0.7f, 0.7f, zero, 0.3f);
             }
         }
@@ -1148,7 +1148,7 @@ public:
     // the active window: title, single and double frame, then its own display
     void DispWindow(cDbgWindowBase* w)
     {
-        eprintf2(8, 12, w->m_px * 8, w->m_py * 14, 0x12, 0, w->pName);
+        eprintf2(8, 12, w->m_px * 8, w->m_py * 14, 0x12, 0, w->m_pTitle);
         DbgDrawBox(((f32) w->m_px - 0.5f) * 8.0f - 1.0f, (f32) (w->m_py * 14) - 1.0f, ((f32) w->m_wx + 1.5f) * 8.0f + 2.0f,
                    14.0f, 0.7f, 0.7f, 0.7f, 0.45f);
         DbgDrawBox(((f32) w->m_px - 0.5f) * 8.0f - 2.0f, (f32) (w->m_py * 14) - 2.0f, ((f32) w->m_wx + 1.5f) * 8.0f + 4.0f,

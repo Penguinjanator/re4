@@ -142,7 +142,7 @@ void SceEventStart(int mode)
     }
     Cckpt.lifeMeterDisp(0);
     IdSys.dispSw(IDC_LIFE_METER, 0);
-    SceSys.dmg = pPL->dmg;
+    SceSys.m_dmg_bak = pPL->dmg;
     pPL->dmg.set(0, 0x80);
     SysFlagOn(pG, SYS_SCISSOR_ON);
     SpfFlagOn(pG, SPF_ACTBTN);
@@ -173,7 +173,7 @@ void SceEventEnd(int mode)
         CamCtrl.Comeback(0);
         pPL->dmg.clear();
     } else {
-        pPL->dmg = s->dmg;
+        pPL->dmg = s->m_dmg_bak;
     }
     LightMgr.endEvent();
     StaFlagOff(pG, STA_EVENT_CANCEL);
@@ -333,7 +333,7 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
         attr |= 0x2000000;
     }
     cMes.MesSet(no, x, y, attr, 0, 0, 4);
-    cMes.mes[0].m_cur = sel - 1;
+    cMes.m_Msg[0].m_cur = sel - 1;
     Cckpt.lifeMeterDisp(0);
     if (!(flags & 0x10)) {
         SceMesWait();
@@ -394,7 +394,7 @@ int SceMesGetSelection()
 // Sleeps while message slot 0 is open.
 void SceMesWait()
 {
-    while (cMes.mes[0].flags2 & 1) {
+    while (cMes.m_Msg[0].m_state & 1) {
         SceSleep(1);
     }
 }
@@ -894,10 +894,10 @@ void SceCamMove(Vec* pos, Vec* at, f32 fovy)
     SceCam.param.pos = *pos;
     SceCam.param.at = *at;
     SceCam.param.fovy = fovy;
-    SceCam.up.x = 0.0f;
-    SceCam.up.y = 1.0f;
-    SceCam.up.z = 0.0f;
-    SceCam.dist = VEC_DIST(&SceCam.param.pos, &SceCam.param.at);
+    SceCam.Up.x = 0.0f;
+    SceCam.Up.y = 1.0f;
+    SceCam.Up.z = 0.0f;
+    SceCam.Distance = VEC_DIST(&SceCam.param.pos, &SceCam.param.at);
     CameraSetOrientationUp(&SceCam);
     CamCtrl.m_pExtraCamera = (s32) &SceCam;
 }

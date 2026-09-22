@@ -101,11 +101,11 @@ void espgen10_Update(EspgenWork* w)
 {
     Espgen10Work* p = (Espgen10Work*) w->work;
     EspSeqData* head = p->head;
-    EspGenWork* rec = &head->rec[p->no];
+    EspGenWork* rec = &head->rec[p->Seq_ptr];
     cModel* model = p->pMod;
 
     if (model != NULL) {
-        if ((model->be_flag & 0x201) != 1 || model->serial != p->Guid_pMod) {
+        if ((model->be_flag & 0x201) != 1 || model->guid != p->Guid_pMod) {
             PushEspgen(w);
             return;
         }
@@ -151,7 +151,7 @@ void espgen10_Update(EspgenWork* w)
         }
     }
     if (rec->Set_time < p->Time_cnt) {
-        pLog->err(0, 0, "ESP_ESTSET : DATA[%d] is no SORT.", p->no);
+        pLog->err(0, 0, "ESP_ESTSET : DATA[%d] is no SORT.", p->Seq_ptr);
         PushEspgen(w);
         return;
     }
@@ -160,13 +160,13 @@ void espgen10_Update(EspgenWork* w)
         if (p->Flg & 2) {
             flag = 1;
         }
-        if (!EspgenDataSet(head, p->no, &w->info, &p->Rand_seed, p->pMod, p->Null_parts_no, &p->Mat, &p->Offset, &p->Ang, p->p8,
+        if (!EspgenDataSet(head, p->Seq_ptr, &w->info, &p->Rand_seed, p->pMod, p->Null_parts_no, &p->Mat, &p->Offset, &p->Ang, p->p8,
                            flag)) {
             return;
         }
-        p->no++;
+        p->Seq_ptr++;
         rec++;
-        if (p->no >= head->num) {
+        if (p->Seq_ptr >= head->num) {
             PushEspgen(w);
             break;
         }

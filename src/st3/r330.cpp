@@ -217,7 +217,7 @@ extern "C" void Evt_R330S00_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdSetTrans(0x1C, 0);
         SmdSetTrans(0x1D, 0);

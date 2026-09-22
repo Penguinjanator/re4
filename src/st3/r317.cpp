@@ -628,7 +628,7 @@ void Evt_R317S00_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -718,7 +718,7 @@ void Evt_R317S01_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -791,7 +791,7 @@ void Evt_R317S01_Func(Event* e)
 // Event r317s02 callback (no button): the Leon model's part 6 hidden, evmd200 drawn with ot_type 1.
 void Evt_R317S02_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -833,7 +833,7 @@ void Evt_R317S03_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -954,7 +954,7 @@ void Evt_R317S03_Func(Event* e)
 // Event r317s04 callback (no button): Leon's part 6 and Krauser's part 7 hidden on cut 0.
 void Evt_R317S04_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -981,7 +981,7 @@ void Evt_R317S04_Func(Event* e)
 // model flags and effects.
 void Evt_R317S05_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1086,7 +1086,7 @@ void Evt_R317S05_Func(Event* e)
 // Event r317s06 callback (no button): Leon's part 6 and em3900h's part 7 hidden on cut 0.
 void Evt_R317S06_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1115,7 +1115,7 @@ void Evt_R317S07_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1202,7 +1202,7 @@ void Evt_R317S07_Func(Event* e)
 // Event r317s08 callback (no button): Leon's part 6 and Krauser's part 7 hidden, per-cut flags.
 void Evt_R317S08_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1237,7 +1237,7 @@ void Evt_R317S09_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1312,7 +1312,7 @@ void Evt_R317S09_Func(Event* e)
 // Event r317s10 callback (no button): Leon's part 6 hidden, evmd400 (the knife) drawn.
 void Evt_R317S10_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1344,7 +1344,7 @@ void Evt_R317S11_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1405,7 +1405,7 @@ void Evt_R317S11_Func(Event* e)
 // evmd400 per cut.
 void Evt_R317S12_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1437,7 +1437,7 @@ void Evt_R317S13_Func(Event* e)
 {
     int on = 0;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();
@@ -1542,7 +1542,7 @@ void Evt_R317S13_Func(Event* e)
 // Event r317s14 callback (the fight's last cut): Leon's part 6 / evmd400 per cut; the end restores the arena.
 void Evt_R317S14_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EffectDelete2001();
         e->CancelNoSet();

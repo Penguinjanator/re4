@@ -9,7 +9,7 @@
 #include "quake.h"
 
 struct Esp4aWork {
-    u8 quake_axis;    // 0x00 QuakeExec axis mask (bit0 x, bit1 y, bit2 z)
+    u8 quake_type;    // 0x00 QuakeExec axis mask (bit0 x, bit1 y, bit2 z)
     u8 pad_1[3];
     f32 range;  // 0x04 distance from the camera at which the quake fades to zero (0 = no fade)
 };
@@ -47,7 +47,7 @@ void cEsp4a::move()
                 power = 0.0f;
             }
         }
-        QuakeExec(0, 0, 1, power, w->quake_axis);
+        QuakeExec(0, 0, 1, power, w->quake_type);
     }
 }
 
@@ -63,13 +63,13 @@ int cEsp4a::SetFreeWork(EspGenWork* gen, u32* seed)
 
     switch ((s8)gen->Work8[0]) {
     case 0:
-        w->quake_axis = 2;
+        w->quake_type = 2;
         break;
     case 1:
-        w->quake_axis = 1;
+        w->quake_type = 1;
         break;
     case 2:
-        w->quake_axis = 3;
+        w->quake_type = 3;
         break;
     default:
         pLog->err(0, 0, "ESP4A : Invalid Type[%d]", (s8)gen->Work8[0]);

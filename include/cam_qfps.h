@@ -12,7 +12,7 @@ struct CameraAreaRec;
 struct QfpsOfs {
     Vec Campos;    // 0x00
     Vec campos2;   // 0x0C  close point
-    Vec target;    // 0x18
+    Vec Target;    // 0x18
     f32 Roll;       // 0x24  roll
     f32 Fovy;      // 0x28
 };
@@ -55,7 +55,7 @@ public:
     QfpsOfs (*blend_dst)[3];      // 0x14C  current transition table
     QfpsOfs* cur;                 // 0x150  offsets of the current site
     QfpsOfs* old;                 // 0x154  offsets blended from (g_readyOfs[15] / g_transOfs[6] copies)
-    void* lr_info;                // 0x158
+    void* m_LR_info;                // 0x158
     Vec m_pl_ofs;                  // 0x15C  one-shot translation applied to the base matrix
     Vec m_pl_dir;                  // 0x168  one-shot look direction applied to the base matrix
     Mtx m_pl_mat;                   // 0x174  player matrix saved by setPlayerLocation
@@ -64,16 +64,16 @@ public:
     f32 m_walk_ratio;             // 0x1AC  CamSmth.ratio while the player moves
     u8 m_trans_type;                // 0x1B0  TRANS_CAM
     u8 m_ready_type;                // 0x1B1
-    u8 reset;                     // 0x1B2  1 = first frame after init
+    u8 m_init_flag;                     // 0x1B2  1 = first frame after init
     u8 pad_1B3[0x1E4 - 0x1B3];
-    f32 blend_ratio;              // 0x1E4
+    f32 m_blend_ratio;              // 0x1E4
     s32 m_blend_frame;              // 0x1E8
     s32 m_blend_count;              // 0x1EC
     Vec m_Aim;             // 0x1F0
     u8 m_site;                      // 0x1FC  0 right/up-mid-down, 1 left, 2 right far, 3 left far (db_cam)
     u8 pad_1FD[3];
-    f32 angle_y;                  // 0x200
-    f32 angle_x;                  // 0x204
+    f32 m_depression_ratio;                  // 0x200
+    f32 m_direction_ratio;                  // 0x204
     f32 m_floor_ratio;              // 0x208
     s16 m_search_frame;             // 0x20C
     s16 m_search_cnt;             // 0x20E

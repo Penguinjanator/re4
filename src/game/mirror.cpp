@@ -59,7 +59,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     GXSetCurrentMtx(0);
 
     for (; info != 0; info = info->pList) {
-        d = info->pData;
+        d = info->model_addr;
         void* texArr = d->pTex;
         GXClearVtxDesc();
         GXSetVtxDesc(9, 3);

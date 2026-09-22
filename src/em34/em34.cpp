@@ -269,7 +269,7 @@ static void em34_R0_Init(cEm34* em)
         em->be_flag |= 0x01000000;
         break;
     }
-    em->pFootShadowTbl = &Em10_fs_tbl;
+    em->pFsdTbl = &Em10_fs_tbl;
     switch (em->type) {
     case 0:
     default:
@@ -613,9 +613,9 @@ void em34NeckMove(cEm34* em)
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.x = 0.0f;
-    ((cParts*) p)->addRot.y = w->Neck_dir_y;
-    ((cParts*) p)->addRot.z = 0.0f;
+    ((cParts*) p)->inv_offset.x = 0.0f;
+    ((cParts*) p)->inv_offset.y = w->Neck_dir_y;
+    ((cParts*) p)->inv_offset.z = 0.0f;
 }
 
 // Bite hit check: once per attack (Atk_ck), the sweep of parts `parts` from its last position

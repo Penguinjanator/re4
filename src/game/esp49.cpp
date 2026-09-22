@@ -10,7 +10,7 @@ struct Esp49Work {
     f32 del_height;     // 0x00 depth below the water surface at which the effect dies
     f32 fade_height; // 0x04 depth over which the alpha fades
     f32 Base_alpha;     // 0x08 base alpha
-    u8 estOn;      // 0x0C spawn an est when the effect dies underwater
+    u8 EstOwner;      // 0x0C spawn an est when the effect dies underwater
     u8 EstNo;      // 0x0D
     u8 estPrm;     // 0x0E
 };
@@ -56,7 +56,7 @@ void cEsp49::move()
         if (GetWaterHeight(&m_Pos, &h)) {
             f32 d = h - m_Pos.y;
             if (d < w->del_height) {
-                if (w->estOn & 1) {
+                if (w->EstOwner & 1) {
                     r.x = r.y = r.z = 0.0f;
                     ep = m_Pos;
                     EstSet(0, -1, &ep, &r, w->EstNo, w->estPrm, info.Core_flg, info.Core_kind, info.Core_pEm, 0);
@@ -82,9 +82,9 @@ int cEsp49::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     w->EstNo = gen->Work8[0];
     w->estPrm = gen->Work8[1];
-    w->estOn = gen->Work8[2];
-    if (w->estOn > 1) {
-        pLog->err(0, 0, "ESP_49 : FLAG[%d] invalid.", w->estOn);
+    w->EstOwner = gen->Work8[2];
+    if (w->EstOwner > 1) {
+        pLog->err(0, 0, "ESP_49 : FLAG[%d] invalid.", w->EstOwner);
         return 0;
     }
     w->Base_alpha = m_Col_a;

@@ -1195,10 +1195,10 @@ void em2fCriCamMove(cEm2f* em)
         dy = pos->y - at->y;
         dz = pos->z - at->z;
         cam->param.fovy = c->param.fovy;
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(dx * dx + dy * dy + dz * dz);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(dx * dx + dy * dy + dz * dz);
     }
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;

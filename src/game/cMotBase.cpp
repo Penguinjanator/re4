@@ -9,13 +9,13 @@
 cMotBase::cMotBase()
 {
     cnt = 0xFF;
-    pModel = 0;
+    pMod = 0;
 }
 
 // Starts following: model, start pose p / r (also the "old" pose), blend over `c` frames.
 void cMotBase::set(cMotModel* m, MotionData* data, Vec* p, Vec* r, u8 c)
 {
-    pModel = m;
+    pMod = m;
     pos_old = *p;
     pos = pos_old;
     ang_old = *r;
@@ -39,9 +39,9 @@ void cMotBase::adjust()
     if (cnt == 0xFF) {
         return;
     }
-    PSVECSubtract(&pModel->pos, &pos_old, &d);
+    PSVECSubtract(&pMod->pos, &pos_old, &d);
     PSVECAdd(&pos, &d, &pos);
-    ang.y += pModel->ang.y - ang_old.y;
+    ang.y += pMod->ang.y - ang_old.y;
 }
 
 // Per-frame: advances the target pose by the motion's translation / rotation speed (in model
@@ -55,24 +55,24 @@ void cMotBase::move()
     if (cnt == 0xFF) {
         return;
     }
-    MotionGetSpeed(pModel, &pModel->Motion, 0, &spd, &rotSpd);
-    PSMTXMultVecSR(pModel->mat, &spd, &spd);
+    MotionGetSpeed(pMod, &pMod->Motion, 0, &spd, &rotSpd);
+    PSMTXMultVecSR(pMod->mat, &spd, &spd);
     PSVECAdd(&pos, &spd, &pos);
     PSVECAdd(&ang, &rotSpd, &ang);
     if (cnt != 0) {
-        PSVECSubtract(&pos, &pModel->pos, &spd);
+        PSVECSubtract(&pos, &pMod->pos, &spd);
         PSVECScale(&spd, &spd, 1.0f / (f32) (int) cnt);
-        PSVECAdd(&pModel->pos, &spd, &pModel->pos);
-        pModel->ang.y += Muku2(pModel->ang.y, ang.y, PI / (f32) (int) cnt);
+        PSVECAdd(&pMod->pos, &spd, &pMod->pos);
+        pMod->ang.y += Muku2(pMod->ang.y, ang.y, PI / (f32) (int) cnt);
         cnt--;
         if (cnt == 0) {
-            pModel->Motion.Mot_attr |= 1;
+            pMod->Motion.Mot_attr |= 1;
             cnt = 0xFF;
         }
     } else {
-        pModel->pos = pos;
-        pModel->ang = ang;
+        pMod->pos = pos;
+        pMod->ang = ang;
     }
-    pos_old = pModel->pos;
-    ang_old = pModel->ang;
+    pos_old = pMod->pos;
+    ang_old = pMod->ang;
 }

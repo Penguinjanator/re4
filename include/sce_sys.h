@@ -39,7 +39,7 @@ public:
     void (*pDoorFunc)();        // 0x10
     void* pDoorParam;            // 0x14
     void (*pCancelFunc)(); // 0x18  task started by SceExecEventCancel
-    int cancelArg;        // 0x1C
+    int pCancelParam;        // 0x1C
     u32 SceTaskOt[16];         // 0x20  ordering table, otag[15] is the list head
     u32 stop_bak;         // 0x60  pG->Stop_flg saved by SceUpCutStart
     u32 system_bak;              // 0x64  pG->flags_54 saved by SceEventStart
@@ -50,7 +50,7 @@ public:
     u8 up_cut_start_cnt;               // 0x6F
     u8 task_kind_back;               // 0x70  task flag saved by SceEventStart / SceUpCutStart
     u8 event_cancel_enable;       // 0x71  1 = the running event may be cancelled
-    s8 cancelFlagNo;      // 0x72  flags_174 bit set when the event is cancelled (-1 = none)
+    s8 m_room_flag;      // 0x72  flags_174 bit set when the event is cancelled (-1 = none)
     u8 m_init_loop_flag;  // 0x73  set while readEmData waits inside a scenario task
     u8 m_chapter_no;      // 0x74  chapter number (SceSetChapterEnd)
     u8 m_door_fade_eff;   // 0x75  fade effect at the door jump (SceAtDoor doorFadeEff; game: 0 filter fade, 1 quick fade)
@@ -59,7 +59,7 @@ public:
     s16 m_chapter_door;   // 0x78  door area the chapter end returns through (-1 = none; sce_com)
     u16 m_debug_disp_y;   // 0x7A  debug print y (0x3C, 0x5A with a sub character; sce_com +0xF per line)
     int sndFlag;          // 0x7C  1 = SndEventStrStop on event cancel
-    cDmgInfo dmg;         // 0x80
+    cDmgInfo m_dmg_bak;         // 0x80
     ScePrim prim[13];     // 0x98  slots 5..17
     ScePrim* pLadderTask; // 0x134  sceAtLadder task (SceEventStart(!0) kills it)
 

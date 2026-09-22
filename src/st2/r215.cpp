@@ -121,7 +121,7 @@ extern "C" void Evt_R215S00_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EvtFlgOnStatus(e, 3);
         e->EvtCancelCut = 9;
@@ -190,7 +190,7 @@ extern "C" void Evt_R215S01_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:

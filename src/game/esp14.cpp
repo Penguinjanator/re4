@@ -53,7 +53,7 @@ void cEsp14::move()
     } else {
         PSVECSubtract(&pG->Camera.param.at, &pG->Camera.param.pos, &camDir);
         PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &d);
-        PSVECCrossProduct(&d, &pG->Camera.up, &cross);
+        PSVECCrossProduct(&d, &pG->Camera.Up, &cross);
         m_Ang.x = PI / 2.0f;
         m_Ang.y = atan2f(cross.z, -cross.x);
         len = SQRTF(d.x * d.x + d.z * d.z);

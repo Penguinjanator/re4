@@ -1211,9 +1211,9 @@ extern "C" void setTexRender()
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = W->tex->texId;
+        tbl[5] = W->tex->m_Tex_no;
         W->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, W->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, W->tex->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
         W->tex->m_H_size = W->tex->m_W_size = 0x40;
     } else {
         pLog->err(0, 0, "R100Init() : Manager alloc failed!!");
@@ -1227,7 +1227,7 @@ extern "C" void setTexRender()
 // bit 0x10.
 extern "C" void Evt_R100S40_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:
@@ -1250,7 +1250,7 @@ extern "C" void Evt_R100S20_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {
@@ -1277,7 +1277,7 @@ extern "C" void Evt_R100S03_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         switch (e->NowCut) {
         case 0:
         case 1:

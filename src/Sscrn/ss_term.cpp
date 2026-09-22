@@ -97,7 +97,7 @@ void DbgDrawBoxFill(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
 // Debug button window: up to 128 buttons on a character grid, a cursor moved with the pad.
 class cDbgWindow : public cDbgWindowBase {
 public:
-    u32 num;               // 0x28
+    u32 m_nBut;               // 0x28
     cDbgButton* m_pButList[128];  // 0x2C
     cDbgButton* m_pCurrentBut;       // 0x22C
     cDbgButton* m_pStartBut;       // 0x230
@@ -105,7 +105,7 @@ public:
 
     virtual ~cDbgWindow() {
         u32 i;
-        for (i = 0; i < num; i++) {
+        for (i = 0; i < m_nBut; i++) {
             if (m_pButList[i]) {
                 delete m_pButList[i];
             }
@@ -113,13 +113,13 @@ public:
     }
     virtual int GetCx() {
         if (m_pCurrentBut) {
-            return m_pCurrentBut->cx;
+            return m_pCurrentBut->m_cx;
         }
         return 0;
     }
     virtual int GetCy() {
         if (m_pCurrentBut) {
-            return m_pCurrentBut->cy;
+            return m_pCurrentBut->m_cy;
         }
         return 0;
     }
@@ -127,7 +127,7 @@ public:
     virtual void SetCurrentBottomButton() { m_pCurrentBut = m_pEndBut; }
     virtual void ButtonAllUpdate() {
         u32 i;
-        for (i = 0; i < num; i++) {
+        for (i = 0; i < m_nBut; i++) {
             cDbgButton* b = m_pButList[i];
             if (b && b->m_pFuncUpdate) {
                 b->m_pFuncUpdate(b);
@@ -149,12 +149,12 @@ int cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy)
 {
     cDbgButton* b;
 
-    m_pButList[num] = b = new cDbgButton;
+    m_pButList[m_nBut] = b = new cDbgButton;
     if (b == 0) {
         pLog->err(0, 0, "AddButton(): new failed.");
         return 0;
     }
-    num++;
+    m_nBut++;
     return 1;
 }
 
@@ -164,9 +164,9 @@ int cDbgWindow::FindButton(int cx, int cy, cDbgButton** out)
     u32 i;
 
     *out = 0;
-    for (i = 0; i < num; i++) {
+    for (i = 0; i < m_nBut; i++) {
         cDbgButton* b = m_pButList[i];
-        if (b->cx == cx && b->cy == cy) {
+        if (b->m_cx == cx && b->m_cy == cy) {
             *out = b;
             return 1;
         }
@@ -231,22 +231,22 @@ void cDbgWindow::LocalDisp()
     u32 i;
     cDbgButton* c;
 
-    for (i = 0; i < num; i++) {
+    for (i = 0; i < m_nBut; i++) {
         cDbgButton* b = m_pButList[i];
-        eprintf2(8, 0xC, (x + b->x) * 8, (dbgWindowRow(y) + b->y) * 14, 0x10, 0, b->m_pStr);
+        eprintf2(8, 0xC, (m_px + b->m_px) * 8, (dbgWindowRow(m_py) + b->m_py) * 14, 0x10, 0, b->m_pStr);
     }
     c = m_pCurrentBut;
     if (c) {
-        int wx = x;
-        int wy = dbgWindowRow(y);
+        int wx = m_px;
+        int wy = dbgWindowRow(m_py);
         if (pG->Frame_cnt & 4) {
-            eprintf2(8, 0xC, (wx + c->x - 1) * 8, (wy + c->y) * 14, 0, 0, ">");
+            eprintf2(8, 0xC, (wx + c->m_px - 1) * 8, (wy + c->m_py) * 14, 0, 0, ">");
         }
-        eprintf2(8, 0xC, (wx + c->x) * 8, (wy + c->y) * 14, 0, 0, c->m_pStr);
+        eprintf2(8, 0xC, (wx + c->m_px) * 8, (wy + c->m_py) * 14, 0, 0, c->m_pStr);
         {
-            f32 px = (f32) ((wx + c->x) * 8);
-            f32 py = (f32) ((wy + c->y) * 14);
-            f32 pw = (f32) (c->w * 8);
+            f32 px = (f32) ((wx + c->m_px) * 8);
+            f32 py = (f32) ((wy + c->m_py) * 14);
+            f32 pw = (f32) (c->m_strlen * 8);
             f32 ph = 14.0f;
             f32 bd = 2.0f;
             DbgDrawBoxFill(px - bd, py - bd, pw + 0.0f, ph + bd, 0.7f, 0.7f, 0.0f, 0.3f);
@@ -431,7 +431,7 @@ TermOpe term_ope_tbl[24] = {
 // `ofs + (u32) arc` is not reassociated with the +0x400.
 static inline SsArc* opArc(SUB_SCREEN* wk)
 {
-    return (SsArc*) ((u8*) wk->pOpData + 0x400);
+    return (SsArc*) ((u8*) wk->pTermMes + 0x400);
 }
 #define OP_ARC_PTR(wk, no) SS_ARC_PTR(opArc(wk), no)
 
@@ -543,7 +543,7 @@ int SsTermMain::OpeMesMove()
         SndStrReq(ope.str, 2, 0, 0);
         ope.flags &= ~0x08000000;
         FadeKillAll();
-        termMotionSet(SubScreenWk.pPartner, 10);
+        termMotionSet(SubScreenWk.pTelDat, 10);
         modelOn = 1;
         u = IdSub.unitPtr(0x13, IDC_SSCRN_NEAR_0);
         IdSub.setTime(u, 0);
@@ -613,8 +613,8 @@ void SsTermMain::OpeMesSet(int no, int wait)
         cMes.WaitEnd(0);
     } else {
         IdUnit* u = IdSub.unitPtr(0xFE, IDC_SSCRN_NEAR_0);
-        int x = (int) ((u->scr.x + 320.0f) * 0.8f);
-        int y = (int) ((240.0f - u->scr.y) * 0.8f);
+        int x = (int) ((u->pos0.x + 320.0f) * 0.8f);
+        int y = (int) ((240.0f - u->pos0.y) * 0.8f);
         MessageControl* m = &cMes;
         int i;
         for (i = 0; i < 16; i++) {
@@ -691,7 +691,7 @@ void termMotionCancel(void* data, int no)
     cModel* m;
 
     m = MapMgr.getWork(0);
-    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(wk->pTerm, 14), 0, (u8) no, 0x8004, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(wk->pTermDat, 14), 0, (u8) no, 0x8004, 0);
     m = MapMgr.getWork(2);
     MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(d, 4), 0, (u8) no, 0x8004, 0);
 }
@@ -701,7 +701,7 @@ static cFileList term_file_list;
 // Codec screen loader: starts at the data read (there is no previous screen to fade).
 void SsTermInit::init(SUB_SCREEN* wk)
 {
-    state = 2;
+    _rno = 2;
 }
 
 // Loads the codec screen with blocking reads (mode 5): state 2 drops the HUD/models/lights and
@@ -717,7 +717,7 @@ void SsTermInit::move(SUB_SCREEN* wk)
     void* op;
     void* partner;
 
-    switch (state) {
+    switch (_rno) {
     case 0:
     case 1:
     case 2:
@@ -725,26 +725,26 @@ void SsTermInit::move(SUB_SCREEN* wk)
         IdSub.dispSw(IDC_SSCRN_PESETA, 0);
         sscrnModelFree(wk);
         sscrnLightClear(wk);
-        wk->pTerm = (SsArc*) (wk->pzzlOfs + (u32) wk->pBuf);
+        wk->pTermDat = (SsArc*) (wk->pSwitchOffs + (u32) wk->pBuf);
         sscrnDataFilename(wk, "ss_term.dat");
 #line 1101 "D:/Bio4/Prog/ss_term.cpp"
-        term_read_req = DVD_READ_N(wk->path, 0, 0, 0, 0, 5);
+        term_read_req = DVD_READ_N(wk->filename, 0, 0, 0, 0, 5);
         IdSubErase();
         IdNumErase();
         IdFreeBuffer();
-        state++;
+        _rno++;
     case 3:
         Dvd.ReadCheck(term_read_req, 0, 0, &term);
-        wk->pTerm = (SsArc*) term;
-        state++;
+        wk->pTermDat = (SsArc*) term;
+        _rno++;
     case 4: {
         char name[32];
         sprintf(name, "op/op%02d.das", pG->stage_no);
 #line 1134 "D:/Bio4/Prog/ss_term.cpp"
         term_read_req = DVD_READ_N(name, 0, 0, 0, 0, 5);
         Dvd.ReadCheck(term_read_req, 0, 0, &op);
-        wk->pOpData = op;
-        state++;
+        wk->pTermMes = op;
+        _rno++;
     }
     case 5: {
         char name[32];
@@ -752,11 +752,11 @@ void SsTermInit::move(SUB_SCREEN* wk)
 #line 1156 "D:/Bio4/Prog/ss_term.cpp"
         term_read_req = DVD_READ_N(name, 0, 0, 0, 0, 5);
         Dvd.ReadCheck(term_read_req, 0, 0, &partner);
-        wk->pPartner = partner;
-        state++;
+        wk->pTelDat = partner;
+        _rno++;
     }
     case 6:
-        if (wk->type == 0x20) {
+        if (wk->open_flag == 0x20) {
             FadeSetW(0x80000000, 5, 0, 0);
         }
         transit(0, wk);
@@ -798,19 +798,19 @@ void terminalCameraInit(SUB_SCREEN* wk, Camera* cam)
     const f32 zero = 0.0f;
 
     cam->param.pos.z = 2000.0f;
-    cam->up.y = 1.0f;
+    cam->Up.y = 1.0f;
     cam->param.at.x = 0.0f;
     cam->param.at.y = 0.0f;
     cam->param.at.z = 0.0f;
     cam->param.pos.x = 0.0f;
     cam->param.pos.y = 0.0f;
-    cam->up.x = 0.0f;
-    cam->up.z = 0.0f;
+    cam->Up.x = 0.0f;
+    cam->Up.z = 0.0f;
     cam->param.fovy = 50.0f;
     CameraSetOrientationUp(cam);
     C_MTXPerspective(cam->ProjMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
-    cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
+    cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->Up, &cam->param.at);
 }
 
 
@@ -841,9 +841,9 @@ void SsTermMain::init(SUB_SCREEN* wk)
     IdUnit* u;
     cModel* m;
 
-    IdTexDataLoad(SS_ARC_PTR(wk->pTerm, 5), TEX_OWNER_ID_SSCRN);
-    IdSub.set(SS_ARC_PTR(wk->pTerm, 8), 0xFF, IDC_SSCRN_0, 0xC, 5, 0);
-    IdSub.set(SS_ARC_PTR(wk->pTerm, 9), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 2, 0);
+    IdTexDataLoad(SS_ARC_PTR(wk->pTermDat, 5), TEX_OWNER_ID_SSCRN);
+    IdSub.set(SS_ARC_PTR(wk->pTermDat, 8), 0xFF, IDC_SSCRN_0, 0xC, 5, 0);
+    IdSub.set(SS_ARC_PTR(wk->pTermDat, 9), 0xFF, IDC_SSCRN_NEAR_0, 0xF, 2, 0);
     u = IdSub.unitPtr(0x12, IDC_SSCRN_NEAR_0);
     u->be_flag &= ~8;
     u->rev_flag |= 0xF;
@@ -856,7 +856,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
     sscrnMainMenuInit(wk, 0);
     x10 = 0;
     if (pSys->language == 0) {
-        cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pTerm, 4), 3);
+        cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pTermDat, 4), 3);
     }
     cMes.setLayout(0, LAYOUT_OPERATOR);
     memset(&ope, 0, sizeof(ope));
@@ -871,9 +871,9 @@ void SsTermMain::init(SUB_SCREEN* wk)
     ssWepModel = MapMgr.getWork(1);
     ssPlMotion = 0;
     ssWepModel2 = 0;
-    tel00ModelInit(MapMgr.getWork(0), wk->pTerm);
+    tel00ModelInit(MapMgr.getWork(0), wk->pTermDat);
     m = MapMgr.getWork(2);
-    hunniganModelInit(m, wk->pPartner, partnerType(wk->opeMdtNo));
+    hunniganModelInit(m, wk->pTelDat, partnerType(wk->opeMdtNo));
     modelOn = 0;
     ended = 0;
     {
@@ -896,7 +896,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
             MapMgr.getWork(0)->matUpdate();
         }
     }
-    termMotionCancel(wk->pPartner, 0);
+    termMotionCancel(wk->pTelDat, 0);
     modelOn = 1;
 }
 
@@ -909,7 +909,7 @@ void SsTermMain::move(SUB_SCREEN* wk)
     if (modelOn != 0) {
         if (ended == 0 && (ope.flags & 0x10000000)) {
             IdUnit* u;
-            termMotionCancel(wk->pPartner, 10);
+            termMotionCancel(wk->pTelDat, 10);
             ClrShape(MapMgr.getWork(0));
             ClrShape(MapMgr.getWork(2));
             ended = 1;

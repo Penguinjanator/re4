@@ -89,7 +89,7 @@ void cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy, v
         if (m_pCurrentBut == 0) {
             m_pStartBut = m_pCurrentBut = m_pButList[m_nBut];
         }
-        pBottom = m_pButList[m_nBut];
+        m_pEndBut = m_pButList[m_nBut];
         if (m_max_cx < bcx) {
             m_max_cx = bcx;
         }
@@ -193,7 +193,7 @@ void cDbgWindow::LocalDisp()
             f32 mgn = 2.0f;
             f32 zero = 0.0f;
 
-            DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->m_py) * 14) - mgn, (f32) (cur->nameLen * 8) + zero,
+            DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->m_py) * 14) - mgn, (f32) (cur->m_strlen * 8) + zero,
                            fh + mgn, 0.7f, 0.7f, zero, 0.3f);
         }
     }

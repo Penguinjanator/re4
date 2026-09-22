@@ -23,18 +23,18 @@ void cTexSys::Init(const char* name, u32 num)
 {
     u32 i;
 
-    this->name = name;
+    this->m_name = name;
     nTexObj = num;
 #line 53
     if ((pTexObj = (GXTexObj*) MEM_ALLOC(num * sizeof(GXTexObj), 1, 0xD)) == NULL) {
         nTexObj = 0;
-        pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->name);
+        pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->m_name);
         return;
     }
 #line 60
     if ((pFlag = (u8*) MEM_ALLOC(nTexObj / 8 + 1, 1, 0xD)) == NULL) {
         nTexObj = 0;
-        pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->name);
+        pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->m_name);
         return;
     }
     for (i = 0; i < nTexObj; i++) {
@@ -47,10 +47,10 @@ void cTexSys::Init(const char* name, u32 num)
 void cTexSys::Clear()
 {
     u32 i;
-    TexWk* w = wk;
+    TexWk* w = m_texw_array;
 
     for (i = 0; i < 256; i++, w++) {
-        w->owner = 0;
+        w->Owner = 0;
     }
     x5408 = 0;
     for (i = 0; i < nTexObj; i++) {
@@ -62,7 +62,7 @@ void cTexSys::Clear()
 int cTexSys::GetTexObjFlag(u32 no)
 {
     if (no >= nTexObj) {
-        pLog->err(0, 0, "%s::GetTexObjFlag : TexNo over [%d/%d]", name, no, nTexObj);
+        pLog->err(0, 0, "%s::GetTexObjFlag : TexNo over [%d/%d]", m_name, no, nTexObj);
         return 0;
     }
     if ((pFlag[no >> 3] >> (no & 7)) & 1) {
@@ -77,7 +77,7 @@ void cTexSys::SetTexObjFlag(u32 no, int flag)
     u8 bit;
 
     if (no >= nTexObj) {
-        pLog->err(0, 0, "%s::GetTexObjFlag : TexNo over [%d/%d]", name, no, nTexObj);
+        pLog->err(0, 0, "%s::GetTexObjFlag : TexNo over [%d/%d]", m_name, no, nTexObj);
     }
     bit = 1 << (no & 7);
     if (flag == 1) {
@@ -103,7 +103,7 @@ int cTexSys::DataLoad(TexData* data, u32 owner, int clamp)
     register u32 oT asm("r11");
 
     if (data->version != 3) {
-        pLog->err(0, 0, "%s::DataLoad() : Data Invalid. [0x%x]", name, data);
+        pLog->err(0, 0, "%s::DataLoad() : Data Invalid. [0x%x]", m_name, data);
         return 0;
     }
     oI = data->ofsId;
@@ -146,7 +146,7 @@ GXTexObj* cTexSys::PullTexObj(u32 num)
     goto done;
 
 full:
-    pLog->err(0, 0, "%s::PullTexObj(): TEXOBJ MAX!!", name);
+    pLog->err(0, 0, "%s::PullTexObj(): TEXOBJ MAX!!", m_name);
     return NULL;
 
 done:
@@ -183,32 +183,32 @@ void cTexSys::CalcTplAddr(TEXPalette* tpl)
 // optional LOD setup. 0 when the id is taken (error when `check`) or the pool is full.
 int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp, int check)
 {
-    TexWk* w = &wk[id];
+    TexWk* w = &m_texw_array[id];
     TEXDescriptor* desc;
     TEXHeader* hdr;
     GXTexObj* obj;
     int i;
 
-    if (w->owner != 0) {
+    if (w->Owner != 0) {
         if (check != 0) {
-            pLog->err(0, 0, "%s::TexRegist():TexId[%x] id already used.", name, id);
+            pLog->err(0, 0, "%s::TexRegist():TexId[%x] id already used.", m_name, id);
         }
         return 0;
     }
     CalcTplAddr(tpl);
     desc = TEXGet(tpl, 0);
     w->nTexObj = anm->numTex;
-    w->pTexObj = PullTexObj(w->nTexObj);
-    if (w->pTexObj == NULL) {
-        pLog->err(0, 0, "%s : ID[%02x] PullTexObj() work full!!", name, id);
+    w->pTex_obj_start = PullTexObj(w->nTexObj);
+    if (w->pTex_obj_start == NULL) {
+        pLog->err(0, 0, "%s : ID[%02x] PullTexObj() work full!!", m_name, id);
         return 0;
     }
     w->texHdr = desc->textureHeader;
     w->pAnm = anm;
-    w->owner = owner;
+    w->Owner = owner;
     w->pTpl = tpl;
     for (i = 0; i < w->nTexObj; i++) {
-        obj = &w->pTexObj[i];
+        obj = &w->pTex_obj_start[i];
         desc = TEXGet(tpl, i);
         hdr = desc->textureHeader;
         if (hdr->format - 8 <= 1) {
@@ -240,9 +240,9 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
 // TPL of texture `id`; 0 when unregistered.
 int cTexSys::GetTplAddr(u32 id, TEXPalette** out)
 {
-    TexWk* w = &wk[id];
+    TexWk* w = &m_texw_array[id];
 
-    if (w->owner == 0) {
+    if (w->Owner == 0) {
         return 0;
     }
     *out = w->pTpl;
@@ -252,21 +252,21 @@ int cTexSys::GetTplAddr(u32 id, TEXPalette** out)
 // GX texture object `no` (animation frame) of texture `id`; 0 when unregistered.
 int cTexSys::GetTexObj(u32 id, u32 no, GXTexObj** out)
 {
-    TexWk* w = &wk[id];
+    TexWk* w = &m_texw_array[id];
 
-    if (w->owner == 0) {
+    if (w->Owner == 0) {
         return 0;
     }
-    *out = &w->pTexObj[no];
+    *out = &w->pTex_obj_start[no];
     return 1;
 }
 
 // Animation table of texture `id`; 0 when unregistered.
 int cTexSys::GetAnmAddr(u32 id, TexAnm** out)
 {
-    TexWk* w = &wk[id];
+    TexWk* w = &m_texw_array[id];
 
-    if (w->owner == 0) {
+    if (w->Owner == 0) {
         return 0;
     }
     *out = w->pAnm;
@@ -276,9 +276,9 @@ int cTexSys::GetAnmAddr(u32 id, TexAnm** out)
 // Palette object of a CI texture `id`; 0 when unregistered or not paletted.
 int cTexSys::GetTlutObj(u32 id, GXTlutObj** out)
 {
-    TexWk* w = &wk[id];
+    TexWk* w = &m_texw_array[id];
 
-    if (w->owner == 0) {
+    if (w->Owner == 0) {
         return 0;
     }
     if (w->texHdr->format - 8 <= 1) {
@@ -292,9 +292,9 @@ int cTexSys::GetTlutObj(u32 id, GXTlutObj** out)
 // The registry slot of texture `id`, NULL (error unless `quiet`) when unregistered.
 TexWk* cTexSys::GetTexWk(u32 id, int quiet)
 {
-    TexWk* w = &wk[id];
+    TexWk* w = &m_texw_array[id];
 
-    if (w->owner != 0) {
+    if (w->Owner != 0) {
         return w;
     }
     if (quiet == 0) {
@@ -311,10 +311,10 @@ int cTexSys::TexRelease(u32 owner)
     u32 j;
     u32 base;
 
-    for (w = wk, i = 0; i < 256; w++, i++) {
-        if (w->owner == owner) {
-            w->owner = 0;
-            base = w->pTexObj - pTexObj;
+    for (w = m_texw_array, i = 0; i < 256; w++, i++) {
+        if (w->Owner == owner) {
+            w->Owner = 0;
+            base = w->pTex_obj_start - pTexObj;
             for (j = base; j < base + w->nTexObj; j++) {
                 SetTexObjFlag(j, 0);
             }

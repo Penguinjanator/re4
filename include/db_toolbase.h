@@ -23,7 +23,7 @@ public:
     int m_cx;         // 0x08  cursor column
     int m_cy;         // 0x0C  cursor row
     char* m_pStr;    // 0x10  own copy of the label
-    u32 nameLen;    // 0x14  strlen + 1
+    u32 m_strlen;    // 0x14  strlen + 1
     // 0x18 vptr
 
     virtual ~cDbgButtonBase() { delete m_pStr; }
@@ -36,7 +36,7 @@ public:
         m_cx = cx_;
         m_cy = cy_;
         len = strlen(name) + 1;
-        nameLen = len;
+        m_strlen = len;
         m_pStr = new char[len];
         if (m_pStr == 0) {
             pLog->err(0, 0, "cDbgButtonBase::Init(): new failed.");
@@ -63,7 +63,7 @@ public:
     u32 m_wy;              // 0x0C  height in rows
     int m_max_cx;          // 0x10  largest button cursor column
     int m_max_cy;          // 0x14  largest button cursor row
-    const char* pName;  // 0x18  title
+    const char* m_pTitle;  // 0x18  title
     int x1C;
     int x20;
     // 0x24 vptr
@@ -94,7 +94,7 @@ public:
     cDbgButton* m_pButList[128];  // 0x2C
     cDbgButton* m_pCurrentBut;          // 0x22C
     cDbgButton* m_pStartBut;          // 0x230
-    cDbgButton* pBottom;       // 0x234
+    cDbgButton* m_pEndBut;       // 0x234
 
     // Init: declared here for every user (both t_esp_area/t_lightarea and t_event call it out of
     // line, `bl Init__10cDbgWindowiiPCc`), but db_toolbase.cpp emits it as an in-class inline
@@ -111,7 +111,7 @@ public:
         m_wy = 1;
         m_max_cx = 1;
         m_max_cy = 1;
-        pName = name;
+        m_pTitle = name;
         x1C = 0;
         x20 = 0;
         // COMPILER-DIFF: #13 -- the original stores the REG_EQUIV zero as a constant: the zero's
@@ -122,7 +122,7 @@ public:
         } while (0);
         m_nBut = 0;
         m_pCurrentBut = 0;
-        pBottom = 0;
+        m_pEndBut = 0;
         do {
         } while (0);
         m_pStartBut = 0;
@@ -155,7 +155,7 @@ public:
         return m_pCurrentBut->m_cy;
     }
     virtual void SetCurrentTopButton() { m_pCurrentBut = m_pStartBut; }
-    virtual void SetCurrentBottomButton() { m_pCurrentBut = pBottom; }
+    virtual void SetCurrentBottomButton() { m_pCurrentBut = m_pEndBut; }
     virtual void ButtonAllUpdate()
     {
         u32 i;

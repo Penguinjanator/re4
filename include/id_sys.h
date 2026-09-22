@@ -36,12 +36,12 @@ struct IdUnit {
     u8 trans_type;    // 0x82  0: common, 1: negative, 2/3: shimmer
     u8 pow;     // 0x83
     u8 blend_type;    // 0x84
-    u8 end;          // 0x85  bit n: timer n finished
+    u8 anima_state;          // 0x85  bit n: timer n finished
     u8 pad_86[2];
-    Vec scr;         // 0x88  screen position
+    Vec pos0;         // 0x88  screen position
     Vec pos;         // 0x94  path offset + scr (world position used for drawing)
-    Vec vtx[4];      // 0xA0
-    f32 sizeX;       // 0xD0
+    Vec ver[4];      // 0xA0
+    f32 size_W;       // 0xD0
     f32 size_H;       // 0xD4
     u8 pad_D8[8];
     u8 col0[4];      // 0xE0
@@ -196,7 +196,7 @@ public:
     s32 m_levelMax;     // 0x08
     u32 m_set_flag[8];        // 0x0C  table types set
     u32 m_disp_off[8];      // 0x2C  table types hidden
-    IdUnit* pUnit;    // 0x4C
+    IdUnit* m_IdUnit;    // 0x4C
 
     static Mtx m_scrn_mat;
 

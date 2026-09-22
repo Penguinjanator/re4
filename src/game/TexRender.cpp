@@ -70,11 +70,11 @@ int GetTexRenderMgr(TexRenderMng** out)
     if (!(*out)->AllocBuf()) {
         return 0;
     }
-    (*out)->texId = (u8) g_RndMgrNum + 0xF8;
+    (*out)->m_Tex_no = (u8) g_RndMgrNum + 0xF8;
     {
         // the original stores the mask through a u16 reference (the load of g_RndMgrNum below is
         // not hoisted above a plain member store)
-        u16& mask = (*out)->mask;
+        u16& mask = (*out)->m_Core_flg;
         mask = 8 << g_RndMgrNum;
     }
     g_RndMgrNum++;
@@ -142,7 +142,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
         }
         GXSetTexCopySrc(ofs >> 1, 0, w, h);
         GXSetTexCopyDst(m->m_W_size, m->m_H_size, 6, 1);
-        GXCopyTex(m->buf, 1);
+        GXCopyTex(m->m_Texture_buffer, 1);
         GXSetAlphaUpdate(0);
         GXSetCopyFilter(rmode->aa, rmode->sample_pattern, 1, rmode->vfilter);
         GXPixModeSync();
@@ -163,7 +163,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
             wrap = 2;
             break;
         }
-        GXInitTexObj(&m->m_Tex_obj, m->buf, m->m_W_size, m->m_H_size, 6, wrap, wrap, 0);
+        GXInitTexObj(&m->m_Tex_obj, m->m_Texture_buffer, m->m_W_size, m->m_H_size, 6, wrap, wrap, 0);
         GXInitTexObjLOD(&m->m_Tex_obj, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
         g_draw = 1;
     }
@@ -205,10 +205,10 @@ TexRenderMng::TexRenderMng()
 void TexRenderMng::Init()
 {
     used = 0;
-    buf = NULL;
-    texId = 0;
+    m_Texture_buffer = NULL;
+    m_Tex_no = 0;
     x29 = 0;
-    mask = 0;
+    m_Core_flg = 0;
     m_W_size = 0x80;
     m_H_size = 0x80;
     m_Rep_type = 0;
@@ -218,8 +218,8 @@ void TexRenderMng::Init()
 int TexRenderMng::AllocBuf()
 {
 #line 323 "D:/Bio4/Prog/TexRender.cpp"
-    buf = MEM_ALLOC(m_W_size * m_H_size * 4, 1, 13);
-    if (buf == NULL) {
+    m_Texture_buffer = MEM_ALLOC(m_W_size * m_H_size * 4, 1, 13);
+    if (m_Texture_buffer == NULL) {
         pLog->err(0, 0, "TexRenderMng::AllocBuf() : not enough memory");
         return 0;
     }
@@ -229,8 +229,8 @@ int TexRenderMng::AllocBuf()
 // Frees and re-allocates the buffer after a size change.
 void TexRenderMng::ReAllocBuf()
 {
-    if (buf != NULL) {
-        Mem_free(buf);
+    if (m_Texture_buffer != NULL) {
+        Mem_free(m_Texture_buffer);
     }
     AllocBuf();
 }
@@ -269,7 +269,7 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
     tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[5] = mgr->texId;
+    tbl[5] = mgr->m_Tex_no;
     info = GetModelInfoAddr(m->pModelInfo, parts);
     if (info != NULL) {
         info->be_flag |= 8;
@@ -388,7 +388,7 @@ void CamRenderPrev(TexRenderCam* pWk)
     pWk->save = pG->Camera;
     pG->Camera = *pWk->pCam;
     C_MTXPerspective(pG->Camera.ProjMat, pG->Camera.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
-    C_MTXLookAt(pG->Camera.v_mat, &pG->Camera.param.pos, &pG->Camera.up, &pG->Camera.param.at);
+    C_MTXLookAt(pG->Camera.v_mat, &pG->Camera.param.pos, &pG->Camera.Up, &pG->Camera.param.at);
 }
 
 // After the passes: restores pG->Camera.

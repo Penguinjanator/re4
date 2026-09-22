@@ -835,7 +835,7 @@ static void r117_ThunderMove()
 // Event r117s00 handler: the etc models, the chandelier rope and the light sources.
 extern "C" void Evt_R117S00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         setRoomEtcDisp(0, 0, 1);
         setRoomEtcDisp(3, 0, 1);
@@ -929,7 +929,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
     void* mod2;
     void* bin;
 
-    if (e->funcMode != 1) {
+    if (e->FuncType != 1) {
         return;
     }
     switch (e->NowCut) {
@@ -959,7 +959,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
                 ((cModel*) m)->LightInfo.EnableMask = 0x40;
             }
             if (e->GetMod(&mod2, "ev0101", 0, 0) == 1) {
-                W->evBin = ((cModelInfo*) mod2)->pData;
+                W->evBin = ((cModelInfo*) mod2)->model_addr;
                 W->evTpl = ((cModelInfo*) mod2)->tpl_addr;
             }
             if (e->GetMod(&m, "em3000", 0, 0) == 1) {

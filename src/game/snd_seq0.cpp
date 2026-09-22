@@ -145,16 +145,16 @@ int seq_pro_ck_req_work(int bank, u8 type)
 
     for (i = 0; i < SND_REQ_MAX; i++) {
         req = &Snd_req_work[bank][i];
-        if (req->status == 0) {
+        if (req->be_flag == 0) {
             continue;
         }
-        if (req->type & 0x4) {
+        if (req->use_type & 0x4) {
             continue;
         }
-        if (!(req->type & type)) {
+        if (!(req->use_type & type)) {
             continue;
         }
-        if (req->sit->flag & 0x4) {
+        if (req->sit_ptr->flag & 0x4) {
             return 0x10;
         }
     }

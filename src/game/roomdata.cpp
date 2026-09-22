@@ -86,7 +86,7 @@ void cRoomData::init()
     u32 ofs;
     u8* rec;
 
-    pModule = 0;
+    m_pModule = 0;
     m_pModule_bss = 0;
     m_RelNo = 0;
     total = 0;
@@ -104,20 +104,20 @@ void cRoomData::init()
         }
     }
 #line 306
-    pSaveBuf = (RoomSaveHdr*) MEM_CALLOC(num * sizeof(RoomSave) + sizeof(RoomSaveHdr), 1, 13);
-    pSaveBuf->size = num * sizeof(RoomSave) + sizeof(RoomSaveHdr);
+    m_pRoomSaveHead = (RoomSaveHdr*) MEM_CALLOC(num * sizeof(RoomSave) + sizeof(RoomSaveHdr), 1, 13);
+    m_pRoomSaveHead->size = num * sizeof(RoomSave) + sizeof(RoomSaveHdr);
     // A local widens `num` (u16) to u32 before the store: written directly, the load of `num` and
     // the reload of `pSaveBuf` (after the `size` store above) swap order against the target.
     u32 n = num;
-    pSaveBuf->num = n;
-    pSave = (u8*) pSaveBuf + sizeof(RoomSaveHdr);
+    m_pRoomSaveHead->num = n;
+    m_pRoomSaveData = (u8*) m_pRoomSaveHead + sizeof(RoomSaveHdr);
     stage = 0;
     ofs = 0;
     for (; stage <= 9; stage++) {
         for (i = 0; checkRoomRange(stage, i) == 1; i++) {
             if (Room_data_tbl[stage].tbl[i].stat == 1) {
-                *(u8*) (ofs + (u32) pSave) = stage;
-                rec = (u8*) (ofs + (u32) pSave);
+                *(u8*) (ofs + (u32) m_pRoomSaveData) = stage;
+                rec = (u8*) (ofs + (u32) m_pRoomSaveData);
                 rec[1] = i;
                 ofs += sizeof(RoomSave);
             }
@@ -135,7 +135,7 @@ void cRoomData::save(void* dst)
 {
     RoomSaveHdr* h = (RoomSaveHdr*) dst;
 
-    memcpy(h, pSaveBuf, num * sizeof(RoomSave) + sizeof(RoomSaveHdr));
+    memcpy(h, m_pRoomSaveHead, num * sizeof(RoomSave) + sizeof(RoomSaveHdr));
 }
 
 // Restores the room records from a save game image, matched by id (records of rooms the build no
@@ -150,7 +150,7 @@ void cRoomData::load(void* src)
 
     for (j = 0; j < h->num; j++, rec++) {
         for (i = 0; i < num; i++) {
-            dst = (RoomSave*) (i * sizeof(RoomSave) + (u32) pSave);
+            dst = (RoomSave*) (i * sizeof(RoomSave) + (u32) m_pRoomSaveData);
             if (rec->id == dst->id) {
                 *dst = *rec;
                 break;
@@ -175,11 +175,11 @@ void cRoomData::clear(void* src)
         i = 0;
         if (i < num) {
             do {
-                dst = (RoomSave*) (i * sizeof(RoomSave) + (u32) pSave);
+                dst = (RoomSave*) (i * sizeof(RoomSave) + (u32) m_pRoomSaveData);
                 id = rec->id;
                 if (id == dst->id) {
                     memclr_asm(dst, sizeof(RoomSave));
-                    ((RoomSave*) (i * sizeof(RoomSave) + (u32) pSave))->id = id;
+                    ((RoomSave*) (i * sizeof(RoomSave) + (u32) m_pRoomSaveData))->id = id;
                     break;
                 }
                 i++;
@@ -211,7 +211,7 @@ u8* cRoomData::getRoomSavePtr(u16 room)
         for (i = 0; checkRoomRange(s, i) == 1; i++) {
             if (p->tbl[i].stat == 1) {
                 if (stage == s && no == i) {
-                    return pSave + k * sizeof(RoomSave);
+                    return m_pRoomSaveData + k * sizeof(RoomSave);
                 }
                 k++;
             }
@@ -297,47 +297,47 @@ void cRoomData::linkRelData(u16 room)
     m_RelNo = Room_data_tbl[stage].tbl[no].rel_no;
 #line 484
     id = DvdRead(m_RelNo, 0, 0, 0, 0, 0x104, __FILE__, __LINE__);
-    while ((ret = Dvd.ReadCheck(id, 0, 0, (void**) &pModule)) != 1) {
+    while ((ret = Dvd.ReadCheck(id, 0, 0, (void**) &m_pModule)) != 1) {
         if (ret < 0) {
             pLog->err(0, 0, "cRoomData::readRelData(): RelDataReadError! %s", FileTbl[m_RelNo]);
             m_RelNo = 0;
-            pModule = 0;
+            m_pModule = 0;
             return;
         }
         TaskSleep(1);
     }
     BitOff16(flag, 1);
-    if (pModule->bssSize == 0) {
+    if (m_pModule->bssSize == 0) {
         m_pModule_bss = 0;
     } else {
 #line 503
-        m_pModule_bss = MEM_ALLOC(pModule->bssSize, 1, 13);
-        m_pModule_bss_bak = MEM_ALLOC(pModule->bssSize, 1, 13);
+        m_pModule_bss = MEM_ALLOC(m_pModule->bssSize, 1, 13);
+        m_pModule_bss_bak = MEM_ALLOC(m_pModule->bssSize, 1, 13);
     }
-    DLL_Link(pModule, m_pModule_bss);
-    DLL_PROLOG(pModule)();
+    DLL_Link(m_pModule, m_pModule_bss);
+    DLL_PROLOG(m_pModule)();
 }
 
 // Temporarily unlinks the room REL (flag bit0), saving its bss to the backup.
 void cRoomData::stopRelData()
 {
-    if ((flag & 1) == 0 && pModule != 0) {
+    if ((flag & 1) == 0 && m_pModule != 0) {
         flag |= 1;
         if (m_pModule_bss != 0) {
-            memcpy(m_pModule_bss_bak, m_pModule_bss, pModule->bssSize);
+            memcpy(m_pModule_bss_bak, m_pModule_bss, m_pModule->bssSize);
         }
-        DLL_Unlink(pModule);
+        DLL_Unlink(m_pModule);
     }
 }
 
 // Re-links a stopped room REL and restores its bss from the backup.
 void cRoomData::restartRelData()
 {
-    if ((flag & 1) && pModule != 0) {
+    if ((flag & 1) && m_pModule != 0) {
         BitOff16(flag, 1);
-        DLL_Link(pModule, m_pModule_bss);
+        DLL_Link(m_pModule, m_pModule_bss);
         if (m_pModule_bss != 0) {
-            memcpy(m_pModule_bss, m_pModule_bss_bak, pModule->bssSize);
+            memcpy(m_pModule_bss, m_pModule_bss_bak, m_pModule->bssSize);
         }
     }
 }

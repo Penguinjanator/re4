@@ -22,7 +22,7 @@ void slideTplAddr(void* tpl, int ofs);
 
 // Scroll object id -> name table (unused in this build; keeps the strings and the table).
 struct ScrIdRef {
-    u8 type;
+    u8 Id;
     const char* Name;
 };
 
@@ -261,7 +261,7 @@ int SmxGetFlag(cObj* obj)
     if (be & 0x10) {
         flags = 1;
     }
-    if (obj->pModelInfo->pData->flags & 0x40000000) {
+    if (obj->pModelInfo->model_addr->flags & 0x40000000) {
         flags |= 2;
     }
     if (be & 0x2000000) {

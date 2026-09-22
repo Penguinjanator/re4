@@ -59,14 +59,14 @@ static u32 sphereRectCk(cAtariInfo* info, Vec& p, f32 rad);
 // flags; not linked.
 void yarareInit0(YARARE_INFO* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags)
 {
-    y->ofs.x = x;
-    y->ofs.y = yy;
-    y->ofs.z = z;
-    y->width = w;
+    y->offset.x = x;
+    y->offset.y = yy;
+    y->offset.z = z;
+    y->radius = w;
     y->height = h;
-    y->partsNo = no;
-    y->flags = flags;
-    y->next = 0;
+    y->parts_no = no;
+    y->flag = flags;
+    y->pList = 0;
 }
 
 // Sets the character's primary hit box (cEm::hitInfo) as a cylinder of radius w / height h.
@@ -79,8 +79,8 @@ void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags)
 void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags)
 {
     yarareInit0(&em->hitInfo, x, y, z, w, h, no, flags);
-    em->hitInfo.depth = extent;
-    em->hitInfo.flags |= 8;
+    em->hitInfo.extent = extent;
+    em->hitInfo.flag |= 8;
 }
 
 // Appends a cylinder hit box to the character's hit box chain (error when already linked).
@@ -89,7 +89,7 @@ void YarareAdd(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16
     YARARE_INFO* p = &em->hitInfo;
 
     yarareInit0(box, x, y, z, w, h, no, flags);
-    for (; p->next != 0; p = p->next) {
+    for (; p->pList != 0; p = p->pList) {
         if (p == box) {
             pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", em->id);
             return;
@@ -99,7 +99,7 @@ void YarareAdd(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16
         pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", em->id);
         return;
     }
-    p->next = box;
+    p->pList = box;
 }
 
 // Appends a box hit box to the chain.
@@ -108,17 +108,17 @@ void YarareAddCube(cEm* em, YARARE_INFO* box, f32 x, f32 y, f32 z, f32 w, f32 h,
     YARARE_INFO* p;
 
     yarareInit0(box, x, y, z, w, h, no, flags);
-    box->depth = extent;
-    box->flags |= YAT_FLAG_CUBE;
+    box->extent = extent;
+    box->flag |= YAT_FLAG_CUBE;
     p = &em->hitInfo;
-    while (p->next != 0) {
+    while (p->pList != 0) {
         if (p == box) {
             pLog->err(0, 0, "YarareAdd() Add same pointer, EM%02x", em->id);
         }
-        p = p->next;
+        p = p->pList;
     }
-    if (p->next != box) {
-        p->next = box;
+    if (p->pList != box) {
+        p->pList = box;
     }
 }
 

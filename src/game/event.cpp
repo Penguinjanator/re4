@@ -381,7 +381,7 @@ int Event::EspToolSetDat()
             break;
         case EvpTpMot:
             no = EvtDebug.NumMod;
-            strcpy(EvtDebug.pModel[no].name, pac->mod.bin);
+            strcpy(EvtDebug.PMod[no].name, pac->mod.bin);
             EspToolSetMod(no, pac->mod.name);
             EvtDebug.NumMod++;
             break;
@@ -414,7 +414,7 @@ void Event::EspToolSetMod(int no, char* nm)
     char* p;
 
     buf = (char*) Debug_alloc(1000000, 1);
-    EvtDebug.pModel[no].pScr = 0;
+    EvtDebug.PMod[no].pScr = 0;
     strcpy(mname, nm);
     for (i = 2; i < strlen(mname); i++) {
         c = mname[i];
@@ -453,17 +453,17 @@ void Event::EspToolSetMod(int no, char* nm)
         }
     }
     if (GetModelPtrNo(&modNo, &mod, mname)) {
-        EvtDebug.pModel[no].pModel = (cModel*) modNo;
-        EvtDebug.pModel[no].otType = mod->ot_type;
-        EvtDebug.pModel[no].lightMask = mod->LightInfo.EnableMask;
+        EvtDebug.PMod[no].pModel = (cModel*) modNo;
+        EvtDebug.PMod[no].otType = mod->ot_type;
+        EvtDebug.PMod[no].lightMask = mod->LightInfo.EnableMask;
         if (mod->z_mode == 1) {
-            BitOn(EvtDebug.pModel[no].flags, 0x80000000);
+            BitOn(EvtDebug.PMod[no].flags, 0x80000000);
         }
         if (BeFlgChk(mod, 0x1000) == 1) {
-            BitOn(EvtDebug.pModel[no].flags, 0x40000000);
+            BitOn(EvtDebug.PMod[no].flags, 0x40000000);
         }
         if (strncmp(mname, "scr", 3) == 0) {
-            EvtDebug.pModel[no].pScr = mod;
+            EvtDebug.PMod[no].pScr = mod;
         }
     }
     pLog->mes(0, 0, "t_event->t_esp:%s", nm);
@@ -1690,7 +1690,7 @@ int Event::ExeFunc(int mode, int param)
     if (mode == 1 && EvtChk(StatusFlag, EvtStfBit(EvtStfEvtCancelExe))) {
         return 1;
     }
-    funcMode = mode;
+    FuncType = mode;
     strcpy(a, pData->room);
     strcpy(b, pData->no);
     strcpy(nm, "evt_");
@@ -2391,8 +2391,8 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
         pLog->err(0, 0, "EventMgr::EvtRead : WkNo failed [%d]", no);
         return 0;
     }
-    readEm[no].em = em;
-    readEm[no].swapped = 0;
+    ReadWkTbl[no].em = em;
+    ReadWkTbl[no].swapped = 0;
     if (aram == 0) {
         if (em != 0) {
             if (fresh == 1) {
@@ -2426,7 +2426,7 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
                 return 0;
             }
             MemorySwap(mod->pArc, (u32) unit->m_addr, unit->m_size);
-            readEm[no].swapped = 1;
+            ReadWkTbl[no].swapped = 1;
             r = mod->pArc;
             if (out != 0) {
                 *out = (int) r;
@@ -2562,15 +2562,15 @@ int EventMgr::EvtFree(char* nm)
         pLog->err(0, 0, "EventMgr::EvtFree : WkNo failed [%d]", no);
         return 0;
     }
-    em = readEm[no].em;
+    em = ReadWkTbl[no].em;
     if (unit != 0) {
         if (unit->waitLoadOk() == 0) {
             pLog->err(0, 0, "EvtFree() : out of memory (0x%x)[%s]", unit->m_size, nm);
         }
-        if (em != 0 && readEm[no].swapped == 1) {
+        if (em != 0 && ReadWkTbl[no].swapped == 1) {
             mod = SearchEmModule(em);
             MemorySwap(mod->pArc, (u32) unit->m_addr, unit->m_size);
-            readEm[no].swapped = 0;
+            ReadWkTbl[no].swapped = 0;
             EspEmDataSwapPop(em);
         }
         unit->setCommand(CMND_CLEAR_DATA, 0, 0);
@@ -3113,30 +3113,30 @@ int EventMgr::GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot)
 // Clears the three window-break camera (FCV) pointers.
 void EventMgr::ClearEmWindowFcv()
 {
-    emWindowFcv[0] = 0;
-    emWindowFcv[1] = 0;
-    emWindowFcv[2] = 0;
+    EmWindowFcvTbl[0] = 0;
+    EmWindowFcvTbl[1] = 0;
+    EmWindowFcvTbl[2] = 0;
 }
 
 // Stores the window-break camera data (window 1 in/out, window 2 out) for the room.
 void EventMgr::SetEmWindowFcv(void* a, void* b, void* c)
 {
-    emWindowFcv[0] = a;
-    emWindowFcv[1] = b;
-    emWindowFcv[2] = c;
+    EmWindowFcvTbl[0] = a;
+    EmWindowFcvTbl[1] = b;
+    EmWindowFcvTbl[2] = c;
 }
 
 // Returns the window-break camera data.
 void EventMgr::GetEmWindowFcv(void** win1FIn, void** win1FOut, void** win2FOut)
 {
     if (win1FIn != 0) {
-        *win1FIn = emWindowFcv[0];
+        *win1FIn = EmWindowFcvTbl[0];
     }
     if (win1FOut != 0) {
-        *win1FOut = emWindowFcv[1];
+        *win1FOut = EmWindowFcvTbl[1];
     }
     if (win2FOut != 0) {
-        *win2FOut = emWindowFcv[2];
+        *win2FOut = EmWindowFcvTbl[2];
     }
 }
 
@@ -3163,14 +3163,14 @@ void EventDebug::ClrModelFiles()
     int i;
 
     for (i = 0; i < 0x60; i++) {
-        memset_asm(&pModel[i], 0, sizeof(EvtDebugModel));
+        memset_asm(&PMod[i], 0, sizeof(EvtDebugModel));
     }
 }
 
 // Adds a bin/tpl file pair to model record `no`.
 int EventDebug::AddNameBinTpl(int no, char* bin, char* tpl)
 {
-    EvtDebugModel* m = &pModel[no];
+    EvtDebugModel* m = &PMod[no];
     int n = m->nBin;
 
     if (n > 0xF) {

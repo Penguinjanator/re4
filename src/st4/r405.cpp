@@ -148,9 +148,9 @@ void setTexRender()
         tbl0[0] = 1;
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
-        tbl0[5] = r405_work->tex[0]->texId;
+        tbl0[5] = r405_work->tex[0]->m_Tex_no;
         r405_work->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r405_work->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r405_work->tex[0]->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -161,9 +161,9 @@ void setTexRender()
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
-        tbl1[5] = r405_work->tex[1]->texId;
+        tbl1[5] = r405_work->tex[1]->m_Tex_no;
         r405_work->tex[1]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r405_work->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r405_work->tex[1]->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -198,7 +198,7 @@ extern "C" void Evt_R405S00_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         if (e->NowCut == 0) {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {

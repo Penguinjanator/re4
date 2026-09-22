@@ -31,7 +31,7 @@ int cMapMgr::construct(cMap* p, u32 id)
     }
     p = new (p) cMap;
     p->id = id;
-    p->index = n;
+    p->part = n;
     return 1;
 }
 
@@ -44,7 +44,7 @@ cMap* cMapMgr::room(int id, int no)
     if (i < nArray) {
         do {
             cMap* p = getWork(i);
-            if ((p->be_flag & 0x201) == 1 && id == p->id && no == p->index) {
+            if ((p->be_flag & 0x201) == 1 && id == p->id && no == p->part) {
                 return p;
             }
         } while (++i < nArray);

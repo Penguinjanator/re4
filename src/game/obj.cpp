@@ -304,7 +304,7 @@ int cObjMgr::construct(cObj* p, int id)
         ObjInitFunc[id](p);
         break;
     }
-    p->serial = Guid;
+    p->guid = Guid;
     Guid++;
     p->id = id;
     return 1;

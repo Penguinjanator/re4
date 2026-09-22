@@ -667,7 +667,7 @@ static void setTexRender()
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r20b_work->tex0->texId;
+        tbl[5] = r20b_work->tex0->m_Tex_no;
         r20b_work->tex0->m_Rep_type = 1;
         {
             TexRenderMng* t = r20b_work->tex0;
@@ -675,7 +675,7 @@ static void setTexRender()
             t->m_W_size = 0x40;
             t->m_H_size = 0x40;
         }
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r20b_work->tex0->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r20b_work->tex0->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
         R20B_TEX_OBJ(0x28);
         R20B_TEX_OBJ(0x29);
     }
@@ -708,7 +708,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
     void* mod3;
     void* mod4;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:
@@ -792,10 +792,10 @@ extern "C" void Evt_R20BS00_Func(Event* e)
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod2, 0, r20b_work->tbl1, r20b_work->tex2, 1, 0, 0, 1, 0.35f);
                 }
-                EffectEspDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         case 0x24:
@@ -803,10 +803,10 @@ extern "C" void Evt_R20BS00_Func(Event* e)
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod2, 0, r20b_work->tbl1, r20b_work->tex2, 1, 0, 0, 1, 0.35f);
                 }
-                EffectEspDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 1, r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 1, r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         default:
@@ -814,9 +814,9 @@ extern "C" void Evt_R20BS00_Func(Event* e)
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
                     TexRenderModRes((cModel*) mod2, 0);
                 }
-                EffectEspDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r20b_work->tex2->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEspDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r20b_work->tex2->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
             }
             break;
         }

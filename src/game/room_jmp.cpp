@@ -89,8 +89,8 @@ cRoomJmp::cRoomJmp(void* p)
                 return;
             }
             info->name = (char*) ((u32) tbl + (u32) info->name);
-            info->scr = (char*) ((u32) tbl + (u32) info->scr);
-            info->soft = (char*) ((u32) tbl + (u32) info->soft);
+            info->person = (char*) ((u32) tbl + (u32) info->person);
+            info->person2 = (char*) ((u32) tbl + (u32) info->person2);
         }
     }
 }
@@ -296,11 +296,11 @@ void roomJumpMove(test* w)
     eprintf(0xD8, 0x46, 0, 0, "ROOM  = %02x", info->room);
     eprintf(0xD8, 0x54, 0, 0, "POINT = %d", w->point);
     eprintf(0xD8, 0x2A, 4, 0, "%s", info->name);
-    if (info->soft[0] != 0) {
-        eprintf(0xD8, 0x1C, 0, 0, "     SOFT(%s)", info->soft);
+    if (info->person2[0] != 0) {
+        eprintf(0xD8, 0x1C, 0, 0, "     SOFT(%s)", info->person2);
     }
-    if (info->scr[0] != 0) {
-        eprintf(0xD8, 0xE, 0, 0, "     SCR(%s)", info->scr);
+    if (info->person[0] != 0) {
+        eprintf(0xD8, 0xE, 0, 0, "     SCR(%s)", info->person);
     }
     eprintf(0xD0, (w->mode + 4) * 0xE, 0, 0, ">");
     if (joy->trg & 0x100) {

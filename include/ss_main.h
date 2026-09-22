@@ -55,7 +55,7 @@ public:
 // Item examine screen (ss_main.cpp; ss_cap/ss_file/ss_item chain into it).
 class SsItemExamine : public Widget<SUB_SCREEN> {
 public:
-    u8 state;          // 0x10
+    u8 _rno;          // 0x10
     u8 pad_11[3];
     ItemExamine _itemExam;  // 0x14
 
@@ -306,7 +306,7 @@ public:
 class SsTermInit : public Widget<SUB_SCREEN> {
 public:
     int _counter;
-    int state;  // 0x14  starts at 2
+    int _rno;  // 0x14  starts at 2
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);

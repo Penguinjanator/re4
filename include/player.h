@@ -18,14 +18,14 @@ class cPlayer;
 class cPlNeck {
 public:
     cPlayer* pl;         // 0x00
-    cEm* target;         // 0x04  enemy looked at
+    cEm* m_pLastTarget;         // 0x04  enemy looked at
     int m_lockCtr;           // 0x08  frames left looking (0x7FFFFFFF: until the target changes)
-    u16 m_Flag;           // 0x0C  bit0: the right-turn motion is set
+    u16 m_Flag;           // 0x0C  bit0: m_MotL is the set motion
     u8 m_Mode;             // 0x0E  0 off, 1 on, 2 -> 1 next frame (PlSetNeck)
     u8 pad_F;
-    f32 ang;             // 0x10  current neck angle
-    void* motL;          // 0x14  left turn motion data
-    void* motR;          // 0x18  right turn motion data
+    f32 m_NeckY;             // 0x10  current neck angle
+    void* m_MotR;          // 0x14  first neck motion, set at init (PS2 cPlNeck::init(motR, motL, frame); was `motL`)
+    void* m_MotL;          // 0x18  second neck motion, switched to past the centre (PS2 m_MotL; was `motR`)
 
     cPlNeck(cPlayer* pl);
     void init(void* motL, void* motR, int frame);   // range-checked pointers (motSet), frame passed on
@@ -290,14 +290,14 @@ void pl01weaponSet(cPlayer* pl);  // game/pl_ashley.cpp: fills m_MotTbl from the
 struct PlMahoEntry {
     u8 rno;               // 0x00  (PS2 cPlMahoWork::rno)
     u8 timer;               // 0x01  (PS2 cPlMahoWork::timer)
-    void (*func)();      // 0x04
+    void (*pFunc)();     // 0x04
     const char* pSpell;    // 0x08  button sequence string  button sequence string (PS2 pSpell)
 };
 
 class cPlMaho {
 public:
-    PlMahoEntry tbl[30]; // 0x000
-    u32 num;             // 0x168
+    PlMahoEntry work[30]; // 0x000
+    u32 nWork;             // 0x168
 
     cPlMaho();
     void reset();

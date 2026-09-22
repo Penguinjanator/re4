@@ -181,7 +181,7 @@ void em3aDmCk(cEm3a* em)
             case 0x13:
             case 0x29:
             case 0x2D:
-                if (hit->rad > 1000000.0f) {
+                if (hit->len > 1000000.0f) {
                     return;
                 }
                 break;
@@ -190,7 +190,7 @@ void em3aDmCk(cEm3a* em)
             EmRoutineSet(em, 1, 0xC, 0, 0);
             return;
         }
-        if (hit->partsNo == 0xB) {
+        if (hit->parts_no == 0xB) {
             em->hp = 0;
             EmRoutineSet(em, one, 0xB, 0, 0);
             return;
@@ -1345,7 +1345,7 @@ int em3aSetDmVal(cEm3a* em)
     int val;
 
     flag = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         flag = 1;
     }
     val = 100;

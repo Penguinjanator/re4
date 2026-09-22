@@ -86,17 +86,17 @@ int req_iss_one_sub(SND_CTRL_WORK* ctrl, SND_SIT* sit, u16 blk_no, u16 req_no)
     if (req == NULL) {
         return 1;
     }
-    req->status = 1;
+    req->be_flag = 1;
     if (sit->flag & 0x100) {
-        req->type = 1;
+        req->use_type = 1;
     } else {
-        req->type = 2;
+        req->use_type = 2;
     }
     req->srd_type = ctrl->srd_type;
     req->blk_no = blk_no;
     req->req_no = req_no;
     req->snd_id = ctrl->req_id;
-    req->sit = sit;
+    req->sit_ptr = sit;
     Snd_req_work_copy_para(ctrl, req);
     return 0;
 }
@@ -114,7 +114,7 @@ int Snd_get_play_type(u32 snd_id)
     old = OSDisableInterrupts();
     req = Snd_search_req_work_snd_id(snd_id, 3);
     if (req != NULL) {
-        if (req->sit->flag & 0x4) {
+        if (req->sit_ptr->flag & 0x4) {
             type = 2;
         } else {
             type = 1;

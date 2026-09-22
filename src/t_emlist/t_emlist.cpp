@@ -2783,10 +2783,10 @@ void emlistCamToPoin()
         PSVECSubtract(&cam->param.pos, &cam->param.at, &d);
         EmList.wk->cam.param.at = pos;
         PSVECAdd(&EmList.wk->cam.param.at, &d, &EmList.wk->cam.param.pos);
-        EmList.wk->cam.up.x = 0.0f;
-        EmList.wk->cam.up.y = 1.0f;
-        EmList.wk->cam.up.z = 0.0f;
-        EmList.wk->cam.dist =
+        EmList.wk->cam.Up.x = 0.0f;
+        EmList.wk->cam.Up.y = 1.0f;
+        EmList.wk->cam.Up.z = 0.0f;
+        EmList.wk->cam.Distance =
             VEC_DIST(&EmList.wk->cam.param.pos, &EmList.wk->cam.param.at);
         EmList.wk->cam.param.fovy = cam->param.fovy;
         CameraSetOrientationUp(&EmList.wk->cam);

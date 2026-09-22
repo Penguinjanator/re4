@@ -37,15 +37,15 @@ struct EfxParaU {
 };
 
 static TestPara test_para_sit[] = {
-    {&Snd_test_work.sit.prog, 1, 4, 0, 0, 0, 0},
-    {&Snd_test_work.sit.prog, 1, 4, 0, 0, 0, 0},
+    {&Snd_test_work.sit.note, 1, 4, 0, 0, 0, 0},
+    {&Snd_test_work.sit.note, 1, 4, 0, 0, 0, 0},
     {&Snd_test_work.sit.curve_no, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.sit.vol, 0, 0, -1, 0x7F, 1, 10},
     {&Snd_test_work.sit.svol, 0, 0, -1, 0x7F, 1, 10},
     {&Snd_test_work.sit.aux_a, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.sit.aux_b, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.sit.pitch_l, 1, 0, -2400, 2400, 1, 100},
-    {&Snd_test_work.sit.pitch_hi, 1, 0, -2400, 2400, 1, 100},
+    {&Snd_test_work.sit.pitch_h, 1, 0, -2400, 2400, 1, 100},
     {&Snd_test_work.sit.voice_start, 0, 0, 0, 0x3F, 1, 10},
     {&Snd_test_work.sit.voice_num, 0, 0, 0, 0x3F, 1, 10},
     {&Snd_test_work.sit.prio, 0, 0, 0, 0x7F, 1, 10},
@@ -62,7 +62,7 @@ static TestPara test_para_sit[] = {
 };
 
 static TestPara test_para_midi[] = {
-    {&Snd_test_work.sit.prog, 1, 4, 0, 0, 0, 0},
+    {&Snd_test_work.sit.note, 1, 4, 0, 0, 0, 0},
     {&Snd_test_work.sit.curve_no, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.sit.vol, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.sit.voice_start, 0, 0, 0, 0x3F, 1, 10},
@@ -72,7 +72,7 @@ static TestPara test_para_midi[] = {
 };
 
 static TestPara test_para_rit[] = {
-    {&Snd_test_work.rit.shd_no, 1, 4, 0, 0, 0, 0},
+    {&Snd_test_work.rit.str_no, 1, 4, 0, 0, 0, 0},
     {&Snd_test_work.rit.pad_6[0], 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.rit.vol, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.rit.pad_B[0], 0, 4, 0, 0, 0, 0},
@@ -1136,7 +1136,7 @@ static char* sit_type_name[4] = {"TYPE      : DUMMY", "TYPE      :   NML", "TYPE
 void disp_sit_type(SndTestWork* w, SND_SIT* sit)
 {
     eprintf(0x18, 0x54, 0, 1, sit_type_name[w->type]);
-    eprintf(0x18, 0x70, 0, 1, "NOTE      : %04XH", sit->prog);
+    eprintf(0x18, 0x70, 0, 1, "NOTE      : %04XH", sit->note);
     eprintf(0x18, 0x7E, 0, 1, "FLAG      : %04XH", sit->flag);
 }
 
@@ -1158,18 +1158,18 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
 
     // the three table pointers are advanced in place (the base pseudo is the final pointer:
     // `add r26,r26,r0`), like rit in snd_test_disp_rit
-    inst += sit->prog >> 8;
-    rgn += inst->keyRegion[sit->prog & 0xFF];
+    inst += sit->note >> 8;
+    rgn += inst->keyRegion[sit->note & 0xFF];
     art += rgn->articulationIndex;
-    eprintf(x, y, 0, 1, "PATCH     : %5d", sit->prog >> 8);
-    eprintf(x, y + 0xE, 0, 1, "NOTE      : %5d", sit->prog & 0xFF);
+    eprintf(x, y, 0, 1, "PATCH     : %5d", sit->note >> 8);
+    eprintf(x, y + 0xE, 0, 1, "NOTE      : %5d", sit->note & 0xFF);
     eprintf(x, y + 0x1C, 0, 1, "VTBL_NO   : %5d", sit->curve_no);
     eprintf(x, y + 0x2A, 0, 1, "VOL       : %5d", sit->vol);
     eprintf(x, y + 0x38, 0, 1, "SVOL      : %5d", sit->svol);
     eprintf(x, y + 0x46, 0, 1, "AUX_A     : %5d", sit->aux_a);
     eprintf(x, y + 0x54, 0, 1, "AUX_B     : %5d", sit->aux_b);
     eprintf(x, y + 0x62, 0, 1, "PITCH_L   : %5d", (s16) sit->pitch_l);
-    eprintf(x, y + 0x70, 0, 1, "PITCH_H   : %5d", (s16) sit->pitch_hi);
+    eprintf(x, y + 0x70, 0, 1, "PITCH_H   : %5d", (s16) sit->pitch_h);
     eprintf(x, y + 0x7E, 0, 1, "CH_NO     : %5d", sit->voice_start);
     eprintf(x, y + 0x8C, 0, 1, "MONOPOLY  : %5d", sit->voice_num);
     eprintf(x, y + 0x9A, 0, 1, "PRIO_NO   : %5d", sit->prio);
@@ -1220,7 +1220,7 @@ void disp_sit_midi(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
 {
     SND_SEQ_WORK* seq;
 
-    eprintf(x, y, 0, 1, "MIDI_NO   : %5d", sit->prog >> 8);
+    eprintf(x, y, 0, 1, "MIDI_NO   : %5d", sit->note >> 8);
     eprintf(x, y + 0xE, 0, 1, "VOL_FLAG  : %5d", sit->curve_no);
     eprintf(x, y + 0x1C, 0, 1, "VOL       : %5d", sit->vol);
     eprintf(x, y + 0x2A, 0, 1, "CH_NO     : %5d", sit->voice_start);
@@ -1283,7 +1283,7 @@ static void snd_test_disp_rit()
         // one `blk->shd` load shared by the table index and the base (two loads let cse/local-alloc
         // tie the block-0 temporaries differently: r8/r9/r10/r11 rotated by one)
         u8* base = blk->shd;
-        shd = (SND_SHD*) (base + ((u32*) base)[rit->shd_no]);
+        shd = (SND_SHD*) (base + ((u32*) base)[rit->str_no]);
     }
 
     disp_cursor(w, 0x18, 0x54);
@@ -1304,7 +1304,7 @@ static void snd_test_disp_rit()
     eprintf(0x18, 0xFC, 0, 1, "NXT NBL : %08XH", str->blk_end);
     eprintf(0x18, 0x118, 0, 1, "ST SIZE : %08XH", str->read_end);
     eprintf(0x18, 0x126, 0, 1, "ST POS  : %08XH", str->read_ofs);
-    eprintf(0xD0, 0x54, 0, 1, "STR_NO    : %5d", rit->shd_no);
+    eprintf(0xD0, 0x54, 0, 1, "STR_NO    : %5d", rit->str_no);
     eprintf(0xD0, 0x62, 0, 1, "VOL_FLAG  : %5d", (s8) rit->pad_6[0]);
     eprintf(0xD0, 0x70, 0, 1, "VOL       : %5d", rit->vol);
     eprintf(0xD0, 0x7E, 0, 1, "STEREO    : %5d", (s8) rit->pad_B[0]);
@@ -1528,9 +1528,9 @@ void get_wt_ptr(SndTestWork* w, SND_ISS_BLK* blk, SND_SIT* sit)
 
     w->wt = blk->dls;
     w->inst = (WTINST*) (blk->dls + hdr->inst_ofs);
-    w->inst = (WTINST*) ((u8*) w->inst + (sit->prog & 0xFF00));
+    w->inst = (WTINST*) ((u8*) w->inst + (sit->note & 0xFF00));
     w->rgn = (WTREGION*) (blk->dls + hdr->rgn_ofs);
-    w->rgn += w->inst->keyRegion[sit->prog & 0xFF];
+    w->rgn += w->inst->keyRegion[sit->note & 0xFF];
     w->art = (WTART*) (blk->dls + hdr->art_ofs);
     w->art += w->rgn->articulationIndex;
     w->sample = (WTSAMPLE*) (blk->dls + hdr->sample_ofs);

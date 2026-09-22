@@ -667,7 +667,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         if (RsfCheck(G_ROOM_ID, 5)) {
             YaneB_smd_delete();
@@ -801,7 +801,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
 // Event r119s10 callback: show the giant model em2b00 on its first frame.
 extern "C" void Evt_R119S10_Func(Event* e)
 {
-    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
+    if (e->FuncType == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         r119_evtSetGiant(e, "em2b00");
     }
 }
@@ -814,7 +814,7 @@ extern "C" void Evt_R119S20_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:

@@ -64,7 +64,7 @@ int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
     if (p == 0) {
         return 0;
     }
-    p->kind = kind;
+    p->m_Type = kind;
     p->m_Time = time;
     p->m_Pos = *pos;
     p->m_Radius = r;
@@ -80,13 +80,13 @@ int cDmgMgr::set(int kind, int time, Vec* pt, f32 h)
     if (p == 0) {
         return 0;
     }
-    p->kind = kind;
+    p->m_Type = kind;
     p->m_Time = time;
     p->m_Pos[0] = pt[0];
     p->m_Pos[1] = pt[1];
     p->m_Pos[2] = pt[2];
     p->m_Pos[3] = pt[3];
-    p->h = h;
+    p->m_Height = h;
     return 1;
 }
 
@@ -99,7 +99,7 @@ int cDmgMgr::hitCheck(Vec* pos, Vec* out)
         cDmg* p = fastAt(i);
         if ((p->be_flag & 0x201) == 1) {
             if (p->hitCheck(pos, out)) {
-                return p->kind;
+                return p->m_Type;
             }
         }
     }
@@ -125,7 +125,7 @@ int cDmgCyl::hitCheck(Vec* p, Vec* out)
     if (out) {
         *out = m_Pos;
     }
-    return kind;
+    return m_Type;
 }
 
 // Point in the XZ quad; *out = the corners' mean.
@@ -143,7 +143,7 @@ int cDmgP4::hitCheck(Vec* p, Vec* out)
             }
             PSVECScale(out, out, 0.25f);
         }
-        return kind;
+        return m_Type;
     }
     return 0;
 }

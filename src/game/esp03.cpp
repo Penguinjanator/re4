@@ -11,9 +11,9 @@
 
 struct Esp03Work {
     s8 maxPoints;         // 0x00 number of trail points (2..6), 10: single camera-facing quad
-    u8 hitWall;   // 0x01 bit0: stop at walls (gen->Work8[1])
+    u8 flag;   // 0x01 bit0: stop at walls (gen->Work8[1])
     u8 pad_2[7];
-    u8 idx;       // 0x09 ring buffer index of the next point
+    u8 nPos;       // 0x09 ring buffer index of the next point
     u16 Width;    // 0x0A line width
     Vec* pBeforePos;     // 0x0C current point
     Vec Pos[6];   // 0x10 position history (only 4 are used)
@@ -47,11 +47,11 @@ void cEsp03::move()
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    if (w->hitWall & 1) {
+    if (w->flag & 1) {
         Esp03_HitWall(this);
     }
     if (m_Pos_start_cnt <= m_Life_time) {
-        p = &w->Pos[w->idx];
+        p = &w->Pos[w->nPos];
         PSVECAdd(w->pBeforePos, &m_Speed, p);
         PSVECAdd(&m_Speed, &m_Speed_plus, &m_Speed);
         PSVECScale(&m_Speed, &m_Speed, m_D_speed);
@@ -72,7 +72,7 @@ void cEsp03::move()
             return;
         }
         m_Life_time++;
-        w->idx = (w->idx + 1) & 3;
+        w->nPos = (w->nPos + 1) & 3;
     }
 }
 
@@ -122,10 +122,10 @@ extern "C" void Esp03_Trans(cEsp03* esp)
         Vec up;
         Vec q[4];
 
-        p = &w->Pos[(w->idx - 1) & 3];
+        p = &w->Pos[(w->nPos - 1) & 3];
         v = q;
 #line 187 "D:/Bio4/Prog/esp03.cpp"
-        VECNormalize(&pG->Camera.up, &up);
+        VECNormalize(&pG->Camera.Up, &up);
         PSVECScale(&up, &up, esp->m_Size_base_x * 0.5f);
         PSVECSubtract(p, &pG->Camera.param.pos, &d);
         PSVECCrossProduct(&up, &d, &d);
@@ -149,7 +149,7 @@ extern "C" void Esp03_Trans(cEsp03* esp)
         GXPosition3f32(v->x, v->y, v->z);
         GXColor4u8((u8)esp->m_Col_r, (u8)esp->m_Col_g, (u8)esp->m_Col_b, (u8)esp->m_Col_a);
     } else {
-        idx = w->idx;
+        idx = w->nPos;
         GXSetLineWidth((u8)w->Width, 0);
         GXBegin(0xB0, 0, (u16)w->maxPoints);
         for (i = 0; i < w->maxPoints; i++) {
@@ -170,7 +170,7 @@ int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
     int n;
 
     w->pBeforePos = &w->Pos[0];
-    w->idx = 1;
+    w->nPos = 1;
     n = (s8)gen->Work8[0];
     if (n == 10) {
         w->maxPoints = n;
@@ -182,8 +182,8 @@ int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
             w->maxPoints = 6;
         }
     }
-    w->hitWall = gen->Work8[1];
-    if (w->hitWall > 1) {
+    w->flag = gen->Work8[1];
+    if (w->flag > 1) {
         pLog->err(0, 0, "ESP_03 : WK1 invalid.");
         return 0;
     }

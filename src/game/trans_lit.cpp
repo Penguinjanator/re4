@@ -74,7 +74,7 @@ void LightSetModel(cModel* m)
     GXColor mat;
     GXColor amb;
     cModelInfo* info = m->pModelInfo;
-    cModelData* data = info->pData;
+    cModelData* data = info->model_addr;
     cLight** list = m->LightInfo.pLight;
     int n = (m->be_flag & 0x8000) ? 0 : 8;
     u32 mask;

@@ -1080,7 +1080,7 @@ static void edit_flag()
 // vertex colour setup) at once.
 void edit_flag_core(cObj* obj)
 {
-    cModelData* data = obj->pModelInfo->pData;
+    cModelData* data = obj->pModelInfo->model_addr;
     s8 sel = pWork->sub2;
 
     switch (sel) {

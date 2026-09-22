@@ -39,8 +39,8 @@ struct Pl0fWork {
     Vec swayAmp;      // 0x014  roll sway amplitude (x / z used), decays by 0.96 per frame
     Vec swayPhase;    // 0x020
     u8 pad_2C[0x10];
-    f32 rotSpd;       // 0x03C  tiller turn per frame
-    f32 rollPhase;    // 0x040
+    f32 Rot_spd;       // 0x03C  tiller turn per frame
+    f32 Roll_sin;    // 0x040
     f32 Bank_sin;   // 0x044
     f32 Roll_rot;         // 0x048
     f32 Bank_rot;        // 0x04C
@@ -54,9 +54,9 @@ struct Pl0fWork {
     u8 EffKindId;       // 0x06C  EspPullCoreKind at creation
     u8 First_camck;           // 0x06D  plboat_R2_Swim: first swim after the drop
     u8 Boss_chase;      // 0x06E  1 while the boss pulls the boat (camera / anchor)
-    u8 anchorEff;     // 0x06F  anchor rope effect state (pl0fAnchorEffMove)
-    Vec hist[10];     // 0x070  boss position history (pl0f_R0_Move)
-    u32 histIdx;      // 0x0E8
+    u8 Cursor_type;     // 0x06F  anchor rope effect state (pl0fAnchorEffMove)
+    Vec Boss_pos[10];     // 0x070  boss position history (pl0f_R0_Move)
+    u32 Boss_pos_no;      // 0x0E8
     u32 Tiller;       // 0x0EC  setTiller bits: 1 forward, 2 back, 4 left, 8 right
     Vec Getoff_pos;    // 0x0F0  pl0fGetoffActEvtCk: landing position
     f32 Getoff_dir;    // 0x0FC

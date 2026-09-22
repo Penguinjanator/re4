@@ -286,10 +286,10 @@ f32 getBulletRatio(ITEM_ID id, int level)
 // Empties every slot and the availability flags (new game).
 void cItemMgr::clear()
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
+    for (i = 0; i < m_array_num; i++, p++) {
         p->flags = 0;
     }
     flagclear();
@@ -1142,7 +1142,7 @@ void cItemMgr::gameInit()
     roomInit();
     if (!((s32) pG->System_flg < 0) && !(pG->System_flg & 0x40000000)) {
         if (pG->pl_type == 1) {
-            type = 0;
+            m_char = 0;
         }
         set_game(0);
         pG->peseta = pG->peseta_bak = 0;
@@ -1184,7 +1184,7 @@ void cItemMgr::gameInit()
             }
         }
         if (pG->pl_type == 1) {
-            type = 1;
+            m_char = 1;
         }
     } else {
         if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
@@ -1200,9 +1200,9 @@ void cItemMgr::roomInit()
 {
     flagclear();
     if (pG->pl_type == 1) {
-        type = 1;
+        m_char = 1;
     } else {
-        type = 0;
+        m_char = 0;
     }
 }
 
@@ -1214,15 +1214,15 @@ int cItemMgr::init()
     int i;
     u32 sz;
 
-    nItems = 0x180;
+    m_array_num = 0x180;
 #line 2508 "D:/Bio4/Prog/item.cpp"
-    pItems = (ItemWork*) MEM_ALLOC(0x180 * sizeof(ItemWork), 1, 13);
-    m_p_order_tbl = (ItemOrder*) MEM_ALLOC(nItems * sizeof(ItemOrder), 1, 13);
-    if (pItems == 0) {
+    m_pItem = (ItemWork*) MEM_ALLOC(0x180 * sizeof(ItemWork), 1, 13);
+    m_p_order_tbl = (ItemOrder*) MEM_ALLOC(m_array_num * sizeof(ItemOrder), 1, 13);
+    if (m_pItem == 0) {
         return 0;
     }
-    p = pItems;
-    for (i = 0; i < nItems; i++, p++) {
+    p = m_pItem;
+    for (i = 0; i < m_array_num; i++, p++) {
         p->flags = 0;
         // COMPILER-DIFF: #13 (the flag-table size as a reload-materialised constant, weight 0 like the
         // string addi): set inside the loop body, the single set does not dominate the call block, so
@@ -1234,7 +1234,7 @@ int cItemMgr::init()
 #line 2522 "D:/Bio4/Prog/item.cpp"
     m_pAvailable = (u32*) MEM_ALLOC(sz, 1, 13);
     if (m_pAvailable == 0) {
-        Mem_free(pItems);
+        Mem_free(m_pItem);
         Mem_free(m_p_order_tbl);
         return 0;
     }
@@ -1584,7 +1584,7 @@ void cItemMgr::construct(ItemWork* p, ITEM_ID id)
     p->x = 0;
     p->y = 0;
     p->orient = 0;
-    p->type = type;
+    p->type = m_char;
     if (ITEM_TYPE(id) == 1) {
         switch (id) {
         case 0x40:
@@ -1621,8 +1621,8 @@ void cItemMgr::construct(ItemWork* p, ITEM_ID id)
 // Slot by index (0 when out of range).
 ItemWork* cItemMgr::at(int no)
 {
-    if (no < nItems) {
-        return &pItems[no];
+    if (no < m_array_num) {
+        return &m_pItem[no];
     }
     return 0;
 }
@@ -1632,8 +1632,8 @@ int cItemMgr::searchAt(ItemWork* p)
 {
     int i;
 
-    for (i = 0; i < nItems; i++) {
-        if (p == &pItems[i]) {
+    for (i = 0; i < m_array_num; i++) {
+        if (p == &m_pItem[i]) {
             return i;
         }
     }
@@ -1668,15 +1668,15 @@ int gld_cmp(const void* a, const void* b)
 int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
 {
     ItemInfo info;
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int cnt = 0;
     int i;
 
     *pNum2 = 0;
     *pNum = 0;
-    for (i = 0; i < nItems; i++, p++) {
+    for (i = 0; i < m_array_num; i++, p++) {
         if (all == 0) {
-            if (itemUse(p, type)) {
+            if (itemUse(p, m_char)) {
                 switch (ITEM_TYPE(p->id)) {
                 case 5:
                 case 12:
@@ -1698,7 +1698,7 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
                 }
             }
         } else {
-            if (itemUse(p, type) == 0) {
+            if (itemUse(p, m_char) == 0) {
                 list[i] = 0xFF;
             } else {
                 list[i] = i;
@@ -1710,9 +1710,9 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
         int j = 0;
 
         cnt = *pNum + *pNum2;
-        p = pItems;
-        for (i = 0; i < nItems; i++, p++) {
-            if (itemUse(p, type)) {
+        p = m_pItem;
+        for (i = 0; i < m_array_num; i++, p++) {
+            if (itemUse(p, m_char)) {
                 if (ITEM_TYPE(p->id) == 5 || info.type == 12) {
                     list[*pNum + j] = i;
                     j++;
@@ -1727,11 +1727,11 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
 // First slot holding item `id` in the current set.
 ItemWork* cItemMgr::search(u16 id)
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type) && p->id == id) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char) && p->id == id) {
             return p;
         }
     }
@@ -1741,13 +1741,13 @@ ItemWork* cItemMgr::search(u16 id)
 // Slot holding item `id` with the smallest count (the ammo box to use up first).
 ItemWork* cItemMgr::minimumSearch(ITEM_ID id)
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     ItemWork* best = 0;
     int min = 10000000;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type) && id == p->id && p->num < min) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char) && id == p->id && p->num < min) {
             min = p->num;
             best = p;
         }
@@ -1764,12 +1764,12 @@ int order_cmp(const void* a, const void* b)
 // Fills m_p_order_tbl with the slots of item `id` sorted by descending count (reload order).
 void cItemMgr::ordering(ITEM_ID id)
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int n = 0;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type) && id == p->id) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char) && id == p->id) {
             m_p_order_tbl[n].p_item = p;
             m_p_order_tbl[n].num = p->num;
             n++;
@@ -1828,7 +1828,7 @@ int cItemMgr::get(ITEM_ID id, int num)
     case 0x73:
         m_bonus_time = num;
         MercSysSetAddTime(num);
-        pG->cdown_add_sec = m_bonus_time;
+        pG->time_bonus = m_bonus_time;
         return 1;
     case 0x75:
         if (num == 0) {
@@ -1843,9 +1843,9 @@ int cItemMgr::get(ITEM_ID id, int num)
     case 5:
     case 12:
     case 13:
-        p = pItems;
-        for (i = 0; i < nItems; i++, p++) {
-            if (itemUse(p, type) && id == p->id) {
+        p = m_pItem;
+        for (i = 0; i < m_array_num; i++, p++) {
+            if (itemUse(p, m_char) && id == p->id) {
                 int total;
 
                 if (num == 0) {
@@ -1882,8 +1882,8 @@ int cItemMgr::get(ITEM_ID id, int num)
         pLog->err(0, 0, "cItemMgr::get(): Volume of ITEM(0x%02x) is OOL.", id);
     }
     pLast = 0;
-    p = pItems;
-    for (i = 0; i < nItems; i++, p++) {
+    p = m_pItem;
+    for (i = 0; i < m_array_num; i++, p++) {
         if (itemEmpty(p)) {
             pLast = p;
             construct(p, id);
@@ -2083,11 +2083,11 @@ void cItemMgr::erase(ItemWork* p)
     p->flags = 0;
     if (ITEM_TYPE(p->id) == 1) {
         int idx = ItemMgr.searchAt(p);
-        ItemWork* q = pItems;
+        ItemWork* q = m_pItem;
         int i;
 
-        for (i = 0; i < nItems; i++, q++) {
-            if (itemUse(q, type)) {
+        for (i = 0; i < m_array_num; i++, q++) {
+            if (itemUse(q, m_char)) {
                 if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                     q->lv = 0;
                     q->bullet = 0xFFFF;
@@ -2142,11 +2142,11 @@ int cItemMgr::dumpAll(ItemWork* p)
 int cItemMgr::dumpType(int t)
 {
     ItemInfo info;
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type)) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char)) {
             if (t == ITEM_TYPE(p->id)) {
                 dumpAll(p);
             }
@@ -2158,11 +2158,11 @@ int cItemMgr::dumpType(int t)
 // Total count of item `id` in inventory set t.
 u16 cItemMgr::num(int id, u8 t)
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     u16 n = 0;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
+    for (i = 0; i < m_array_num; i++, p++) {
         if (itemUse(p, t) && p->id == id) {
             n += p->num;
         }
@@ -2173,12 +2173,12 @@ u16 cItemMgr::num(int id, u8 t)
 // Total count of item `id` in the current set.
 u16 cItemMgr::num(int id)
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     u16 n = 0;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type) && p->id == id) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char) && p->id == id) {
             n += p->num;
         }
     }
@@ -2400,23 +2400,23 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
         }
         part->bullet = 0xFFFF;
     }
-    p = pItems;
+    p = m_pItem;
     idx = searchAt(wep);
     list[0] = 0;
     list[1] = 0;
     n = 0;
     i = 0;
-    if (i < nItems) {
+    if (i < m_array_num) {
         lp = list;
         do {
-            if (itemUse(p, type)) {
+            if (itemUse(p, m_char)) {
                 if (ITEM_TYPE(p->id) == 9 && p->lv == 1 && idx == p->bullet) {
                     *lp++ = p;
                     n++;
                 }
             }
             p++;
-        } while (++i < nItems);
+        } while (++i < m_array_num);
     }
     for (int j = 0; j < n; j++) {
         if (list[j]->id == part->id) {
@@ -2696,7 +2696,7 @@ u16 cItemMgr::weaponId(ItemWork* p)
 {
     ItemInfo info;
     u16 id;
-    ItemWork* q = pItems;
+    ItemWork* q = m_pItem;
     int idx = searchAt(p);
     int i;
 
@@ -2704,8 +2704,8 @@ u16 cItemMgr::weaponId(ItemWork* p)
     if (ITEM_TYPE(id) != 1) {
         return p->id;
     }
-    for (i = 0; i < nItems; i++, q++) {
-        if (itemUse(q, type)) {
+    for (i = 0; i < m_array_num; i++, q++) {
+        if (itemUse(q, m_char)) {
             if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                 itemCombine(id, q->id, &id);
             }
@@ -2718,7 +2718,7 @@ u16 cItemMgr::weaponId(ItemWork* p)
 ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
 {
     ItemInfo info;
-    ItemWork* q = pItems;
+    ItemWork* q = m_pItem;
     int idx = searchAt(p);
     int cnt = 0;
     int i;
@@ -2726,8 +2726,8 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
     if (p == 0) {
         return 0;
     }
-    for (i = 0; i < nItems; i++, q++) {
-        if (itemUse(q, type)) {
+    for (i = 0; i < m_array_num; i++, q++) {
+        if (itemUse(q, m_char)) {
             if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                 if (cnt++ == no) {
                     return q;
@@ -2777,15 +2777,15 @@ u16 cItemMgr::bulletNumCurrent()
 // Loaded rounds summed over every slot of weapon `id`.
 u16 cItemMgr::bulletNum(ITEM_ID id)
 {
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     u16 total = 0;
     int i;
 
     if (id == 0x6D) {
         return 1;
     }
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type) && p->id == id) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char) && p->id == id) {
             total += bulletNum(p);
         }
     }
@@ -2843,7 +2843,7 @@ void cItemMgr::save(void* dst)
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) dst;
     ItemSaveWork* s = sd->item_list;
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int i;
 
     sd->arm_no = 0xFFFF;
@@ -2851,7 +2851,7 @@ void cItemMgr::save(void* dst)
         memclr_asm(&s[i], sizeof(ItemSaveWork));
         s[i].id = 0xFFFF;
     }
-    for (i = 0; i < nItems; i++, p++) {
+    for (i = 0; i < m_array_num; i++, p++) {
         memclr_asm(&s[i], sizeof(ItemSaveWork));
         if (itemEmpty(p)) {
             register int m1 asm("r0"); // COMPILER-DIFF: #13 (the 0xFFFF re-materialised at the store)
@@ -2894,11 +2894,11 @@ void cItemMgr::load(void* src)
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) src;
     ItemSaveWork* s = sd->item_list;
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int i;
 
     pArm = 0;
-    for (i = 0; i < nItems; i++, p++) {
+    for (i = 0; i < m_array_num; i++, p++) {
         if (s[i].id != 0xFFFF) {
             int wep = 0;
 
@@ -2949,11 +2949,11 @@ void cItemMgr::load(void* src)
 int cItemMgr::offboardDump(ItemWork* keep)
 {
     ItemInfo info;
-    ItemWork* p = pItems;
+    ItemWork* p = m_pItem;
     int i;
 
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type)) {
+    for (i = 0; i < m_array_num; i++, p++) {
+        if (itemUse(p, m_char)) {
             switch (ITEM_TYPE(p->id)) {
             case 1:
             case 2:
@@ -2983,11 +2983,11 @@ void cItemMgr::takeOver()
     ItemInfo info;
     int i;
 
-    if (type != 0) {
+    if (m_char != 0) {
         pLog->err(0, 0, "cItemMgr::takeOver() Incorrect character type.");
         return;
     }
-    for (i = 0; i < ItemMgr.nItems; i++) {
+    for (i = 0; i < ItemMgr.m_array_num; i++) {
         ItemWork* p = ItemMgr.at(i);
 
         if (itemUse(p, 1)) {
@@ -3046,10 +3046,10 @@ int cItemMgr::countFiles()
     int n = 0;
     int i;
 
-    for (i = 0; i < ItemMgr.nItems; i++) {
+    for (i = 0; i < ItemMgr.m_array_num; i++) {
         ItemWork* p = ItemMgr.at(i);
 
-        if (!itemUse(p, type)) {
+        if (!itemUse(p, m_char)) {
             if (ITEM_TYPE(p->id) == 10) {
                 n++;
             }

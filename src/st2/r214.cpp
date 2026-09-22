@@ -1015,7 +1015,7 @@ void Evt_R214S00_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdSetTrans(0x18, 0);
         break;

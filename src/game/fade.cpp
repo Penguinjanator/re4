@@ -34,7 +34,7 @@ void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late)
     f->time = time;
     f->cnt = 0;
     f->z = (f32) z;
-    f->cur = s;
+    f->col = s;
 }
 
 // Stops and hides all four fades.
@@ -88,13 +88,13 @@ void FadeControl(int late)
             if (f->cnt < f->time) {
                 u32 rem = f->time - f->cnt;
 
-                f->cur.r = (f->s_col.r * rem + f->e_col.r * f->cnt) / f->time;
-                f->cur.g = (f->s_col.g * rem + f->e_col.g * f->cnt) / f->time;
-                f->cur.b = (f->s_col.b * rem + f->e_col.b * f->cnt) / f->time;
-                f->cur.a = (f->s_col.a * rem + f->e_col.a * f->cnt) / f->time;
+                f->col.r = (f->s_col.r * rem + f->e_col.r * f->cnt) / f->time;
+                f->col.g = (f->s_col.g * rem + f->e_col.g * f->cnt) / f->time;
+                f->col.b = (f->s_col.b * rem + f->e_col.b * f->cnt) / f->time;
+                f->col.a = (f->s_col.a * rem + f->e_col.a * f->cnt) / f->time;
                 f->cnt++;
             } else {
-                f->cur = f->e_col;
+                f->col = f->e_col;
                 if (f->flags & 2) {
                     f->flags &= ~1;
                 } else {
@@ -138,11 +138,11 @@ void fadeDraw(FadeWork* f)
     GXSetVtxAttrFmt(0, 11, 1, 5, 0);
     GXBegin(0x80, 0, 4);
     GXPosition3f32(0.0f, 56.0f, f->z);
-    GXColor4u8(f->cur.r, f->cur.g, f->cur.b, f->cur.a);
+    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
     GXPosition3f32((f32) rmode->fbWidth, 56.0f, f->z);
-    GXColor4u8(f->cur.r, f->cur.g, f->cur.b, f->cur.a);
+    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
     GXPosition3f32((f32) rmode->fbWidth, rmode->xfbHeight - 56.0f + 1.0f, f->z);
-    GXColor4u8(f->cur.r, f->cur.g, f->cur.b, f->cur.a);
+    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
     GXPosition3f32(0.0f, rmode->xfbHeight - 56.0f + 1.0f, f->z);
-    GXColor4u8(f->cur.r, f->cur.g, f->cur.b, f->cur.a);
+    GXColor4u8(f->col.r, f->col.g, f->col.b, f->col.a);
 }

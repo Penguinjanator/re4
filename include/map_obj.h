@@ -10,7 +10,7 @@
 // (0x100) is the map id and whose index byte (0x320) counts the works of the same id.
 class cMap : public cModel {
 public:
-    u8 index;             // 0x320  number of the works of the same id created before this one
+    u8 part;             // 0x320  number of the works of the same id created before this one
     u8 pad_321[3];        // sizeof == 0x324
 
     cMap();

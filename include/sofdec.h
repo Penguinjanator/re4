@@ -61,18 +61,18 @@ public:
     u32 x04;          // 0x04
     SofdecApp app;    // 0x08
     SofdecDraw drw;   // 0x138
-    s16 width;        // 0x200
+    s16 m_width;        // 0x200
     s16 m_height;       // 0x202
     int fadeIn;       // 0x204
-    u32 save170;      // 0x208
+    u32 m_stop_flg_bak;      // 0x208
     u32 m_disp_flg_bak;       // 0x20C
-    u32 heapStart;    // 0x210
+    u32 m_clrsize;    // 0x210
     u8 m_save_cur_heap;        // 0x214
     s8 m_vcnt_save;          // 0x215
     u16 fno;          // 0x216
     int resized;      // 0x218
-    int mode;         // 0x21C
-    char path[0x20];  // 0x220
+    int m_draw_mode;         // 0x21C
+    char m_fname[0x20];  // 0x220
 
     // playing check: `if (Sofdec.flag & 1) return 1; return 0;` form (li 0 / li 1)
     int isPlay() {

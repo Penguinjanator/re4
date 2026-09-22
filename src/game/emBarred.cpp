@@ -228,7 +228,7 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     w->Eff_id = 0xFF;
     if (flg && (*flg & 2)) {
         parts = em->getPartsPtr(1);
-        em->hitInfo.flags &= ~1;
+        em->hitInfo.flag &= ~1;
         parts->scale.x = 0.0f;
         parts->scale.y = 0.0f;
         parts->scale.z = 0.0f;
@@ -269,7 +269,7 @@ void emBarredDmCk(cEmBarred* em)
     part = em->dmg.m_pDamageYarare;
     em->dmg.m_Flag = 0;
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     wep = em->dmg.m_Wep;
@@ -304,7 +304,7 @@ void emBarredDmCk(cEmBarred* em)
         v.z = 0.0f;
         parts = em->getPartsPtr(1);
         EstSet(0, -1, &em->pos, &v, w->Eff_id, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
-        part->flags &= ~1;
+        part->flag &= ~1;
         parts->scale.x = 0.0f;
         parts->scale.y = 0.0f;
         parts->scale.z = 0.0f;

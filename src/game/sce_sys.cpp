@@ -60,13 +60,13 @@ void ScenarioRoomInit()
     SceSys.task_kind_back = 0;
     SceSys.event_cancel_enable = 0;
     SceSys.sndFlag = 1;
-    SceSys.cancelFlagNo = -1;
+    SceSys.m_room_flag = -1;
     SceSys.pExitFunc = 0;
     SceSys.pExitParam = 0;
     SceSys.pDoorFunc = 0;
     SceSys.pDoorParam = 0;
     SceSys.pCancelFunc = 0;
-    SceSys.cancelArg = 0;
+    SceSys.pCancelParam = 0;
     SceSys.pLadderTask = 0;
     SceSys.m_door_fade_eff = 0;
     SceSys.m_item_get = 0;
@@ -81,7 +81,7 @@ void ScenarioRoomInit()
         SceSys.scheduler();
     }
     if (StaFlagChk(pG, STA_SUB_ASHLEY)) {
-        SubCharInit(1, &pG->sub_pos, pG->sub_angle);
+        SubCharInit(1, &pG->pl_pos, pG->pl_ang_y);
         SubCharCtrl(SCC_CHASE, 0);
     }
     EmSetFromList();
@@ -527,8 +527,8 @@ void SceExecEventCancel()
     if (s->sndFlag == 1) {
         SndEventStrStop(0);
     }
-    if (s->cancelFlagNo >= 0) {
-        no = s->cancelFlagNo;
+    if (s->m_room_flag >= 0) {
+        no = s->m_room_flag;
         FlagOn(eventFlags(), no);
     }
     for (slot = 5; slot <= 17; slot++) {
@@ -539,7 +539,7 @@ void SceExecEventCancel()
         }
     }
     if (SceSys.pCancelFunc != 0) {
-        SceExec(slot, SceSys.pCancelFunc, SceSys.cancelArg, 2, SCE_PRIO_DEF_2, 0);
+        SceExec(slot, SceSys.pCancelFunc, SceSys.pCancelParam, 2, SCE_PRIO_DEF_2, 0);
     }
     FadeSetW(0x80000000, 10, 0, 0);
 }
@@ -564,8 +564,8 @@ void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)
     // the tail's `&SceSys` is a fresh lis/addi instead of `eventCancel's address - 113`.
     do { } while (0);
     SceSys.pCancelFunc = func;
-    SceSys.cancelArg = arg;
-    SceSys.cancelFlagNo = flagNo;
+    SceSys.pCancelParam = arg;
+    SceSys.m_room_flag = flagNo;
     SceSys.sndFlag = sndFlag;
     {
         // COMPILER-DIFF: candidate #17 (global.c pass 0 regs_used_so_far): r30 used-so-far makes `on`

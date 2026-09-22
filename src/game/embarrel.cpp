@@ -327,7 +327,7 @@ void emBarrelDmCk2(cEmBarrel* em)
     em->dmg.m_Flag = 0;
     part = em->dmg.m_pDamageYarare;
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     wep = em->dmg.m_Wep;

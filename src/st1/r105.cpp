@@ -673,7 +673,7 @@ static void r105_checkDoor()
 // of the Leon model pl0000 off / on.
 extern "C" void Evt_R105S00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         setRoomEtcDisp(1, 0, 1);
         break;
@@ -721,7 +721,7 @@ extern "C" void Evt_R105S10_Func(Event* e)
     cEmWindow* win;
     cEmWindow* win2;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:

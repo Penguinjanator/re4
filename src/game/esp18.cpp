@@ -349,7 +349,7 @@ void Esp18_Trans(cEsp18* esp)
                 GXTexObj tex2;
                 GXTexObj* pTex = &tex2;
                 GXTlutObj* pTlut = &tlut;
-                TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_Ptn_no);
+                TEXDescriptor* td = TEXGet(tw->Tpl_addr, esp->m_Ptn_no);
                 TEXHeader* th = td->textureHeader;
 
                 if (th->format == 8 || th->format == 9) {
@@ -364,7 +364,7 @@ void Esp18_Trans(cEsp18* esp)
                     GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
                 }
                 GXLoadTexObj(pTex, 2);
-                GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+                GXLoadTexMtxImm(tw->_Mtx, 0x21, 1);
                 GXSetTexCoordGen(texGens, 1, 4, 0x21);
                 GXSetTevOrder(1, texGens, 2, 4);
                 GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);

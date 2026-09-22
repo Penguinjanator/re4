@@ -78,7 +78,7 @@ struct DbMotWork {
 // File list of one model / texture / motion set (0x85C): names or data pointers, the load state per entry.
 class DB_MODEL_FILES {
 public:
-    int m_type;                       // 0x000  1 = names (HD read), 2 = data pointers
+    int m_mode;                       // 0x000  1 = names (HD read), 2 = data pointers
     int m_counter;                        // 0x004  next entry read() handles
     u8 m_num;                         // 0x008
     char m_name[FILE_NUM][NAME_LEN];  // 0x009
@@ -110,9 +110,9 @@ public:
     s8 lit_type;             // 0x025  0 pl / 1 em / 2 obj / 3 scr / 4 item / 5 none
     char label[0x22];          // 0x026  set name (dbModBinName)
     void* pBinBuff[FILE_NUM];      // 0x048
-    void* tex[FILE_NUM];      // 0x088
+    void* pTplBuff[FILE_NUM];      // 0x088
     void* pMotBuff[FILE_NUM];  // 0x0C8
-    DbMotWork mot[FILE_NUM];  // 0x108
+    DbMotWork motInfo[FILE_NUM];  // 0x108
     s8 motStat[FILE_NUM];     // 0xE08
     u8 motFlag[FILE_NUM];     // 0xE18
     s8 mot_num;                  // 0xE28
@@ -121,7 +121,7 @@ public:
     cEm* pEm_parent;              // 0xE2C  parent model (setParent)
     s8 parentNo;                    // 0xE30  slot number / parent slot
     u8 xE31;
-    s16 parentParts;          // 0xE32  parts of the parent this model hangs on (-1: the model itself)
+    s16 partsNo;          // 0xE32  parts of the parent this model hangs on (-1: the model itself)
     u8 opt_flag;                  // 0xE34  bit0: draw the skeleton
     u8 pad_E35[3];
     u32 em_flag;                 // 0xE38
@@ -350,30 +350,30 @@ void init_dbEm(DB_EM* em, int start, int end)
             if (em->pBinBuff[i]) {
                 Debug_free(em->pBinBuff[i]);
             }
-            if (em->tex[i]) {
-                Debug_free(em->tex[i]);
+            if (em->pTplBuff[i]) {
+                Debug_free(em->pTplBuff[i]);
             }
             em->pBinBuff[i] = 0;
-            em->tex[i] = 0;
+            em->pTplBuff[i] = 0;
         }
         for (i = 0; i <= FILE_NUM - 1; i++) {
             if (em->pMotBuff[i]) {
                 Debug_free(em->pMotBuff[i]);
             }
             em->pMotBuff[i] = 0;
-            memclr_asm(&em->mot[i], sizeof(DbMotWork));
+            memclr_asm(&em->motInfo[i], sizeof(DbMotWork));
             em->motStat[i] = em->motFlag[i] = 0; // chain: motStat's address first, motFlag's store first
         }
         em->mot_num = 0;
         em->mot_cnt = 0;
-        em->mot[0].flags = 0x15;
-        em->mot[0].cam = (AttachCamera*) mem_alloc(sizeof(AttachCamera), __FILE__, 0xEB, 1, 13);
+        em->motInfo[0].flags = 0x15;
+        em->motInfo[0].cam = (AttachCamera*) mem_alloc(sizeof(AttachCamera), __FILE__, 0xEB, 1, 13);
         dbModelSetCamera(n, &pG->Camera);
-        em->mot[0].speedRate = 1.0f;
+        em->motInfo[0].speedRate = 1.0f;
         em->parentNo = n;
         // parent (the SI zero) before the name byte: the QI store then takes the wider zero's lowpart
         em->pEm_parent = 0;
-        em->parentParts = 0;
+        em->partsNo = 0;
         em->label[0] = 0;
     }
 }
@@ -538,7 +538,7 @@ void DB_MODEL_FILES::init()
 {
     int i;
 
-    m_type = 0;
+    m_mode = 0;
     m_num = 0;
     for (i = 0; i < FILE_NUM; i++) {
         m_name[i][0] = 0;
@@ -553,7 +553,7 @@ void DB_MODEL_FILES::set(u8 num, char* names)
 {
     int i;
 
-    m_type = 1;
+    m_mode = 1;
     if (num > FILE_NUM) {
         pLog->err(0, 0, "DB_MOD_FILES::set(): num (= %d) > FILE_NUM (= %d)", num, FILE_NUM);
         return;
@@ -571,7 +571,7 @@ void DB_MODEL_FILES::set(u8 num, char* names)
 // Appends one host file name (marked new); 0 when full or the name is too long.
 int DB_MODEL_FILES::append(char* name)
 {
-    m_type = 1;
+    m_mode = 1;
     if (m_num > FILE_NUM) {
         pLog->err(0, 0, "DB_MOD_FILES::apend(): m_num (= %d) > FILE_NUM (= %d)", m_num, FILE_NUM);
         return 0;
@@ -599,7 +599,7 @@ int DB_MODEL_FILES::read(void** dst)
         return 0;
     }
     i = m_counter;
-    type = m_type;
+    type = m_mode;
     m_counter = i + 1;
     switch (type) {
     case 1:
@@ -640,7 +640,7 @@ void DB_MODEL_FILES::set(u8 num, void** data)
 {
     int i;
 
-    m_type = 2;
+    m_mode = 2;
     if (num > FILE_NUM) {
         pLog->err(0, 0, "DB_MOD_FILES::set(): num (= %d) > FILE_NUM (= %d)", num, FILE_NUM);
         return;
@@ -655,7 +655,7 @@ void DB_MODEL_FILES::set(u8 num, void** data)
 // Appends one data pointer; 0 when full.
 int DB_MODEL_FILES::append(void* data)
 {
-    m_type = 2;
+    m_mode = 2;
     if (m_num > FILE_NUM) {
         pLog->err(0, 0, "DB_MOD_FILES::apend(): m_num (= %d) > FILE_NUM (= %d)", m_num, FILE_NUM);
         return 0;
@@ -1181,7 +1181,7 @@ static int dbmod_model()
             pDbModState->x2 = 0;
             if (pDbModState->locNo != -1) {
                 dbModSlotSub[pDbModState->no].parentNo = pDbModState->no;
-                dbModSlotSub[pDbModState->no].parentParts = pDbModState->locParts;
+                dbModSlotSub[pDbModState->no].partsNo = pDbModState->locParts;
                 dbModSlotSub[pDbModState->no].pos0 = pDbModState->locPos;
                 dbModSlotSub[pDbModState->no].ang0 = pDbModState->locRot;
                 dbModSlotSub[pDbModState->no].alive = 1;
@@ -1597,7 +1597,7 @@ static int dbmod_locate()
                     em->parentNo += dir;
                     em->parentNo = LOOP(em->parentNo, 0, SLOT_NUM - 1);
                     if (dbModSlot[em->parentNo].alive) {
-                        em->parentParts = 0;
+                        em->partsNo = 0;
                         break;
                     }
                 }
@@ -1606,19 +1606,19 @@ static int dbmod_locate()
             break;
         case 4:
             if (dbModSlot[em->parentNo].pEm) {
-                old = em->parentParts;
+                old = em->partsNo;
                 if (joy->rep & 0x00010001) {
-                    em->parentParts--;
+                    em->partsNo--;
                 }
                 if (joy->rep & 0x00020002) {
-                    em->parentParts++;
+                    em->partsNo++;
                 }
-                em->parentParts = CLAMP(em->parentParts, 0, dbModSlot[em->parentNo].pEm->nParts - 1);
-                if (old != em->parentParts) {
+                em->partsNo = CLAMP(em->partsNo, 0, dbModSlot[em->parentNo].pEm->nParts - 1);
+                if (old != em->partsNo) {
                     changed = 1;
                 }
             } else {
-                em->parentParts = 0;
+                em->partsNo = 0;
             }
             break;
         }
@@ -1848,7 +1848,7 @@ static int dbmod_locate()
             }
             break;
         case 4:
-            eprintf(17 * 8, y * 14, 0, 0, "%02d", em->parentParts);
+            eprintf(17 * 8, y * 14, 0, 0, "%02d", em->partsNo);
             break;
         }
         if (pDbModState->no == em->parentNo) {
@@ -1918,11 +1918,11 @@ static int dbmod_trans()
         pDbModState->mode--;
         return 0;
     }
-    flag = &em->mot[0].flags;
+    flag = &em->motInfo[0].flags;
     switch (pDbModState->step) {
     case 0:
-        if (em->mot[0].flags & 1) {
-            if (em->mot[0].flags & 0x10) {
+        if (em->motInfo[0].flags & 1) {
+            if (em->motInfo[0].flags & 0x10) {
                 pDbModState->transMode = 0;
             } else {
                 pDbModState->transMode = 2;
@@ -1956,7 +1956,7 @@ static int dbmod_trans()
             *flag = (*flag & ~0x10) | 0x4001;
             break;
         }
-        em->mot[0].flags = *flag;
+        em->motInfo[0].flags = *flag;
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- TRANS -----");
@@ -1986,10 +1986,10 @@ static int dbmod_loop()
         pDbModState->mode--;
         return 0;
     }
-    flag = &em->mot[0].flags;
+    flag = &em->motInfo[0].flags;
     switch (pDbModState->step) {
     case 0:
-        if (em->mot[0].flags & 4) {
+        if (em->motInfo[0].flags & 4) {
             pDbModState->loopFlag = 1;
         } else {
             pDbModState->loopFlag = 0;
@@ -2011,7 +2011,7 @@ static int dbmod_loop()
         } else {
             *flag &= ~4;
         }
-        em->mot[0].flags = *flag;
+        em->motInfo[0].flags = *flag;
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "----- LOOP -----");
@@ -2074,10 +2074,10 @@ static int dbmod_flip()
         pDbModState->mode--;
         return 0;
     }
-    flag = &em->mot[0].flags;
+    flag = &em->motInfo[0].flags;
     switch (pDbModState->step) {
     case 0:
-        if (em->mot[0].flags & 0x40) {
+        if (em->motInfo[0].flags & 0x40) {
             pDbModState->flipFlag = 1;
         } else {
             pDbModState->flipFlag = 0;
@@ -2098,7 +2098,7 @@ static int dbmod_flip()
         } else {
             *flag &= ~0x40;
         }
-        em->mot[0].flags = *flag;
+        em->motInfo[0].flags = *flag;
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "----- FLIP -----");
@@ -2182,17 +2182,17 @@ static int dbmod_blend()
             if (em->pMotBuff[1] && old != method) {
                 switch (pDbModState->blendMode) {
                 case 0:
-                    MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->mot[0].flags | 0x200, 0);
-                    em->pEm->Motion.blend = (MotionWork*) &em->mot[1];
+                    MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->motInfo[0].flags | 0x200, 0);
+                    em->pEm->Motion.blend = (MotionWork*) &em->motInfo[1];
                     em->pEm->Motion.blend->Mot_flag &= 0x7FFFFFFF;
                     break;
                 case 1:
-                    MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->mot[0].flags | 0x200, 0);
-                    em->pEm->Motion.blend = (MotionWork*) &em->mot[1];
+                    MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->motInfo[0].flags | 0x200, 0);
+                    em->pEm->Motion.blend = (MotionWork*) &em->motInfo[1];
                     em->pEm->Motion.blend->Mot_flag |= 0x80000000;
                     break;
                 default:
-                    em->mot[1].blendRate = 0.0f;
+                    em->motInfo[1].blendRate = 0.0f;
                     em->pEm->Motion.blend = 0;
                     break;
                 }
@@ -2861,8 +2861,8 @@ void dbmodInfoDisp()
             eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState->motName[0]));
             break;
         case 3:
-            if (em->mot[0].flags & 1) {
-                if (em->mot[0].flags & 0x10) {
+            if (em->motInfo[0].flags & 1) {
+                if (em->motInfo[0].flags & 0x10) {
                     eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "ON");
                 } else {
                     eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "ADD");
@@ -2872,7 +2872,7 @@ void dbmodInfoDisp()
             }
             break;
         case 4:
-            if (em->mot[0].flags & 4) {
+            if (em->motInfo[0].flags & 4) {
                 eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "ON");
             } else {
                 eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "OFF");
@@ -2912,12 +2912,12 @@ void dbModMotionSet(int frame)
             model = em->pEm;
             for (i = 0; i <= FILE_NUM - 1; i++) {
                 if (em->pMotBuff[i]) {
-                    em->mot[i].flags2 |= 0x20000000;
+                    em->motInfo[i].flags2 |= 0x20000000;
                     if (i == 0) {
-                        *(DbMotWork*) &model->Motion = em->mot[0];
-                        MotionSetCore(model, &model->Motion, em->pMotBuff[i], 0, 0, em->mot[0].flags | 0x200, frame);
+                        *(DbMotWork*) &model->Motion = em->motInfo[0];
+                        MotionSetCore(model, &model->Motion, em->pMotBuff[i], 0, 0, em->motInfo[0].flags | 0x200, frame);
                     } else {
-                        MotionSetCore(model, &em->mot[i], em->pMotBuff[i], 0, 0, em->mot[0].flags | 0x200, frame);
+                        MotionSetCore(model, &em->motInfo[i], em->pMotBuff[i], 0, 0, em->motInfo[0].flags | 0x200, frame);
                     }
                 }
             }
@@ -2934,7 +2934,7 @@ void dbModMotionSetSeq(int no, void* seq, int flag, int frame)
     DB_EM* em = &dbModSlot[no];
     cEm* model = em->pEm;
 
-    em->mot[0].flags = flag;
+    em->motInfo[0].flags = flag;
     MotionSetCore(model, &model->Motion, em->pMotBuff[0], seq, 0, (u16) (flag | 0x200), (u16) frame);
     MotionGetPosition(model, &model->pos, &model->ang);
 }
@@ -3021,27 +3021,27 @@ void dbModMotionMove()
                 noMotion = 0;
                 if (i == 0) {
                     if (!(pDbModState->viewFlag & 2)) {
-                        dbModPlayMode(&em->mot[0].flags);
+                        dbModPlayMode(&em->motInfo[0].flags);
                     }
                     if (em->em_flag & 1) {
-                        em->mot[0].flags |= 8;
+                        em->motInfo[0].flags |= 8;
                     }
                 } else {
                     if (!(pDbModState->viewFlag & 2)) {
-                        dbModPlayMode(&em->mot[i].flags);
+                        dbModPlayMode(&em->motInfo[i].flags);
                     }
                 }
             }
         }
         if (noMotion == 0 && !SpfFlagChk(pG, SPF_OBJ)) {
-            model->Motion.Mot_attr = em->mot[0].flags;
+            model->Motion.Mot_attr = em->motInfo[0].flags;
             MotionMove(model, 0);
             if (model->Motion.blend == 0 && em->mot_num > 1 && model->Motion.Mot_state != 0) {
                 em->mot_cnt++;
                 if (em->mot_cnt > em->mot_num - 1) {
                     em->mot_cnt = 0;
                 }
-                MotionSetCore(model, &model->Motion, em->pMotBuff[em->mot_cnt], 0, em->motFlag[em->mot_cnt], em->mot[0].flags | 0x200,
+                MotionSetCore(model, &model->Motion, em->pMotBuff[em->mot_cnt], 0, em->motFlag[em->mot_cnt], em->motInfo[0].flags | 0x200,
                               (u16) em->motStat[em->mot_cnt]);
             }
             if ((pDbModState->viewFlag & 1) && (em->em_flag & 1) == 0) {
@@ -3060,7 +3060,7 @@ void dbModMotionMove()
             TransMatrix(model->mat, &model->pos);
             ScaleMatrix(model->mat, &model->scale);
             if (parent->pParts) {
-                pp = (cParts*) parent->getPartsPtr(em->parentParts);
+                pp = (cParts*) parent->getPartsPtr(em->partsNo);
                 PSMTXConcat(pp->mat, model->mat, model->mat);
                 ax.x = model->mat[0][0];
                 ax.y = model->mat[1][0];
@@ -3086,13 +3086,13 @@ void dbModMotionMove()
                 model->mat[2][2] = az.z;
             }
         } else {
-            if ((em->mot[0].flags & 1) && (em->mot[0].flags & 0x10)) {
+            if ((em->motInfo[0].flags & 1) && (em->motInfo[0].flags & 0x10)) {
                 if (model->Motion.Mot_state & 3) {
                     model->pos = em->pos0;
                     model->ang = em->ang0;
                 }
             } else {
-                if (!(em->mot[0].flags & 1)) {
+                if (!(em->motInfo[0].flags & 1)) {
                     model->pos = em->pos0;
                     model->ang = em->ang0;
                 }
@@ -3107,7 +3107,7 @@ void dbModMotionMove()
                 model->partsWorldCalc();
             }
         }
-        if (!(pDbModState->viewFlag & 4) && !(em->mot[0].flags & 0x4000)) {
+        if (!(pDbModState->viewFlag & 4) && !(em->motInfo[0].flags & 0x4000)) {
             if (pDbModState->viewFlag & 8) {
                 lim = 50000.0f;
             } else {
@@ -3162,10 +3162,10 @@ void dbModMotionMove()
         RotMatrix(model->mat, &model->ang);
         TransMatrix(model->mat, &model->pos);
         ScaleMatrix(model->mat, &model->scale);
-        if (em->parentParts == -1) {
+        if (em->partsNo == -1) {
             PSMTXConcat(parent->mat, model->mat, model->mat);
         } else if (parent->pParts) {
-            pp = (cParts*) parent->getPartsPtr(em->parentParts);
+            pp = (cParts*) parent->getPartsPtr(em->partsNo);
             PSMTXConcat(pp->mat, model->mat, model->mat);
         }
         ax.x = model->mat[0][0];
@@ -3506,7 +3506,7 @@ void DB_EM::setLight()
 // Copies the bin and tex file lists into the slot's m_files[0..1] and starts the load steps.
 int DB_EM::loadModelSet(DB_MODEL_FILES* bin, DB_MODEL_FILES* tex)
 {
-    switch (bin->m_type) {
+    switch (bin->m_mode) {
     case 1:
         m_files[0].set(bin->m_num, bin->m_name[0]);
         break;
@@ -3514,7 +3514,7 @@ int DB_EM::loadModelSet(DB_MODEL_FILES* bin, DB_MODEL_FILES* tex)
         m_files[0].set(bin->m_num, bin->m_data);
         break;
     }
-    switch (tex->m_type) {
+    switch (tex->m_mode) {
     case 1:
         m_files[1].set(tex->m_num, tex->m_name[0]);
         break;
@@ -3548,7 +3548,7 @@ int DB_EM::loadModel()
         }
         break;
     case 1:
-        switch (m_files[1].read(tex)) {
+        switch (m_files[1].read(pTplBuff)) {
         case 0:
             m_load_model_rno = 2;
             break;
@@ -3565,12 +3565,12 @@ int DB_EM::loadModel()
                 if (pEm == 0) {
                     pEm = EmMgr.create(0xFF);
                 }
-                if (pEm->modelInit(pBinBuff[i], tex[i]) == 0) {
+                if (pEm->modelInit(pBinBuff[i], pTplBuff[i]) == 0) {
                     pLog->err(0, 0, "dbmod_load_model() failed.");
                     return 0;
                 }
             } else {
-                info = ModInfoMgr.create(pBinBuff[i], tex[i]);
+                info = ModInfoMgr.create(pBinBuff[i], pTplBuff[i]);
                 if (info) {
                     pEm->addModel(info);
                 }
@@ -3683,7 +3683,7 @@ void scale_usage()
 // Copies the motion file list into m_files[2] and starts the motion load steps.
 int DB_EM::loadMotionSet(DB_MODEL_FILES* mot)
 {
-    switch (mot->m_type) {
+    switch (mot->m_mode) {
     case 1:
         m_files[2].set(mot->m_num, mot->m_name[0]);
         break;
@@ -3717,21 +3717,21 @@ int DB_EM::loadMotion()
     case 1:
         for (i = 0; i < m_files[2].m_num; i++) {
             if (pMotBuff[i]) {
-                mot[i].flags2 |= 0x20000000;
+                motInfo[i].flags2 |= 0x20000000;
                 if (pDbModState->blendMode == 0 && i > 0) {
-                    mot[i].flags2 |= 0x10000000;
+                    motInfo[i].flags2 |= 0x10000000;
                 }
-                MotionSetCore(pEm, &mot[i], pMotBuff[i], 0, 0, mot[0].flags | 0x200, 0);
+                MotionSetCore(pEm, &motInfo[i], pMotBuff[i], 0, 0, motInfo[0].flags | 0x200, 0);
                 mot_num++;
             }
             switch (i) {
             case 0:
-                *(DbMotWork*) &pEm->Motion = mot[0];
+                *(DbMotWork*) &pEm->Motion = motInfo[0];
                 pEm->pos = pos0;
                 pEm->ang = ang0;
                 break;
             case 1:
-                mot[1].blendRate = 0.0f;
+                motInfo[1].blendRate = 0.0f;
                 break;
             }
         }
@@ -3842,54 +3842,54 @@ int LoadModelSetName(char* name, int motNum, int no)
 void SetTransMode(int mode, int no)
 {
     DB_EM* em = &dbModSlot[no];
-    u16* flag = &em->mot[0].flags;
+    u16* flag = &em->motInfo[0].flags;
 
     switch (mode) {
     case 0:
-        em->mot[0].flags |= 0x11;
-        em->mot[0].flags &= ~0x4000;
+        em->motInfo[0].flags |= 0x11;
+        em->motInfo[0].flags &= ~0x4000;
         break;
     case 1:
-        em->mot[0].flags &= ~0x4011;
+        em->motInfo[0].flags &= ~0x4011;
         break;
     case 2:
-        em->mot[0].flags |= 1;
-        em->mot[0].flags &= ~0x4010;
+        em->motInfo[0].flags |= 1;
+        em->motInfo[0].flags &= ~0x4010;
         break;
     case 3:
-        em->mot[0].flags &= ~0x10;
-        em->mot[0].flags |= 0x4001;
+        em->motInfo[0].flags &= ~0x10;
+        em->motInfo[0].flags |= 0x4001;
         break;
     }
-    em->mot[0].flags = *flag;
+    em->motInfo[0].flags = *flag;
 }
 
 // Loop flag (bit 2) of slot `no`'s motion 0.
 void SetLoopFlag(int on, int no)
 {
     DB_EM* em = &dbModSlot[no];
-    u16* flag = &em->mot[0].flags;
+    u16* flag = &em->motInfo[0].flags;
 
     if (on) {
-        em->mot[0].flags |= 4;
+        em->motInfo[0].flags |= 4;
     } else {
-        em->mot[0].flags &= ~4;
+        em->motInfo[0].flags &= ~4;
     }
-    em->mot[0].flags = *flag;
+    em->motInfo[0].flags = *flag;
 }
 
 // X-mirror flag (0x40) of slot `no`'s motion 0.
 void SetXFlipFlag(int on, int no)
 {
     DB_EM* em = &dbModSlot[no];
-    u16* flag = &em->mot[0].flags;
+    u16* flag = &em->motInfo[0].flags;
 
     if (on) {
-        em->mot[0].flags |= 0x40;
+        em->motInfo[0].flags |= 0x40;
     } else {
-        em->mot[0].flags &= ~0x40;
+        em->motInfo[0].flags &= ~0x40;
     }
-    em->mot[0].flags = *flag;
+    em->motInfo[0].flags = *flag;
 }
 
 // The enemy (model) of slot `no`, 0 for a bad slot.
@@ -3905,7 +3905,7 @@ cEm* dbModGetEmPtr(u32 no)
 void DB_EM::setParent(s8 parentNo, s16 parts, Vec* p, Vec* r)
 {
     this->parentNo = parentNo;
-    parentParts = parts;
+    partsNo = parts;
     pos0 = *p;
     ang0 = *r;
     pEm_parent = dbModSlot[this->parentNo].pEm;
@@ -3971,11 +3971,11 @@ void dbModelSetAng0(int no, Vec* rot)
 // Copies `cam` (pos, at, roll, fovy) into slot `no`'s motion attach camera.
 void dbModelSetCamera(int no, Camera* cam)
 {
-    AttachCamera* ac = dbModSlot[no].mot[0].cam;
+    AttachCamera* ac = dbModSlot[no].motInfo[0].cam;
 
-    ac->out[0] = cam->param.pos;
-    ac->out[1] = cam->param.at;
-    ac->out[2].y = cam->param.roll;
-    ac->out[3].y = cam->param.fovy;
-    ac->out[4].y = 0.0f;
+    ac->camera_data[0] = cam->param.pos;
+    ac->camera_data[1] = cam->param.at;
+    ac->camera_data[2].y = cam->param.roll;
+    ac->camera_data[3].y = cam->param.fovy;
+    ac->camera_data[4].y = 0.0f;
 }

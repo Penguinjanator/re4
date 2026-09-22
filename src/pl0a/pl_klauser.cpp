@@ -47,9 +47,9 @@ extern "C" void setTexRender(cModelInfo* info)
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = pl0aTex->texId;
+        tbl[5] = pl0aTex->m_Tex_no;
         pl0aTex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_PL00, 0xC, pl0aTex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_PL00, 0xC, pl0aTex->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
@@ -78,7 +78,7 @@ cPlKlauser::cPlKlauser()
     x890 = 0;
     krEffWait = 1;
     StaFlagOff(pG, STA_KLAUSER_TRANSFORM);
-    pFootShadowTbl = pl_fs_tbl;
+    pFsdTbl = pl_fs_tbl;
 }
 
 // Installs the character's event / action motions (m_MotTbl 0x5F..0x6C from the player archive
@@ -257,7 +257,7 @@ void cPlKlauser::setModel()
         return;
     }
     addModel(info);
-    Body->pShape = info;
+    Body->m_pFace = info;
     info = ModInfoMgr.create(PL_ARC(8), PL_ARC(9));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlKlauser::setModel() failed.");
@@ -320,9 +320,9 @@ void cPlKlauser::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (Body->pRight) {
-        deleteModelInfo(Body->pRight);
-        Body->pRight = 0;
+    if (Body->m_pHandR) {
+        deleteModelInfo(Body->m_pHandR);
+        Body->m_pHandR = 0;
         Body->pRightData = 0;
     }
     switch ((u32) no) {
@@ -346,7 +346,7 @@ void cPlKlauser::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(0x11))) != 0) {
         addModel(info);
-        Body->pRight = info;
+        Body->m_pHandR = info;
         Body->pRightData = data;
     }
     if (!info) {
@@ -362,9 +362,9 @@ void cPlKlauser::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (Body->pLeft) {
-        deleteModelInfo(Body->pLeft);
-        Body->pLeft = 0;
+    if (Body->m_pHandL) {
+        deleteModelInfo(Body->m_pHandL);
+        Body->m_pHandL = 0;
         Body->pLeftData = 0;
     }
     if (no == 0x63) {
@@ -396,7 +396,7 @@ void cPlKlauser::setLeftHand(u32 no)
         pLog->err(0, 0, "cPlKlauser::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        Body->pLeft = info;
+        Body->m_pHandL = info;
         Body->pLeftData = data;
     }
 }
@@ -415,11 +415,11 @@ void cPlKlauser::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (Body->pShape == 0) {
+    if (Body->m_pFace == 0) {
         return;
     }
-    deleteModelInfo(Body->pShape);
-    Body->pShape = 0;
+    deleteModelInfo(Body->m_pFace);
+    Body->m_pFace = 0;
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7));
     if (info) {
         addModel(info);
@@ -431,11 +431,11 @@ void cPlKlauser::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (Body->pShape == 0) {
+    if (Body->m_pFace == 0) {
         return;
     }
-    deleteModelInfo(Body->pShape);
-    Body->pShape = 0;
+    deleteModelInfo(Body->m_pFace);
+    Body->m_pFace = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);
@@ -458,7 +458,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->motionSet(PL_ARC(0x8A), 5, 0, 1, 0);
         pl->x890 = 10;
         StaFlagOn(pG, STA_KLAUSER_TRANSFORM);
-        pl->Neck->motL = 0;
+        pl->Neck->m_MotR = 0;
         DmgMgr.set(DMG_TYPE_PUSH, 0x1E, &pl->pos, 1000.0f, 2000.0f);
         EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_MARK, pl);

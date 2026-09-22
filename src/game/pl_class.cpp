@@ -784,8 +784,8 @@ void cPlayer::setNoSuspend(int on)
     if (Wep->m_pWep) {
         Wep->m_pWep->setNoSuspend(on);
     }
-    if (Wep->pObj2) {
-        Wep->pObj2->setNoSuspend(on);
+    if (Wep->m_pWepHand) {
+        Wep->m_pWepHand->setNoSuspend(on);
     }
 }
 
@@ -1070,7 +1070,7 @@ int cPlayer::getLifeLevel()
 void cPlayer::beginEvent(u32 mode)
 {
     interrupt();
-    Neck->motL = 0;
+    Neck->m_MotR = 0;
     switch (mode) {
     case 0:
         EmRoutineSet(this, 5, 0, 0, 0);
@@ -1104,8 +1104,8 @@ void cPlayer::interrupt()
     ang.y += pParts->ang.y;
     pParts->ang.y = 0.0f;
     if (Wep->m_pWep) {
-        if (Wep->pObj2) {
-            Wep->pObj2->setDisp(1, 1);
+        if (Wep->m_pWepHand) {
+            Wep->m_pWepHand->setDisp(1, 1);
         }
         Wep->m_pWep->interrupt();
         switch (pG->weapon_no) {
@@ -1526,28 +1526,28 @@ int cPlayer::keyReload()
 cPlNeck::cPlNeck(cPlayer* p)
 {
     pl = p;
-    ang = 0.0f;
+    m_NeckY = 0.0f;
     m_lockCtr = 0;
-    motL = 0;
-    motR = 0;
+    m_MotR = 0;
+    m_MotL = 0;
     m_Flag = 0;
     m_Mode = 1;
 }
 
-// Neck motions: the left turn (frame `frame`) is set at once; the look timer restarts.
-void cPlNeck::init(void* l, void* r, int frame)
+// Neck motions: motR (frame `frame`) is set at once; the look timer restarts.
+void cPlNeck::init(void* motR, void* motL, int frame)
 {
-    motL = l;
-    motR = r;
-    if (VALID_PTR2(l) && VALID_PTR2(r)) {
-        motSet(l, frame);
+    m_MotR = motR;
+    m_MotL = motL;
+    if (VALID_PTR2(motR) && VALID_PTR2(motL)) {
+        motSet(motR, frame);
         move();
         m_Flag = 0;
         if (m_lockCtr > 0x10000000) {
             m_lockCtr = 0x7FFFFFFF;
         } else {
             m_lockCtr = 0;
-            ang = 0.0f;
+            m_NeckY = 0.0f;
         }
     }
 }
@@ -1566,10 +1566,10 @@ void cPlNeck::move()
         m_Mode = 1;
         return;
     }
-    if (!VALID_PTR2(motL)) {
+    if (!VALID_PTR2(m_MotR)) {
         return;
     }
-    if (!VALID_PTR2(motR)) {
+    if (!VALID_PTR2(m_MotL)) {
         return;
     }
     if (pPL->r_no_0 > 1) {
@@ -1578,13 +1578,13 @@ void cPlNeck::move()
     head = pPL->getPartsPtr(0);
     em = getTarget();
     if (em) {
-        if (em != target) {
-            target = em;
+        if (em != m_pLastTarget) {
+            m_pLastTarget = em;
             m_lockCtr = em->checkStatus(EM_STATUS_LOOK_ME) ? 0x7FFFFFFF : 20;
         }
     } else {
-        if (target && target->hp <= 0) {
-            target = 0;
+        if (m_pLastTarget && m_pLastTarget->hp <= 0) {
+            m_pLastTarget = 0;
             m_lockCtr = 0;
         }
     }
@@ -1592,47 +1592,47 @@ void cPlNeck::move()
         m_lockCtr = 0;
     }
     if (m_lockCtr) {
-        f32 a = GetXZAngleLocal(&head->world, &target->pos, pPL->ang.y);
-        if (a > ang) {
-            if (a - ang > 0.10471975803375244f) {
-                ang = ang + 0.10471975803375244f;
+        f32 a = GetXZAngleLocal(&head->world, &m_pLastTarget->pos, pPL->ang.y);
+        if (a > m_NeckY) {
+            if (a - m_NeckY > 0.10471975803375244f) {
+                m_NeckY = m_NeckY + 0.10471975803375244f;
             } else {
-                ang = a;
+                m_NeckY = a;
             }
-        } else if (a < ang) {
-            if (a - ang < -0.10471975803375244f) {
-                ang = ang - 0.10471975803375244f;
+        } else if (a < m_NeckY) {
+            if (a - m_NeckY < -0.10471975803375244f) {
+                m_NeckY = m_NeckY - 0.10471975803375244f;
             } else {
-                ang = a;
+                m_NeckY = a;
             }
         }
-        if (ang > 0.7853981852531433f) {
-            ang = 0.7853981852531433f;
+        if (m_NeckY > 0.7853981852531433f) {
+            m_NeckY = 0.7853981852531433f;
         }
-        if (ang < -0.7853981852531433f) {
-            ang = -0.7853981852531433f;
+        if (m_NeckY < -0.7853981852531433f) {
+            m_NeckY = -0.7853981852531433f;
         }
-        if (ang < 0.0f && m_Flag) {
+        if (m_NeckY < 0.0f && m_Flag) {
             m_Flag &= 0xFFFE;
-            motSet(motL, (u16) pPL->Motion.Seq_frame);
-        } else if (ang > 0.0f && !m_Flag) {
+            motSet(m_MotR, (u16) pPL->Motion.Seq_frame);
+        } else if (m_NeckY > 0.0f && !m_Flag) {
             m_Flag |= 1;
-            motSet(motR, (u16) pPL->Motion.Seq_frame);
+            motSet(m_MotL, (u16) pPL->Motion.Seq_frame);
         }
         m_lockCtr--;
     } else {
-        if (ang != 0.0f) {
-            if (ang > 0.10471975803375244f) {
-                ang = ang - 0.10471975803375244f;
-            } else if (ang < -0.10471975803375244f) {
-                ang = ang + 0.10471975803375244f;
+        if (m_NeckY != 0.0f) {
+            if (m_NeckY > 0.10471975803375244f) {
+                m_NeckY = m_NeckY - 0.10471975803375244f;
+            } else if (m_NeckY < -0.10471975803375244f) {
+                m_NeckY = m_NeckY + 0.10471975803375244f;
             } else {
-                ang = 0.0f;
+                m_NeckY = 0.0f;
             }
         }
     }
     if (pPL->Motion.blend) {
-        f32 rate = ang / 0.7853981852531433f;
+        f32 rate = m_NeckY / 0.7853981852531433f;
         if (!(m_Flag & 1)) {
             rate = -rate;
         }

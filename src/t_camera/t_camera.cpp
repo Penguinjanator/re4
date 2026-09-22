@@ -172,9 +172,9 @@ static void tcInit()
     pTc->cameraNo = CamCtrl.cameraNo;
     pTc->areaNo = CamCtrl.areaNo;
     pTc->areaSuffix = CamCtrl.areaSuffix;
-    if (CamCtrl.data) {
-        if (cameraDataVersion((char*) CamCtrl.data) > 1) {
-            tcDataImport((u8*) CamCtrl.data);
+    if (CamCtrl.pCamData) {
+        if (cameraDataVersion((char*) CamCtrl.pCamData) > 1) {
+            tcDataImport((u8*) CamCtrl.pCamData);
         }
     }
 }
@@ -2987,7 +2987,7 @@ void tcToolCameraMove(Camera* cam)
         z *= tcDollySpeed;
         switch (CameraGetProjection()) {
         case 1: {
-            f32 dist = cam->dist + z;
+            f32 dist = cam->Distance + z;
             if (dist < 500.0f) {
                 d.z = dist - 500.0f;
                 dist = 500.0f;

@@ -6,7 +6,7 @@
 
 // One debug log line (0x4C bytes).
 struct cLogWork {
-    int key;        // 0x00  duplicate-suppression key (0 = none)
+    int m_Id;        // 0x00  duplicate-suppression key (0 = none)
     u8 m_Col;       // 0x04  eprintf color
     u8 pad_5[3];
     char m_Str[64];   // 0x08
@@ -27,7 +27,7 @@ public:
     u8 m_Flag;             // 0x00  bit1 = a line was added this frame, bit0 = it was a duplicate
     u8 m_RepeatCtr;             // 0x01  duplicate marker animation counter (0..7)
     u8 pad_2[4];
-    u8 timer;             // 0x06  frames left to display (0xFF = always)
+    u8 m_DispTimer;             // 0x06  frames left to display (0xFF = always)
     u8 m_BuffIdx;               // 0x07  index of the newest line
     u8 m_DispTime;              // 0x08  display duration set by modeSet
     u8 m_DispNum;             // 0x09  visible lines
@@ -35,7 +35,7 @@ public:
     s16 m_By;                // 0x0C
     u8 m_ScrOfs;               // 0x0E  scroll offset
     u8 pad_F;
-    cLogWork work[100];   // 0x10
+    cLogWork m_Mes[100];   // 0x10
 
     void init();
     void mes(int a, int b, const char* fmt, ...);

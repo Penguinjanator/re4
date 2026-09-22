@@ -121,7 +121,7 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     PSMTXMultVec(mat, &center, &center);
     radius = Wgap * divH * 0.5f * Scale;
     tex = tex_;
-    tlut = tlut_;
+    pTlobjC = tlut_;
     pTobjA = p_;
     be_flag = 0x31;
     colR = 0xFF;
@@ -350,7 +350,7 @@ void clothTrans(Cloth* pCL)
     Mtx texMtx;
     GXTexObj* tex = pCL->tex;
     void* tex2 = pCL->pTobjA;
-    GXTlutObj* tlut = pCL->tlut;
+    GXTlutObj* tlut = pCL->pTlobjC;
     int nStages;
     int i;
     int j;

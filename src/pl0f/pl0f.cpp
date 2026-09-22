@@ -339,13 +339,13 @@ static void pl0f_R0_Init(cPl0f* em)
     w->Be_flg = 0;
     w->Roll_rot = 0.0f;
     w->Bank_rot = 0.0f;
-    w->rollPhase = 0.0f;
+    w->Roll_sin = 0.0f;
     w->Bank_sin = 0.0f;
     w->Vib_sin = 0.0f;
     w->Boss_chase = 0;
     w->Tiller = 0;
     w->First_camck = 0;
-    w->anchorEff = 0;
+    w->Cursor_type = 0;
     w->swayAmp.x = 0.0f;
     w->swayAmp.y = 0.0f;
     w->swayAmp.z = 0.0f;
@@ -410,10 +410,10 @@ static void pl0f_R0_Move(cPl0f* em)
     }
     Pl0f_R1_move_tbl[em->r_no_1](em);
     if (w->pBoss) {
-        w->hist[w->histIdx] = w->pBoss->pos;
-        w->histIdx++;
-        if (w->histIdx > 9) {
-            w->histIdx = 0;
+        w->Boss_pos[w->Boss_pos_no] = w->pBoss->pos;
+        w->Boss_pos_no++;
+        if (w->Boss_pos_no > 9) {
+            w->Boss_pos_no = 0;
         }
     }
 }
@@ -1046,8 +1046,8 @@ void pl0fBoatRoll(cPl0f* em)
     } else {
         w->Roll_rot *= 0.9f;
     }
-    w->rollPhase += fRand0_1() * 0.3926991f + 0.09817477f;
-    sinf(w->rollPhase);
+    w->Roll_sin += fRand0_1() * 0.3926991f + 0.09817477f;
+    sinf(w->Roll_sin);
     PSMTXRotRad(m, 'z', w->Roll_rot);
     PSMTXConcat(em->mat, m, em->mat);
     if (w->Boat_rot < PI / 2) {
@@ -1147,28 +1147,28 @@ void pl0fBoatSpdControl(cPl0f* em)
     if (w->Tiller & 0xC) {
         if (w->Tiller & 1) {
             if (w->Tiller & 4) {
-                w->rotSpd = -PI / 20;
+                w->Rot_spd = -PI / 20;
             }
             if (w->Tiller & 8) {
-                w->rotSpd = PI / 20;
+                w->Rot_spd = PI / 20;
             }
         } else {
             if (w->pBoss) {
                 if (w->Tiller & 4) {
-                    w->rotSpd = -PI / 16;
+                    w->Rot_spd = -PI / 16;
                 }
                 if (w->Tiller & 8) {
-                    w->rotSpd = PI / 16;
+                    w->Rot_spd = PI / 16;
                 }
                 spd.x = 0.0f;
                 spd.y = 0.0f;
                 spd.z = 50.0f;
             } else {
                 if (w->Tiller & 4) {
-                    w->rotSpd = -PI / 8;
+                    w->Rot_spd = -PI / 8;
                 }
                 if (w->Tiller & 8) {
-                    w->rotSpd = PI / 8;
+                    w->Rot_spd = PI / 8;
                 }
                 spd.x = 0.0f;
                 spd.y = 0.0f;
@@ -1179,9 +1179,9 @@ void pl0fBoatSpdControl(cPl0f* em)
             }
         }
     } else {
-        w->rotSpd = 0.0f;
+        w->Rot_spd = 0.0f;
     }
-    PSMTXRotRad(m, 'y', em->ang.y + w->rotSpd);
+    PSMTXRotRad(m, 'y', em->ang.y + w->Rot_spd);
     PSMTXMultVecSR(m, &spd, &spd);
     pl0fBoatAddSpd(em, 1, &spd);
     w->Tiller = 0;
@@ -1232,7 +1232,7 @@ void pl0fBoatChaseBoss(cPl0f* em)
         Vec* cp = &(cam).param.pos;                                                                               \
         Vec* ca = &(cam).param.at;                                                                                \
                                                                                                                   \
-        (cam).dist = VEC_DIST(cp, ca); \
+        (cam).Distance = VEC_DIST(cp, ca); \
     }                                                                                                             \
     CameraSetOrientationUp(&(cam))
 
@@ -1254,9 +1254,9 @@ void pl0fRideCamMove(cPl0f* em, f32 rate)
     pl0f_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &at, &pl0f_camera.param.at, rate);
     PosToPos(&gcam->param.pos, &pos, &pl0f_camera.param.pos, rate);
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -1278,9 +1278,9 @@ void pl0fGetoffCamMove(cPl0f* em)
     pl0f_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &at, &pl0f_camera.param.at, 1.0f);
     PosToPos(&gcam->param.pos, &pos, &pl0f_camera.param.pos, 1.0f);
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -1381,7 +1381,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             PSMTXRotRad(m, 'y', em->ang.y);
             TransMatrix(m, &em->pos);
             PSMTXMultVec(m, &pl0f_boss_cam_ofs, &cpos);
-            bpos = w->hist[w->histIdx];
+            bpos = w->Boss_pos[w->Boss_pos_no];
             bpos.y = em->pos.y + pl0f_boss_cam_y;
             PSVECSubtract(&cpos, &bpos, &d);
 #line 1876
@@ -1437,9 +1437,9 @@ void pl0fBossCamMove(cPl0f* em, int hide)
         PSVECAdd(&pl0f_camera.param.pos, &d2, &d2);
         EatMgr.adjust(0, &d2, &pl0f_camera.param.pos, 500.0f, 0x2001, 0);
     }
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -1463,9 +1463,9 @@ void pl0fHideModeCamSet(cPlayer* pl)
     pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
     PosToPos(&gcam->param.at, &pos, &pl0f_camera.param.at, 1.0f);
     PosToPos(&gcam->param.pos, &at, &pl0f_camera.param.pos, 1.0f);
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
 }
 
@@ -1484,9 +1484,9 @@ void pl0fHideModeCamMove(cPlayer* pl)
     pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
     PosToPos(&gcam->param.at, &pos, &pl0f_camera.param.at, 0.1f);
     PosToPos(&gcam->param.pos, &at, &pl0f_camera.param.pos, 0.1f);
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -1510,9 +1510,9 @@ void pl0fBossDieCamSet(cPlayer* pl)
     pl0f_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &pos, &pl0f_camera.param.at, 1.0f);
     PosToPos(&gcam->param.pos, &at, &pl0f_camera.param.pos, 1.0f);
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
 }
 
@@ -1531,9 +1531,9 @@ void pl0fBossDieCamMove(cPlayer* pl)
     pl0f_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &pos, &pl0f_camera.param.at, 1.0f);
     PosToPos(&gcam->param.pos, &at, &pl0f_camera.param.pos, 1.0f);
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -3040,9 +3040,9 @@ void pl00SetSwimCam(cPlayer* pl)
     PSMTXMultVec(m, &pl00_swim_cam_pos, &pl0f_camera.param.pos);
     PSMTXMultVec(m, &pl00_swim_cam_at, &pl0f_camera.param.at);
     pl0f_camera.param.fovy = 40.0f;
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
 }
 
@@ -3075,9 +3075,9 @@ void pl00SwimCamMove(cPlayer* pl)
         PosToPos(&gcam->param.pos, &pos, &pl0f_camera.param.pos, 1.0f);
     }
     pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -3093,9 +3093,9 @@ void pl00SetChaseCam(cPlayer* pl)
     TransMatrix(m, &pl->pos);
     PSMTXMultVec(m, &pl00_chase_cam_ofs, &pl0f_camera.param.pos);
     pl0f_camera.param.fovy = 40.0f;
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
 }
 
@@ -3114,9 +3114,9 @@ void pl00ChaseCamMove(cPlayer* pl)
     PSVECScale(&d, &d, 260.0f);
     PSVECAdd(&pl0f_camera.param.pos, &d, &pl0f_camera.param.pos);
     pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -3136,7 +3136,7 @@ void pl00SetDieCam(cPlayer* pl)
     v.y = 0.0f;
     v.z = 1.0f;
     PSMTXRotRad(m, 'y', pl->ang.y);
-    PSMTXMultVecSR(m, &v, &pl0f_camera.up);
+    PSMTXMultVecSR(m, &v, &pl0f_camera.Up);
     CAM_SET(pl0f_camera);
 }
 
@@ -3157,7 +3157,7 @@ void pl00DieCamMove(cPlayer* pl)
     v.y = 0.0f;
     v.z = 1.0f;
     PSMTXRotRad(m, 'y', pl->ang.y);
-    PSMTXMultVecSR(m, &v, &pl0f_camera.up);
+    PSMTXMultVecSR(m, &v, &pl0f_camera.Up);
     CAM_SET(pl0f_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
@@ -3183,9 +3183,9 @@ void pl00SetDropCam(cPlayer* pl)
     PSMTXMultVec(m, &v, &pl0f_camera.param.pos);
     pl0f_camera.param.at = pl->pos;
     pl0f_camera.param.fovy = 40.0f;
-    pl0f_camera.up.x = 0.0f;
-    pl0f_camera.up.y = 1.0f;
-    pl0f_camera.up.z = 0.0f;
+    pl0f_camera.Up.x = 0.0f;
+    pl0f_camera.Up.y = 1.0f;
+    pl0f_camera.Up.z = 0.0f;
     CAM_SET(pl0f_camera);
 }
 
@@ -3206,9 +3206,9 @@ void pl00DropCamMove(cPlayer* pl)
     pl00_drop_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &pos, &pl00_drop_camera.param.at, 1.0f);
     PosToPos(&gcam->param.pos, &at, &pl00_drop_camera.param.pos, 1.0f);
-    pl00_drop_camera.up.x = 0.0f;
-    pl00_drop_camera.up.y = 1.0f;
-    pl00_drop_camera.up.z = 0.0f;
+    pl00_drop_camera.Up.x = 0.0f;
+    pl00_drop_camera.Up.y = 1.0f;
+    pl00_drop_camera.Up.z = 0.0f;
     CAM_SET(pl00_drop_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl00_drop_camera;
     StaFlagOff(pG, STA_WATER_CAMERA);
@@ -3379,9 +3379,9 @@ int testSearchEm2f(cPl0f* em)
                 w2->pSelf = em;
             }
             for (i = 0; i < 10; i++) {
-                w->hist[i] = e->pos;
+                w->Boss_pos[i] = e->pos;
             }
-            w->histIdx = 0;
+            w->Boss_pos_no = 0;
             v.x = 0.0f;
             v.y = 0.0f;
             v.z = -2000.0f;
@@ -3672,7 +3672,7 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
         EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
-        w->anchorEff = 0;
+        w->Cursor_type = 0;
         return;
     }
     // Two separate ifs: each body is the fall-through of its own test, so cse stores the known-zero `andi.`
@@ -3681,14 +3681,14 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
         EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
-        w->anchorEff = 0;
+        w->Cursor_type = 0;
         return;
     }
     if (!(boss->flag & 4)) {
         EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
-        w->anchorEff = 0;
+        w->Cursor_type = 0;
         return;
     }
     ang = Muku(&pl->pos, &boss->pos, pl->ang.y, PI);
@@ -3696,23 +3696,23 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
         EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
         EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
-        w->anchorEff = 0;
+        w->Cursor_type = 0;
         return;
     }
     if (ang < 0.0f) {
-        if (w->anchorEff != 1) {
+        if (w->Cursor_type != 1) {
             EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
             EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
             EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
-            w->anchorEff = 1;
+            w->Cursor_type = 1;
             EstSet(0, -1, 0, 0, 0xF, 0x1F, 0, 0x36, pl, 0);
         }
     } else {
-        if (w->anchorEff != 2) {
+        if (w->Cursor_type != 2) {
             EffectEspDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl, 0);
             EffectEspgenDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
             EffectEfmDelete(0, ESP_CORE_KIND_PL0F_CURSOR, pl);
-            w->anchorEff = 2;
+            w->Cursor_type = 2;
             EstSet(0, -1, 0, 0, 0xF, 0x1E, 0, 0x36, pl, 0);
         }
     }

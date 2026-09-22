@@ -712,12 +712,12 @@ void pl0eCamMove(cPl0e* em)
     dir.y = 1.0f;
     dir.x = 0.0f;
     dir.z = 0.0f;
-    PSMTXMultVecSR(m, &dir, &pl0e_camera.up);
+    PSMTXMultVecSR(m, &dir, &pl0e_camera.Up);
     {
         Vec* cp = &pl0e_camera.param.pos;
         Vec* ca = &pl0e_camera.param.at;
 
-        pl0e_camera.dist = VEC_DIST(cp, ca);
+        pl0e_camera.Distance = VEC_DIST(cp, ca);
     }
     CameraSetOrientationUp(&pl0e_camera);
     CamCtrl.m_pExtraCamera = (s32) &pl0e_camera;

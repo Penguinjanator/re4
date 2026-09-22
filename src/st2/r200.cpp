@@ -361,7 +361,7 @@ static void r200_execTruckEvent()
 // ot_type and the gate / truck objects are set; the end restores the room.
 extern "C" void Evt_R200S00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdGetObjPtr(8)->setNoSuspend(0);
         SmdGetObjPtr(9)->setNoSuspend(0);

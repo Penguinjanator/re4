@@ -28,7 +28,7 @@ public:
     u16 m_base_dx;         // 0x04  menu position
     u16 m_base_dy;         // 0x06
     u16 m_dx;        // 0x08  position used for this frame's drawing
-    u16 my;        // 0x0A
+    u16 m_dy;        // 0x0A
     s8 cursor;     // 0x0C
     u8 pad_D[3];
 
@@ -78,7 +78,7 @@ void cToolBugcheck::main()
             m_base_dy -= 8;
         }
         m_dx = m_base_dx;
-        my = m_base_dy;
+        m_dy = m_base_dy;
         menu();
         TaskSleep(1);
     }
@@ -334,7 +334,7 @@ void cToolBugcheck::menu()
     static const char* wep_mugen_str[3] = {"OFF", "MUGEN", "MUGEN+RELOAD"};
     static const char* pl_speed_str[5] = {"OFF", "x2", "x3", "x4", "x5"};
     s16 px = m_dx;
-    s16 py = my;
+    s16 py = m_dy;
     int i;
 
     ToolMenuDisp_cur(px, py, 0, &cursor, menu, sizeof(menu), Joy);

@@ -12,13 +12,13 @@ public:
     s8 _rno1;        // 0x01  top menu item: 0 retry/load, 1 controller, 2 brightness, 3 audio, 4 back
     s8 _rno2;           // 0x02  sub menu cursor
     s8 _rno3;          // 0x03  sub menu state (retry/load: 1 confirm, 2 loading, 3 wait for the SE)
-    s32 fromTitle;    // 0x04  init argument: 1 = opened from the title screen
+    s32 _type;    // 0x04  init argument: 1 = opened from the title screen
     u32 _msg_attr;      // 0x08  MesSet attribute word (0x91 in game, 0x94 from the title)
     s8 m_reverse;          // 0x0C  controller: pSys->Config_flg bit 31
     s8 m_vibration;          // 0x0D  controller: vibration (bit 27)
     s8 m_knife_key;          // 0x0E  controller: bit 26
     u8 pad_F;
-    s8 sound;         // 0x10  audio: 0 stereo, 1 mono, 2 surround
+    s8 m_snd_mode;         // 0x10  audio: 0 stereo, 1 mono, 2 surround
     u8 pad_11[3];
 
     void init(int fromTitle);
@@ -31,7 +31,7 @@ extern OptionScreen OptScrn;
 // Game result screen (id table type 0x28).
 class GameResult {
 public:
-    void* data;       // 0x00  result id archive
+    void* _addr;       // 0x00  result id archive
     u8 _rno0;
     u8 _rno1;
     u8 _rno2;
@@ -47,7 +47,7 @@ public:
 // Chapter end screen (new'd by sce_com SceChapterEnd, 0xC bytes).
 class ChapterEnd {
 public:
-    void* data;       // 0x00  chapter id archive
+    void* _addr;       // 0x00  chapter id archive
     s32 _chapter;      // 0x04
     u8 pad_8[4];
 

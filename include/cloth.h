@@ -22,7 +22,7 @@ public:
     Vec center;           // 0x4C
     f32 radius;           // 0x58
     GXTexObj* tex;     // 0x5C
-    GXTlutObj* tlut;   // 0x60
+    GXTlutObj* pTlobjC;   // 0x60
     void* pTobjA;         // 0x64
     union {
         GXColor color; // 0x68 material colour (clothTrans passes it by value)

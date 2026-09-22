@@ -29,7 +29,7 @@ public:
     Vec m_ang_bak;         // 0x14
     u8 m_ot_type_bak;         // 0x20
     u8 m_scrn_flag;             // 0x21  0 in game, 1 sub screen, 2 puzzle
-    s8 lv[4];            // 0x22  weapon tune levels (power, speed, reload, bullet)
+    s8 m_level[4];            // 0x22  weapon tune levels (power, speed, reload, bullet)
     u8 pad_26[2];
     cCoord* m_pList_pParent_bak;  // 0x28  model->pParts->pParent at init
     Vec m_pList_pos_bak;    // 0x2C

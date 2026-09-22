@@ -83,7 +83,7 @@ void cEsp15::move()
             half = range * 0.6f;
 
             PSVECSubtract(&pG->Camera.param.at, &pG->Camera.param.pos, &dir);
-            PSVECCrossProduct(&dir, &pG->Camera.up, &dir);
+            PSVECCrossProduct(&dir, &pG->Camera.Up, &dir);
 #line 111 "D:/Bio4/Prog/esp15.cpp"
             VECNormalize(&dir, &dir);
             PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &tmp);
@@ -99,7 +99,7 @@ void cEsp15::move()
             }
 
 #line 130 "D:/Bio4/Prog/esp15.cpp"
-            VECNormalize(&pG->Camera.up, &dir);
+            VECNormalize(&pG->Camera.Up, &dir);
             PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {

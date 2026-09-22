@@ -79,7 +79,7 @@ cObjWep* equipWeapon(cPlayer* pl)
         break;
     }
     pl->Wep->m_pWep = 0;
-    pl->Wep->pObj2 = 0;
+    pl->Wep->m_pWepHand = 0;
     obj = (cObjWep*) ObjMgr.createBack(cObjMgr::ID_WEP_HANDGRE);
     if (obj == 0) {
         goto fail;
@@ -120,7 +120,7 @@ cObjWep* equipWeapon(cPlayer* pl)
         obj->pParts->scale.y = 0.5f;
         obj->pParts->scale.z = 0.5f;
     }
-    pl->Wep->pObj2 = obj;
+    pl->Wep->m_pWepHand = obj;
     if (ItemMgr.bulletNum() == 0) {
         obj->setDisp(0, 0);
     }
@@ -205,9 +205,9 @@ void cObjHandGre::setMotion(cPlayer* pl)
         setDisp(0, 0);
     }
     if (num) {
-        pl->Wep->pObj2->setDisp(0, 1);
+        pl->Wep->m_pWepHand->setDisp(0, 1);
     } else {
-        pl->Wep->pObj2->setDisp(0, 0);
+        pl->Wep->m_pWepHand->setDisp(0, 0);
     }
     if (bulletNum()) {
         hand = WEP_ARC_PTR(0x7);

@@ -174,7 +174,7 @@ static void r306_StrCheck()
 // branch is a local computed before the loop; the other branch's cMes.getWork() is hoisted as its copy.
 static void r306_checkDoor308KeyUse()
 {
-    MesWork* w = &cMes.mes[0];
+    MesWork* w = &cMes.m_Msg[0];
 
     for (;;) {
         while (ItemMgr.check(0x84) != 1) {

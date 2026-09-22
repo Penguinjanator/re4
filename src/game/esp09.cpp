@@ -18,7 +18,7 @@ struct Esp09Work {
     s8 maxPoints;         // 0x00 number of trail points (2..6)
     u8 flg;     // 0x01 bit0: screen space, bit1: record a point every other frame (gen->Work8[1])
     u8 pad_2[10];
-    u8 hidden;    // 0x0C set by the Z-buffer test (screen space trail)
+    u8 Hide_flg;    // 0x0C set by the Z-buffer test (screen space trail)
     u8 nPos;       // 0x0D ring buffer index of the newest point
     s16 Width;    // 0x0E line width
     Vec Pos[6];   // 0x10 position history (screen space: z = distance to the camera)
@@ -98,7 +98,7 @@ void cEsp09::move()
     }
     switch (m_Rno0) {
     case 0:
-        w->hidden = 1;
+        w->Hide_flg = 1;
         Esp09_ClearPrevPos(this);
         m_Rno0++;
         break;
@@ -233,7 +233,7 @@ void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     int idx = w->nPos;
     int i;
 
-    if (w->hidden != 0) {
+    if (w->Hide_flg != 0) {
         return;
     }
     GXBegin(0xB0, 0, (u16)w->maxPoints);
@@ -436,7 +436,7 @@ void Esp09_HideCheck(cEsp* esp0)
     f32 m22;
     f32 m23;
     f32 zv;
-    u8 old = w->hidden;
+    u8 old = w->Hide_flg;
 
     PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
     PSMTXMultVec(m, &esp->m_Pos, &v);
@@ -455,14 +455,14 @@ void Esp09_HideCheck(cEsp* esp0)
         GXDrawDone();
         GXPeekZ((u16)s.x, (u16)s.y, &z);
         if (zi > (s32)(z - Zs_bias)) {
-            w->hidden = 1;
+            w->Hide_flg = 1;
         } else {
-            w->hidden = 0;
+            w->Hide_flg = 0;
         }
     } else {
-        w->hidden = 1;
+        w->Hide_flg = 1;
     }
-    if (w->hidden == 0 && old == 1) {
+    if (w->Hide_flg == 0 && old == 1) {
         Esp09_ClearPrevPos(esp);
     }
 }

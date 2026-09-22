@@ -178,8 +178,8 @@ struct GlobalWork {
     u8 pad_4F4C[0x4F70 - 0x4F4C];
     Vec quake_ofs;         // 0x4F70
     u8 weapon_no_old;
-    u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
-    u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
+    u8 door_se;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
+    u16 time_bonus;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
     u8 save_data_start_addr[4];  // 0x4F80  start of the save block (game: cGameSave copies 0x4F80..0x8678)
     s32 point;             // 0x4F84  difficulty point (game GameAddPoint, 0..0x2AF7)
     u8 Game_level;         // 0x4F88  adaptive difficulty rank 1..10 = point / 1000 (em2d/em10 branch on > 1/3/6/== 10)
@@ -189,8 +189,8 @@ struct GlobalWork {
     u16 save_cnt;          // 0x4F8C  times saved (card makeSaveData increments it)
     u16 game_cnt;          // 0x4F8E  games cleared: nonzero = new round (merchant full tables; 1 = Merchant2ndRoundInit on load)
     u16 r_continue_cnt;    // 0x4F90  continues in this room (GameContinue increments; room jump / scene change clear it)
-    u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
-    u8 language;           // 0x4F93  game language (main: pSys->language; title: language_tbl[])
+    u8 terminal_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
+    u8 game_country;           // 0x4F93  game language (main: pSys->language; title: language_tbl[])
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
     u32 peseta;            // 0x4F98  money (ss_shop buy/sell, item pickups; PlSelect swaps it with peseta_bak)
     union {
@@ -229,8 +229,8 @@ struct GlobalWork {
     u8 game_costume;   // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
     u8 pad_4FBC[2];
     u16 pl_flag;        // 0x4FBE  bit0: player data changed (pl_sub PlSelect/PlSetCostume/PlChangeData)
-    Vec sub_pos;           // 0x4FC0  sub character start position (sce_sys ScenarioRoomInit)
-    f32 sub_angle;         // 0x4FCC
+    Vec pl_pos;           // 0x4FC0  player position kept across rooms (game.cpp saves pPL->pos, cPlayer::init reads it; SubCharInit places the partner from it too) (PS2 pl_pos; was `sub_pos`)
+    f32 pl_ang_y;         // 0x4FCC  (PS2 pl_ang_y; was `sub_angle`)
     u8 pad_4FD0[0x500C - 0x4FD0];
     u32 Status_flg[4];     // 0x500C  game status bits ([3] 0x10000000: main_sub letterbox scissor)
     u32 Em_flg[12][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)

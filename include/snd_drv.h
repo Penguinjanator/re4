@@ -22,7 +22,7 @@ extern "C" {
 
 // Sound information table entry (SIT, 0x18 bytes) inside an ISS block.
 typedef struct {
-    u16 prog;       // 0x00  bank << 8 | program
+    u16 note;       // 0x00  bank << 8 | program
     s8 voice_start; // 0x02  first Snd_voice_work slot (sequences)
     s8 voice_num;   // 0x03  last slot offset (inclusive)
     s8 prio;        // 0x04
@@ -32,7 +32,7 @@ typedef struct {
     s8 aux_b;       // 0x08  AUX B send, < 0: none
     s8 curve_no;    // 0x09  distance curve selector (game/snd.cpp SndCall), -1 = none
     u16 pitch_l;   // 0x0A  random pitch range
-    u16 pitch_hi;   // 0x0C
+    u16 pitch_h;    // 0x0C
     u8 inner_vol;   // 0x0E  volume % while the player is on a type-3 floor attribute (0 = off)
     u8 xF;
     u8 srd_type;    // 0x10
@@ -46,7 +46,7 @@ typedef struct {
 
 // Room information table entry (RIT, 0x10 bytes) inside a stream block.
 typedef struct {
-    s16 shd_no;     // 0x00  index into the block's stream header offset table
+    s16 str_no;     // 0x00  index into the block's stream header offset table
     s8 ch; // 0x02  first Snd_voice_work slot
     s8 poly;   // 0x03  last slot offset (inclusive)
     s8 vol;         // 0x04
@@ -65,10 +65,10 @@ typedef struct {
 typedef struct {
     u32 flag;       // 0x00  0x1 stereo, 0x2 ?, 0x4 no loop, 0x8 ?
     u32 samples;
-    u32 len;        // 0x08  file length (bytes, both channels)
+    u32 nibbles;    // 0x08  file length in nibbles, both channels (snd_str0: read_end = nibbles / 2 bytes) (PS2 nibbles)
     u32 rate;       // 0x0C  sample rate
     u32 start_nbl;
-    u32 loop_start; // 0x14  nibble offset
+    u32 lptop_nbl;  // 0x14  nibble offset
     u32 lpend_nbl;   // 0x18  nibble offset
     u32 offset;       // 0x1C  ARAM buffer address
     u16 coef[16];  // 0x20
@@ -175,15 +175,15 @@ typedef struct {
 
 // Sound request (Snd_req_work[2][64], 0x2C bytes).
 typedef struct {
-    u16 status;     // 0x00
-    u16 no;         // 0x02
-    u8 type;        // 0x04  1 / 2 (issue), 4 = command
+    u16 be_flag;     // 0x00
+    u16 work_id;         // 0x02
+    u8 use_type;        // 0x04  1 / 2 (issue), 4 = command
     u8 srd_type;    // 0x05
-    u16 cmd;        // 0x06  command number (type 4)
+    u16 cmd_no;        // 0x06  command number (type 4)
     u16 blk_no;     // 0x08
     u16 req_no;     // 0x0A
     u32 snd_id;     // 0x0C
-    SND_SIT* sit;   // 0x10
+    SND_SIT* sit_ptr;   // 0x10
     u16 flag;       // 0x14  override flags (from ctrl->flag_58)
     u16 para;       // 0x16  command parameter
     u8 pad_18[2];
@@ -194,11 +194,11 @@ typedef struct {
     s8 svol;        // 0x1E
     s8 aux_a;       // 0x1F
     s8 aux_b;       // 0x20
-    s8 lpf_no;      // 0x21  low-pass filter table index
-    s16 pitch_add;  // 0x22  cents added to the base pitch
-    u16 pitch_ofs;  // 0x24  distance pitch offset (SND_AXV_WORK::pitch_ofs)
-    u16 se_flag;    // 0x26  SE flags (SND_AXV_WORK::flag)
-    s16 pitch;      // 0x28  random pitch (cents)
+    s8 lpf;      // 0x21  low-pass filter table index
+    s16 pitch;      // 0x22  cents added to the base pitch
+    u16 dop_p;  // 0x24  distance pitch offset (SND_AXV_WORK::pitch_ofs)
+    u16 req_bit;    // 0x26  SE flags (SND_AXV_WORK::flag)
+    s16 rnd_pitch;      // 0x28  random pitch (cents)
     u8 pad_2A[2];
 } SND_REQ_WORK;
 

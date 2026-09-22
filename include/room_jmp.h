@@ -21,8 +21,8 @@ struct CRoomInfo {
     Vec pos;        // 0x04
     f32 angle;      // 0x10
     char* name;     // 0x14
-    char* scr;      // 0x18
-    char* soft;     // 0x1C
+    char* person;      // 0x18
+    char* person2;     // 0x1C
 
     void setNextPos();
 };

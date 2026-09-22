@@ -254,7 +254,7 @@ void emRackDmCk(cEmRack* em)
         break;
     case 7:
     case 8:
-        if (part->rad < 36000000.0f) {
+        if (part->len < 36000000.0f) {
             if (w->Rack_hp <= 0.0f) {
                 em->r_no_0 = 1;
                 em->r_no_1 = 2;
@@ -262,7 +262,7 @@ void emRackDmCk(cEmRack* em)
                 em->r_no_3 = 3;
                 return;
             }
-            if (part->partsNo != 0) {
+            if (part->parts_no != 0) {
                 cModel* p;
 
                 if (w->Eff_id != 0xFF) {
@@ -273,7 +273,7 @@ void emRackDmCk(cEmRack* em)
                 p->scale.x = 0.0f;
                 p->scale.y = 0.0f;
                 p->scale.z = 0.0f;
-                part->flags &= ~1;
+                part->flag &= ~1;
                 return;
             }
             w->Rack_hp = 0.0f;

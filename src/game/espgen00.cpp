@@ -32,7 +32,7 @@ struct Espgen00Work {
     u8 wait;           // 0x25 frames between emissions
     u8 waitCnt;        // 0x26 frames left until the next emission
     u8 num;            // 0x27 emissions per frame - 1
-    u32 seed;          // 0x28
+    u32 Rand_seed;          // 0x28
     u8 Flg;          // 0x2C rec->Espgen_flg: bit0 spread the angle, bit1 fixed seed
     u8 flags2;         // 0x2D bit0 parts matrix fixed, bit1 head flag, bit2 pass the position on
     u8 parts;          // 0x2E
@@ -129,7 +129,7 @@ void espgen00_Update(EspgenWork* w)
     cModel* model = p->pMod;
 
     if (model != NULL) {
-        if ((model->be_flag & 0x201) != 1 || model->serial != p->Guid_pMod) {
+        if ((model->be_flag & 0x201) != 1 || model->guid != p->Guid_pMod) {
             PushEspgen(w);
             return;
         }
@@ -192,10 +192,10 @@ void espgen00_Update(EspgenWork* w)
                     pos = &p->Offset;
                 }
                 if (p->Flg & 1) {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->pMod, &p->Mat, 1, ang, &esp, p->pOpt, pos);
+                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &p->Mat, 1, ang, &esp, p->pOpt, pos);
                     ang += step;
                 } else {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->pMod, &p->Mat, 0, 0.0f, &esp, p->pOpt, pos);
+                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &p->Mat, 0, 0.0f, &esp, p->pOpt, pos);
                 }
                 if (ret) {
                     if (bScale) {
@@ -267,7 +267,7 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->rec = rec;
     p->pMod = model;
     if (model != NULL) {
-        p->Guid_pMod = model->serial;
+        p->Guid_pMod = model->guid;
     } else {
         p->Guid_pMod = (u32) model;
     }
@@ -294,9 +294,9 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->Offset = *pos;
     p->Ang = *rot;
     if (p->Flg & 2) {
-        p->seed = 0x12345678 + rec->Espgen_work8[2];
+        p->Rand_seed = 0x12345678 + rec->Espgen_work8[2];
     } else {
-        p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
+        p->Rand_seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }
     PSMTXCopy(*mtx, p->Mat);
     if (pSct != NULL) {

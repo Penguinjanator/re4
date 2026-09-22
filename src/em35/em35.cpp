@@ -184,7 +184,7 @@ void em35DmCk(cEm35* em)
         em->dmg.m_Timer = 0x11;
     }
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     dmg = em35SetDmVal(em);
@@ -405,7 +405,7 @@ void em35DmCkUpper(cEm35* em)
         em->dmg.m_Timer = 0x11;
     }
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 16000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 16000000.0f) {
         near = 1;
     }
     dmg = em35SetDmVal(em);
@@ -2302,10 +2302,10 @@ void em35EscapeCamMove(cEm35* em)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->cam.param.at, &d, &w->cam.param.pos);
     }
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
@@ -2358,10 +2358,10 @@ void em35StampCamMove(cEm35* em)
     PosToPos(&g->Camera.param.pos, &a, &w->cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &p->world, &w->cam.param.at, 0.3f);
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -3904,32 +3904,32 @@ void em35NeckMove(cEm35* em)
     if (em->type == 1) {
         p = (cParts*) em->getPartsPtr(3);
         p->motParts.flags |= 0x40000000;
-        p->addRot.x = 0.0f;
-        p->addRot.y = w->neckAng;
-        p->addRot.z = 0.0f;
+        p->inv_offset.x = 0.0f;
+        p->inv_offset.y = w->neckAng;
+        p->inv_offset.z = 0.0f;
     } else {
         f32 ang = w->neckAng * 0.25f;
 
         p = (cParts*) em->getPartsPtr(2);
         p->motParts.flags |= 0x40000000;
-        p->addRot.x = 0.0f;
-        p->addRot.y = ang;
-        p->addRot.z = 0.0f;
+        p->inv_offset.x = 0.0f;
+        p->inv_offset.y = ang;
+        p->inv_offset.z = 0.0f;
         p = (cParts*) em->getPartsPtr(3);
         p->motParts.flags |= 0x40000000;
-        p->addRot.x = 0.0f;
-        p->addRot.y = ang;
-        p->addRot.z = 0.0f;
+        p->inv_offset.x = 0.0f;
+        p->inv_offset.y = ang;
+        p->inv_offset.z = 0.0f;
         p = (cParts*) em->getPartsPtr(4);
         p->motParts.flags |= 0x40000000;
-        p->addRot.x = 0.0f;
-        p->addRot.y = ang;
-        p->addRot.z = 0.0f;
+        p->inv_offset.x = 0.0f;
+        p->inv_offset.y = ang;
+        p->inv_offset.z = 0.0f;
         p = (cParts*) em->getPartsPtr(5);
         p->motParts.flags |= 0x40000000;
-        p->addRot.x = 0.0f;
-        p->addRot.y = ang;
-        p->addRot.z = 0.0f;
+        p->inv_offset.x = 0.0f;
+        p->inv_offset.y = ang;
+        p->inv_offset.z = 0.0f;
     }
 }
 
@@ -4092,7 +4092,7 @@ int em35PlFallCk(cEm35* em)
 // 1 when the pending hit landed on the exposed spine (parts 3..6), the weak point.
 int em35WeakDmCk(cEm35* em)
 {
-    s16 n = em->dmg.m_pDamageYarare->partsNo;
+    s16 n = em->dmg.m_pDamageYarare->parts_no;
 
     if (n == 3) {
         return 1;
@@ -4985,7 +4985,7 @@ int em35SetDmVal(cEm35* em)
     int dmg;
 
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 16000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 16000000.0f) {
         near = 1;
     }
     {

@@ -94,7 +94,7 @@ void em26DmCk(cEm26* em)
     em->dmg.m_Flag = 0;
     part = em->dmg.m_pDamageYarare;
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     wep = em->dmg.m_Wep;
@@ -190,7 +190,7 @@ void em26DmCk(cEm26* em)
     SndCall(8, 0xA, &em->pos, em->id, 0, em);
     if (em->hp <= 0) {
         EmRoutineSet(em, 3, 0, 0, 0);
-    } else if (part->partsNo == 5 || part->partsNo == 0x18 || Rnd() % 5 == 0) {
+    } else if (part->parts_no == 5 || part->parts_no == 0x18 || Rnd() % 5 == 0) {
         EmRoutineSet(em, 2, 0, 0, 0);
     }
 }
@@ -446,8 +446,8 @@ static void em26_R1_Dm_Small(cEm26* em)
 
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 8, &em->pos, em->id, 0, em);
-        kind = part->partsNo == 5;
-        if (part->partsNo == 0x18) {
+        kind = part->parts_no == 5;
+        if (part->parts_no == 0x18) {
             kind = 2;
         }
         if (w->flags & 0x10) {

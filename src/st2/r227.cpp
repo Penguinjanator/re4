@@ -899,7 +899,7 @@ static void Evt_R227S00_Func(Event* e)
 {
     int v;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         EvtFlgOnStatus(e, 3);
         e->EvtCancelCut = 10;
@@ -1002,7 +1002,7 @@ static void Evt_R227S01_Func(Event* e)
     Vec rot = {0.0f, 0.0f, 0.0f};
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:
@@ -1076,7 +1076,7 @@ static void Evt_R227S02_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         // Two identical arms (not `case 0: case 1:`): the original keeps the `== 0` / `== 1` tests
         // and cross-jumps the first body into the second.
         switch (e->NowCut) {

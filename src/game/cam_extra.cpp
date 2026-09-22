@@ -66,18 +66,18 @@ void CameraAttachedToMotion::move()
         return;
     }
     if (ac->parts[0] != 0xFF) {
-        param.pos = ac->out[0];
-        PSMTXMultVec(*ac->pMat, &param.pos, &param.pos);
+        param.pos = ac->camera_data[0];
+        PSMTXMultVec(*ac->p_mat, &param.pos, &param.pos);
     }
     if (ac->parts[1] != 0xFF) {
-        param.at = ac->out[1];
-        PSMTXMultVec(*ac->pMat, &param.at, &param.at);
+        param.at = ac->camera_data[1];
+        PSMTXMultVec(*ac->p_mat, &param.at, &param.at);
     }
     if (ac->parts[2] != 0xFF) {
-        param.roll = ac->out[2].y;
+        param.roll = ac->camera_data[2].y;
     }
     if (ac->parts[3] != 0xFF) {
-        param.fovy = ac->out[3].y * 180.0f / PI;
+        param.fovy = ac->camera_data[3].y * 180.0f / PI;
     }
     if (!(MOTION(m_pModel)->Mot_attr & 0x200)) {
         PSMTXInverse(m_pModel->mat, inv);
@@ -224,7 +224,7 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
     PSMTXInverse(pPL->mat, inv);
     if (pos && at) {
         pos_ofs = *pos;
-        PSVECSubtract(at, pos, &dir);
+        PSVECSubtract(at, pos, &m_rad);
     } else {
         cModel* p[2];
         Vec* d;
@@ -235,16 +235,16 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
         PSVECScale(&pos_ofs, &pos_ofs, 0.5f);
         cPlayer* pl = pPL;
 
-        d = &dir;
+        d = &m_rad;
         d->x = pl->mat[0][2];
         d->y = pl->mat[1][2];
         d->z = pl->mat[2][2];
     }
     PSMTXMultVec(inv, &pos_ofs, &pos_ofs);
 #line 306 "D:/Bio4/Prog/cam_extra.cpp"
-    VECNormalize(&dir, &dir);
-    PSVECScale(&dir, &dir, len);
-    PSMTXMultVecSR(inv, &dir, &dir);
+    VECNormalize(&m_rad, &m_rad);
+    PSVECScale(&m_rad, &m_rad, len);
+    PSMTXMultVecSR(inv, &m_rad, &m_rad);
     switch (pG->weapon_no) {
     case 9:
     case 10:
@@ -262,7 +262,7 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
     angle_min = -70.0f * 3.1415927f / 180.0f;
     angle_max = 70.0f * 3.1415927f / 180.0f;
     param.roll = zero;
-    zoom = zero;
+    m_zoom_ratio = zero;
     angle_x = zero;
     m_rnd.x = zero;
     m_rnd.y = zero;
@@ -282,7 +282,7 @@ CameraScope::~CameraScope()
 // Restores zoom (0..1) and pitch (radians) - the weapon keeps them between scope uses.
 void CameraScope::setParam(f32 zoom_ratio, f32 x_radian)
 {
-    zoom = zoom_ratio;
+    m_zoom_ratio = zoom_ratio;
     angle_x = x_radian;
     m_focus.clear();
 }
@@ -290,7 +290,7 @@ void CameraScope::setParam(f32 zoom_ratio, f32 x_radian)
 // Reads back zoom and pitch.
 void CameraScope::getParam(f32* zoom_ratio, f32* x_radian)
 {
-    *zoom_ratio = zoom;
+    *zoom_ratio = m_zoom_ratio;
     *x_radian = angle_x;
 }
 
@@ -333,7 +333,7 @@ void CameraScope::move()
     static f32 rdir = 0.0f;
     static u8 sct = 0;
     static int pastkey = 0;
-    f32 old_zoom = zoom;
+    f32 old_zoom = m_zoom_ratio;
     f32 gain;
     f32 limit;
     f32 add;
@@ -347,11 +347,11 @@ void CameraScope::move()
     if (Key.on & 0x10) { // low word bit 4 (the target masks the low half of the u64)
         f32 sy = (f32) Joy[0].substickY;
         if (sy != 0.0f) {
-            zoom = old_zoom + sy * 0.001f;
+            m_zoom_ratio = old_zoom + sy * 0.001f;
         }
     }
-    zoom = scopeClamp01(zoom);
-    if (zoom != 0.0f) {
+    m_zoom_ratio = scopeClamp01(m_zoom_ratio);
+    if (m_zoom_ratio != 0.0f) {
         limit = ZOOM_LIMIT_0;
         switch (type) {
         case 0:
@@ -362,9 +362,9 @@ void CameraScope::move()
             limit = ZOOM_LIMIT_1;
             break;
         }
-        param.fovy = zoom * (limit - param.fovy) + param.fovy;
+        param.fovy = m_zoom_ratio * (limit - param.fovy) + param.fovy;
     }
-    gain = zoom * -0.9f + 1.0f;
+    gain = m_zoom_ratio * -0.9f + 1.0f;
     if (Key.on & 0x10) {
         if (Joy[0].stickX != 0 || (Joy[0].on & 3)) {
             add = gain * (f32) Joy[0].stickX * -0.05f * DEG2RAD;
@@ -418,7 +418,7 @@ void CameraScope::move()
         yure2 = *a;
     }
     PSMTXRotRad(m, 'x', yure2.x);
-    PSMTXMultVecSR(m, &this->dir, &dir);
+    PSMTXMultVecSR(m, &this->m_rad, &dir);
     PSMTXRotRad(m, 'y', yure2.y);
     PSMTXMultVecSR(m, &dir, &dir);
     PSVECAdd(&pos_ofs, &dir, &ofs);
@@ -432,8 +432,8 @@ void CameraScope::move()
     PSMTXMultVec(pPL->mat, &pos_ofs, &param.pos);
     PSMTXMultVec(pPL->mat, &ofs, &param.at);
     CameraSetOrientationZeroRoll(this);
-    m_id.move(&zoom);
-    if (old_zoom != zoom) {
+    m_id.move(&m_zoom_ratio);
+    if (old_zoom != m_zoom_ratio) {
         m_focus.move(1);
     } else {
         m_focus.move(0);
@@ -506,18 +506,18 @@ static int IdScopeZoomDisp(f32* zoom)
 // Saves the reticle id timers (unit 0x25 ids 0 / 0x10) across a scope re-entry.
 void IdScope::save(void*)
 {
-    save_a = (s16) IdSys.unitPtr(0, IDC_SCOPE)->timer[0];
-    save_b = (s16) IdSys.unitPtr(0x10, IDC_SCOPE)->timer[1];
+    m_pos_time_sav = (s16) IdSys.unitPtr(0, IDC_SCOPE)->timer[0];
+    m_size_time_sav = (s16) IdSys.unitPtr(0x10, IDC_SCOPE)->timer[1];
 }
 
 // Restores the saved reticle id timers (ids 0, 0x10..0x13).
 void IdScope::load(void*)
 {
-    IdSys.unitPtr(0, IDC_SCOPE)->timer[0] = save_a;
-    IdSys.unitPtr(0x10, IDC_SCOPE)->timer[1] = save_b;
-    IdSys.unitPtr(0x11, IDC_SCOPE)->timer[1] = save_b;
-    IdSys.unitPtr(0x12, IDC_SCOPE)->timer[1] = save_b;
-    IdSys.unitPtr(0x13, IDC_SCOPE)->timer[1] = save_b;
+    IdSys.unitPtr(0, IDC_SCOPE)->timer[0] = m_pos_time_sav;
+    IdSys.unitPtr(0x10, IDC_SCOPE)->timer[1] = m_size_time_sav;
+    IdSys.unitPtr(0x11, IDC_SCOPE)->timer[1] = m_size_time_sav;
+    IdSys.unitPtr(0x12, IDC_SCOPE)->timer[1] = m_size_time_sav;
+    IdSys.unitPtr(0x13, IDC_SCOPE)->timer[1] = m_size_time_sav;
 }
 
 // Kills the reticle ids (unit 0x25).
@@ -544,14 +544,14 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
     id_a = a;
     id_b = b;
     if (pos && at) {
-        mode = 0;
+        m_flag = 0;
         param.pos = *pos;
         param.at = *at;
-        this->up.x = 0.0f;
-        this->up.y = 1.0f;
-        this->up.z = 0.0f;
+        this->Up.x = 0.0f;
+        this->Up.y = 1.0f;
+        this->Up.z = 0.0f;
     } else {
-        mode = 1;
+        m_flag = 1;
         cModel* p[2];
         p[0] = pPL->getPartsPtr(0x20); // the load waits for the `mode` store: the two
                                               // param addresses go above the call
@@ -565,7 +565,7 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
         PSVECAdd(&c, &up, &param.at);
         {
             cPlayer* pl = pPL;
-            Vec* u = &this->up;
+            Vec* u = &this->Up;
 
             u->x = pl->mat[0][1];
             u->y = pl->mat[1][1];
@@ -574,11 +574,11 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
     }
     param.fovy = 45.0f;
     CameraSetOrientationUp(this);
-    if (mode != 0) {
+    if (m_flag != 0) {
         PSMTXInverse(pPL->mat, inv);
         PSMTXMultVec(inv, &param.pos, &m_campos);
         PSMTXMultVec(inv, &param.at, &m_target);
-        PSMTXMultVecSR(inv, &this->up, &m_up_vec);
+        PSMTXMultVecSR(inv, &this->Up, &m_up_vec);
     }
     // Store order pinned by the dying-store rule (the last use of each constant is issued first).
     m_zoom_ratio = 0.0f;
@@ -588,14 +588,14 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
     m_rad_low.y = -1.0471976f;
     m_rad_up.x = 1.0471976f;
     m_rad_up.y = 1.0471976f;
-    id.init(this, id_a, id_b);
+    m_id.init(this, id_a, id_b);
     m_focus.init(-1);
 }
 
 // Ends the binocular ids and the focus filter, poisons the object.
 CameraBinocular::~CameraBinocular()
 {
-    id.quit(this);
+    m_id.quit(this);
     m_focus.quit();
     memset(this, 9, 0x200);
 }
@@ -622,10 +622,10 @@ void CameraBinocular::move()
     f32 add;
     f32 ang;
 
-    if (mode != 0) {
+    if (m_flag != 0) {
         param.pos = m_campos;
         param.at = m_target;
-        up = m_up_vec;
+        Up = m_up_vec;
         CameraSetOrientationUp(this);
     }
     param.fovy = 45.0f;
@@ -682,16 +682,16 @@ void CameraBinocular::move()
         CameraTargetRot(this, 'x', add);
         m_rad.x = m_rad.x + add;
     }
-    if (mode != 0) {
+    if (m_flag != 0) {
         m_campos = param.pos;
         m_target = param.at;
-        m_up_vec = up;
+        m_up_vec = Up;
         PSMTXMultVec(pPL->mat, &m_campos, &param.pos);
         PSMTXMultVec(pPL->mat, &m_target, &param.at);
-        PSMTXMultVecSR(pPL->mat, &m_up_vec, &up);
+        PSMTXMultVecSR(pPL->mat, &m_up_vec, &Up);
     }
     CameraSetOrientationUp(this); // unconditional: mode 0 jumps to it
-    id.move(this);
+    m_id.move(this);
     if (old_zoom != m_zoom_ratio) {
         m_focus.move(1);
     } else {
@@ -715,18 +715,18 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdTexDataLoad(a, TEX_OWNER_ID_COCKPIT);
     IdSys.set(b, 0xFF, IDC_BINOCULAR, 0x13, 5, 0);
-    m_pos0_L = IdSys.unitPtr(1, IDC_BINOCULAR)->scr;
-    m_pos0_C = IdSys.unitPtr(2, IDC_BINOCULAR)->scr;
-    m_pos0_R = IdSys.unitPtr(3, IDC_BINOCULAR)->scr;
+    m_pos0_L = IdSys.unitPtr(1, IDC_BINOCULAR)->pos0;
+    m_pos0_C = IdSys.unitPtr(2, IDC_BINOCULAR)->pos0;
+    m_pos0_R = IdSys.unitPtr(3, IDC_BINOCULAR)->pos0;
     if (StaFlagChk(pG, STA_EVENT)) {
         IdSys.unitPtr(0x30, IDC_BINOCULAR)->be_flag &= ~8;
         IdSys.unitPtr(0x1B, IDC_BINOCULAR)->be_flag &= ~8;
     }
     m_fovy_old = cam->param.fovy;
     u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
-    m_meter_pos0 = u->scr;
+    m_meter_pos0 = u->pos0;
     m_meter_h0 = u->size_H;
-    m_meter_w0 = u->sizeX;
+    m_meter_w0 = u->size_W;
 }
 
 // The skipped ids are a switch (`||`/`&&` range tests fold to `cmplwi 4`). OPEN (3 words): the three
@@ -793,7 +793,7 @@ void IdBinocular::move(void* p)
         u->be_flag |= 8;
         u->texNo = 3;
         u->tex_flag |= 2;
-        u->scr.x = (0.0f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
+        u->pos0.x = (0.0f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
         cnt = 1;
     }
     if (lo <= 0.5f && hi >= 0.5f) {
@@ -801,7 +801,7 @@ void IdBinocular::move(void* p)
         u->be_flag |= 8;
         u->texNo = 0;
         u->tex_flag |= 2;
-        u->scr.x = (0.5f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
+        u->pos0.x = (0.5f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
         cnt++;
     }
     if (lo <= 1.0f && hi >= 1.0f) {
@@ -809,7 +809,7 @@ void IdBinocular::move(void* p)
         u->be_flag |= 8;
         u->texNo = 1;
         u->tex_flag |= 2;
-        u->scr.x = (1.0f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
+        u->pos0.x = (1.0f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
         cnt++;
     }
     if (lo <= 1.5f && hi >= 1.5f) {
@@ -817,7 +817,7 @@ void IdBinocular::move(void* p)
         u->be_flag |= 8;
         u->texNo = 2;
         u->tex_flag |= 2;
-        u->scr.x = (1.5f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
+        u->pos0.x = (1.5f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
         cnt++;
     }
     if (lo <= 2.0f && hi >= 2.0f) {
@@ -825,7 +825,7 @@ void IdBinocular::move(void* p)
         u->be_flag |= 8;
         u->texNo = 3;
         u->tex_flag |= 2;
-        u->scr.x = (2.0f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
+        u->pos0.x = (2.0f - lo) * (m_pos0_R.x - m_pos0_L.x) + m_pos0_L.x;
         cnt++;
     }
     // The loop counter is a separate variable copied from cnt (the copy is a no-op after allocation and
@@ -839,11 +839,11 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(0x36, IDC_BINOCULAR);
         MessageControl* mc;
         Message* ms;
-        s16 x = (s16) ((u->scr.x + 320.0f) * 0.8f);
-        s16 y = (s16) ((240.0f - u->scr.y) * 0.8f);
+        s16 x = (s16) ((u->pos0.x + 320.0f) * 0.8f);
+        s16 y = (s16) ((240.0f - u->pos0.y) * 0.8f);
         cMes.setLayout(1, LAYOUT_ACT_BTN);
         mc = &cMes;
-        ms = &mc->mes[1];
+        ms = &mc->m_Msg[1];
         mc->MesSet(1, x, (s16) (y - ms->m_font_h / 2), 0x20081, 1, 0, 4);
         u = IdSys.unitPtr(0x1B, IDC_BINOCULAR);
         rate = u->col[3] / 255.0f;
@@ -873,10 +873,10 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
         u->v0 = ratio;
         u->v1 = 1.0f;
-        u->scr = m_meter_pos0;
-        u->scr.y = u->scr.y - m_meter_h0 * ratio * m;
+        u->pos0 = m_meter_pos0;
+        u->pos0.y = u->pos0.y - m_meter_h0 * ratio * m;
         u->size_H = m_meter_h0 * (1.0f - ratio) * n;
-        y = (m_meter_h0 * 0.5f * 0.5f + u->scr.y) * 2.0f;
+        y = (m_meter_h0 * 0.5f * 0.5f + u->pos0.y) * 2.0f;
     }
     for (int k = 0; k <= 3; k++) {
         IdUnit* u = IdSys.unitPtr(5 + k, IDC_BINOCULAR);
@@ -902,9 +902,9 @@ void IdBinocular::quit(void*)
     IdUnit* u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
     int i;
 
-    u->scr = m_meter_pos0;
+    u->pos0 = m_meter_pos0;
     u->size_H = m_meter_h0;
-    u->sizeX = m_meter_w0;
+    u->size_W = m_meter_w0;
     IdSys.kill(0xFF, IDC_BINOCULAR);
     SpfFlagOff(pG, SPF_ACTBTN);
     Cckpt.roomInit();
@@ -1033,9 +1033,9 @@ CameraLookAt::CameraLookAt(Camera* cam)
     Vec to;
 
     if (Rnd() & 1) {
-        parts = pPL->getPartsPtr(1);
+        m_target_parts = pPL->getPartsPtr(1);
     } else {
-        parts = pPL->getPartsPtr(2);
+        m_target_parts = pPL->getPartsPtr(2);
     }
     param.pos = cam->param.pos;
     param.at = cam->param.at;
@@ -1063,7 +1063,7 @@ void CameraLookAt::move()
     Vec from;
     Vec to;
 
-    param.at = parts->world;
+    param.at = m_target_parts->world;
     from = param.at;
     to = param.pos;
     if (cameraHitCheck(&hit, &nrm, &from, &to)) {
@@ -1077,9 +1077,9 @@ void CameraLookAt::move()
 
 CameraLookDownEm::CameraLookDownEm(void* e, Vec* pos)
 {
-    parts = ((cModel*) e)->getPartsPtr(2);
+    m_target_parts = ((cModel*) e)->getPartsPtr(2);
     param.pos = *pos;
-    param.at = parts->world;
+    param.at = m_target_parts->world;
     param.roll = 0.0f;
     param.fovy = 45.0f;
 }

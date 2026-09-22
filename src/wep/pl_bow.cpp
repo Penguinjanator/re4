@@ -142,10 +142,10 @@ static void wep28_r3_ready10(cPlayer* pl)
         pl->Wep->m_CamAdjY -= d;
     }
     if (MotionCheckCrossFrame(&pl->Motion, 4.0f)) {
-        pl->Wep->pObj2->setDisp(1, 1);
+        pl->Wep->m_pWepHand->setDisp(1, 1);
         pl->setRightHand(1);
     } else if (MotionCheckCrossFrame(&pl->Motion, 11.0f)) {
-        pl->Wep->pObj2->setDisp(1, 0);
+        pl->Wep->m_pWepHand->setDisp(1, 0);
         BOW(pl)->setDispAllow(1);
     }
     if (pl->motionMove()) {
@@ -307,10 +307,10 @@ static void wep28_r3_fire10(cPlayer* pl)
 
     PlWepLockCtrl(pl);
     if (MotionCheckCrossFrame(&pl->Motion, 16.0f)) {
-        pl->Wep->pObj2->setDisp(1, 1);
+        pl->Wep->m_pWepHand->setDisp(1, 1);
         pl->setRightHand(1);
     } else if (MotionCheckCrossFrame(&pl->Motion, 35.0f)) {
-        pl->Wep->pObj2->setDisp(1, 0);
+        pl->Wep->m_pWepHand->setDisp(1, 0);
         BOW(pl)->setDispAllow(1);
     }
     if (pl->motionMove()) {
@@ -331,7 +331,7 @@ static void wepDown(cPlayer* pl)
     cObjWep* obj;
 
     pl->setRightHand(0);
-    pl->Wep->pObj2->setDisp(1, 0);
+    pl->Wep->m_pWepHand->setDisp(1, 0);
     obj = pl->Wep->m_pWep;
     obj->wep.mode = 3;
     obj->wep.step = 0;

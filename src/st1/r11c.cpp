@@ -1136,7 +1136,7 @@ extern "C" void Evt_R11CS00_Func(Event* e)
     void* mod;
     cObj* o;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         setRoomEtcDisp(0x16, 0, 1);
         setRoomEtcDisp(0xF, 0, 1);
@@ -1198,7 +1198,7 @@ extern "C" void Evt_R11CS00_Func(Event* e)
 // Event r11cs10 handler: the ladders and the door.
 extern "C" void Evt_R11CS10_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0: {
         cObj* o;
 
@@ -1231,10 +1231,10 @@ extern "C" void Evt_R11CS10_Func(Event* e)
 static inline void r11c_evtEsp(Event* e, u8 no)
 {
     if (e->NowFrame == 0) {
-        EffectEspDelete(W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-        EffectEspgenDelete(W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-        EffectEfmDelete(W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-        EstSet(0, -1, 0, 0, EFF_ROOM, no, W->tex->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+        EffectEspDelete(W->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+        EffectEspgenDelete(W->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+        EffectEfmDelete(W->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, no, W->tex->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
     }
 }
 
@@ -1245,7 +1245,7 @@ extern "C" void Evt_R11CS20_Func(Event* e)
     // a second block-local `door` would get its own slot.
     cEmDoor* door;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         if (getRoomEtcDoor(0xA, &door, 1)) {
             door->setNoSuspend(1);

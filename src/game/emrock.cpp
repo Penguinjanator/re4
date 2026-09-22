@@ -1843,10 +1843,10 @@ void plemRockEscapeCamMove(cPlayer* pl, f32 rate)
         Vec* ca = &cam->param.at;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(len);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(len);
         CameraSetOrientationUp(cam);
         CamCtrl.m_pExtraCamera = (s32) cam;
     }
@@ -1891,10 +1891,10 @@ void plemRockEscapeCamMove2(cPlayer* pl, int side)
         Vec* ca = &emRockCam.param.at;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(len);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(len);
         CameraSetOrientationUp(cam);
         CamCtrl.m_pExtraCamera = (s32) cam;
     }
@@ -1928,10 +1928,10 @@ void plemRockDropDieCamMove(cEmRock* em)
         Vec* ca = &emRockCam.param.at;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(len);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(len);
         CameraSetOrientationUp(cam);
         CamCtrl.m_pExtraCamera = (s32) cam;
     }
@@ -1978,10 +1978,10 @@ void emRockPushCamMove(cEmRock* em)
         Vec* ca = &emRockCam.param.at;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(len);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(len);
         CameraSetOrientationUp(cam);
         CamCtrl.m_pExtraCamera = (s32) cam;
     }
@@ -2030,10 +2030,10 @@ void emRockPushCamMove2(cEmRock* em)
         Vec* ca = &cam->param.at;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(len);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(len);
         CameraSetOrientationUp(cam);
         CamCtrl.m_pExtraCamera = (s32) cam;
     }
@@ -2061,11 +2061,11 @@ void emRockDropCamMove(cEmRock* em)
     // `up` is set BEFORE `len`: with the up stores after the six len loads, the up.x store is the
     // 34th memory insn of the block and sched1 flushes its pending lists there (haifa's 32-entry
     // limit), which pins the 1.0/0.0 stores behind it and swaps the three pool highs (r27..r29).
-    cam->up.x = 0.0f;
-    cam->up.y = 1.0f;
-    cam->up.z = 0.0f;
+    cam->Up.x = 0.0f;
+    cam->Up.y = 1.0f;
+    cam->Up.z = 0.0f;
     len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-    cam->dist = SQRTF(len);
+    cam->Distance = SQRTF(len);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }

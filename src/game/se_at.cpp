@@ -18,17 +18,17 @@ void SeAtInit()
 {
     SndWork* s = &Snd;
 
-    s->se_at = (SeAtHead*) GetDataExt(pG->pRoom, "ESE", 0);
-    if (s->se_at == 0) {
+    s->pSeAtHeader = (SeAtHead*) GetDataExt(pG->pRoom, "ESE", 0);
+    if (s->pSeAtHeader == 0) {
         return;
     }
-    if (s->se_at->version != 0x100) {
+    if (s->pSeAtHeader->version != 0x100) {
         pLog->err(0, 0, "SeAt DATA IS OLD VERSION");
-        s->se_at = 0;
-        s->se_at_list = 0;
+        s->pSeAtHeader = 0;
+        s->pSeAtData = 0;
         return;
     }
-    s->se_at_list = (SeAt*) (s->se_at + 1);
+    s->pSeAtData = (SeAt*) (s->pSeAtHeader + 1);
 }
 
 // Per frame in the game routine (Rno0 3, not while Stop_flg 0x800): each enabled emitter waits
@@ -50,11 +50,11 @@ void SeAtCheck()
     if (pG->Rno0 != 3) {
         return;
     }
-    if (s->se_at == 0) {
+    if (s->pSeAtHeader == 0) {
         return;
     }
-    for (i = 0; i < s->se_at->num; i++) {
-        at = &s->se_at_list[i];
+    for (i = 0; i < s->pSeAtHeader->num; i++) {
+        at = &s->pSeAtData[i];
         if ((at->flags & 1) == 0) {
             continue;
         }
@@ -118,11 +118,11 @@ SeAt* GetSeAtPtr(int no)
     SeAt* at;
     u32 i;
 
-    if (Snd.se_at == 0) {
+    if (Snd.pSeAtHeader == 0) {
         return 0;
     }
-    for (i = 0; i < Snd.se_at->num; i++) {
-        at = &Snd.se_at_list[i];
+    for (i = 0; i < Snd.pSeAtHeader->num; i++) {
+        at = &Snd.pSeAtData[i];
         if (at->no == no) {
             return at;
         }

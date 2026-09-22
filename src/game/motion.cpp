@@ -133,7 +133,7 @@ void MotionClear(cModel* m, int flag)
         }
         w->pAttachCam->type = 0;
         for (j = 0; j < 5; j++) {
-            memclr_asm(&w->pAttachCam->out[j], sizeof(Vec));
+            memclr_asm(&w->pAttachCam->camera_data[j], sizeof(Vec));
         }
     }
     MOTION(m)->pMot = 0;
@@ -248,7 +248,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int 
         }
         w->pAttachCam->type = 0;
         for (i = 0; i < 5; i++) {
-            memclr_asm(&w->pAttachCam->out[i], sizeof(Vec));
+            memclr_asm(&w->pAttachCam->camera_data[i], sizeof(Vec));
         }
     }
     for (i = 0; i < w->Joint_num; i++) {
@@ -312,11 +312,11 @@ void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int 
     w->Key_hist[1][0][0] = w->Key_hist[1][0][1] = w->Key_hist[1][0][2] = 0;
     w->Key_hist[1][1][0] = w->Key_hist[1][1][1] = w->Key_hist[1][1][2] = 0;
     if (w->pAttachCam != 0) {
-        memclr_asm(w->pAttachCam->hist[0], 6);
-        memclr_asm(w->pAttachCam->hist[1], 6);
-        memclr_asm(w->pAttachCam->hist[2], 6);
-        memclr_asm(w->pAttachCam->hist[3], 6);
-        memclr_asm(w->pAttachCam->hist[4], 6);
+        memclr_asm(w->pAttachCam->history[0], 6);
+        memclr_asm(w->pAttachCam->history[1], 6);
+        memclr_asm(w->pAttachCam->history[2], 6);
+        memclr_asm(w->pAttachCam->history[3], 6);
+        memclr_asm(w->pAttachCam->history[4], 6);
     }
     if (hokan != 0) {
         w->Hokan_frame = hokan;
@@ -409,10 +409,10 @@ void MotionSetCore(cModel* m, void* w_, void* data_, void* seq_, int hokan, int 
             cam->frame = 0;
             asm volatile("" : : : "memory");  // COMPILER-DIFF: anchor, the type load stays after the frame store
             if (cam->type == 1) {
-                cam->pMat = &m->mat;
+                cam->p_mat = &m->mat;
             } else if (cam->type == 2) {
                 MTX_COPY_DOWN(m->mat, cam->mat);
-                cam->pMat = &cam->mat;
+                cam->p_mat = &cam->mat;
             }
         }
         if (w->pAttachCam != 0) {
@@ -719,25 +719,25 @@ void MotionMoveCore(cModel* m, MotionWorkSub* w, Camera* pCamera)
             pp->type = info >> 12;
             pp->key = (u8*) w->pHermite_data[i];
             if (i == cam->parts[0]) {
-                HermiteInterpolation(pp, &cam->out[0], cam->hist[0]);
+                HermiteInterpolation(pp, &cam->camera_data[0], cam->history[0]);
                 if (w->Mot_attr & 0x40) {
-                    cam->out[0].x = -cam->out[0].x;
+                    cam->camera_data[0].x = -cam->camera_data[0].x;
                 }
             } else if (i == cam->parts[1]) {
-                HermiteInterpolation(pp, &cam->out[1], cam->hist[1]);
+                HermiteInterpolation(pp, &cam->camera_data[1], cam->history[1]);
                 if (w->Mot_attr & 0x40) {
-                    cam->out[1].x = -cam->out[1].x;
+                    cam->camera_data[1].x = -cam->camera_data[1].x;
                 }
             } else if (i == cam->parts[2]) {
-                HermiteInterpolation(pp, &cam->out[2], cam->hist[2]);
+                HermiteInterpolation(pp, &cam->camera_data[2], cam->history[2]);
                 if (w->Mot_attr & 0x40) {
-                    cam->out[2].y = -cam->out[2].y;
+                    cam->camera_data[2].y = -cam->camera_data[2].y;
                 }
             } else if (i == cam->parts[3]) {
-                HermiteInterpolation(pp, &cam->out[3], cam->hist[3]);
+                HermiteInterpolation(pp, &cam->camera_data[3], cam->history[3]);
             } else if (i == cam->parts[4]) {
-                HermiteInterpolation(pp, &cam->out[4], cam->hist[4]);
-                cam->frame = (u8) (cam->out[4].y / 100.0f);
+                HermiteInterpolation(pp, &cam->camera_data[4], cam->history[4]);
+                cam->frame = (u8) (cam->camera_data[4].y / 100.0f);
             }
             continue;
         }

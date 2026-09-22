@@ -320,7 +320,7 @@ QfpsOfs g_transOfs[TRANS_DATA_NUM][2][3] = {
 
 void CameraQuasiFPS::LRinfo(void* p)
 {
-    lr_info = p;
+    m_LR_info = p;
 }
 
 // Left / right shoulder check placeholder: always 0 (right shoulder).
@@ -340,27 +340,27 @@ void CameraQuasiFPS::calcDepressionRatio()
     cPlayer* pl = pPL;
 
     if (pl->isKamae()) {
-        angle_y = pl->Wep->getPitch();
-        angle_x = 0.0f;
+        m_depression_ratio = pl->Wep->getPitch();
+        m_direction_ratio = 0.0f;
     } else if ((f32) Key.substickX != 0.0f || (f32) Key.substickY != 0.0f) {
         f32 t;
 
         if (CfgFlagChk(pSys, CFG_AIM_REVERSE)) {
-            angle_y = -((f32) Key.substickY / C_RANGE);
+            m_depression_ratio = -((f32) Key.substickY / C_RANGE);
         } else {
-            angle_y = (f32) Key.substickY / C_RANGE;
+            m_depression_ratio = (f32) Key.substickY / C_RANGE;
         }
         // reference store: keeps the C_RANGE load below it (issued after the Key byte load)
-        (angle_y = angle_y < -1.0f ? -1.0f : (angle_y > 1.0f ? 1.0f : angle_y));
+        (m_depression_ratio = m_depression_ratio < -1.0f ? -1.0f : (m_depression_ratio > 1.0f ? 1.0f : m_depression_ratio));
         t = -(f32) Key.substickX / C_RANGE;
         if (t < 0.0f) {
-            angle_x = ANGLE_LEFT_LIMIT * t;
+            m_direction_ratio = ANGLE_LEFT_LIMIT * t;
         } else {
-            angle_x = ANGLE_RIGHT_LIMIT * t;
+            m_direction_ratio = ANGLE_RIGHT_LIMIT * t;
         }
     } else {
-        angle_y *= 0.9f;
-        angle_x *= 0.9f;
+        m_depression_ratio *= 0.9f;
+        m_direction_ratio *= 0.9f;
     }
 }
 
@@ -481,7 +481,7 @@ int CameraQuasiFPS::checkFBLR()
 // Sets the offset blend ratio directly (1 = old offsets, 0 = current).
 void CameraQuasiFPS::setBlendRatio(f32 r)
 {
-    blend_ratio = r;
+    m_blend_ratio = r;
 }
 
 // Starts a blend from the old offsets to the current ones over `n` frames (m_state bit2).
@@ -637,20 +637,20 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
     if (!(m_state & 8)) {
         m_blend_count--;
         if (m_blend_count > 0) {
-            blend_ratio = (f32) m_blend_count / (f32) m_blend_frame;
+            m_blend_ratio = (f32) m_blend_count / (f32) m_blend_frame;
         } else {
             m_state &= ~4;
-            blend_ratio = 0.0f;
+            m_blend_ratio = 0.0f;
         }
     }
     if (m_state & 4) {
-        f32 r = blend_ratio;
+        f32 r = m_blend_ratio;
         f32 r1 = 1.0f - r;
         int i;
 
         for (i = 0; i < 3; i++) {
             VecLinearCombination(&old[i].Campos, r, &cur[i].Campos, r1, &o[i].Campos);
-            VecLinearCombination(&old[i].target, r, &cur[i].target, r1, &o[i].target);
+            VecLinearCombination(&old[i].Target, r, &cur[i].Target, r1, &o[i].Target);
             VecLinearCombination(&old[i].campos2, r, &cur[i].campos2, r1, &o[i].campos2);
             o[i].Roll = r * old[i].Roll + r1 * cur[i].Roll;
             o[i].Fovy = r * old[i].Fovy + r1 * cur[i].Fovy;
@@ -677,18 +677,18 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
     }
     }
     {
-        f32 ay = angle_y;
+        f32 ay = m_depression_ratio;
 
         if (ay == 0.0f) {
             a = o[1].Campos;
             b = o[1].campos2;
-            c = o[1].target;
+            c = o[1].Target;
             d = a;
         } else if (ay > 0.0f) {
             f32 r1 = 1.0f - ay;
 
             VecLinearCombination(&o[0].Campos, ay, &o[1].Campos, r1, &a);
-            VecLinearCombination(&o[0].target, ay, &o[1].target, r1, &c);
+            VecLinearCombination(&o[0].Target, ay, &o[1].Target, r1, &c);
             VecLinearCombination(&o[0].campos2, ay, &o[1].campos2, r1, &b);
             d = a;
         } else if (ay < 0.0f) {
@@ -697,21 +697,21 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
             ay = -ay;
             r1 = 1.0f - ay;
             VecLinearCombination(&o[2].Campos, ay, &o[1].Campos, r1, &a);
-            VecLinearCombination(&o[2].target, ay, &o[1].target, r1, &c);
+            VecLinearCombination(&o[2].Target, ay, &o[1].Target, r1, &c);
             VecLinearCombination(&o[2].campos2, ay, &o[1].campos2, r1, &b);
             d = a;
         }
     }
     out->Campos = d;
     out->campos2 = b;
-    out->target = c;
+    out->Target = c;
     out->Roll = o[1].Roll;
     out->Fovy = o[1].Fovy;
-    if (angle_x != 0.0f) {
-        PSMTXRotRad(m, 'y', angle_x);
+    if (m_direction_ratio != 0.0f) {
+        PSMTXRotRad(m, 'y', m_direction_ratio);
         PSMTXMultVecSR(m, &out->Campos, &out->Campos);
         PSMTXMultVecSR(m, &out->campos2, &out->campos2);
-        PSMTXMultVecSR(m, &out->target, &out->target);
+        PSMTXMultVecSR(m, &out->Target, &out->Target);
     }
 }
 
@@ -758,12 +758,12 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
         Vec dd;
         Vec to;
 
-        PSVECSubtract(&ofs->campos2, &ofs->target, &dd);
+        PSVECSubtract(&ofs->campos2, &ofs->Target, &dd);
         PSVECCrossProduct(&dd, &up, &vv[1]);
 #line 1140 "D:/Bio4/Prog/cam_qfps.cpp"
         VECNormalize(&vv[1], &vv[1]);
         PSVECScale(&vv[1], &vv[1], w);
-        PSVECSubtract(&ofs->Campos, &ofs->target, &dd);
+        PSVECSubtract(&ofs->Campos, &ofs->Target, &dd);
         PSVECCrossProduct(&dd, &up, &vv[0]);
 #line 1148 "D:/Bio4/Prog/cam_qfps.cpp"
         VECNormalize(&vv[0], &vv[0]);
@@ -847,7 +847,7 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
         }
 
         out->pos = ofs->Campos;
-        out->at = ofs->target;
+        out->at = ofs->Target;
         out->roll = ofs->Roll;
         out->fovy = ofs->Fovy;
         if (fA || fB || fC) {
@@ -989,7 +989,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
                 p = &g_readyOfs[14][i][j];
                 if (cut->flags & 0x30) {
                     p->Campos = cut->pos[k];
-                    p->target = cut->at[k];
+                    p->Target = cut->at[k];
                     p->Roll = cut->roll[k];
                     p->Fovy = cut->fovy[k];
                 }
@@ -997,7 +997,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
                 p = &g_transOfs[TRANS_DATA_AREA][i - 2][j];
                 if (!(cut->flags & 0x20)) {
                     p->Campos = cut->pos[k];
-                    p->target = cut->at[k];
+                    p->Target = cut->at[k];
                     p->Roll = cut->roll[k];
                     p->Fovy = cut->fovy[k];
                 }
@@ -1186,13 +1186,13 @@ void CameraQuasiFPS::init()
     CamSmth.m_ratio = 0.8f;
     fz = 0.0f;  // after the 0.8 stores: pool order 0.8, 0.0
     (m_zoom_ratio = fz);
-    { u8& r_ = reset; r_ = one; }
+    { u8& r_ = m_init_flag; r_ = one; }
     { s16& r_ = m_search_frame; r_ = zero; }
     { u8& r_ = m_site; r_ = two; }
     fl = m_state & ~7;
     m_state = fl;
-    angle_y = fz;
-    angle_x = fz;
+    m_depression_ratio = fz;
+    m_direction_ratio = fz;
     { s16& r_ = m_search_cnt; r_ = zero; }
     asm("" : "=m"(m_floor_ratio) : "r"(one), "r"(two), "r"(zero), "f"(fz), "r"(fl));  // COMPILER-DIFF: #13 (keep-alive)
     if (pPL) {
@@ -1248,7 +1248,7 @@ void CameraQuasiFPS::move()
     calcOffset(&ofs);
     hitCheck(m, &ofs, &prm);
     p2 = prm;
-    if (reset) {
+    if (m_init_flag) {
         campos_aim_eff = p2.pos;
         target_aim_eff = p2.at;
     } else {
@@ -1272,7 +1272,7 @@ void CameraQuasiFPS::move()
         CamSmth.m_ratio = m_walk_ratio;
         break;
     }
-    if (reset) {
+    if (m_init_flag) {
         CamSmth.m_flag |= 1;
     }
     if (pG->debug_mode == 0xF) {
@@ -1324,5 +1324,5 @@ void CameraQuasiFPS::move()
     cam.param.at = c.param.at;
     cam.param.roll = c.param.roll;
     cam.param.fovy = c.param.fovy;
-    reset = 0;
+    m_init_flag = 0;
 }

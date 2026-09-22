@@ -70,14 +70,14 @@ struct SstArea {   // (PS2 ESP_AREA_HEADER)
 
 // One registered effect texture set (eff_sys espTexRegist), 0x54 bytes; owner 0xD2 = free.
 struct EspTexWk {
-    GXTexObj* pTexObj;   // 0x00 first of nTex objects pulled from cEspSystem::texObj
+    GXTexObj* pTex_obj_start;   // 0x00 first of nTex objects pulled from cEspSystem::texObj
     u16 nTexObj;            // 0x04
     u8 pad_6[2];
     GXTlutObj tlut;      // 0x08
     TEXHeader* texHdr;   // 0x14 header of texture 0
-    Mtx mtx;             // 0x18
-    TEXPalette* pTpl;    // 0x48
-    EspAnmData* pAnm;    // 0x4C
+    Mtx _Mtx;             // 0x18
+    TEXPalette* Tpl_addr;    // 0x48
+    EspAnmData* Anm_addr;    // 0x4C
     u32 Owner;           // 0x50
 };
 
@@ -103,12 +103,12 @@ struct cEspSystem {
     SstTbl pathTbl[EFF_MAX];        // 0x7BC8 path tables by owner id
     u8 ownerCnt[EFF_MAX];           // 0x85AC EspDataLoad count per owner
     u8 pad_867F;
-    SstArea* pSstArea;           // 0x8680
+    SstArea* Area_addr;           // 0x8680
     GXTexObj texObj[0x1F4];      // 0x8684 texture object pool
-    u8 texObjFlag[0x3F];         // 0xC504 one bit per pool entry
+    u8 TexObj_flg[0x3F];         // 0xC504 one bit per pool entry
     u8 pad_C543[5];
     u32 ActiveEspNum;         // 0xC548 number of esp slots in use  (PS2 ActiveEspNum)
-    u8* pEspBuf;       // 0xC54C esp pool (0x150 bytes per cEsp)
+    u8* EspArray;       // 0xC54C esp pool (0x150 bytes per cEsp)
     u8* pEspBufSave;   // 0xC550 pool saved by EspArrayPush (esp.cpp)
     u32 nEsp;         // 0xC554 number of esp slots
     u32 nEspBack;       // 0xC558 slot count saved by EspArrayPush
@@ -117,7 +117,7 @@ struct cEspSystem {
     u8 ToolState;      // 0xC561
     u8 pad_C562[2];
     u32 RstAreaState;     // 0xC564 bit per area (GetAreaState)
-    EspLightList lightList;  // 0xC568 lights the effects draw with (esp.cpp EspTrans -> cLightMgr::setEsp)
+    EspLightList EspLightEnv;  // 0xC568 lights the effects draw with (esp.cpp EspTrans -> cLightMgr::setEsp)
     u8 pad_C58C[4];
     int finalColSet;   // 0xC590 1 while finalCol.r == 0xFF (EffSetFinalCol)
     GXColor Final_col;  // 0xC594
@@ -125,8 +125,8 @@ struct cEspSystem {
     f32 CameraPan2;       // 0xC59C camera pitch in degrees (EspGetCameraPan2)
     u32 SstSetFlag;   // 0xC5A0 room effect display flags (bit per id)
     u32 Add_area_bit;  // 0xC5A4
-    void (*toolCb[8])();   // 0xC5A8 tool state callbacks (state bits 0/1 set)
-    void (*toolCb2[8])();  // 0xC5C8 (state bits 0/1 clear)
+    void (*pFuncOn[8])();   // 0xC5A8 tool state callbacks (state bits 0/1 set)
+    void (*pFuncOff[8])();  // 0xC5C8 (state bits 0/1 clear)
 
     int GetTexObjFlag(u32 no);
     void SetTexObjFlag(u32 no, int flag);
@@ -153,7 +153,7 @@ struct Espgen10Work {
     cModel* pMod;     // 0x18
     u32 Guid_pMod;        // 0x1C model serial the controller was set up with
     u16 Time_cnt;           // 0x20 frame counter
-    u8 no;             // 0x22 next record
+    u8 Seq_ptr;             // 0x22 next record
     u8 Flg;          // 0x23 bit0: parts matrix fixed, bit1: pass the rotation on
     u16 Null_parts_no;         // 0x24 parts number (0xFE: free position, 0xFF: none)
     u8 pad_26[2];
@@ -191,8 +191,8 @@ struct Espgen42Work {
     u8 rotY;           // 0xB3 (espgen45) EspGenWork xFE
     u16 indS;          // 0xB4 indirect matrix parameters
     u16 indT;          // 0xB6
-    f32 damp;          // 0xB8
-    f32 spread;        // 0xBC
+    f32 Prm_a;         // 0xB8  wave coefficient (PS2 ESPGEN45_WK Prm_a; was `damp`)
+    f32 Prm_dmp;       // 0xBC  decay per frame (PS2 Prm_dmp; was `spread`)
     f32 Base_y;           // 0xC0 (espgen45)  espgen45: pos0.y at set-up (PS2 Base_y)
     u8 flag;           // 0xC4 (espgen45) bit0: bounded grid (EspGenWork flags bit0), bit1: EspGenWork flags 0x4000
     u8 Mask_Tex;            // 0xC5 (espgen45) EspGenWork xC5  espgen45: EspGenWork MaskTex_id (PS2 Mask_Tex)

@@ -40,7 +40,7 @@ void Wep28_init(cModel* m)
         pLog->err(0, 0, "Wep28_init() cObjWep CREATE FAILED");
         return;
     }
-    pl->Wep->pObj2 = obj;
+    pl->Wep->m_pWepHand = obj;
     obj->init(pl);
     obj->setDisp(1, 0);
     pl->Wep->m_pWep->bow.allow = obj;

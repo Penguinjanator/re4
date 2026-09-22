@@ -645,10 +645,10 @@ void plem2aTrapCamMove(cModel* m)
         f32 dz = pos->z - at->z;
 
         cam = &em2a_rescue_cam_v;   // COMPILER-DIFF: candidate #12
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(dx * dx + dy * dy + dz * dz);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(dx * dx + dy * dy + dz * dz);
     }
     cam->param.fovy = 55.0f;
     CameraSetOrientationUp(cam);
@@ -969,14 +969,14 @@ void em2aTrap1CamMove(cEm2a* em)
     v.z = -300.0f;
     PSMTXMultVec(m, &v, &v);
     PosToPos(&c->param.at, &v, &w->cam.param.at, 0.1f);
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
     {
         f32 dx = w->cam.param.pos.x - w->cam.param.at.x;
         f32 dy = w->cam.param.pos.y - w->cam.param.at.y;
         f32 dz = w->cam.param.pos.z - w->cam.param.at.z;
-        w->cam.dist = SQRTF(dx * dx + dy * dy + dz * dz);
+        w->cam.Distance = SQRTF(dx * dx + dy * dy + dz * dz);
     }
     w->cam.param.fovy = 55.0f;
     CameraSetOrientationUp(&w->cam);

@@ -146,7 +146,7 @@ void* cEsp::operator new(unsigned int size)
     if (i < sys->nEsp) {
         ofs = i * 0x150;
 loop1:
-        esp = (cEsp*) (sys->pEspBuf + ofs);
+        esp = (cEsp*) (sys->EspArray + ofs);
         if (!(esp->m_Be_flg & 1)) {
             goto found;
         }
@@ -160,7 +160,7 @@ loop1:
     if (i < start) {
         ofs = 0;
 loop2:
-        esp = (cEsp*) (sys->pEspBuf + ofs);
+        esp = (cEsp*) (sys->EspArray + ofs);
         if (!(esp->m_Be_flg & 1)) {
             goto found;
         }
@@ -172,7 +172,7 @@ loop2:
     }
     if (ret == sys->pDmyEsp) {
         for (i = start; i < sys->nEsp; i++) {
-            esp = (cEsp*) (sys->pEspBuf + i * 0x150);
+            esp = (cEsp*) (sys->EspArray + i * 0x150);
             if ((esp->m_Be_flg & 1) && (esp->m_Tool_flg & 0x40000)) {
                 do { // keeps loop.c from moving this block out of the loop (see above)
                     PushEsp(esp);
@@ -184,7 +184,7 @@ loop2:
         if (i < start) {
             ofs = 0;
 loop4:
-            esp = (cEsp*) (sys->pEspBuf + ofs);
+            esp = (cEsp*) (sys->EspArray + ofs);
             if ((esp->m_Be_flg & 1) && (esp->m_Tool_flg & 0x40000)) {
 found:
                 memclr_asm(esp, 0x150);
@@ -238,14 +238,14 @@ int EspMove()
     }
     cnt = 0;
     for (i = 0; i < sys->nEsp; i++) {
-        esp = (cEsp*) (sys->pEspBuf + i * 0x150);
+        esp = (cEsp*) (sys->EspArray + i * 0x150);
         if (!ESP_IsActive(esp)) {
             continue;
         }
         if (esp->parent != pEffParentWorld) {
             cModel* m = esp->m_pMod;
             if (m != NULL) {
-                if ((m->be_flag & 0x201) != 1 || m->serial != esp->m_Guid_pMod) {
+                if ((m->be_flag & 0x201) != 1 || m->guid != esp->m_Guid_pMod) {
                     PushEsp(esp);
                     continue;
                 }
@@ -327,7 +327,7 @@ int EspTrans()
     if (sys == NULL) {
         return 0;
     }
-    LightMgr.setEsp(&sys->lightList, 8);
+    LightMgr.setEsp(&sys->EspLightEnv, 8);
     cam = &pG->Camera;
     dir.x = cam->param.at.x - cam->param.pos.x;
     dir.y = cam->param.at.y - cam->param.pos.y;
@@ -348,7 +348,7 @@ int EspTrans()
         sys->CameraPan2 = -atan2f(dir.y, SQRTF(dir.x * dir.x + dir.z * dir.z)) * 57.295776f;
     }
     for (i = 0; i < sys->nEsp; i++) {
-        esp = (cEsp*) (sys->pEspBuf + i * 0x150);
+        esp = (cEsp*) (sys->EspArray + i * 0x150);
         if (!ESP_IsActive(esp)) {
             continue;
         }
@@ -513,7 +513,7 @@ int EspDispInfo()
 {
     static u32 max = 0;
     cEspSystem* sys = g_pEspSys;
-    u8* p = sys->pEspBuf;
+    u8* p = sys->EspArray;
     u32 cnt;
     u32 i;
 
@@ -550,7 +550,7 @@ int EspArrayAlloc(u32 n)
     size = n * 0x150;
 #line 879 "D:/Bio4/Prog/esp.cpp"
     p = (u8*) MEM_ALLOC(size, 1, 0xD);
-    sys->pEspBuf = p;
+    sys->EspArray = p;
     if (p == NULL) {
         return 0;
     }
@@ -564,11 +564,11 @@ int EspArrayFree()
 {
     cEspSystem* sys = g_pEspSys;
 
-    if (sys->pEspBuf == NULL) {
+    if (sys->EspArray == NULL) {
         return 0;
     }
-    Mem_free(sys->pEspBuf);
-    sys->pEspBuf = NULL;
+    Mem_free(sys->EspArray);
+    sys->EspArray = NULL;
     return 1;
 }
 
@@ -581,8 +581,8 @@ int EspArrayPush(u32 n)
     if (sys->pEspBufSave != NULL) {
         return 0;
     }
-    sys->pEspBufSave = sys->pEspBuf;
-    sys->pEspBuf = (u8*) Debug_alloc(n * 0x150, 1);
+    sys->pEspBufSave = sys->EspArray;
+    sys->EspArray = (u8*) Debug_alloc(n * 0x150, 1);
     sys->nEspBack = sys->nEsp;
     sys->nEsp = n;
     return 1;
@@ -596,8 +596,8 @@ int EspArrayPop()
     if (sys->pEspBufSave == NULL) {
         return 0;
     }
-    Debug_free(sys->pEspBuf);
-    sys->pEspBuf = sys->pEspBufSave;
+    Debug_free(sys->EspArray);
+    sys->EspArray = sys->pEspBufSave;
     sys->pEspBufSave = NULL;
     sys->nEsp = sys->nEspBack;
     return 1;
@@ -611,7 +611,7 @@ void EspArrayClear()
     u32 i;
 
     for (i = 0; i < sys->nEsp; i++) {
-        esp = (cEsp*) (sys->pEspBuf + i * 0x150);
+        esp = (cEsp*) (sys->EspArray + i * 0x150);
         if (esp->m_Be_flg & 1) {
             PushEsp(esp);
         }

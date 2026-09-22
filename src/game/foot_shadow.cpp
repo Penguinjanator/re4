@@ -153,7 +153,7 @@ void DrawFootShadow(cEm* em)
             range *= dist / d;
         }
         {
-            FootShadowTbl* tbl = (FootShadowTbl*) em->pFootShadowTbl;
+            FootShadowTbl* tbl = (FootShadowTbl*) em->pFsdTbl;
             ShadowInfo prev;
             ShadowInfo info;
             GXTexObj* tex;
@@ -168,7 +168,7 @@ void DrawFootShadow(cEm* em)
             rate *= (f32) (255 - em->Shd_color) / 255.0f;
             prevOn = 0;
             prevCnt = 0;
-            for (i = 0; i < tbl->num; i++) {
+            for (i = 0; i < tbl->nTbl; i++) {
                 FootShadowDat* dat = &tbl->dat[i];
                 cModel* p = em->getPartsPtr(dat->joint);
                 ShadowInfo mid;

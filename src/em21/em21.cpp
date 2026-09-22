@@ -988,10 +988,10 @@ void plem21TrapCamMove(cModel* m)
         f32 dz = pos->z - at->z;
 
         cam = &em21_trap_cam_v;   // COMPILER-DIFF: candidate #12
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(dx * dx + dy * dy + dz * dz);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(dx * dx + dy * dy + dz * dz);
     }
     cam->param.fovy = 55.0f;
     CameraSetOrientationUp(cam);
@@ -1126,20 +1126,20 @@ void em21NeckMove(cEm21* em)
     }
     f = w->neckY * 0.33333334f;
     p = (cParts*) em->getPartsPtr(3);
-    p->addRot.z = 0.0f;
-    p->addRot.x = 0.0f;
-    p->addRot.y = f;
+    p->inv_offset.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = f;
     p->motParts.flags |= 0x40000000;
     p = (cParts*) em->getPartsPtr(4);
-    p->addRot.z = 0.0f;
-    p->addRot.x = 0.0f;
-    p->addRot.y = f;
+    p->inv_offset.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.y = f;
     p->motParts.flags |= 0x40000000;
     p = (cParts*) em->getPartsPtr(5);
-    p->addRot.y = f;
+    p->inv_offset.y = f;
     p->motParts.flags |= 0x40000000;
-    p->addRot.x = 0.0f;
-    p->addRot.z = 0.0f;
+    p->inv_offset.x = 0.0f;
+    p->inv_offset.z = 0.0f;
     f = fabsf(w->neckX);
     if (!(f < 0.01f)) {
         f = w->neckX * 0.33333334f;

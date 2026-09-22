@@ -333,7 +333,7 @@ void EffAreaUpdate()
     if (SpfFlagChk(pG, SPF_ESP_AREA)) {
         return;
     }
-    if (sys->pSstArea == NULL) {
+    if (sys->Area_addr == NULL) {
         return;
     }
     if (StaFlagChk(pG, STA_EFFAREA_USE_CAM) == 0) {
@@ -343,8 +343,8 @@ void EffAreaUpdate()
         pos = pG->Camera.param.pos;
     }
     flag = 0;
-    ent = sys->pSstArea->ent;
-    for (i = 0; i < sys->pSstArea->num; i++, ent++) {
+    ent = sys->Area_addr->ent;
+    for (i = 0; i < sys->Area_addr->num; i++, ent++) {
         if (AreaHitCheck(ent->area, &pos) == 1) {
             flag |= 1 << ent->area_no;
             if (ent->flag & 1) {
@@ -381,8 +381,8 @@ int EffAreaCheckInRoom(Vec* pos)
     SstAreaEnt* ent;
     u32 i;
 
-    ent = sys->pSstArea->ent;
-    for (i = 0; i < sys->pSstArea->num; i++, ent++) {
+    ent = sys->Area_addr->ent;
+    for (i = 0; i < sys->Area_addr->num; i++, ent++) {
         if (AreaHitCheck(ent->area, pos) == 1) {
             if (ent->flag & 1) {
                 return 1;
@@ -399,8 +399,8 @@ int EffAreaCheckNo(Vec* pos, u8 areaNo)
     SstAreaEnt* ent;
     u32 i;
 
-    ent = sys->pSstArea->ent;
-    for (i = 0; i < sys->pSstArea->num; i++, ent++) {
+    ent = sys->Area_addr->ent;
+    for (i = 0; i < sys->Area_addr->num; i++, ent++) {
         if (areaNo == ent->area_no) {
             if (AreaHitCheck(ent->area, pos) == 1) {
                 return 1;
@@ -436,15 +436,15 @@ void EffEm2d_setTexRender(cModel* m)
         tbl[1] = 0;
         tbl[4] = 0;
         mgr2 = pMgr;
-        tbl[5] = mgr2->texId;
+        tbl[5] = mgr2->m_Tex_no;
         tbl[6] = 2;
-        tbl[7] = mgr2->texId;
+        tbl[7] = mgr2->m_Tex_no;
         tbl[8] = 4;
-        tbl[9] = mgr2->texId;
+        tbl[9] = mgr2->m_Tex_no;
         tbl[0xA] = 6;
-        tbl[0xB] = mgr2->texId;
+        tbl[0xB] = mgr2->m_Tex_no;
         mgr2->m_Rep_type = repType;
-        EstSet(0, -1, NULL, NULL, EFF_EM2D, 0x1F, pMgr->mask | 0x801, ESP_CORE_KIND_NONE, 0, NULL);
+        EstSet(0, -1, NULL, NULL, EFF_EM2D, 0x1F, pMgr->m_Core_flg | 0x801, ESP_CORE_KIND_NONE, 0, NULL);
     }
     m->pModelInfo->setTexBlendTbl(tbl);
     m->pModelInfo->setBlendRatio(0);

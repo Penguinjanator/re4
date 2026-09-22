@@ -626,7 +626,7 @@ void Hit(int no)
     cEmHit* em = r30f_work->hit[no];
     int near = 0;
 
-    if (em->dmg.m_pDamageYarare->rad < 64000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 64000000.0f) {
         near = 1;
     }
     r30f_work->truckLife -= GetWepDmVal(em, em->dmg.m_Wep, near);

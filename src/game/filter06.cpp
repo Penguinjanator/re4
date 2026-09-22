@@ -101,7 +101,7 @@ void cParticle06::move()
         PSVECAdd(&m_Pos, &dir, &m_Pos);
     }
 #line 133 "D:/Bio4/Prog/filter06.cpp"
-    VECNormalize(&pG->Camera.up, &up);
+    VECNormalize(&pG->Camera.Up, &up);
     PSVECSubtract(&m_Pos, &pG->Camera.param.pos, &d);
     dot = PSVECDotProduct(&d, &up);
     if (dot >= 0.0f) {
@@ -199,7 +199,7 @@ void Filter06Trans()
         return;
     }
     PSVECSubtract(&pG->Camera.param.at, &pG->Camera.param.pos, &cam_vec_LR);
-    PSVECCrossProduct(&cam_vec_LR, &pG->Camera.up, &cam_vec_LR);
+    PSVECCrossProduct(&cam_vec_LR, &pG->Camera.Up, &cam_vec_LR);
 #line 246
     VECNormalize(&cam_vec_LR, &cam_vec_LR);
     if (!SpfFlagChk(pG, SPF_ESP)) {

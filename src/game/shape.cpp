@@ -150,7 +150,7 @@ int SetShape(cModelInfo* info, f32 rate, ShapeData* data)
 // Restore the original vertex positions.
 void ResetShape(cModelInfo* info, void* dst)
 {
-    memcpy(dst, info->pData->vtxOrig, info->pData->nVtx * 8);
+    memcpy(dst, info->model_addr->vtxOrig, info->model_addr->nVtx * 8);
 }
 
 // Shape evaluation work (0xD0 bytes, cleared).
@@ -158,7 +158,7 @@ struct ShapeWork {
     ShapeData* data;   // 0x00
     s32* table;        // 0x04  per channel key tables (relocated)
     u8 pad_8[0x18];
-    f32 frames;        // 0x20  frame count + 1
+    f32 frame;        // 0x20  frame count + 1
     f32 rate;          // 0x24
     u8 pad_28[8];
     u8 num;            // 0x30
@@ -200,7 +200,7 @@ void CalculateShape_new(cModelInfo* info, f32 rate, ShapeData* data, u8* dst)
 
     memclr_asm(w, sizeof(ShapeWork));
     w->data = data;
-    w->frames = (f32) (data->nFrame & 0x3FFF) + 1.0f;
+    w->frame = (f32) (data->nFrame & 0x3FFF) + 1.0f;
     w->num = w->data->num;
     w->flags = (u16*) ((u8*) w->data + 3);
     w->idx = (u8*) w->data + (w->num * 2 + 3);
@@ -218,10 +218,10 @@ void CalculateShape_new(cModelInfo* info, f32 rate, ShapeData* data, u8* dst)
     w->rate = rate;
 
     if (dst != NULL) {
-        ShapeEntry* tbl = (ShapeEntry*) (info->pData->shapeOfs + (u32) info->pData + 4);
+        ShapeEntry* tbl = (ShapeEntry*) (info->model_addr->shapeOfs + (u32) info->model_addr + 4);
 
         pp->frame = rate;
-        pp->maxFrame = w->frames;
+        pp->maxFrame = w->frame;
         pp->flags = 2;
         for (i = 0; i < w->num; i++) {
             if (w->flags[i] & 4) {

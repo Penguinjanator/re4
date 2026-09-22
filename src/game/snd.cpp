@@ -161,7 +161,7 @@ void SndInit2()
     for (i = 0; i < 6; i++) {
         pSnd->snd_em_id[i] = 0xFF;
     }
-    pSnd->bgm_mram = SndMem.mram_end + 0x10000;
+    pSnd->mram_base_addr_bgm = SndMem.mram_end + 0x10000;
     pSnd->aram_base_addr_bgm = 0x700000;
     for (i = 0; i < 2; i++) {
         pSnd->snd_bgm_id[i] = 0xFF;
@@ -965,11 +965,11 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     snd_id = Snd_iss_req_para(blk, no, 0);
 
     if (blk == 3 || blk == 4) {
-        pSnd->bgm_work[blk - 3].used = 1;
-        pSnd->bgm_work[blk - 3].id = snd_id;
-        pSnd->bgm_work[blk - 3].vol = v;
-        pSnd->bgm_work[blk - 3].vol_def = sit->vol;
-        pSnd->bgm_work[blk - 3].no = no;
+        pSnd->bgm_state[blk - 3].used = 1;
+        pSnd->bgm_state[blk - 3].id = snd_id;
+        pSnd->bgm_state[blk - 3].vol = v;
+        pSnd->bgm_state[blk - 3].vol_def = sit->vol;
+        pSnd->bgm_state[blk - 3].no = no;
         OSReport("BGM%d seq %d play\n", blk - 3, no);
     }
     if (sit->srd_type == 3) {
@@ -1165,7 +1165,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
             if (wk == -1) {
                 return 0;
             }
-            w = &pSnd->str_work[wk];
+            w = &pSnd->str_state[wk];
             if (pos != 0.0f) {
                 SND_SHD* shd = Snd_get_shd_adrs(blk, no);
                 u32 bs = Snd_str_get_buff_smp(blk, no);
@@ -1209,7 +1209,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
                 return 0;
             }
         } else {
-            w = &pSnd->str_work[blk];
+            w = &pSnd->str_state[blk];
         }
     }
     if (w->id == 0) {
@@ -1249,7 +1249,7 @@ int SndStrStatusCk(int blk, int no, u32 status)
     int s;
 
     if (no == -1) {
-        w = &pSnd->str_work[blk];
+        w = &pSnd->str_state[blk];
     } else {
         w = getStrWork(blk, no);
     }
@@ -1286,7 +1286,7 @@ s8 pullStrWorkNo()
     int i;
 
     for (i = 0; i < 4; i++) {
-        if (pSnd->str_work[i].used == 0) {
+        if (pSnd->str_state[i].used == 0) {
             return i;
         }
     }
@@ -1300,10 +1300,10 @@ SndPlayWork* getStrWork(int blk, int no)
     int i;
 
     for (i = 0; i < 4; i++) {
-        if (pSnd->str_work[i].used == 0) {
+        if (pSnd->str_state[i].used == 0) {
             continue;
         }
-        w = &pSnd->str_work[i];
+        w = &pSnd->str_state[i];
         if (w->blk == blk && w->no == no) {
             return w;
         }
@@ -1318,10 +1318,10 @@ SndPlayWork* getStrWork(u32 id)
     int i;
 
     for (i = 0; i < 4; i++) {
-        if (pSnd->str_work[i].used == 0) {
+        if (pSnd->str_state[i].used == 0) {
             continue;
         }
-        w = &pSnd->str_work[i];
+        w = &pSnd->str_state[i];
         if (w->id == id) {
             return w;
         }
@@ -1378,7 +1378,7 @@ void SndWatcher()
     Snd_iss_control();
 
     for (i = 0; i < 2; i++) {
-        SndPlayWork* w = &pSnd->bgm_work[i];
+        SndPlayWork* w = &pSnd->bgm_state[i];
         if (w->used == 1) {
             if (Snd_seq_end_check(w->id) == 0) {
                 OSReport("SND: BGM %d STOP\n", i);
@@ -1393,7 +1393,7 @@ void SndWatcher()
     }
 
     for (i = 0; i < 4; i++) {
-        SndPlayWork* w = &pSnd->str_work[i];
+        SndPlayWork* w = &pSnd->str_state[i];
         if (w->used == 1) {
             if (w->stat == 1) {
                 w->timer++;
@@ -1433,14 +1433,14 @@ void SndWatcher()
             b = &at->bgmctrl;
             for (i = 0; i < 2; i++) {
                 if ((b->blk_no >> i) & 0x1) {
-                    if (pSnd->bgm_at[i] != at->no) {
+                    if (pSnd->flrat_last_hit[i] != at->no) {
                         int r;
                         if ((b->sw >> i) & 0x1) {
                             r = SndRoomBgmVolSet(i, b->set_vol[i], b->time[i]);
                         } else {
                             r = SndRoomBgmVolReset(i, b->time[i]);
                         }
-                        pSnd->bgm_at[i] = (r == 1) ? at->no : -1;
+                        pSnd->flrat_last_hit[i] = (r == 1) ? at->no : -1;
                     }
                 }
             }
@@ -1473,7 +1473,7 @@ void nextRoomStreamCheck()
     int i;
 
     for (i = 0; i < 4; i++) {
-        SndPlayWork* w = &pSnd->str_work[i];
+        SndPlayWork* w = &pSnd->str_state[i];
         int stop = 0;
         if (rs == NULL) {
             stop = 1;
@@ -1514,7 +1514,7 @@ void nextRoomBgmCheck()
     int flag = 1;
 
     for (i = 0; i < 2; i++) {
-        SndPlayWork* w = &pSnd->bgm_work[i];
+        SndPlayWork* w = &pSnd->bgm_state[i];
         if (i == 0) {
             if (rs != NULL) {
                 u16 b = (u16) rs->bgm[0];
@@ -1530,7 +1530,7 @@ void nextRoomBgmCheck()
                 flag = 1;
             }
             if (flag == 1) {
-                pSnd->bgm_mram = SndMem.mram_end + 0x10000;
+                pSnd->mram_base_addr_bgm = SndMem.mram_end + 0x10000;
                 pSnd->aram_base_addr_bgm = 0x700000;
                 pSnd->snd_bgm_id[i] = 0xFF;
                 SND_BIT_CLR(pSnd->blk_flag, i + 3);
@@ -1539,7 +1539,7 @@ void nextRoomBgmCheck()
                     w->stat = flag;
                 }
             } else {
-                pSnd->bgm_mram = SndMem.blk_mram[i + 3];
+                pSnd->mram_base_addr_bgm = SndMem.blk_mram[i + 3];
                 pSnd->aram_base_addr_bgm = SndMem.blk_aram[i + 3];
             }
         } else {
@@ -1668,8 +1668,8 @@ int SndRoomStartInit()
     }
     memclr_asm(&History, sizeof(SndHistory));
     History.idx = -1;
-    pSnd->bgm_at[0] = -1;
-    pSnd->bgm_at[1] = -1;
+    pSnd->flrat_last_hit[0] = -1;
+    pSnd->flrat_last_hit[1] = -1;
     pSnd->room_ok = 1;
     return 0;
 }
@@ -1700,8 +1700,8 @@ int SndDoorSeLoad()
     if (d != NULL && d->num != 0) {
         for (i = 0; i < d->num; i++) {
             if (d->e[i].room == pG->RoomNo_next) {
-                no = d->e[i].door[pG->door_no];
-                pG->door_no = 0;
+                no = d->e[i].door[pG->door_se];
+                pG->door_se = 0;
                 break;
             }
         }
@@ -1725,7 +1725,7 @@ void SndRoomBgmLoad()
     for (i = 0; i < 2; i++) {
         u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
         if (b & 0x8000) {
-            SndPlayWork* w = &pSnd->bgm_work[i];
+            SndPlayWork* w = &pSnd->bgm_state[i];
             while (w->stat != 0) {
                 SndWatcher();
             }
@@ -1746,12 +1746,12 @@ void SndRoomBgmStartCheck(int reset)
     int start = 0;
 
     if (reset != 0) {
-        pG->snd_tbl_no = 0;
+        pG->terminal_no = 0;
     }
     for (i = 0; i < 2; i++) {
         u16 b;
         if (SysFlagChk(pG, SYS_LOAD_GAME) || reset != 0) {
-            b = (u16) (pSnd->room_bgm_tbl[pG->snd_tbl_no + 1] >> (i * 16));
+            b = (u16) (pSnd->room_bgm_tbl[pG->terminal_no + 1] >> (i * 16));
         } else {
             b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
         }
@@ -1780,7 +1780,7 @@ int SndRoomBgmStart(u8 no, int vol)
     SndPlayWork* w;
 
     if (b & 0x8000) {
-        w = &pSnd->bgm_work[no];
+        w = &pSnd->bgm_state[no];
         if (w->used == 0) {
             goto call;
         }
@@ -1803,7 +1803,7 @@ int SndRoomBgmStart(u8 no, int vol)
 // Stops BGM slot `no`, faded over `time` seconds (0 = at once); stat 1 = stopped by the game.
 void SndRoomBgmStop(u8 no, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_work[no];
+    SndPlayWork* w = &pSnd->bgm_state[no];
 
     if (w->used != 1 || w->stat != 0) {
         return;
@@ -1819,7 +1819,7 @@ void SndRoomBgmStop(u8 no, int time)
 // Fades BGM slot `no` to `vol` over `time` (driver units) when it is playing.
 int SndRoomBgmVolSet(u8 no, int vol, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_work[no];
+    SndPlayWork* w = &pSnd->bgm_state[no];
     int ret = 0;
 
     if (w->used == 1 && w->stat == 0) {
@@ -1831,7 +1831,7 @@ int SndRoomBgmVolSet(u8 no, int vol, int time)
 // Fades BGM slot `no` back to its default volume.
 int SndRoomBgmVolReset(u8 no, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_work[no];
+    SndPlayWork* w = &pSnd->bgm_state[no];
     int ret = 0;
 
     if (w->used == 1 && w->stat == 0) {
@@ -1844,7 +1844,7 @@ int SndRoomBgmVolReset(u8 no, int time)
 // `time` seconds (-1 = at once). Returns 1 when something changed.
 int SndRoomBgmMute(u8 no, int on, int time)
 {
-    SndPlayWork* w = &pSnd->bgm_work[no];
+    SndPlayWork* w = &pSnd->bgm_state[no];
     int ret = 0;
     int t = (time == -1) ? 1 : time * 200;
 
@@ -1882,7 +1882,7 @@ void SndRoomStrStartCheck()
     u32 s;
 
     if (SysFlagChk(pG, SYS_LOAD_GAME)) {
-        s = pSnd->room_str_tbl[pG->snd_tbl_no + 1];
+        s = pSnd->room_str_tbl[pG->terminal_no + 1];
     } else {
         s = pSnd->room_str_tbl[0];
     }
@@ -2251,8 +2251,8 @@ void SndAllStop()
     SndSeAbsFadeOutAll_sec(0);
     Snd_seq_fade_out_type(3, 0);
     for (i = 0; i < 4; i++) {
-        if (pSnd->str_work[i].used != 0) {
-            SndStrReq(pSnd->str_work[i].id, 8, 0, 0);
+        if (pSnd->str_state[i].used != 0) {
+            SndStrReq(pSnd->str_state[i].id, 8, 0, 0);
         }
     }
 }
@@ -2265,7 +2265,7 @@ void SndAllFadeOut()
     SndSeAbsFadeOutAll_sec(2);
     SndSeqFadeOutAll_sec(3, 2);
     for (i = 0; i < 4; i++) {
-        if (pSnd->str_work[i].used != 0) {
+        if (pSnd->str_state[i].used != 0) {
             SndStrReq(i, -1, 4, 400, 0, 0.0f);
         }
     }
@@ -2452,7 +2452,7 @@ void SndEventStrStop(int time)
     u32 i;
 
     for (i = 0; i < 4; i++) {
-        SndPlayWork* w = &pSnd->str_work[i];
+        SndPlayWork* w = &pSnd->str_state[i];
         if (w->used != 0 && w->blk == 1) {
             if (time != 0) {
                 SndStrReq(w->id, 4, time * 200, 0);
@@ -2482,7 +2482,7 @@ void SndEventEnd()
     SndSePauseAll(0);
     for (i = 0; i < 2; i++) {
         u8 no = i;
-        if (SndRoomBgmMute(no, 0, 1) == 0 && pSnd->bgm_work[i].used == 0) {
+        if (SndRoomBgmMute(no, 0, 1) == 0 && pSnd->bgm_state[i].used == 0) {
             u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
             if (b & 0x8000) {
                 SND_SIT* sit = Snd_get_sit_adrs((u16) (i + 3), (b >> 8) & 0x3);
@@ -2648,14 +2648,14 @@ int SndStatDisp(int req)
         eprintf(0x18, 0x10, 0, 0, "Stop WAIT");
         y = 0x20;
         for (i = 0; i < 2; i++) {
-            SndPlayWork* w = &pSnd->bgm_work[i];
+            SndPlayWork* w = &pSnd->bgm_state[i];
             eprintf2(0xA, 0x10, 0x78, y2, 0, 0, "%2d %2d %3d %3d %3d %3d", w->used, w->stat, w->vol,
                      w->vol_def, w->no, w->blk);
             y2 += 0x10;
         }
         y2 += 0x10;
         for (i = 0; i < 4; i++) {
-            SndPlayWork* w = &pSnd->str_work[i];
+            SndPlayWork* w = &pSnd->str_state[i];
             eprintf2(0xA, 0x10, 0x78, y2, 0, 0, "%2d %2d %3d %3d %3d %3d", w->used, w->stat, w->vol,
                      w->vol_def, w->no, w->blk);
             y2 += 0x10;

@@ -275,7 +275,7 @@ extern "C" void Evt_R333S00_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdSetTrans(3, 0);
         r333_work->timer = st3_getCountDownTimer();
@@ -322,7 +322,7 @@ extern "C" void Evt_R333S10_Func(Event* e)
     static int alphaTime = 50;
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0: {
         u32 i;
 
@@ -431,9 +431,9 @@ static void setTexRender()
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r333_work->tex->texId;
+        tbl[5] = r333_work->tex->m_Tex_no;
         r333_work->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r333_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r333_work->tex->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

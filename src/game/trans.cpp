@@ -683,7 +683,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
 {
     calcWeightMat(m);
     for (; info != 0; info = info->pList) {
-        cModelData* d = info->pData;
+        cModelData* d = info->model_addr;
         ModelTexInfo* t = MODEL_TEX(info);
         void* src;
         void* nsrc;
@@ -1107,7 +1107,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             efbDone = 1;
             GetEfbTex(m);
         }
-        d = info->pData;
+        d = info->model_addr;
         if (PTR_INVALID(d)) {
             pLog->err(0, 0, "commonModelTrans() pHead PTR ERR %08x", d);
             return;
@@ -1389,7 +1389,7 @@ void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
         bumpSetup(part, info);
     }
     if (m->be_flag & 0x01000000) {
-        GlobalIlluminationSetup(part, isBit(info->pData->flags, 0x20000000));
+        GlobalIlluminationSetup(part, isBit(info->model_addr->flags, 0x20000000));
     }
     if (part->flags & 4) {
         alphaSetup(m, part, info, 0);
@@ -1839,7 +1839,7 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     if (scale == 0.0f) {
         scale = 0.5f;
     }
-    if (isBit(info->pData->flags, 0x20000000) == 1) {
+    if (isBit(info->model_addr->flags, 0x20000000) == 1) {
         scale *= 0.5f;
     }
     {
@@ -2818,7 +2818,7 @@ void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
             materialSetup(part, info, 0xA, 5);
         }
         if (m->be_flag & 0x01000000) {
-            GlobalIlluminationSetup(part, isBit(info->pData->flags, 0x20000000));
+            GlobalIlluminationSetup(part, isBit(info->model_addr->flags, 0x20000000));
         }
         GXColor k;
         int st;

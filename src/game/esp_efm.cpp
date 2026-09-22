@@ -215,7 +215,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             pLog->err(0, 0, "ESP_EFM : SCR_MODEL_NO[%x] is invalid.", gen->Tex_id);
             return 0;
         }
-        model = PRef(scr->pModelInfo)->pData;
+        model = PRef(scr->pModelInfo)->model_addr;
         tpl = PRef(scr->pModelInfo)->tpl_addr;
     } else {
         if (EspGetEfmAddr(gen->Tex_id, &model, &tpl) == 0) {
@@ -483,7 +483,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
                 // conflicts (same base, disjoint offsets) and the arm reuses the switch register.
                 u32* link = (u32*) &w->parent;
                 link[0] = (u32) parent;
-                link[1] = parent->serial;
+                link[1] = parent->guid;
                 w->parentWorld = parent->getPartsPtr(w->Parts_no);
                 if (ofs) {
                     PSVECAdd(&obj->pos, ofs, &obj->pos);
@@ -809,7 +809,7 @@ void setModTexRender(cObj* obj, int no)
     tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[5] = mgr->texId;
+    tbl[5] = mgr->m_Tex_no;
     obj->pModelInfo->setTexBlendTbl(tbl);
     obj->pModelInfo->setBlendRatio(0xFF);
     obj->Shader_type = 1;

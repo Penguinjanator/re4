@@ -394,7 +394,7 @@ static void r212_EventTrap()
 // 0x40 on pl0100, then hidden again.
 void Evt_R212S00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SmdGetObjPtr(0x1B)->be_flag &= ~2;
         SmdGetObjPtr(0xC)->be_flag &= ~2;

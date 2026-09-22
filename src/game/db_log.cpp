@@ -95,9 +95,9 @@ void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
 void cLog::clear()
 {
     cLogWork* w;
-    timer = 0;
+    m_DispTimer = 0;
     m_BuffIdx = 0;
-    for (w = work; w < &work[100]; w++) {
+    for (w = m_Mes; w < &m_Mes[100]; w++) {
         w->clear();
     }
 }
@@ -106,7 +106,7 @@ void cLog::clear()
 int cLog::modeReset()
 {
     modeSet(160, 378, 90, 5);
-    timer = 0;
+    m_DispTimer = 0;
     m_ScrOfs = 0;
     return 1;
 }
@@ -133,16 +133,16 @@ void cLog::disp()
     s16 yy;
 
     if ((Joy[0].on & JOY_START) && (Joy[0].trg & JOY_Z)) {
-        timer = m_DispTime;
+        m_DispTimer = m_DispTime;
     }
-    if (timer == 0) {
+    if (m_DispTimer == 0) {
         return;
     }
     xx = m_Bx;
     yy = m_By;
     idx = (m_BuffIdx + 100 - m_DispNum - m_ScrOfs + 1) % 100;
     for (i = 0; i < m_DispNum; i++) {
-        work[idx].print(xx, yy);
+        m_Mes[idx].print(xx, yy);
         yy += 14;
         idx = (idx + 1) % 100;
     }
@@ -158,8 +158,8 @@ void cLog::disp()
         m_Flag &= ~1;
         m_RepeatCtr = (m_RepeatCtr + 1) % 8;
     }
-    if (timer != 0xFF) {
-        timer--;
+    if (m_DispTimer != 0xFF) {
+        m_DispTimer--;
     }
     m_Flag &= ~2;
 }
@@ -178,7 +178,7 @@ int cLog::dispLineNum(int x, int y)
 // Shows the window for `flag` frames (0xFF = until cleared).
 int cLog::on(int flag)
 {
-    timer = flag;
+    m_DispTimer = flag;
     return 1;
 }
 
@@ -204,12 +204,12 @@ cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
 {
     char buf[256];
     int dup = 0;
-    cLogWork* w = &work[m_BuffIdx];
+    cLogWork* w = &m_Mes[m_BuffIdx];
 
     vsprintf(buf, fmt, ap);
     m_Flag |= 2;
     if (key != 0) {
-        if (strcmp(w->m_Str, buf) == 0 || w->key == key) {
+        if (strcmp(w->m_Str, buf) == 0 || w->m_Id == key) {
             dup = 1;
         }
     }
@@ -217,20 +217,20 @@ cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
         m_Flag |= 1;
         if (!(flag & LOG_DUP_QUIET)) {
             if (!(flag & LOG_NO_SHOW)) {
-                timer = m_DispTime;
+                m_DispTimer = m_DispTime;
             }
         }
     } else {
         m_BuffIdx = (m_BuffIdx + 1) % 100;
-        w = &work[m_BuffIdx];
+        w = &m_Mes[m_BuffIdx];
         strncpy(w->m_Str, buf, 63);
         w->m_Str[63] = 0;
         if (!(flag & LOG_NO_PRINTF)) {
             printf("%s\n", buf);
         }
-        w->key = key;
+        w->m_Id = key;
         if (!(flag & LOG_NO_SHOW)) {
-            timer = m_DispTime;
+            m_DispTimer = m_DispTime;
         }
     }
     return w;
@@ -246,7 +246,7 @@ void cLogWork::print(int x, int y)
 void cLogWork::clear()
 {
     m_Col = 0;
-    key = 0;
+    m_Id = 0;
     m_Str[0] = 0;
 }
 

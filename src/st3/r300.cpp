@@ -674,9 +674,9 @@ static void setTexRender()
         tbl0[0] = 1;
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
-        tbl0[5] = r300_work->tex[0]->texId;
+        tbl0[5] = r300_work->tex[0]->m_Tex_no;
         r300_work->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r300_work->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r300_work->tex[0]->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -687,7 +687,7 @@ static void setTexRender()
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
-        tbl1[5] = r300_work->tex[1]->texId;
+        tbl1[5] = r300_work->tex[1]->m_Tex_no;
         r300_work->tex[1]->m_Rep_type = 1;
         {
             TexRenderMng* t = r300_work->tex[1];
@@ -695,7 +695,7 @@ static void setTexRender()
             t->m_W_size = 0x20;
             t->m_H_size = 0x20;
         }
-        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r300_work->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r300_work->tex[1]->m_Core_flg | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -750,7 +750,7 @@ static void Evt_R300S00_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         SysFlagOff(pG, SYS_SCISSOR_ON);
         break;

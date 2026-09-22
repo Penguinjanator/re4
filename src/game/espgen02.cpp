@@ -28,9 +28,9 @@ struct Espgen02Work {
     cModel* pMod;     // 0x18
     u32 Guid_pMod;        // 0x1C model serial the controller was set up with
     u16 Time_cnt;           // 0x20 frame counter
-    u16 life;          // 0x24 life time (0 = infinite)
+    u16 Life_max;          // 0x24 life time (0 = infinite)
     u8 pad_24;
-    u8 wait;           // 0x25 frames between emissions
+    u8 Next_max;           // 0x25 frames between emissions
     u8 Next_cnt;        // 0x26 frames left until the next emission
     u8 Set_num;            // 0x27 emissions per frame - 1
     u32 Rand_seed;          // 0x28
@@ -44,10 +44,10 @@ struct Espgen02Work {
     u8 D_size;         // 0x78 rate curve parameters (Calc_D256)
     u8 D_speed;           // 0x79
     u8 D_alpha;           // 0x7A
-    u8 waitD;          // 0x7B
+    u8 D_inter;          // 0x7B
     EspSeqOpt opt;     // 0x7C
     EspSeqOpt* pOpt;   // 0x98
-    u8 pathId;         // 0x9C
+    u8 PathOwner;         // 0x9C
     u8 PathId;         // 0x9D
     u8 Start_ratio;        // 0x9E position along the path in 1/100
     u8 Rnd_ratio;        // 0x9F random range added to it
@@ -148,14 +148,14 @@ void espgen02_Update(EspgenWork* w)
     Mtx rm;
 
     if (model != NULL) {
-        if ((model->be_flag & 0x201) != 1 || model->serial != p->Guid_pMod) {
+        if ((model->be_flag & 0x201) != 1 || model->guid != p->Guid_pMod) {
             PushEspgen(w);
             return;
         }
     }
     espgen02_UpdateMatrix(w);
-    if (p->life != 0) {
-        f32 rate = (f32) p->Time_cnt / (f32) (int) p->life;
+    if (p->Life_max != 0) {
+        f32 rate = (f32) p->Time_cnt / (f32) (int) p->Life_max;
 
         if (p->D_size) {
             scaleR = Calc_D256(p, p->D_size, rate);
@@ -169,8 +169,8 @@ void espgen02_Update(EspgenWork* w)
             colR = Calc_D256(p, p->D_alpha, rate);
             bCol = 1;
         }
-        if (p->waitD) {
-            add = (int) (rate * (f32) (s8) p->waitD);
+        if (p->D_inter) {
+            add = (int) (rate * (f32) (s8) p->D_inter);
         }
     }
     if (p->Next_cnt == 0) {
@@ -181,7 +181,7 @@ void espgen02_Update(EspgenWork* w)
 
         PSMTXIdentity(mtx);
         rec = p->rec;
-        n = p->wait + add;
+        n = p->Next_max + add;
         if (n < 0) {
             p->Next_cnt = 0;
         } else {
@@ -225,7 +225,7 @@ void espgen02_Update(EspgenWork* w)
                 f32 d;
                 int ret;
 
-                path = EspGetPathAddr(p->pathId, p->PathId);
+                path = EspGetPathAddr(p->PathOwner, p->PathId);
                 if (path == NULL) {
                     return;
                 }
@@ -387,7 +387,7 @@ void espgen02_Update(EspgenWork* w)
         p->Next_cnt--;
     }
     p->Time_cnt++;
-    if (p->life != 0 && p->life <= p->Time_cnt) {
+    if (p->Life_max != 0 && p->Life_max <= p->Time_cnt) {
         PushEspgen(w);
     }
 }
@@ -424,22 +424,22 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->rec = rec;
     p->pMod = model;
     if (model != NULL) {
-        p->Guid_pMod = model->serial;
+        p->Guid_pMod = model->guid;
     } else {
         p->Guid_pMod = (u32) model;
     }
     p->Next_cnt = p->Time_cnt = 0;
-    p->life = rec->Espgen_work16[0];
-    p->wait = rec->Espgen_work8[0];
+    p->Life_max = rec->Espgen_work16[0];
+    p->Next_max = rec->Espgen_work8[0];
     p->Set_num = rec->Espgen_work8[1];
     p->D_size = rec->Espgen_work8_2[0];
     p->D_speed = rec->Espgen_work8_2[1];
     p->D_alpha = rec->Espgen_work8_2[2];
-    p->waitD = rec->Espgen_work8_2[3];
+    p->D_inter = rec->Espgen_work8_2[3];
     p->Espgen_flg = rec->Espgen_flg;
     p->R_inter = rec->Espgen_work8_3[0];
     if (p->R_inter) {
-        p->wait += (u32) Rnd() % p->R_inter;
+        p->Next_max += (u32) Rnd() % p->R_inter;
     }
     if (head->flags & 1) {
         p->Flg |= 2;
@@ -462,7 +462,7 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     } else {
         p->pOpt = pSct;
     }
-    p->pathId = rec->Espgen_work8_4[0];
+    p->PathOwner = rec->Espgen_work8_4[0];
     p->PathId = rec->Espgen_work8_4[1];
     p->Start_ratio = rec->Espgen_work8_4[2];
     p->Rnd_ratio = rec->Espgen_work8_4[3];

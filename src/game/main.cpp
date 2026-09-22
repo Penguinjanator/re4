@@ -131,7 +131,7 @@ RESTART:
             pSys->Config_flg = pRK->Config_flg;
             pSys->language = pRK->language;
             pSys->eff_country = pRK->eff_country;
-            pG->language = pRK->game_country;
+            pG->game_country = pRK->game_country;
             pSys->Extra_flg = pRK->Extra_flg;
             for (i = 0; i < 16; i += 4) {
                 U32SetOfs(pSys->MercSysRoom, i, U32GetOfs(pRK->MercSysRoom, i));
@@ -417,7 +417,7 @@ void systemWorkInit()
     pUser_name = (char*) mem_calloc(0x40, __FILE__, __LINE__, 1, 13);
     pSys->language = 1;
     pSys->eff_country = 1;
-    pG->language = 1;
+    pG->game_country = 1;
 }
 
 // Frames per game update in vsyncs (1 = 60 Hz, 2 = 30 Hz).
@@ -508,7 +508,7 @@ void systemResetCommon()
     pRK->Config_flg = pSys->Config_flg;
     pRK->language = pSys->language;
     pRK->eff_country = pSys->eff_country;
-    pRK->game_country = pG->language;
+    pRK->game_country = pG->game_country;
     pRK->Extra_flg = pSys->Extra_flg;
     pRK->System_flg = pG->System_flg;
     for (i = 0; i < 4; i++) {
@@ -559,5 +559,5 @@ void setLanguage()
 {
     pSys->language = 1;
     pSys->eff_country = pSys->language;
-    pG->language = pSys->language;
+    pG->game_country = pSys->language;
 }

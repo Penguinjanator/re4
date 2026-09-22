@@ -113,26 +113,26 @@ void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam)
     // zero register's death and is issued before the other zero stores; fovy is written last and
     // its late pool load lets up.z slip in front of it.
     cam->param.pos.z = 5000.0f;
-    cam->up.y = 1.0f;
+    cam->Up.y = 1.0f;
     cam->param.at.x = 0.0f;
     cam->param.at.y = 0.0f;
     cam->param.at.z = 0.0f;
     cam->param.pos.x = 0.0f;
     cam->param.pos.y = 0.0f;
-    cam->up.x = 0.0f;
-    cam->up.z = 0.0f;
+    cam->Up.x = 0.0f;
+    cam->Up.z = 0.0f;
     cam->param.fovy = 20.0f;
     CameraSetOrientationUp(cam);
     C_MTXPerspective(cam->ProjMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
-    cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
+    cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->Up, &cam->param.at);
 }
 
 // 1 when the player asks to return to the game: Y (Key bit 20) on a type 1 (inventory) screen, Y or B
 // otherwise. Main widgets test it before their own input.
 int sscrnKey2Game(SUB_SCREEN* wk)
 {
-    if (wk->type == 1) {
+    if (wk->open_flag == 1) {
         if (Key.trg & 0x100000) {
             return 1;
         }
@@ -149,11 +149,11 @@ int sscrnKey2Game(SUB_SCREEN* wk)
 void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* down)
 {
     if (n < num) {
-        f32 h = up->scr.y - down->scr.y;
+        f32 h = up->pos0.y - down->pos0.y;
         f32 rate = (f32) n / (f32) num;
         bar->size_H = rate * h;
         rate = (f32) top / (f32) num;
-        bar->scr.y = up->pos.y - rate * (up->scr.y - down->scr.y);
+        bar->pos0.y = up->pos.y - rate * (up->pos0.y - down->pos0.y);
         bar->be_flag |= 8;
     } else {
         bar->be_flag &= ~8;
@@ -208,14 +208,14 @@ void SubScreenTask()
     exitMain = new SsExitMain;
     exitInit->connect(0, exitMain);
     cur = 0;
-    if (wk->type & 0x10) {
+    if (wk->open_flag & 0x10) {
         shopInit = new SsShopInit;
         shopMain = new SsShopMain;
         shopInit->connect(0, shopMain);
         shopMain->connect(0, exitInit);
         cur = shopInit;
         cur->init(wk);
-    } else if (wk->type & 0x20) {
+    } else if (wk->open_flag & 0x20) {
         termInit = new SsTermInit;
         termMain = new SsTermMain;
         termInit->connect(0, termMain);
@@ -268,17 +268,17 @@ void SubScreenTask()
         }
         generalModelAlloc(wk);
         playerModelInit();
-        if (wk->type & 2) {
+        if (wk->open_flag & 2) {
             cur = mapInit;
             cur->init(wk);
-        } else if (wk->type & 4) {
+        } else if (wk->open_flag & 4) {
             wk->pPzzlDat = wk->pSwitchDat;
             cur = pzzlMain;
             cur->init(wk);
-        } else if (wk->type & 0x80) {
+        } else if (wk->open_flag & 0x80) {
             cur = itemInit;
             cur->init(wk);
-        } else if (wk->type & 0x40) {
+        } else if (wk->open_flag & 0x40) {
             cur = fileInit;
             cur->init(wk);
         } else {
@@ -462,7 +462,7 @@ void SsExitMain::move(SUB_SCREEN* wk)
 // p_exam_item/p_exam_model before transiting here).
 void SsItemExamine::init(SUB_SCREEN* wk)
 {
-    state = 0;
+    _rno = 0;
 }
 
 // `&local` arguments through an inlined helper are recomputed at every call (`addi r4, r1, 0x208`)
@@ -484,7 +484,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
     ItemInfo info;
     int size;
 
-    switch (state) {
+    switch (_rno) {
     case 0: {
         ssItemInfo(wk->p_exam_item->id, &info);
         switch (info.type) {
@@ -511,7 +511,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         }
 #line 718 "D:/Bio4/Prog/ss_main.cpp"
         exam_read_req = DVD_READ_N(name, wk->pItemBin, 0, 0, 0, 0x10);
-        state++;
+        _rno++;
     }
     case 1: {
         int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
@@ -524,7 +524,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
                 size = s + (u8) (0x20 - (s & 0x1F));
             }
             wk->pItemTpl = (u8*) wk->pExamDat + size;
-            state++;
+            _rno++;
         } else {
             transit(0, wk);
         }
@@ -539,7 +539,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         }
 #line 751 "D:/Bio4/Prog/ss_main.cpp"
         exam_read_req = DVD_READ_N(name2, wk->pItemTpl, 0, 0, 0, 0x10);
-        state++;
+        _rno++;
     }
     case 3: {
         int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
@@ -550,7 +550,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
             if ((u32) wk->pItemTpl + size > (u32) wk->pExamDat + 0x3E800) {
                 pLog->err(0, 0, "Item Examine: model is too large.");
             }
-            state++;
+            _rno++;
         } else {
             transit(0, wk);
         }
@@ -588,7 +588,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         } else {
             _itemExam.init(exam_id, m, 1);
         }
-        state++;
+        _rno++;
     }
     case 5: {
         IdUnit* pos;
@@ -596,7 +596,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         _itemExam.trans();
         pos = IdSub.unitPtr(0xFE, IDC_DATA);
         cMes.setLayout(7, LAYOUT_SUBSCRN);
-        cMes.MesSet(exam_id, (int) ((pos->scr.x + 320.0f) * 0.8f), (int) ((240.0f - pos->scr.y) * 0.8f), 0x20084, 7, 0, 4);
+        cMes.MesSet(exam_id, (int) ((pos->pos0.x + 320.0f) * 0.8f), (int) ((240.0f - pos->pos0.y) * 0.8f), 0x20084, 7, 0, 4);
         if (Key.trg & 0x20000) {
             ssItemInfo(exam_id, &info);
             if (info.type == 0xD) {
@@ -692,7 +692,7 @@ void idMainMenu(SUB_SCREEN* wk, int sw)
 // Fades the menu background unit (IdSub 7/0) in (sw) or out; skipped on the shop screen (type 0x10).
 void idMainMenuFade(SUB_SCREEN* wk, int sw)
 {
-    if (wk->type != 0x10) {
+    if (wk->open_flag != 0x10) {
         IdUnit* u = IdSub.unitPtr(7, IDC_SSCRN_MAIN_MENU);
         if (sw) {
             u->rev_flag &= ~0xF;
@@ -896,7 +896,7 @@ void numDisp(int id, int num, Vec* pos, u32 flags)
         }
         u = IdNum.unitPtr(0, id);
         u->be_flag |= 8;
-        u->scr = *pos;
+        u->pos0 = *pos;
     }
 }
 

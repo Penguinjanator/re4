@@ -8,7 +8,7 @@
 struct FadeWork {
     GXColor s_col;  // 0x00
     GXColor e_col;    // 0x04
-    GXColor cur;    // 0x08
+    GXColor col;    // 0x08
     u8 pad_C[8];
     f32 z;          // 0x14
     u16 flags;      // 0x18  bit 0 = fading, bit 1 = keep drawing when done, bit 2 = late group (FadeControl(1))

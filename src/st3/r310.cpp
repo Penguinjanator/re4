@@ -824,7 +824,7 @@ static void R310EventS00()
 // frame 50 fades again.
 static void Evt_R310S00_Func(Event* e)
 {
-    if (e->funcMode == 1 && e->NowCut == 0) {
+    if (e->FuncType == 1 && e->NowCut == 0) {
         if (e->NowFrame == 0) {
             void* mod;
             int skip = 1;

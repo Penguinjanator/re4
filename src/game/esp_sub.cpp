@@ -291,7 +291,7 @@ void EspCommonTrans(cEsp* esp)
             GXTlutObj tlut;
             GXTexObj* pTex = &tex;
             GXTlutObj* pTlut = &tlut;
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_MaskPtn_no);
+            TEXDescriptor* td = TEXGet(tw->Tpl_addr, esp->m_MaskPtn_no);
             TEXHeader* th = td->textureHeader;
 
             if (th->format == 8 || th->format == 9) {
@@ -302,7 +302,7 @@ void EspCommonTrans(cEsp* esp)
                 GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
             }
             GXLoadTexObj(pTex, 1);
-            GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+            GXLoadTexMtxImm(tw->_Mtx, 0x21, 1);
             GXSetTexCoordGen(1, 1, 4, 0x21);
             GXSetNumTevStages(2);
             GXSetNumTexGens(2);
@@ -600,7 +600,7 @@ void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
             GXTexObj tex2;
             GXTexObj* pTex = &tex2;
             GXTlutObj* pTlut = (GXTlutObj*) indMtx;
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_MaskPtn_no);
+            TEXDescriptor* td = TEXGet(tw->Tpl_addr, esp->m_MaskPtn_no);
             TEXHeader* th = td->textureHeader;
 
             if (th->format == 8 || th->format == 9) {
@@ -611,7 +611,7 @@ void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
                 GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
             }
             GXLoadTexObj(pTex, 2);
-            GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+            GXLoadTexMtxImm(tw->_Mtx, 0x21, 1);
             GXSetTexCoordGen(texGens, 1, 4, 0x21);
             GXSetTevOrder(1, texGens, 2, 4);
             GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);
@@ -995,7 +995,7 @@ int cEsp::ChannelSet()
         GXSetTevOp(0, 0);
         GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
         GXSetTevColorOp(0, 0, 0, 2, 1, 0);
-        commonEspLightSet(sys->lightList.p, sys->lightList.num);
+        commonEspLightSet(sys->EspLightEnv.p, sys->EspLightEnv.num);
     } else {
         GXSetTevOp(0, 0);
         if (m_Tool_flg & 0x80) {
@@ -1345,7 +1345,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     e->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
                 } else {
                     e->m_pMod = model;
-                    e->m_Guid_pMod = model->serial;
+                    e->m_Guid_pMod = model->guid;
                     e->parent = model->getPartsPtr(e->m_Parts_no);
                     if (pos) {
                         PSVECAdd(&e->m_Pos, pos, &e->m_Pos);

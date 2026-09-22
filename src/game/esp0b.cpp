@@ -11,7 +11,7 @@
 
 struct Esp0bWork {
     Vec ofs;  // 0x00 offset applied to the position this frame
-    Vec prm;  // 0x0C x: sideways jitter, y: vertical jitter, z: distance toward the camera
+    Vec BasePos;  // 0x0C x: sideways jitter, y: vertical jitter, z: distance toward the camera
 };
 
 // Camera-relative jitter: every frame the sprite is moved by a random offset in the camera's
@@ -67,10 +67,10 @@ void cEsp0b::move()
             }
             CameraGetUpVec(cam, &up);
             PSVECCrossProduct(&look, &up, &side);
-            PSVECScale(&look, &w->ofs, -w->prm.z);
-            PSVECScale(&side, &tmp, w->prm.x * fRand1_1());
+            PSVECScale(&look, &w->ofs, -w->BasePos.z);
+            PSVECScale(&side, &tmp, w->BasePos.x * fRand1_1());
             PSVECAdd(&w->ofs, &tmp, &w->ofs);
-            PSVECScale(&up, &tmp, w->prm.y * fRand1_1());
+            PSVECScale(&up, &tmp, w->BasePos.y * fRand1_1());
             PSVECAdd(&w->ofs, &tmp, &w->ofs);
             if (parent != pEffParentWorld) {
                 PSMTXInverse(parent->mat, inv);
@@ -111,10 +111,10 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
         }
         CameraGetUpVec(cam, &up);
         PSVECCrossProduct(&look, &up, &side);
-        PSVECScale(&look, &w->ofs, -w->prm.z);
-        PSVECScale(&side, &tmp, w->prm.x * fRand1_1());
+        PSVECScale(&look, &w->ofs, -w->BasePos.z);
+        PSVECScale(&side, &tmp, w->BasePos.x * fRand1_1());
         PSVECAdd(&w->ofs, &tmp, &w->ofs);
-        PSVECScale(&up, &tmp, w->prm.y * fRand1_1());
+        PSVECScale(&up, &tmp, w->BasePos.y * fRand1_1());
         PSVECAdd(&w->ofs, &tmp, &w->ofs);
         if (esp->parent != pEffParentWorld) {
             PSMTXInverse(esp->parent->mat, inv);
@@ -131,7 +131,7 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
 // Jitter amplitudes from Vec0; Work8[0..1] must be 0 (reported, not fatal).
 int cEsp0b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    m_Free.prm = *(Vec*)&gen->Vec0.x;
+    m_Free.BasePos = *(Vec*)&gen->Vec0.x;
     if (gen->Work8[0] != 0) {
         pLog->err(0, 0, "ESP : 'ESP15' WK0 not 0!! ");
     }

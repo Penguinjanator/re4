@@ -76,7 +76,7 @@ cModel::cModel()
     TevScaleGroup = 0;
     kindid = 0;
     ot_type = 0;
-    pCldShMd = 0;
+    pChildShadowModel = 0;
     Shd_color = 0;
     CullMode = 0;
     Shader_type = 0;
@@ -146,7 +146,7 @@ int cModel::modelInit(void* bin, void* tpl)
     }
     pShadowModelInfo = 0;
     Motion.Seq_speed = 1.0f;
-    pCldShMd = 0;
+    pChildShadowModel = 0;
     Motion.pAttachCam = 0;
     return (int) info;
 }
@@ -227,7 +227,7 @@ void cModel::setPartsOffset(void* bin)
 void cModel::setPartsParent()
 {
     cParts* p = pList;
-    ModelDataHead* rec = pModelInfo->pData->pHead;
+    ModelDataHead* rec = pModelInfo->model_addr->pHead;
     u32 i;
 
     for (i = 0; i < nParts; i++) {
@@ -455,11 +455,11 @@ void cModel::partsWorldCalc()
         m = p->mat;
         if (p->motParts.flags & 0x40000000) {
             p->motParts.flags &= ~0x40000000;
-            PSMTXRotRad(m2, 'x', p->addRot.x);
+            PSMTXRotRad(m2, 'x', p->inv_offset.x);
             PSMTXConcat(m, m2, m);
-            PSMTXRotRad(m2, 'z', p->addRot.z);
+            PSMTXRotRad(m2, 'z', p->inv_offset.z);
             PSMTXConcat(m, m2, m);
-            PSMTXRotRad(m2, 'y', p->addRot.y);
+            PSMTXRotRad(m2, 'y', p->inv_offset.y);
             PSMTXConcat(m2, m, m);
         }
         TransMatrix(m, &p->world);
@@ -794,7 +794,7 @@ void cModelInfo::setBlendType(u8 type)
 // Sets the specular colour of every material of the model data.
 void cModelInfo::setSpecular(u8 r, u8 g, u8 b)
 {
-    cModelData* d = pData;
+    cModelData* d = model_addr;
     ModelPart* part = d->pParts;
     u32 n = d->displist_num;
     u32 i;
@@ -848,13 +848,13 @@ int cModel::deleteModelData(cModelData* data)
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
 
-    if (info->pData == data) {
+    if (info->model_addr == data) {
         pModelInfo = info->pList;
         cModel::mm->destroy(info);
         return 1;
     }
     while (info) {
-        if (info->pData == data) {
+        if (info->model_addr == data) {
             prev->pList = info->pList;
             cModel::mm->destroy(info);
             return 1;
@@ -894,14 +894,14 @@ int cModel::swapModelInfo(cModelData* data, cModelInfo* newInfo)
     cModelInfo* prev = NULL;
     cModelInfo* info = pModelInfo;
 
-    if (info->pData == data) {
+    if (info->model_addr == data) {
         pModelInfo = info->pList;
         cModel::mm->destroy(info);
         addModel(newInfo);
         return 1;
     }
     while (info) {
-        if (info->pData == data) {
+        if (info->model_addr == data) {
             prev->pList = newInfo;
             newInfo->pList = info->pList;
             cModel::mm->destroy(info);
@@ -924,10 +924,10 @@ void cModel::moveDataAddr(int ofs)
     }
     for (info = pModelInfo; info; info = info->pList) {
         if (ofs != 0) {
-            info->pData = (cModelData*) ((u8*) info->pData + ofs);
+            info->model_addr = (cModelData*) ((u8*) info->model_addr + ofs);
             info->tpl_addr = (u8*) info->tpl_addr + ofs;
         } else {
-            calcModelOffset(info->pData);
+            calcModelOffset(info->model_addr);
             calcTplOffset((TEXPalette*) info->tpl_addr);
         }
     }
@@ -1360,14 +1360,14 @@ cModelInfo* cModInfoMgr::create(void* bin, void* tpl)
         calcModelAddr(d);
         calcTplAddr((TEXPalette*) tpl);
         info->tpl_addr = tpl;
-        info->pData = d;
+        info->model_addr = d;
         if (d->version != 0x20010801 && d->version != 0x20030818) {
             notBinData();
         }
         if (d->shapeOfs != 0) {
             info->be_flag |= 2;
         }
-        getBoundingBox(info->pData, &info->bound);
+        getBoundingBox(info->model_addr, &info->bound);
     }
     return info;
 }

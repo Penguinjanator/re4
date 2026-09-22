@@ -105,7 +105,7 @@ int OptionOpenCheck()
 // retry entry is disabled (Status_flg[2] 0x8000).
 void OptionScreen::init(int title)
 {
-    fromTitle = title;
+    _type = title;
     if (title != 0) {
         _msg_attr = 0x94;
     } else {
@@ -116,7 +116,7 @@ void OptionScreen::init(int title)
     IdSys.dispSw(IDC_COUNT_DOWN, 0);
     IdTexDataLoad(OPT_PTR(0x20), TEX_OWNER_ID_DEAD);
     IdSys.set(OPT_PTR(0x24), 0xFF, IDC_OPTION_BG, 0x13, 4, 0);
-    if (fromTitle != 0) {
+    if (_type != 0) {
         IdUnit* u = IdSys.unitPtr(0, IDC_OPTION_BG);
         Hermite1* h = u->curve[2];
         IdSys.setTime(u, (s16) (int) h->key[h->num - 1].t);
@@ -249,23 +249,23 @@ int top_menu(OptionScreen* o)
         }
         switch (pSys->SndMode) {
         case 0:
-            o->sound = 1;
+            o->m_snd_mode = 1;
             break;
         case 1:
-            o->sound = 0;
+            o->m_snd_mode = 0;
             break;
         case 2:
-            o->sound = 2;
+            o->m_snd_mode = 2;
             break;
         default:
-            o->sound = 0;
+            o->m_snd_mode = 0;
             break;
         }
         o->_rno0 = 1;
         o->_rno2 = 0;
         o->_rno3 = 0;
         if (o->_rno1 == 3) {
-            o->_rno2 = o->sound;
+            o->_rno2 = o->m_snd_mode;
         }
         return 0;
     } else {
@@ -462,7 +462,7 @@ int retry_load_menu(OptionScreen* o)
             GameLoad();
         } else {
             ScreenReSize(0x200, 0x1C0);
-            if (o->fromTitle != 1) {
+            if (o->_type != 1) {
                 Cckpt.roomInit();
                 Cckpt.move();
                 Cockpit* ck = &Cckpt;
@@ -840,12 +840,12 @@ int brightness_menu(OptionScreen* o)
             u->col0[3] = 0xFF;
         }
     }
-    a = IdSys.unitPtr(9, IDC_OPTION)->scr;
-    b = IdSys.unitPtr(0x10, IDC_OPTION)->scr;
+    a = IdSys.unitPtr(9, IDC_OPTION)->pos0;
+    b = IdSys.unitPtr(0x10, IDC_OPTION)->pos0;
     rate = (f32) (pSys->brightness - (DEFAULT + MIN_OFS)) / (f32) (MAX_OFS - MIN_OFS);
     PSVECSubtract(&b, &a, &c);
     PSVECScale(&c, &c, rate);
-    PSVECAdd(&a, &c, &IdSys.unitPtr(1, IDC_OPTION)->scr);
+    PSVECAdd(&a, &c, &IdSys.unitPtr(1, IDC_OPTION)->pos0);
     u = IdSys.unitPtr(6, IDC_OPTION);
     if (o->_rno2 == 1) {
         setColor(u, base);
@@ -898,7 +898,7 @@ int audio_menu(OptionScreen* o)
             return 0;
         }
         if (o->_rno2 != 3) {
-            o->sound = o->_rno2;
+            o->m_snd_mode = o->_rno2;
         }
         SndCall(0, 0x3A, 0, 0, 0, 0);
     } else {
@@ -923,7 +923,7 @@ int audio_menu(OptionScreen* o)
         u = IdSys.unitPtr((u8) (i + 2), IDC_OPTION);
         if (o->_rno2 == i) {
             setColor(u, base);
-        } else if (i == 3 || i == o->sound) {
+        } else if (i == 3 || i == o->m_snd_mode) {
             u->col0[0] = 0xFF;
             u->col0[1] = 0xFF;
             u->col0[2] = 0xFF;
@@ -999,11 +999,11 @@ void num(int val, int n, int mode, int base, u8 type, int reverse)
 // Game clear result screen: replaces the cockpit ids with the result id archive `d` (IDC_TITLE).
 void GameResult::init(void* d)
 {
-    data = d;
+    _addr = d;
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
-    IdSys.set(DATA_PTR(data, 0x14), 0xFF, IDC_TITLE, 0x13, 6, 0);
+    IdTexDataLoad(DATA_PTR(_addr, 0x10), TEX_OWNER_ID_TITLE);
+    IdSys.set(DATA_PTR(_addr, 0x14), 0xFF, IDC_TITLE, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
     _rno2 = 0;
@@ -1058,11 +1058,11 @@ void GameResult::quit()
 // Omake (bonus unlocked) screen: the second id layout of the result archive.
 void GameResult::omake_init(void* d)
 {
-    data = d;
+    _addr = d;
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
-    IdSys.set(DATA_PTR(data, 0x18), 0xFF, IDC_TITLE, 0x13, 6, 0);
+    IdTexDataLoad(DATA_PTR(_addr, 0x10), TEX_OWNER_ID_TITLE);
+    IdSys.set(DATA_PTR(_addr, 0x18), 0xFF, IDC_TITLE, 0x13, 6, 0);
 }
 
 // Waits for A; returns 1 to leave.
@@ -1077,11 +1077,11 @@ int GameResult::omake_move()
 // Chapter end screen for chapter `ch` (SceChapterEnd): the chapter result id layout of archive `d`.
 void ChapterEnd::init(void* d, u8 ch)
 {
-    data = d;
+    _addr = d;
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
-    IdSys.set(DATA_PTR(data, 0x14), 0xFF, IDC_TITLE, 0x13, 6, 0);
+    IdTexDataLoad(DATA_PTR(_addr, 0x10), TEX_OWNER_ID_TITLE);
+    IdSys.set(DATA_PTR(_addr, 0x14), 0xFF, IDC_TITLE, 0x13, 6, 0);
     _chapter = ch;
 }
 

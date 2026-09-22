@@ -26,7 +26,7 @@ struct Esp08Work {
     f32 Scr_y;      // 0x14
     u8 Mask_type;   // 0x18 0/1
     u8 pad_19[3];
-    f32 colA0;     // 0x1C initial alpha (esp->colA)
+    f32 Base_alpha;     // 0x1C initial alpha (esp->colA)
     u8 Room_del_frame; // 0x20 frames the alpha fades in (0: none)
     u8 Room_del_cnt;    // 0x21
 };
@@ -314,7 +314,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type);
         if (tw != NULL) {                                                                         \
             texDecl;                                                                              \
             tlutDecl;                                                                             \
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_MaskPtn_no);                                   \
+            TEXDescriptor* td = TEXGet(tw->Tpl_addr, esp->m_MaskPtn_no);                                   \
             TEXHeader* th = td->textureHeader;                                                    \
                                                                                                   \
             if (th->format == 8 || th->format == 9) {                                             \
@@ -326,7 +326,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type);
                 GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);         \
             }                                                                                     \
             GXLoadTexObj(pTex, mapId);                                                            \
-            GXLoadTexMtxImm(tw->mtx, 0x21, 1);                                                    \
+            GXLoadTexMtxImm(tw->_Mtx, 0x21, 1);                                                    \
             if (ind) {                                                                            \
                 GXSetTexCoordGen2(coord, 1, 5, 0x21, 0, 0x7D);                                    \
             } else {                                                                              \
@@ -374,7 +374,7 @@ void cEsp08::move()
     Esp08Work* w = &m_Free;
 
     if (w->Room_del_frame != 0) {
-        m_Col_a = w->colA0;
+        m_Col_a = w->Base_alpha;
     }
     if (CommonMove()) {
         if (!AnmMove()) {
@@ -410,7 +410,7 @@ void cEsp08::move()
             if (w->Room_del_cnt >= w->Room_del_frame) {
                 w->Room_del_cnt = w->Room_del_frame;
             }
-            m_Col_a = w->colA0 * (1.0f - (f32) w->Room_del_cnt / (f32) (int) w->Room_del_frame);
+            m_Col_a = w->Base_alpha * (1.0f - (f32) w->Room_del_cnt / (f32) (int) w->Room_del_frame);
         }
     }
 }
@@ -795,7 +795,7 @@ int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)
     w->Scr_x = 0.0f;
     w->Scr_y = 0.0f;
     w->Room_del_frame = gen->Work8[3];
-    w->colA0 = m_Col_a;
+    w->Base_alpha = m_Col_a;
     w->Mask_type = gen->Work8[2];
     type = w->Mask_type;
     if (type > 1) {

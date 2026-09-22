@@ -41,8 +41,8 @@ void cine_polling(CineWork* w)
     } else {
         on = 1;
     }
-    if (w->on != on) {
-        w->on = on;
+    if (w->old_flag != on) {
+        w->old_flag = on;
         if (on) {
             w->rno0 = 1;
             w->timer0 = 15.0f;

@@ -114,7 +114,7 @@ int item_frame_state[2];
 // unit (IdSub 1/0x1E); deletes the message when the slot is empty (flags bit 0 clear).
 void itemNameDisp(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     IdUnit* u = IdSub.unitPtr(1, IDC_SSCRN_CKPT_2);
     int x;
     int y;
@@ -134,7 +134,7 @@ void itemNameDisp(SUB_SCREEN* wk)
     } else {
         cMes.setFontSize(0, item_name_w[1], item_name_h[1]);
         m->m_line_gap = 0;
-        m->charSpace = item_name_space[3];
+        m->m_char_gap = item_name_space[3];
         pm->MesSet(item->id, x, y, 0x20088, 0, 0, 4);
     }
 }
@@ -149,7 +149,7 @@ void itemCameraInit(SUB_SCREEN* wk, Camera* cam)
 // when opened directly as SS_OPEN_ITEM (0x80, the pick-up screen).
 void SsItemInit::init(SUB_SCREEN* wk)
 {
-    if (wk->type == 0x80) {
+    if (wk->open_flag == 0x80) {
         state = 2;
     } else {
         state = 0;
@@ -193,11 +193,11 @@ void SsItemInit::move(SUB_SCREEN* wk)
         IdSub.dispSw(IDC_SSCRN_PESETA, 1);
         sscrnDataFilename(wk, "ss_item.dat");
 #line 202 "D:/Bio4/Prog/ss_item.cpp"
-        item_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
+        item_read_req = DVD_READ_N(wk->filename, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (item_read_req <= 0) {
             break;
         }
-        if (wk->menu_old == 2 && wk->type != 0x80) {
+        if (wk->menu_old == 2 && wk->open_flag != 0x80) {
             sscrnModelFree(wk);
             generalModelAlloc(wk);
             playerModelInit();
@@ -218,11 +218,11 @@ void SsItemInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(item_read_req, &stat, &size, 0) != 1) {
             break;
         }
-        wk->pItem = wk->pSwitchDat;
+        wk->pItemDat = wk->pSwitchDat;
         state++;
     }
     case 4:
-        if (wk->type == 0x80) {
+        if (wk->open_flag == 0x80) {
             FadeSetW(0x80000000, 5, 0, 0);
         }
         transit(0, wk);
@@ -249,11 +249,11 @@ void SsItemMain::init(SUB_SCREEN* wk)
     exam->connect(0, sel);
     cur = sel;
     itemCameraInit(wk, &pG->Camera);
-    IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), TEX_OWNER_ID_SSCRN);
+    IdTexDataLoad(SS_ARC_PTR(wk->pItemDat, 5), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(IDC_SSCRN_0) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 2, 0);
     }
-    IdNum.set(SS_ARC_PTR(wk->pItem, 7), 0xFF, IDC_SSCRN_1, 0xC, 6, 0);
+    IdNum.set(SS_ARC_PTR(wk->pItemDat, 7), 0xFF, IDC_SSCRN_1, 0xC, 6, 0);
     for (int i = 0; i < 32; i++) {
         int no = i + 0x40;
         IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, no, 0xC, 5, 0);
@@ -267,7 +267,7 @@ void SsItemMain::init(SUB_SCREEN* wk)
             type++;
         }
     }
-    IdSub.set(SS_ARC_PTR(wk->pItem, 6), 0xFF, IDC_SSCRN_2, 0xC, 4, 0);
+    IdSub.set(SS_ARC_PTR(wk->pItemDat, 6), 0xFF, IDC_SSCRN_2, 0xC, 4, 0);
     for (int i = 0; i < 2; i++) {
         IdUnit* tbl[16];
         s8 num;
@@ -286,21 +286,21 @@ void SsItemMain::init(SUB_SCREEN* wk)
     IdSub.unitPtr(0x71, IDC_SSCRN_2)->be_flag &= ~8;
     IdSub.unitPtr(0x72, IDC_SSCRN_2)->be_flag &= ~8;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    if (wk->menu_old == 2 && wk->type != 0x80) {
+    if (wk->menu_old == 2 && wk->open_flag != 0x80) {
         wk->alpha_flag = 0;
         wk->alpha_cnt = 10;
     }
-    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pItem, 4));
+    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pItemDat, 4));
     {
 #line 368 "D:/Bio4/Prog/ss_item.cpp"
         ItemScreenWork* p = (ItemScreenWork*) MEM_ALLOC(sizeof(ItemScreenWork), 1, 13);
-        wk->pItemWk = p;
+        wk->item = p;
         memclr_asm(p, sizeof(ItemScreenWork));
     }
     sscrnMainMenuInit(wk, 0);
     state = 0;
-    wk->pItemWk->comb[0] = -1;
-    wk->pItemWk->comb[1] = -1;
+    wk->item->comb[0] = -1;
+    wk->item->comb[1] = -1;
     itemFrameInit(wk);
     itemMakeInit(wk);
     SndCall(0, 0x1E, 0, 0, 0, 0);
@@ -337,7 +337,7 @@ void SsItemMain::move(SUB_SCREEN* wk)
                     transit(5, wk);
                     break;
                 default:
-                    if (wk->type != 0x80 && next == cur) {
+                    if (wk->open_flag != 0x80 && next == cur) {
                         if (Key.trg & 0x00800000) {
                             wk->close_flag = 0;
                             wk->menu_old = 0;
@@ -371,7 +371,7 @@ void SsItemMain::move(SUB_SCREEN* wk)
                     transit(0, wk);
                     break;
                 case 0:
-                    wk->pItemWk->col = 0;
+                    wk->item->col = 0;
                     sscrnMainMenuInit(wk, 0);
                     state = 0;
                     SndCall(0, 6, 0, 0, 0, 0);
@@ -388,7 +388,7 @@ void SsItemMain::move(SUB_SCREEN* wk)
                 }
             }
             if (Key.trg & 0x02000000) {
-                wk->pItemWk->col = 0;
+                wk->item->col = 0;
                 sscrnMainMenuInit(wk, 0);
                 state = 0;
                 SndCall(0, 6, 0, 0, 0, 0);
@@ -435,7 +435,7 @@ void SsItemMain::quit(SUB_SCREEN* wk)
     if (exam) {
         delete exam;
     }
-    Mem_free(wk->pItemWk);
+    Mem_free(wk->item);
     sscrn_item_out_init(wk);
     wk->scrn_out_func = sscrn_item_out;
 }
@@ -458,7 +458,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
     FuncPathParametrize(u->path0, u->path1);
     if (item_frame_on) {
         u->rev_flag &= ~1;
-        u->scr = item_scr[0];
+        u->pos0 = item_scr[0];
         IdSub.setTime(u, 0);
         IdSub.movePos(u);
         IdSub.setTime(u, 15);
@@ -472,7 +472,7 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
     FuncPathParametrize(u->path0, u->path1);
     if (item_frame_on) {
         u->rev_flag &= ~1;
-        u->scr = item_scr[1];
+        u->pos0 = item_scr[1];
         IdSub.setTime(u, 0);
         IdSub.movePos(u);
         IdSub.setTime(u, 15);
@@ -492,7 +492,7 @@ static int sscrn_item_out(SUB_SCREEN* wk)
 {
     IdUnit* u = IdNum.unitPtr(0x40, IDC_SSCRN_1);
     int ret = 1;
-    if ((u->end & 1) == 0) {
+    if ((u->anima_state & 1) == 0) {
         ret = 0;
     }
     return ret;
@@ -608,7 +608,7 @@ u8 frameMarkNo(int n, int col)
 // unit 0x40 + slot, hidden for single items) and hides empty slots and the combine source.
 void itemFrameSet(SUB_SCREEN* wk, int col)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     IdUnit* u;
     int n;
     int no;
@@ -682,7 +682,7 @@ void itemFrameInit(SUB_SCREEN* wk)
         item_path0[i] = u->path0;
         item_curve[i] = u->curve[0];
         item_path1[i] = u->path1;
-        item_scr[i] = u->scr;
+        item_scr[i] = u->pos0;
         IdSub.setTime(u, 15);
         IdSub.movePos(u);
         item_pos[i] = u->pos;
@@ -712,7 +712,7 @@ void itemFrameMove(SUB_SCREEN* wk, int col)
     case 1:
     case 2:
         item_frame_on = 1;
-        u->scr = item_pos[col];
+        u->pos0 = item_pos[col];
         switch (item_frame_state[col]) {
         case 1:
             u->path0 = IdNum.unitPtr(6, IDC_SSCRN_1)->path0;
@@ -727,12 +727,12 @@ void itemFrameMove(SUB_SCREEN* wk, int col)
         }
         FuncPathParametrize(u->path0, u->path1);
         IdSub.setTime(u, 0);
-        u->end &= ~1;
+        u->anima_state &= ~1;
         itemFrameSet(wk, col);
         item_frame_state[col] = 3;
         break;
     case 3:
-        if (u->end & 1) {
+        if (u->anima_state & 1) {
             item_frame_state[col] = 0;
         }
         break;
@@ -750,12 +750,12 @@ void itemListMake()
 // and sets comb[]. Starts the frame scroll animation, highlights the column tab, runs itemFrameMove.
 int itemSelect(SUB_SCREEN* wk, int mode)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     int ret = 0;
     int i;
     s8 col;
 
-    if (wk->type == 0x80) {
+    if (wk->open_flag == 0x80) {
         iw->col = 0;
     } else if (mode == 0) {
         s8 old = iw->col;
@@ -841,7 +841,7 @@ END:
 // List cursor widget entry: no combine partner, refresh both columns.
 void ItemSelect::init(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     int i;
 
     iw->comb[0] = -1;
@@ -855,7 +855,7 @@ void ItemSelect::init(SUB_SCREEN* wk)
 // the command menu (item_sel), otherwise itemSelect (leaving upwards also gives state 2).
 void ItemSelect::move(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     s8 col = iw->col;
     int i;
 
@@ -899,7 +899,7 @@ void ItemSelect::move(SUB_SCREEN* wk)
 // Examine / Combine) with the cursor on the first entry.
 void ItemCommand::init(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     int i;
 
     setCommandId(iw->col != 0, id, &num);
@@ -920,7 +920,7 @@ void ItemCommand::init(SUB_SCREEN* wk)
 // cursor; mode 1 opens the sub menu, mode 2 runs the yes/no (yes = ItemMgr.dumpAll).
 void ItemCommand::move(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
 
     wk->cursor_mode = 1;
     switch (mode) {
@@ -1050,7 +1050,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
             sub[j]->be_flag |= 8;
             sub[j]->rev_flag &= 0xF0;
         }
-        PSVECAdd(&id[wk->cmd_menu_no * 2 + 4]->scr, &id[wk->cmd_menu_no * 2 + 4]->pParent->scr, &sub[0]->scr);
+        PSVECAdd(&id[wk->cmd_menu_no * 2 + 4]->pos0, &id[wk->cmd_menu_no * 2 + 4]->pParent->pos0, &sub[0]->pos0);
         mode = 2;
     }
         // fall through: the sub menu is processed in the frame that opens it
@@ -1123,7 +1123,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
 // selected item's icon and marks it as the combine source (comb[col]).
 void ItemCombine::init(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     s8 col = iw->col;
     u8 base = 0;
     ItemWork* item;
@@ -1151,7 +1151,7 @@ void ItemCombine::init(SUB_SCREEN* wk)
 // Combine mode close: hides the combine slot ids and clears the source.
 void ItemCombine::quit(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     s8 col = iw->col;
     u8 base = 0;
 
@@ -1174,7 +1174,7 @@ void ItemCombine::quit(SUB_SCREEN* wk)
 // sound, otherwise itemSelect mode 1 moves the target cursor.
 void ItemCombine::move(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     s8 col = iw->col;
 
     wk->cursor_mode = 2;
@@ -1300,7 +1300,7 @@ void itemMakeInit(SUB_SCREEN* wk)
 // it) or removes the item under the list cursor.
 void itemMakeMove(SUB_SCREEN* wk)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     JOY* joy = &Joy[0];
     SsItemMakeWork* mk = ITEM_MAKE_WORK(wk);
     ItemWork* got = 0;
@@ -1381,7 +1381,7 @@ void itemMakeMove(SUB_SCREEN* wk)
 // name message.
 void itemMakeDisp(SUB_SCREEN* wk, int x, int y)
 {
-    ItemScreenWork* iw = wk->pItemWk;
+    ItemScreenWork* iw = wk->item;
     SsItemMakeWork* mk = ITEM_MAKE_WORK(wk);
     ItemWork* cur = ITEM_PTR(iw->idx[iw->col], iw->col);
     int i;

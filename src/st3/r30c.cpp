@@ -225,7 +225,7 @@ static void R30cEventS00()
 // Event r30cs00 callback: the pl0100 model's status flag 0x40 on for cut 0 and off from cut 1.
 void Evt_R30CS00_Func(Event* e)
 {
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {

@@ -1780,7 +1780,7 @@ static void Evt_R209S00_Func(Event* e)
     Vec rot = {0.0f, 0.0f, 0.0f};
     cObj* o;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         r209_work->door4->setClose();
         r209_work->door4->setCloseLock();

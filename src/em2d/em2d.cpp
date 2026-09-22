@@ -411,7 +411,7 @@ void em2dDmCk(cEm2d* em)
     w->flags |= 0x200;
     near = 0;
     part = em->dmg.m_pDamageYarare;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     dmg = em2dSetDmVal(em);
@@ -444,10 +444,10 @@ void em2dDmCk(cEm2d* em)
                 for (i = 0; i < seq->num; i++) {
                     if (EspEstSetSelect(EFF_EM2D, 0x24, i, &esp, 0)) {
                         esp->m_Pos = pos;
-                        esp->parent = em->getPartsPtr(part->partsNo - 1);
+                        esp->parent = em->getPartsPtr(part->parts_no - 1);
                         PSMTXInverse(((cModel*) esp->parent)->mat, inv);
                         PSMTXMultVec(inv, &esp->m_Pos, &esp->m_Pos);
-                        esp->m_Parts_no = part->partsNo - 1;
+                        esp->m_Parts_no = part->parts_no - 1;
                     }
                 }
             }
@@ -476,10 +476,10 @@ void em2dDmCk(cEm2d* em)
                 for (i = 0; i < seq->num; i++) {
                     if (EspEstSetSelect(EFF_EM2D, 0x25, i, &esp2, 0)) {
                         esp2->m_Pos = pos;
-                        esp2->parent = em->getPartsPtr(part->partsNo - 1);
+                        esp2->parent = em->getPartsPtr(part->parts_no - 1);
                         PSMTXInverse(((cModel*) esp2->parent)->mat, inv);
                         PSMTXMultVec(inv, &esp2->m_Pos, &esp2->m_Pos);
-                        esp2->m_Parts_no = part->partsNo - 1;
+                        esp2->m_Parts_no = part->parts_no - 1;
                     }
                 }
             }
@@ -4754,14 +4754,14 @@ int em2dSetDmVal(cEm2d* em)
     int near = 0;
     int dmg;
 
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     dmg = 100;
     if (em->dmg.m_Wep <= 0x2D) {
         dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
-    if (part->partsNo == 6) {
+    if (part->parts_no == 6) {
         dmg = (int) ((f32) dmg * 1.25f);
         switch (em->dmg.m_Wep) {  // range node: `cmpwi 0xa; bgt; cmpwi 9; blt`
         case 9:
@@ -5468,10 +5468,10 @@ int em2dCamMove(cEm2d* em, int mode, f32 rate)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->cam.param.at, &d, &w->cam.param.pos);
     }
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
@@ -5493,10 +5493,10 @@ void em2dDieCamMove(cEm2d* em)
     at = pPL->getPartsPtr(4)->world;
     PosToPos(&g->Camera.param.at, &at, &w->cam.param.at, 0.300000012f);
     PosToPos(&g->Camera.param.pos, &pos, &w->cam.param.pos, 0.300000012f);
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;

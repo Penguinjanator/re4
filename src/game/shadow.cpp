@@ -1103,7 +1103,7 @@ void make_shadow_texture(ShadowMng* mng)
             } else {
                 shadowModelTrans2(p, info, mng->lookAt);
             }
-            n = (cModel*) p->pCldShMd;
+            n = (cModel*) p->pChildShadowModel;
             if (n && (n->be_flag & 0x12)) {
                 p = n;
                 goto NEXT_MODEL;
@@ -1529,7 +1529,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
     GXSetCurrentMtx(0);
 
     for (; info != 0; info = info->pList) {
-        cModelData* d = info->pData;
+        cModelData* d = info->model_addr;
         void* texArr = d->pTex;
         u16 nParts;
         ModelPart* part;
@@ -1603,7 +1603,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     GXSetCurrentMtx(0);
 
     for (; info != 0; info = info->pList) {
-        cModelData* d = info->pData;
+        cModelData* d = info->model_addr;
         void* texArr = d->pTex;
         u16 nParts;
         ModelPart* part;

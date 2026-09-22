@@ -984,7 +984,7 @@ int IdIsAnimEnd(IDSystem* id, int no, u8 type)
     IdUnit* u = id->unitPtr(no, type);
 
     if (u != NULL) {
-        return (u->end & 3) ? 1 : 0;
+        return (u->anima_state & 3) ? 1 : 0;
     }
     pLog->err(0, 0, "IdIsAnimEnd : pIdUnit is NULL");
     return 1;
@@ -1058,17 +1058,17 @@ int MercResult::init(MercSysWork* wk)
     setLangExt3(data_name + 3);
 #line 1866 "D:/Bio4/Prog/mercenaries.cpp"
     Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
-    pData = addr;
+    omk_addr = addr;
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    pTex = DATA_PTR(pData, 0x10);
-    pIdRank[0] = DATA_PTR(pData, 0x14);
-    pIdRank[1] = DATA_PTR(pData, 0x18);
-    pIdRank[2] = DATA_PTR(pData, 0x1C);
-    pIdRank[3] = DATA_PTR(pData, 0x20);
-    pIdRank[4] = DATA_PTR(pData, 0x24);
-    pIdExtra = DATA_PTR(pData, 0x28);
-    pIdEnd = DATA_PTR(pData, 0x2C);
+    pTex = DATA_PTR(omk_addr, 0x10);
+    pIdRank[0] = DATA_PTR(omk_addr, 0x14);
+    pIdRank[1] = DATA_PTR(omk_addr, 0x18);
+    pIdRank[2] = DATA_PTR(omk_addr, 0x1C);
+    pIdRank[3] = DATA_PTR(omk_addr, 0x20);
+    pIdRank[4] = DATA_PTR(omk_addr, 0x24);
+    pIdExtra = DATA_PTR(omk_addr, 0x28);
+    pIdEnd = DATA_PTR(omk_addr, 0x2C);
     IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
     IdSys.set(pIdRank[wk->rslt.mode], 0xFF, IDC_TITLE, 0x13, 6, 0);
     _rno0 = 0;
@@ -1216,11 +1216,11 @@ void AdaResult::init()
     setLangExt3(data_name + 3);
 #line 2141 "D:/Bio4/Prog/mercenaries.cpp"
     Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
-    pData = addr;
+    omk_addr = addr;
     IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    pTex = DATA_PTR(pData, 0x10);
-    pId = DATA_PTR(pData, 0x14);
+    pTex = DATA_PTR(omk_addr, 0x10);
+    pId = DATA_PTR(omk_addr, 0x14);
     IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
     IdSys.set(pId, 0xFF, IDC_TITLE, 0x13, 6, 0);
     _rno0 = 0;

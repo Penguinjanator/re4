@@ -24,10 +24,10 @@ struct SsArc {
 // The work is the `SUB_SCREEN` of the Sscrn module's `Widget<SUB_SCREEN>` template (the module's
 // mangled names carry the tag); SubScreenWork is the DOL-side alias.
 struct SUB_SCREEN {
-    char path[0x28];          // 0x000  "SS/<lang>/<file>" (sscrnSetLanguage / sscrnDataFilename)
+    char filename[0x28];          // 0x000  "SS/<lang>/<file>" (sscrnSetLanguage / sscrnDataFilename)
     u8 Loop;                  // 0x028  1 while the sub screen main loop runs (sscrn opens, SubScreenTask exit clears)
     u8 pad_29[3];
-    s32 type;                 // 0x02C  open type: 1 inventory, 2, 0x10, 0x20 puzzle, 0x40, 0x80
+    s32 open_flag;             // 0x02C  open type: 1 inventory, 2, 0x10, 0x20 puzzle, 0x40, 0x80
     s32 flags;                // 0x030  bit0 event, bit1 (flags_5010 bit21 at open), bit3 no sound
     s32 close_flag;           // 0x034  set by the screens as they close (2 item, 4 map, 8 term, 0x10 file, 0x10000 shop); cleared on menu change
     s32 attr_flag;
@@ -41,35 +41,35 @@ struct SUB_SCREEN {
     Camera camera_bak;               // 0x058  pG->Camera while open
     Mtx pl_mat;                // 0x150  player matrix at open
     Mtx sub_mat;               // 0x180  partner matrix at open
-    u8 stage;                 // 0x1B0  sscrnStageNo()
+    u8 stage_no;                 // 0x1B0  sscrnStageNo()
     u8 pad_1B1;
     u16 room_no;                 // 0x1B2  sscrnRoomNo()
     u8 scope_flag;                 // 0x1B4  1: the scope was up, 2: and flags_5010 bit 26
     u8 binocular_flag;                  // 0x1B5  the binocular was up
     u8 suspend_flag;                  // 0x1B6  flags_5010 bit 28 (always 0: the mask is stored as a byte)
-    u8 noBullet;              // 0x1B7  the equipped weapon (type 3) was empty
+    u8 swep_flag;              // 0x1B7  the equipped weapon (type 3) was empty
     u8 jacket_flag;                  // 0x1B8  item 0xFE owned
     u8 pad_1B9[3];
-    s32 healing;              // 0x1BC  SubCharCheckHealing()
+    s32 sub_cure_flag;              // 0x1BC  SubCharCheckHealing()
     void* pBuf;               // 0x1C0  MRAM area swapped with the ARAM copy (pG->pStageFont)
-    u32 aramSize;             // 0x1C4  bytes read to ARAM (SubScreenAramRead)
+    u32 pFreeOffs;             // 0x1C4  bytes read to ARAM (SubScreenAramRead)
     u32 pHeapOffs;              // 0x1C8  heap 12 starts at pBuf + heapOfs
     u32 pPreplfOffs;               // 0x1CC  Sscrn.rel offset in the area
     u32 pCommonOffs;              // 0x1D0  ss_cmmn.dat offset
-    u32 pzzlOfs;              // 0x1D4  ss_pzzl.dat offset
+    u32 pSwitchOffs;              // 0x1D4  ss_pzzl.dat offset
     s32 relAddr;              // 0x1D8  Sscrn.rel address (0 while unlinked)
     SsArc* pCmmn;             // 0x1DC
     SsArc* pSwitchDat;        // 0x1E0  read buffer of the screen being switched to (item / map / puzzle .dat) (PS2 pSwitchDat)
     SsArc* pPzzlDat;          // 0x1E4  puzzle screen data (SubScreenTask: = pSwitchDat once read) (PS2 pPzzlDat)
-    SsArc* pItem;             // 0x1E8  ss_item.dat archive (Sscrn ss_item)
-    SsArc* pTerm;             // 0x1EC  ss_term.dat archive (Sscrn ss_term)
-    void* pOpData;            // 0x1F0  op/opNN.das (Sscrn ss_term: the message/sequence archive at +0x400)
-    SsArc* pMapCmn;           // 0x1F4  ss_map.dat archive (Sscrn ss_map: common map data, pSwitchDat while the map is open)
-    SsArc* pMapArea;          // 0x1F8  SS/cmn/map_objNN.dat archive of the current area (Sscrn ss_map)
-    SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
+    SsArc* pItemDat;             // 0x1E8  ss_item.dat archive (Sscrn ss_item)
+    SsArc* pTermDat;             // 0x1EC  ss_term.dat archive (Sscrn ss_term)
+    void* pTermMes;            // 0x1F0  op/opNN.das (Sscrn ss_term: the message/sequence archive at +0x400)
+    SsArc* pMapDat;           // 0x1F4  ss_map.dat archive (Sscrn ss_map: common map data, pSwitchDat while the map is open)
+    SsArc* pMapObj;          // 0x1F8  SS/cmn/map_objNN.dat archive of the current area (Sscrn ss_map)
+    SsArc* pFileDat;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
-    SsArc* pShop;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + aramSize)
-    void* pPartner;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
+    SsArc* pShopDat;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + aramSize)
+    void* pTelDat;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
     void* pTplDat;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
     void* pWepDat;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
@@ -112,11 +112,11 @@ struct SUB_SCREEN {
     u16 get_item_num;                 // 0x2FC  its count
     u8 pad_2FE[2];
     ItemWork* p_get_item;           // 0x300  Sscrn ss_pzzl: the extra piece's slot (get() result)
-    ItemScreenWork* pItemWk;  // 0x304  Sscrn ss_item cursor state (9 bytes)
-    struct SsMapWork* pMapWk; // 0x308  Sscrn ss_map work (mark models, camera, viewport; 0x104C bytes)
-    SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
+    ItemScreenWork* item;  // 0x304  Sscrn ss_item cursor state (9 bytes)
+    struct SsMapWork* map; // 0x308  Sscrn ss_map work (mark models, camera, viewport; 0x104C bytes)
+    SsFileWork* file;      // 0x30C  Sscrn ss_file cursor/page state
     s8* pCapCursor;           // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column} (MEM_ALLOC(3))
-    struct ShopWork* pShopWk; // 0x314  Sscrn ss_shop list/cursor state (0x48 bytes)
+    struct ShopWork* shop; // 0x314  Sscrn ss_shop list/cursor state (0x48 bytes)
     class Merchant* merchant;// 0x318  Sscrn ss_shop: the shop session (game/merchant.cpp Merchant)
     s32 opeMdtNo;                // 0x31C  OpeSetOpenTerm number
     s32 sndId;               // 0x320  SndStrPlayBlock handle

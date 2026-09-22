@@ -36,8 +36,8 @@ void tcCameraMove()
         C_MTXOrtho(cam->ProjMat, ORTHO_T, ORTHO_B, ORTHO_L, ORTHO_R, 0.0f, ZFAR);
         break;
     }
-    cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
+    cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->Up, &cam->param.at);
     tcToolCamera2GameCamera();
     View.move();
 }

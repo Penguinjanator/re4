@@ -1056,7 +1056,7 @@ extern "C" void Evt_R101S21_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
+    if (e->FuncType == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         e->GetMod(&mod, "et0800", 0, 0);
     }
 }
@@ -1070,7 +1070,7 @@ extern "C" void Evt_R101S30_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         LadderEventTrans(0);
         break;

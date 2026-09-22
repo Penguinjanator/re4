@@ -323,7 +323,7 @@ void em36DmCk(cEm36* em)
     w->flags |= 0x200;
     near = 0;
     part = em->dmg.m_pDamageYarare;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     dmg = em36SetDmVal(em);
@@ -3469,7 +3469,7 @@ int em36GetDmPosType(cEm36* em)
     if (p == 0) {
         return 0;
     }
-    switch (p->partsNo) {
+    switch (p->parts_no) {
     case 2:
         return 0;
     case 3:
@@ -3686,54 +3686,54 @@ void em36YarareCk(cEm36* em)
     Em36Work* w = EM36_WK(em);
 
     if (w->flags2 & 0x10) {
-        w->hit[13].flags &= ~1;
-        w->hit[14].flags &= ~1;
-        w->hit[15].flags &= ~1;
+        w->hit[13].flag &= ~1;
+        w->hit[14].flag &= ~1;
+        w->hit[15].flag &= ~1;
     } else {
-        w->hit[13].flags |= 1;
-        w->hit[14].flags |= 1;
-        w->hit[15].flags |= 1;
+        w->hit[13].flag |= 1;
+        w->hit[14].flag |= 1;
+        w->hit[15].flag |= 1;
     }
     if (w->flags2 & 0x20) {
-        em->hitInfo.flags &= ~1;
-        w->hit[5].flags &= ~1;
-        w->hit[6].flags &= ~1;
+        em->hitInfo.flag &= ~1;
+        w->hit[5].flag &= ~1;
+        w->hit[6].flag &= ~1;
     } else {
-        em->hitInfo.flags |= 1;
-        w->hit[5].flags |= 1;
-        w->hit[6].flags |= 1;
+        em->hitInfo.flag |= 1;
+        w->hit[5].flag |= 1;
+        w->hit[6].flag |= 1;
     }
     if (w->flags2 & 1) {
-        w->hit[21].flags &= ~1;
-        w->hit[22].flags &= ~1;
-        w->hit[23].flags &= ~1;
-        w->hit[24].flags &= ~1;
+        w->hit[21].flag &= ~1;
+        w->hit[22].flag &= ~1;
+        w->hit[23].flag &= ~1;
+        w->hit[24].flag &= ~1;
     } else {
-        w->hit[21].flags |= 1;
-        w->hit[22].flags |= 1;
-        w->hit[23].flags |= 1;
-        w->hit[24].flags |= 1;
+        w->hit[21].flag |= 1;
+        w->hit[22].flag |= 1;
+        w->hit[23].flag |= 1;
+        w->hit[24].flag |= 1;
     }
     if (w->flags2 & 2) {
-        w->hit[26].flags &= ~1;
-        w->hit[27].flags &= ~1;
-        w->hit[28].flags &= ~1;
-        w->hit[29].flags &= ~1;
+        w->hit[26].flag &= ~1;
+        w->hit[27].flag &= ~1;
+        w->hit[28].flag &= ~1;
+        w->hit[29].flag &= ~1;
     } else {
-        w->hit[26].flags |= 1;
-        w->hit[27].flags |= 1;
-        w->hit[28].flags |= 1;
-        w->hit[29].flags |= 1;
+        w->hit[26].flag |= 1;
+        w->hit[27].flag |= 1;
+        w->hit[28].flag |= 1;
+        w->hit[29].flag |= 1;
     }
     if (w->flags2 & 4) {
-        w->hit[17].flags &= ~1;
+        w->hit[17].flag &= ~1;
     } else {
-        w->hit[17].flags |= 1;
+        w->hit[17].flag |= 1;
     }
     if (w->flags2 & 8) {
-        w->hit[19].flags &= ~1;
+        w->hit[19].flag &= ~1;
     } else {
-        w->hit[19].flags |= 1;
+        w->hit[19].flag |= 1;
     }
 }
 
@@ -4024,7 +4024,7 @@ void em36WeakInit(cEm36* em)
             l->hit = i;
             break;
         }
-        w->hit[l->hit].flags |= 1;
+        w->hit[l->hit].flag |= 1;
         sum += 1000;
         em->flag |= bit;
     }
@@ -4051,13 +4051,13 @@ void em36WeakMove(cEm36* em)
 
             PSMTXInverse(em->getPartsPtr(0)->mat, inv);
             PSMTXMultVec(inv, &l->pObj->getPartsPtr(0)->world, &v);
-            w->hit[l->hit].ofs = v;
+            w->hit[l->hit].offset = v;
             if (StaFlagChk(pG, STA_THERMO_GRAPH) && l->hp > 0 && em->hp > 0) {
                 l->pObj->be_flag |= 2;
-                w->hit[l->hit].flags |= 1;
+                w->hit[l->hit].flag |= 1;
             } else {
                 l->pObj->be_flag &= ~2;
-                w->hit[l->hit].flags &= ~1;
+                w->hit[l->hit].flag &= ~1;
             }
         }
     }
@@ -4159,7 +4159,7 @@ int em36SetDmVal(cEm36* em)
     int dmg;
 
     near = 0;
-    if (part->rad < 16000000.0f) {
+    if (part->len < 16000000.0f) {
         near = 1;
     }
     dmg = 100;
@@ -4223,14 +4223,14 @@ void em36SetHitMark(cEm36* em, int big)
     u32 i;
     f32 len;
 
-    m = em->getPartsPtr(part->partsNo - 1)->mat;
+    m = em->getPartsPtr(part->parts_no - 1)->mat;
     PSMTXInverse(m, inv);
-    PSMTXMultVec(inv, &part->pos, &lp);
-    PSMTXMultVec(m, &part->ofs, &wp);
+    PSMTXMultVec(inv, &part->cross, &lp);
+    PSMTXMultVec(m, &part->offset, &wp);
     PSMTXCopy(m, inv);
     PSMTXInverse(m, inv);
-    PSMTXMultVec(inv, &part->pos, &lp2);
-    if (part->flags & YAT_FLAG_X_AXIS) {
+    PSMTXMultVec(inv, &part->cross, &lp2);
+    if (part->flag & YAT_FLAG_X_AXIS) {
         wp = lp2;
         wp.y = 0.0f;
         wp.z = 0.0f;
@@ -4258,7 +4258,7 @@ void em36SetHitMark(cEm36* em, int big)
             EspGenWork* r = &seq->rec[i];
 
             r->Pos = lp;
-            r->Parts_no = part->partsNo - 1;
+            r->Parts_no = part->parts_no - 1;
             if (r->Id != 0x16) {
                 r->Ang = rot;
             }
@@ -4577,7 +4577,7 @@ void em36PartsSet(cEm36* em, int no, int on)
     }
     if (info) {
         if (w->pParts[no]) {
-            em->swapModelInfo(w->pParts[no]->pData, info);
+            em->swapModelInfo(w->pParts[no]->model_addr, info);
         } else {
             em->addModel(info);
         }
@@ -4808,7 +4808,7 @@ void em36BloodSet(cEm36* em)
 {
     int near = 0;
 
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     // `default:` at the top of the body, jumping to the normal-blood arm: the default label then

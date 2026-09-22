@@ -146,15 +146,15 @@ struct SndEmHist {
 struct SndWork {
     SndMute mute[4];         // 0x00  core/pl, em, ... (SndMuteSet bits 0x10..0x80)
     u32 blk_flag[1];         // 0x20  block loaded bits (SND_BIT_*)
-    SndPlayWork bgm_work[2]; // 0x24
-    SndPlayWork str_work[4]; // 0x44
-    u8* bgm_mram;            // 0x84  BGM MRAM allocation top (dvd.cpp grows it down)
+    SndPlayWork bgm_state[2]; // 0x24
+    SndPlayWork str_state[4]; // 0x44
+    u8* mram_base_addr_bgm;            // 0x84  BGM MRAM allocation top (dvd.cpp grows it down)
     u32 aram_base_addr_bgm;            // 0x88  BGM ARAM allocation top (grows down)
     u8 snd_bgm_id[2];            // 0x8C
     u16 doorse_id;             // 0x8E  door SE table loaded
     s32 room_ok;             // 0x90  room sound data initialised
-    struct SeAtHead* se_at;  // 0x94  room "ESE" sound area data (se_at.cpp), NULL when none
-    struct SeAt* se_at_list; // 0x98  its records
+    struct SeAtHead* pSeAtHeader;  // 0x94  room "ESE" sound area data (se_at.cpp), NULL when none
+    struct SeAt* pSeAtData; // 0x98  its records
     SndRoomHdr* hdr;         // 0x9C
     SndSurWork sur[48];      // 0xA0
     SndEmHist em_hist[32];   // 0x9A0
@@ -164,7 +164,7 @@ struct SndWork {
     u32 room_bgm_tbl[6];         // 0xAB0  [0] current, [1..5] by pG->snd_tbl_no
     u32 room_str_tbl[6];         // 0xAC8
     u8 play_str_no[2];            // 0xAE0
-    s16 bgm_at[2];           // 0xAE2  floor attribute BGM control applied per slot
+    s16 flrat_last_hit[2];           // 0xAE2  floor attribute BGM control applied per slot
     u8 pad_AE6[2];
 
     // debugDisp() reads these fields through the getters below instead of directly. GCC 2.95's first

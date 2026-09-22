@@ -158,7 +158,7 @@ cPlAda::cPlAda()
     if (pG->pl_costume == 1) {
         EstSet(this, -1, 0, 0, EFF_CORE, 0x59, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     }
-    pFootShadowTbl = pl_fs_tbl;
+    pFsdTbl = pl_fs_tbl;
 }
 
 // Installs the character's event / action motions (m_MotTbl 0x5F..0x6C from the player archive
@@ -212,7 +212,7 @@ void cPlAda::setModel()
         return;
     }
     addModel(info);
-    Body->pShape = info;
+    Body->m_pFace = info;
     Body->pHeadData = PL_ARC(8);
     info = ModInfoMgr.create(PL_ARC(9), PL_ARC(0xA));
     if (!VALID_PTR(info)) {
@@ -234,9 +234,9 @@ void cPlAda::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (Body->pRight) {
-        deleteModelInfo(Body->pRight);
-        Body->pRight = 0;
+    if (Body->m_pHandR) {
+        deleteModelInfo(Body->m_pHandR);
+        Body->m_pHandR = 0;
         Body->pRightData = 0;
     }
     switch ((u32) no) {
@@ -260,7 +260,7 @@ void cPlAda::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(5))) != 0) {
         addModel(info);
-        Body->pRight = info;
+        Body->m_pHandR = info;
         Body->pRightData = data;
     }
 }
@@ -272,9 +272,9 @@ void cPlAda::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (Body->pLeft) {
-        deleteModelInfo(Body->pLeft);
-        Body->pLeft = 0;
+    if (Body->m_pHandL) {
+        deleteModelInfo(Body->m_pHandL);
+        Body->m_pHandL = 0;
         Body->pLeftData = 0;
     }
     if (no == 0x63) {
@@ -304,7 +304,7 @@ void cPlAda::setLeftHand(u32 no)
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        Body->pLeft = info;
+        Body->m_pHandL = info;
         Body->pLeftData = data;
     }
 }
@@ -314,7 +314,7 @@ void cPlAda::setLeftHand(u32 no)
 void cPlAda::setFace(int no)
 {
     void* data = 0;
-    void* shape = Body->pShape;
+    void* shape = Body->m_pFace;
 
     if (shape == 0) {
         return;
@@ -332,7 +332,7 @@ void cPlAda::setFace(int no)
         break;
     }
     if (no != 0) {
-        ShapeSet(Body->pShape, 0, data, 2);
+        ShapeSet(Body->m_pFace, 0, data, 2);
     }
 }
 

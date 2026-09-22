@@ -601,14 +601,14 @@ void cEatMgr::initEffInfo()
         effInfo[i].eff5[0] = 0xD2;
         effInfo[i].eff6[0] = 0xD2;
         effInfo[i].eff0D[0] = 0xD2;
-        effOn[i] = 0;
+        useFlag[i] = 0;
     }
 }
 
 // Register the effect ids of one type; pairs left at the (0xD2, 1) default are not copied.
 void cEatMgr::registEffInfo(int type, AtEffInfo* src)
 {
-    effOn[type] = 1;
+    useFlag[type] = 1;
     effInfo[type].flag = src->flag;
     if (src->eff0[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff0[0] = src->eff0[0];
@@ -648,7 +648,7 @@ void cEatMgr::registEffInfo(int type, AtEffInfo* src)
 // NULL when the room registered none.
 AtEffInfo* cEatMgr::getEffInfo(int type)
 {
-    if (effOn[type] != 0) {
+    if (useFlag[type] != 0) {
         return &effInfo[type];
     }
     return 0;
@@ -779,7 +779,7 @@ int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int 
                 ret = 1;
             }
         }
-        blk = blk->next;
+        blk = blk->m_pList;
     }
     return ret;
 }
@@ -855,7 +855,7 @@ int cSatMgr::hitCheck2(Vec* pos0, Vec* pos1, Vec* hit, u32* attr, int flag, int 
     u32 i;
 
     // stored through a struct view: keeps the `cur = *b` loads below the store like the original
-    ((SEckView*) &SEck)->v = seCk;
+    ((SEckView*) &SEck)->v = type;
     cur = *pos1;
     for (i = 0; i < nArray; i++) {
         cSat* sat = fastAt(i);
@@ -937,7 +937,7 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int
                 }
             }
         }
-        blk = blk->next;
+        blk = blk->m_pList;
     }
     return ret;
 }
@@ -1121,7 +1121,7 @@ cSat& cSat::operator=(cSatFile* f)
     vertex_num = f->m_nVertex;
     polygon_num = f->m_nPolygon;
     normal_num = f->m_nNormal;
-    nEdge = f->m_nEdge;
+    edge_num = f->m_nEdge;
     floor_num = f->m_nFloor;
     slope_num = f->m_nSlope;
     wall_num = f->m_nWall;
@@ -1132,7 +1132,7 @@ cSat& cSat::operator=(cSatFile* f)
     vtx = v;
     norm_p = v + vertex_num;
     edge_p = norm_p + normal_num;
-    poly_p = (AtPoly*) (edge_p + nEdge);
+    poly_p = (AtPoly*) (edge_p + edge_num);
     block_p = (cSatBlock*) (poly_p + polygon_num);
     return *this;
 }
@@ -1144,7 +1144,7 @@ void cSat::blockInit(cSatBlock* blk)
         pLog->err(0, 0, "cSat::blockInit() INVALID PTR 0x%08x", blk);
         return;
     }
-    if (VALID_PTR(blk->next)) {
+    if (VALID_PTR(blk->m_pList)) {
         return;
     }
     do {
@@ -1152,17 +1152,17 @@ void cSat::blockInit(cSatBlock* blk)
             blockInit((cSatBlock*) blk->idx);
         }
         {
-            u32 ofs = (u32) blk->next;
+            u32 ofs = (u32) blk->m_pList;
             if (ofs != 0) {
                 cSatBlock* p = (cSatBlock*) ((u8*) blk + ofs);
                 if (p != 0 && !VALID_PTR(p)) {
                     pLog->err(0, 0, "cSat::blockInit() INVALID PTR 0x%08x ( %08x )", p, ofs);
                     return;
                 }
-                blk->next = p;
+                blk->m_pList = p;
             }
         }
-        blk = blk->next;
+        blk = blk->m_pList;
     } while (blk);
 }
 
@@ -1471,7 +1471,7 @@ cSatFile* createSat(Vec* v, u32 attr, f32 h)
     blk->m_nSlope = 0;
     blk->m_nWall = 8;
     blk->m_Flag = 0;
-    blk->next = 0;
+    blk->m_pList = 0;
     for (i = 0; i < 8; i++) {
         blk->idx[i] = i;
     }
@@ -1591,7 +1591,7 @@ cSatFile* createBoxSat(Vec* v, u32 attr, f32 h)
     blk->m_nSlope = 4;
     blk->m_nWall = 8;
     blk->m_Flag = 0;
-    blk->next = 0;
+    blk->m_pList = 0;
     for (i = 0; i < 12; i++) {
         blk->idx[i] = i;
     }
@@ -1693,7 +1693,7 @@ static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h)
     blk->m_nSlope = 0;
     blk->m_nWall = 0;
     blk->m_Flag = 0;
-    blk->next = 0;
+    blk->m_pList = 0;
     for (i = 0; i < 2; i++) {
         blk->idx[i] = i;
     }

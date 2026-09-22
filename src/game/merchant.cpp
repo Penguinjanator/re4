@@ -702,9 +702,9 @@ void MerchantGameInit()
 
     for (i = 0; i < MERCHANT_NUM; i++) {
         MerchantData* d = &merchantData[i];
-        d->favor = 50;
+        d->friendship = 50;
         d->study_num = 0;
-        d->discount = 0;
+        d->reduction_ratio = 0;
         d->bonus_flag = 0;
     }
     stockDataInit(merchantData);
@@ -1149,9 +1149,9 @@ void Merchant::save(MerchantData* p_data)
 {
     p_data->stock = m_stock;
     p_data->level = level;
-    p_data->favor = favor;
+    p_data->friendship = m_friendship;
     p_data->study_num = m_study_num;
-    p_data->discount = discount;
+    p_data->reduction_ratio = m_reduction_ratio;
     p_data->bonus_flag = m_bonus_flag;
 }
 
@@ -1164,9 +1164,9 @@ void Merchant::load(MerchantData* p_data)
     }
     m_stock = p_data->stock;
     level = p_data->level;
-    favor = p_data->favor;
+    m_friendship = p_data->friendship;
     m_study_num = p_data->study_num;
-    discount = p_data->discount;
+    m_reduction_ratio = p_data->reduction_ratio;
     m_bonus_flag = p_data->bonus_flag;
 }
 
@@ -1396,8 +1396,8 @@ int Merchant::tunable(ItemWork* item)
 // Rebuilds the Buy and Sell lists.
 void Merchant::makeList()
 {
-    sellingNum = makeSellingList();
-    exerciseNum = makeExerciseList();
+    m_sell_tbl_num = makeSellingList();
+    m_exer_tbl_num = makeExerciseList();
 }
 
 // Special availability of Buy items: the Infinite Launcher 0x40 only after the game is cleared and
@@ -1445,7 +1445,7 @@ int Merchant::makeSellingList()
 // Number of items on the Buy list.
 u8 Merchant::sellingItemNum()
 {
-    return sellingNum;
+    return m_sell_tbl_num;
 }
 
 // Price entry of Buy list row `no`.
@@ -1531,7 +1531,7 @@ int Merchant::makeExerciseList()
 // Number of items on the Sell list.
 u8 Merchant::exerciseItemNum()
 {
-    return exerciseNum;
+    return m_exer_tbl_num;
 }
 
 // Inventory slot of Sell list row `no`.
@@ -1664,8 +1664,8 @@ int Merchant::buyup(ItemWork* item, int num, int* money)
     if (ii.type == 1 && num == 1) {
         stockAdd(WeaponId2BulletId(item->id, item->bullet >> 13), item->bullet & 0x1FFF);
     }
-    favor += m_p_info->buyFavor;
-    favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);
+    m_friendship += m_p_info->shift_Buyup;
+    m_friendship = m_friendship < 0 ? 0 : (m_friendship > 100 ? 100 : m_friendship);
     return 1;
 }
 
@@ -1675,7 +1675,7 @@ int Merchant::sellPrice(u16 id, int num)
 {
     ItemInfo info;
     PriceEntry* p = sellingItemId(id);
-    f32 rate = 1.0f - (f32) discount / 100.0f;
+    f32 rate = 1.0f - (f32) m_reduction_ratio / 100.0f;
     int price;
     int n;
 
@@ -1739,12 +1739,12 @@ int Merchant::sell(u16 id, int num, int* money)
             stockSub(bid, WeaponId2ChargeNum(id, 1));
         }
         if (point >= m_p_info->threshold) {
-            favor += m_p_info->sellFavorBig;
+            m_friendship += m_p_info->sellFavorBig;
         } else {
-            favor += m_p_info->sellFavor;
+            m_friendship += m_p_info->sellFavor;
         }
-        favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);
-        discount = 0;
+        m_friendship = m_friendship < 0 ? 0 : (m_friendship > 100 ? 100 : m_friendship);
+        m_reduction_ratio = 0;
         return 1;
     }
     return 0;
@@ -1870,16 +1870,16 @@ int Merchant::levelupPrice(u16 id, int type, int lv)
     if (l && lv <= l->lv[type] && p) {
         switch (type) {
         case 0:
-            price = p->fire[lv - 2];
+            price = p->power[lv - 2];
             break;
         case 1:
-            price = p->mag[lv - 2];
-            break;
-        case 2:
             price = p->speed[lv - 2];
             break;
+        case 2:
+            price = p->reload[lv - 2];
+            break;
         case 3:
-            price = p->ex[lv - 2];
+            price = p->bullet[lv - 2];
             break;
         }
     }

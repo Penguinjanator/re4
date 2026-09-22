@@ -255,7 +255,7 @@ public:
     int actBtnOn;          // 0xE4
     int actBtnCount;       // 0xE8
     int actBtnNo;          // 0xEC ACTION_TYPE (PS2 EvtActBtnCtrl::ActType)
-    int funcMode;          // 0xF0  ExeFunc mode the Evt_*_Func handler sees (0 begin, 1 run, 2 end, 3 cancel)
+    int FuncType;          // 0xF0  ExeFunc mode the Evt_*_Func handler sees (0 begin, 1 run, 2 end, 3 cancel)
     int EmListNo;         // 0xF4  EspEvModList entries used
     void* pDatFog;            // 0xF8  fog Hermite curves (ExePacket_Fog)
     void* pDatFocus;          // 0xFC  focus Hermite curves (ExePacket_Focus)
@@ -378,11 +378,11 @@ public:
         u32 NowExeEvtKey;  // 0x34  first word of the running event name as a key (sce_com SceChapterEnd: IsAliveEvt / GetEvt)
         char NowExeEvtName[0x30];  // 0x34  name of the running event ("" = none)
     };
-    EvtReadEm readEm[8];   // 0x64  enemy modules loaded per read slot
+    EvtReadEm ReadWkTbl[8];   // 0x64  enemy modules loaded per read slot
     char NameTmp[0x20];    // 0x84  NameChange result
     u32 pUnit[0x20];         // 0xA4  cleared by myRoomInit
     u8 pad_124[0x144 - 0x124];
-    void* emWindowFcv[3];  // 0x144  window jump motions (emwindow ExeWindowEvent)
+    void* EmWindowFcvTbl[3];  // 0x144  window jump motions (emwindow ExeWindowEvent)
     DatTbl EvdTbl;         // 0x150  event data by name (0x20)
     DatTbl BinTbl;         // 0x158  bin/tpl files by name (0x140)
     DatTbl FuncTbl;        // 0x160  Evt_*_Func handlers by name (0x10)
@@ -460,7 +460,7 @@ public:
     s32 StfStrTimer;           // 0xD4
     int NowCut;           // 0xD8
     s32 NumMod;            // 0xDC
-    EvtDebugModel* pModel; // 0xE0  0x60 entries
+    EvtDebugModel* PMod; // 0xE0  0x60 entries
     u32 FlagEtc;             // 0xE4  tool switches (bit19 fog off, bit20 focus off, bit18 lit off, bit21 mes off)
 
     EventDebug();

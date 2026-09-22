@@ -31,13 +31,13 @@ public:
     s32 m_command;     // 0x04  0 none, 1 load to MRAM, 2 load to ARAM, 3 clear, 4 delete
     s32 m_err;         // 0x08
     u8 m_be_flag;         // 0x0C  bit0 in use, bit1 memory allocated by the unit
-    u8 wait;         // 0x0D  setCommand argument (1 = synchronous)
+    u8 m_mode;         // 0x0D  setCommand argument (1 = synchronous)
     u8 m_wait;     // 0x0E  set while waitUseOk/waitLoadOk spin
     u8 m_malloc_heap;         // 0x0F  heap the allocation came from
     void* m_addr;      // 0x10  current address of the data
-    u32 arg;         // 0x14  setCommand argument: destination (0 = allocate)
+    u32 m_arg_addr;         // 0x14  setCommand argument: destination (0 = allocate)
     void* m_malloc_addr;// 0x18
-    u32 dest;        // 0x1C  destination of the running transfer
+    u32 m_dest_addr;        // 0x1C  destination of the running transfer
     u32 m_fix_addr;     // 0x20  fixed MRAM destination (fixMramAddr)
     u32 m_size;        // 0x24
     u8 pad_28[4];
@@ -82,8 +82,8 @@ public:
     // Inline accessors: as call arguments they make GCC precompute the values before the
     // stack argument stores (block.cpp dispDebugInfo).
     void* getAddr() { return m_addr; }
-    u32 getArg() { return arg; }
-    u32 getDest() { return dest; }
+    u32 getArg() { return m_arg_addr; }
+    u32 getDest() { return m_dest_addr; }
     u32 getSize() { return m_size; }
 };
 
@@ -96,8 +96,8 @@ public:
     s32 m_data_ctrl_flag;  // 0xA08  0 while the sub screen owns the ARAM area (sscrn), 1 otherwise (PS2 m_data_ctrl_flag)
     s32 m_nblock_read_stop;  // 0xA0C  1 = commands are not executed immediately (PS2 m_nblock_read_stop)
     void* dispBuf;       // 0xA10  dispDebug tiles
-    u32 dispBase;        // 0xA14
-    u32 dispEnd;         // 0xA18
+    u32 m_heap_start;        // 0xA14
+    u32 m_heap_end;         // 0xA18
     s32 dbgHeap;         // 0xA1C  1 = allocate from the debug heap
     s32 m_id_dummy[32];     // 0xA20  dummy.dat read requests (dev mode)
     void* m_DummyDataMem;      // 0xAA0

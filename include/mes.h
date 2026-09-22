@@ -68,7 +68,7 @@ public:
     u8 r_no_1;
     u8 r_no_2;
     u8 r_no_3;
-    u32 flags2;         // 0x0C  bit 0 = active, bit 1 = finished, bit 3 = width check pass
+    u32 m_state;         // 0x0C  bit 0 = active, bit 1 = finished, bit 3 = width check pass
     f32 m_scale_w;         // 0x10
     f32 m_scale_h;         // 0x14
     s8 m_font_w;           // 0x18
@@ -84,7 +84,7 @@ public:
     u16 m_width[16];      // 0x4A
     s16 m_width_max;           // 0x6A
     u16 m_height;
-    u16 waitCnt;        // 0x6E
+    u16 m_bttn_wait;        // 0x6E
     u8 m_btn;             // 0x70  code08 started
     s8 m_evt_no;             // 0x71  code0d
     s8 m_lines;            // 0x72
@@ -97,7 +97,7 @@ public:
             s8 lineSpace;   // 0x77  (embox emBoxAction: prompt y = 336 - fontH - lineSpace - 1)
         };
     };
-    u16 charSpace;      // 0x78
+    u16 m_char_gap;      // 0x78
     u16 x7A;
     u32 m_col;          // 0x7C
     u32 m_attr;           // 0x80
@@ -185,15 +185,15 @@ enum LAYOUT_TYPE {
 class MessageControl {
 public:
     u32 x0;
-    Message mes[16];        // 0x04
-    void* fontBuf[4];       // 0xEC4
+    Message m_Msg[16];        // 0x04
+    void* m_font_addr[4];       // 0xEC4
     u32 m_state;              // 0xED4
     u8 pad_ED8[0x11F8 - 0xED8];
     u32 x11F8;              // 0x11F8
 
     virtual ~MessageControl() {}
 
-    MesWork* getWork() { return &mes[0]; }
+    MesWork* getWork() { return &m_Msg[0]; }
     // Slot address the way the original computes it (index scaled first, then the base).
     Message* getMes(int no) { return (Message*) (no * sizeof(Message) + (u32) this + sizeof(u32)); }
 

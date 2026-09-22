@@ -65,11 +65,11 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, 
     p->head = head;
     p->pMod = model;
     if (model != NULL) {
-        p->Guid_pMod = model->serial;
+        p->Guid_pMod = model->guid;
     } else {
         p->Guid_pMod = (u32) model;
     }
-    p->no = p->Time_cnt = 0;
+    p->Seq_ptr = p->Time_cnt = 0;
     if (no == -1) {
         p->Null_parts_no = head->parts;
     } else {
@@ -108,14 +108,14 @@ void AreaSstSet(int id)
     u32 i;
     u32 j;
 
-    if (sys->pSstArea == NULL) {
+    if (sys->Area_addr == NULL) {
         return;
     }
     pos = pPL->pos;
     pos.y += 100.0f;
     flag = 0;
-    ent = sys->pSstArea->ent;
-    for (i = 0; i < sys->pSstArea->num; i++, ent++) {
+    ent = sys->Area_addr->ent;
+    for (i = 0; i < sys->Area_addr->num; i++, ent++) {
         if (AreaHitCheck(ent->area, &pos) == 1) {
             flag |= 1 << ent->area_no;
         }
@@ -254,7 +254,7 @@ void EspDelete(int a, int b, void* c, cModel* model)
     u32 i;
 
     for (i = 0; i < sys->nEsp; i++) {
-        cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
+        cEsp* esp = (cEsp*) (sys->EspArray + i * 0x150);
 
         if ((esp->m_Be_flg & 1) == 0) {
             continue;
@@ -272,7 +272,7 @@ void EspDelete(int a, int b, void* c, cModel* model)
             if (esp->m_pMod != model) {
                 continue;
             }
-            if (esp->m_Guid_pMod != model->serial) {
+            if (esp->m_Guid_pMod != model->guid) {
                 continue;
             }
         }
@@ -287,7 +287,7 @@ void EspDeleteEvent()
     u32 i;
 
     for (i = 0; i < sys->nEsp; i++) {
-        cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
+        cEsp* esp = (cEsp*) (sys->EspArray + i * 0x150);
 
         if (esp->m_Be_flg & 1) {
             int ev = !(esp->info.Core_flg & 1);

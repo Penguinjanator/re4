@@ -33,7 +33,7 @@ struct DbObj18Work {
 // Starts on enemy 0.
 cDbWork::cDbWork()
 {
-    wkNo = mode = 0;
+    wkNo = wkType = 0;
 }
 
 // Per-frame on debug page 11: Up / Down cycle the pool (0 enemies, 1 objects, 2 lights), then
@@ -45,32 +45,32 @@ void cDbWork::move()
     }
     eprintf(16, 14, 0, 0, "MODEL WORK VIEWER");
     if (Joy[0].rep & JOY_UP) {
-        switch (mode) {
+        switch (wkType) {
         case 0:
-            mode = 2;
+            wkType = 2;
             break;
         case 1:
-            mode = 0;
+            wkType = 0;
             break;
         case 2:
-            mode = 1;
+            wkType = 1;
             break;
         }
     }
     if (Joy[0].rep & JOY_DOWN) {
-        switch (mode) {
+        switch (wkType) {
         case 0:
-            mode = 1;
+            wkType = 1;
             break;
         case 1:
-            mode = 2;
+            wkType = 2;
             break;
         case 2:
-            mode = 0;
+            wkType = 0;
             break;
         }
     }
-    switch (mode) {
+    switch (wkType) {
     case 0:
         dispEm();
         break;
@@ -174,7 +174,7 @@ void cDbWork::dispModel(cModel* m, int x, int y)
     y++;
     eprintf(x, y * 14, 0, 0, "SPEED    %7.0f %7.0f %7.0f", m->speed.x, m->speed.y, m->speed.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "pCldShMd %08X", m->pCldShMd);
+    eprintf(x, y * 14, 0, 0, "pCldShMd %08X", m->pChildShadowModel);
     y++;
     eprintf(x, y * 14, 0, 0, "SHD COL  %02X", m->Shd_color);
     y++;

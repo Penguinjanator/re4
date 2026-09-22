@@ -18,7 +18,7 @@ u8 ViewHit[0xD00];
 // Boot: the frustum follows camera `cam` (pG->Camera).
 void VIEW::gameInit(Camera* cam)
 {
-    pCam = cam;
+    _p_camera = cam;
     roomInit();
 }
 
@@ -31,20 +31,20 @@ void VIEW::roomInit()
 // Builds the frustum for the camera's fovy with the default near / far planes and orients it.
 void VIEW::init()
 {
-    initPerspective(pCam->param.fovy, VIEW_ASPECT, ZNEAR, ZFAR);
+    initPerspective(_p_camera->param.fovy, VIEW_ASPECT, ZNEAR, ZFAR);
     orientation();
-    _old_fovy = pCam->param.fovy;
+    _old_fovy = _p_camera->param.fovy;
     _old_zfar = _zfar;
 }
 
 // Per frame: rebuilds the frustum when the fovy or far plane changed, then orients it to the camera.
 void VIEW::move()
 {
-    if (_old_fovy != pCam->param.fovy || _old_zfar != _zfar) {
-        initPerspective(pCam->param.fovy, VIEW_ASPECT, ZNEAR, _zfar);
+    if (_old_fovy != _p_camera->param.fovy || _old_zfar != _zfar) {
+        initPerspective(_p_camera->param.fovy, VIEW_ASPECT, ZNEAR, _zfar);
     }
     orientation();
-    _old_fovy = pCam->param.fovy;
+    _old_fovy = _p_camera->param.fovy;
     _old_zfar = _zfar;
 }
 
@@ -232,7 +232,7 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     d0 = PSVECSquareMag(&q[0]) - PSVECSquareMag(&q[1]);
     d1 = PSVECSquareMag(&q[1]) - PSVECSquareMag(&q[2]);
     d2 = PSVECSquareMag(&q[2]) - PSVECSquareMag(&q[3]);
-    s = &sphere;
+    s = &_l_sphere_outer;
     s->center.x = (d0 * ((q[3].y - q[2].y) * (q[2].z - q[1].z) - (q[2].y - q[1].y) * (q[3].z - q[2].z)) +
                        d1 * ((q[1].y - q[0].y) * (q[3].z - q[2].z) - (q[3].y - q[2].y) * (q[1].z - q[0].z)) +
                        d2 * ((q[2].y - q[1].y) * (q[1].z - q[0].z) - (q[1].y - q[0].y) * (q[2].z - q[1].z))) /
@@ -289,6 +289,6 @@ void VIEW::orientation()
         PSMTXMultVec(*m, &localFull.point[i], &worldFull.point[i]);
         PSMTXMultVec(*m, &local.point[i], &world.point[i]);
     }
-    sphereWorld = sphere;
-    PSMTXMultVec(*m, &sphere.center, &sphereWorld.center);
+    _sphere_outer = _l_sphere_outer;
+    PSMTXMultVec(*m, &_l_sphere_outer.center, &_sphere_outer.center);
 }

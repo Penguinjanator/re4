@@ -126,7 +126,7 @@ extern "C" void Evt_R331S00_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         break;
     case 1:
@@ -174,7 +174,7 @@ extern "C" void Evt_R331S10_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         r331_work->timer = st3_getCountDownTimer();
         break;

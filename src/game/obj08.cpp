@@ -320,7 +320,7 @@ int obj08ToEmHitCk(cObj08* obj)
     }
     for (i = 0; i < n; i++) {
         YARARE_INFO* part = list[i].part;
-        list[i].em->dmg.set(0, 10, (u8) w->atkFlags, &obj->pos, part->rad, part);
+        list[i].em->dmg.set(0, 10, (u8) w->atkFlags, &obj->pos, part->len, part);
         if (w->estNo[3] && w->estPrm[3]) {
             obj08DmEstSet(obj, pPL, &obj->pos_old, part);
         }
@@ -391,8 +391,8 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
         EstSet(em, -1, 0, 0, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, em, 0);
         return;
     }
-    if (part->partsNo != 0) {
-        p = em->getPartsPtr(part->partsNo - 1)->world;
+    if (part->parts_no != 0) {
+        p = em->getPartsPtr(part->parts_no - 1)->world;
     } else {
         p = em->pos;
     }
@@ -411,7 +411,7 @@ void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, YARARE_INFO* part)
     TransMatrix(m, &p);
     o.x = 0.0f;
     o.y = dy;
-    o.z = part->width * 0.5f;
+    o.z = part->radius * 0.5f;
     PSMTXMultVec(m, &o, &o);
     EstSet(0, -1, &o, &rot, w->estNo[3], (u8) w->estPrm[3], 0, ESP_CORE_KIND_NONE, 0, 0);
 }

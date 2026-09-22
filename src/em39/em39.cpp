@@ -316,7 +316,7 @@ void em39DmCk(cEm39* em)
     w->Total_damage += dmg;
     w->Flash_damage += dmg;
     if (em->type == 2) {
-        if (hit->partsNo == 5) {
+        if (hit->parts_no == 5) {
             w->Total_damage = 0;
             if (w->Be_flg & 0x10000) {
                 EmRoutineSet(em, 2, 5, 0, 0);
@@ -354,7 +354,7 @@ void em39DmCk(cEm39* em)
     case 0x26:
     case 0x27:
     case 0x2B:
-        if (hit->partsNo == 5) {
+        if (hit->parts_no == 5) {
             EmRoutineSet(em, 2, 1, 0, 0);
         } else if (w->Total_damage > 200) {
             w->Total_damage = 0;
@@ -364,7 +364,7 @@ void em39DmCk(cEm39* em)
     case 9:
     case 0xA:
     case 0x28:
-        if (hit->partsNo == 5) {
+        if (hit->parts_no == 5) {
             EmRoutineSet(em, 2, 1, 0, 0);
         } else {
             EmRoutineSet(em, 2, 0, 0, 0);
@@ -372,7 +372,7 @@ void em39DmCk(cEm39* em)
         break;
     case 0x10:
     case 0x1A:
-        if (hit->partsNo == 5) {
+        if (hit->parts_no == 5) {
             EmRoutineSet(em, 2, 1, 0, 0);
         } else {
             EmRoutineSet(em, 2, 0, 0, 0);
@@ -381,7 +381,7 @@ void em39DmCk(cEm39* em)
     case 7:
     case 8:
     case 0x21:
-        if (hit->partsNo == 5) {
+        if (hit->parts_no == 5) {
             EmRoutineSet(em, 2, 1, 0, 0);
         } else if (w->Total_damage > 200) {
             w->Total_damage = 0;
@@ -395,7 +395,7 @@ void em39DmCk(cEm39* em)
     case 0x29:
     case 0x2C:
     case 0x2D:
-        if (hit->partsNo == 5) {
+        if (hit->parts_no == 5) {
             EmRoutineSet(em, 2, 1, 0, 0);
         } else {
             EmRoutineSet(em, 2, 0, 0, 0);
@@ -798,7 +798,7 @@ static void em39_R0_Init(cEm39* em)
     }
     z0 = 0;
     w->pArrow = (cEmWep*) z0;
-    em->pFootShadowTbl = &Em39_fs_tbl;
+    em->pFsdTbl = &Em39_fs_tbl;
     em->Motion.flip = em39_flip_tbl;
 #line 1268 "D:/Bio4/Prog/em39.cpp"
     em->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xD);
@@ -963,7 +963,7 @@ void em39HandSet(cEm39* em, int type)
     info = ModInfoMgr.create(bin, ARC(0x14));
     if (info) {
         if (w->pHandR) {
-            em->swapModelInfo(w->pHandR->pData, info);
+            em->swapModelInfo(w->pHandR->model_addr, info);
         } else {
             em->addModel(info);
         }
@@ -991,7 +991,7 @@ void em39HandSet(cEm39* em, int type)
     info = ModInfoMgr.create(bin, ARC(0x14));
     if (info) {
         if (w->pHandL) {
-            em->swapModelInfo(w->pHandL->pData, info);
+            em->swapModelInfo(w->pHandL->model_addr, info);
         } else {
             em->addModel(info);
         }
@@ -1006,7 +1006,7 @@ void em39DieModelSet(cEm39* em)
     cModelInfo* info = ModInfoMgr.create(ARC(0x21), ARC(0x22));
 
     if (info) {
-        em->swapModelInfo(em->pModelInfo->pData, info);
+        em->swapModelInfo(em->pModelInfo->model_addr, info);
     }
 }
 
@@ -6526,9 +6526,9 @@ void em39NeckMove(cEm39* em)
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.x = w->Neck_dir_x;
-    ((cParts*) p)->addRot.y = w->Neck_dir_y;
-    ((cParts*) p)->addRot.z = 0.0f;
+    ((cParts*) p)->inv_offset.x = w->Neck_dir_x;
+    ((cParts*) p)->inv_offset.y = w->Neck_dir_y;
+    ((cParts*) p)->inv_offset.z = 0.0f;
 }
 
 // Waist aim hook called from move() and before each gun hit; empty in the shipped game (only the
@@ -7223,7 +7223,7 @@ void em39BloodSet(cEm39* em)
 {
     int far = 0;
 
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         far = 1;
     }
     switch (em->dmg.m_Wep) {
@@ -8242,14 +8242,14 @@ int em39SetDmVal(cEm39* em)
     int far = 0;
     int val;
 
-    if (h->rad < 36000000.0f) {
+    if (h->len < 36000000.0f) {
         far = 1;
     }
     val = 100;
     if (em->dmg.m_Wep <= 0x2D) {
         val = GetWepDmVal(em, em->dmg.m_Wep, far);
     }
-    if (h->partsNo == 5) {
+    if (h->parts_no == 5) {
         val += val;
         w->Total_damage += 200;
     }
@@ -8583,40 +8583,40 @@ int em39GuardCk(cEm39* em)
         return 0;
     }
     h = em->dmg.m_pDamageYarare;
-    if (h->partsNo == 0xE) {
+    if (h->parts_no == 0xE) {
         return 1;
     }
-    if (h->partsNo == 0xF) {
+    if (h->parts_no == 0xF) {
         return 1;
     }
-    if (h->partsNo == 0x62) {
+    if (h->parts_no == 0x62) {
         return 1;
     }
-    if (h->partsNo == 0x63) {
+    if (h->parts_no == 0x63) {
         return 1;
     }
-    if (h->partsNo == 0x64) {
+    if (h->parts_no == 0x64) {
         return 1;
     }
-    if (h->partsNo == 0x65) {
+    if (h->parts_no == 0x65) {
         return 1;
     }
-    if (h->partsNo == 0x66) {
+    if (h->parts_no == 0x66) {
         return 1;
     }
-    if (h->partsNo == 0x7B) {
+    if (h->parts_no == 0x7B) {
         return 1;
     }
-    if (h->partsNo == 0x7C) {
+    if (h->parts_no == 0x7C) {
         return 1;
     }
-    if (h->partsNo == 0x7D) {
+    if (h->parts_no == 0x7D) {
         return 1;
     }
-    if (h->partsNo == 0x7E) {
+    if (h->parts_no == 0x7E) {
         return 1;
     }
-    return h->partsNo == 0x7F;
+    return h->parts_no == 0x7F;
 }
 
 // Motion-key foot sounds (seNo - 1) with the footstep dust in the tower room.

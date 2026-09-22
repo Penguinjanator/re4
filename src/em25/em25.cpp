@@ -1609,7 +1609,7 @@ int em25SetDmVal(cEm25* em)
     int near = 0;
     int dmg;
 
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     dmg = 100;
@@ -1687,7 +1687,7 @@ void em25BloodSet(cEm25* em)
     Vec dir;
     int near = 0;
 
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     switch (em->dmg.m_Wep) {

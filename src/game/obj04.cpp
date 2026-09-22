@@ -41,7 +41,7 @@ void cObj04::move()
             ObjMgr.destroy(this);
             return;
         }
-        if (w->parent->serial != w->parentSerial) {
+        if (w->parent->guid != w->parentSerial) {
             ObjMgr.destroy(this);
             return;
         }

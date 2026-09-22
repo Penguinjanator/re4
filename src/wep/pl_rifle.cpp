@@ -459,7 +459,7 @@ static void wep09_r2_reload(cPlayer* pl)
         }
         MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
         pl->motionMove();
-        pl->Wep->knifeStance = 1;
+        pl->Wep->m_WepUd = 1;
         pl->r_no_3 = 1;
         obj = pl->Wep->m_pWep;
         obj->wep.mode = 4;

@@ -23,7 +23,7 @@ struct Esp0eWork {
     f32 del_dist;       // 0x24 camera distance where the glow is gone (gen->Vec0.z)
     Vec scr;        // 0x28 screen position (z: view depth)
     Vec scrOld;     // 0x34 previous screen position
-    f32 hideAlpha;  // 0x40 alpha from the Z-buffer visibility test
+    f32 hide_alpha;  // 0x40 alpha from the Z-buffer visibility test
     f32 hide_r;      // 0x44 radius of the visibility test (gen->Vec1.x)
     f32 alpha;      // 0x48 final alpha
     u16 flg;      // 0x4C bit0: direction test, bit1: visibility test
@@ -82,7 +82,7 @@ void cEsp0e::move()
         }
         if (w->delay_cnt != 0) {
             w->delay_cnt--;
-            w->hideAlpha = 0.0f;
+            w->hide_alpha = 0.0f;
         }
     }
     if (parent == pEffParentWorld) {
@@ -133,7 +133,7 @@ void cEsp0e::move()
         }
         alpha *= GetDistAlpha(this);
         if (w->flg & 2) {
-            alpha *= w->hideAlpha;
+            alpha *= w->hide_alpha;
         }
         w->alpha = alpha;
     } else {
@@ -315,7 +315,7 @@ void Esp0e_HideCheck(cEsp* esp0)
         }
     }
     if (hidden == 12) {
-        w->hideAlpha = 0.0f;
+        w->hide_alpha = 0.0f;
     } else {
         f32 a;
 
@@ -326,7 +326,7 @@ void Esp0e_HideCheck(cEsp* esp0)
         if (a > 1.0f) {
             a = 1.0f;
         }
-        w->hideAlpha = w->hideAlpha + (a - w->hideAlpha) * 0.6f;
+        w->hide_alpha = w->hide_alpha + (a - w->hide_alpha) * 0.6f;
     }
 }
 

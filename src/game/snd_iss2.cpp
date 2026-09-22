@@ -286,15 +286,15 @@ void iss_req_execute(SND_CTRL_WORK* ctrl)
 
     for (i = 0; i < SND_REQ_MAX; i++) {
         req = &Snd_req_work[ctrl->req_bank_sub][i];
-        if (req->status == 0) {
+        if (req->be_flag == 0) {
             continue;
         }
-        if (req->type & 0x4) {
+        if (req->use_type & 0x4) {
             iss_req_command(req);
         } else {
             Snd_req_iss_new_play(req);
         }
-        req->status = 0;
+        req->be_flag = 0;
     }
     ctrl->req_bank ^= 1;
     ctrl->req_bank_sub ^= 1;
@@ -303,7 +303,7 @@ void iss_req_execute(SND_CTRL_WORK* ctrl)
 // A type 4 request: cmd 0 stop, else set parameters.
 void iss_req_command(SND_REQ_WORK* req)
 {
-    if (req->cmd == 0) {
+    if (req->cmd_no == 0) {
         req_cmd_se_stop(req);
     } else {
         req_cmd_se_para(req);
@@ -410,19 +410,19 @@ void req_cmd_se_aux(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 void req_cmd_se_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (axv->lpf_on == 0) {
-        if (req->lpf_no == -1) {
+        if (req->lpf == -1) {
             return;
         }
         axv->lpf_on = 1;
-        axv->lpf_no = req->lpf_no;
+        axv->lpf_no = req->lpf;
         axv->upd |= 0x10;
     } else {
-        if (req->lpf_no == -1) {
+        if (req->lpf == -1) {
             axv->lpf_on = 0;
             axv->lpf_no = -1;
             axv->upd |= 0x10;
         } else {
-            axv->lpf_no = req->lpf_no;
+            axv->lpf_no = req->lpf;
             axv->upd |= 0x20;
         }
     }
@@ -432,9 +432,9 @@ void req_cmd_se_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 void req_cmd_se_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (bit == 0x200) {
-        axv->pitch_base += req->pitch_add;
+        axv->pitch_base += req->pitch;
     } else {
-        axv->pitch_ofs = req->pitch_ofs;
+        axv->pitch_ofs = req->dop_p;
     }
     axv->pitch = axv->pitch_base + axv->pitch_ofs;
     if (axv->pitch > 2400) {

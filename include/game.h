@@ -19,10 +19,10 @@ struct SAVE_DATA_HEAD {
     SAVE_DATA_HEAD* base;     // 0x00  the image's own address (0 = offsets)
     u32 size;                 // 0x04
     GameSaveBlock* pGlobal;   // 0x08  offset 0x40
-    void* pItem;              // 0x0C  cItemMgr::save/load
-    void* pRoom;              // 0x10  cRoomData::save/load (0x3740)
+    void* pItm;              // 0x0C  cItemMgr::save/load
+    void* pRm;              // 0x10  cRoomData::save/load (0x3740)
     u32* pSscrn;              // 0x14  SscrnDataSave/Load
-    void* pMerchant;          // 0x18  MerchantDataSave/Load
+    void* pMr;          // 0x18  MerchantDataSave/Load
 };
 
 class cGameSave {

@@ -12,7 +12,7 @@
 // Vector buffer effect: a parent esp owns up to 0x12 child esps whose work areas hold Vec arrays.
 struct Esp3fWork {
     u8 pad_0[2];
-    u8 nBuf;                     // 0x02 number of child buffers
+    u8 nWork;                     // 0x02 number of child buffers
     u8 nElem;                  // 0x03 vectors per child buffer
     cEsp* pBuf[ESP3F_BUF_MAX];   // 0x04
 };
@@ -49,7 +49,7 @@ void cEsp3f::Destruct()
     if (m_Rno0 == 0) {
         Esp3fWork* w = &m_Free;
         u32 i;
-        for (i = 0; i < w->nBuf; i++) {
+        for (i = 0; i < w->nWork; i++) {
             cEsp* p = w->pBuf[i];
             if (p && (p->m_Be_flg & 1)) {
                 PushEsp(p);
@@ -85,15 +85,15 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
     e->info = *info;
     w = &e->m_Free;
     w->nElem = per;
-    w->nBuf = n;
-    for (i = 0; i < w->nBuf; i++) {
+    w->nWork = n;
+    for (i = 0; i < w->nWork; i++) {
         if (PullEsp(&c, 0x3f)) {
             c->m_Rno0 = 1;
             c->info = *info;
             w->pBuf[i] = c;
         } else {
             u32 j;
-            for (j = 0; j < w->nBuf; j++) {
+            for (j = 0; j < w->nWork; j++) {
                 if (w->pBuf[j]) {
                     PushEsp(w->pBuf[j]);
                 }
@@ -111,7 +111,7 @@ Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no)
 {
     Esp3fWork* w = &p->m_Free;
     u32 per = w->nElem;
-    u32 n = w->nBuf;
+    u32 n = w->nWork;
     u32 buf = no / per;
     Vec* ret;
 

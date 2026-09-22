@@ -35,10 +35,10 @@ void Cockpit::roomInit()
     IdTexDataLoad(ARC_PTR(ofs_74), TEX_OWNER_ID_COCKPIT);
     IdSys.set(ARC_PTR(ofs_88), 0xFF, IDC_CINESCO, 0x13, 0, 0);
     IdSys.kill(0xFF, IDC_MSG_WINDOW);
-    action.roomInit();
+    m_ActBttn.roomInit();
     m_LifeMeter.roomInit();
-    bullet.roomInit();
-    countDown.roomInit();
+    m_BlltInfo.roomInit();
+    m_CountDown.roomInit();
 }
 
 // Per-frame HUD update: life meter, bullet counter, count-down and action button when the HUD
@@ -52,9 +52,9 @@ void Cockpit::move()
     }
     if (IdSys.setCk(IDC_LIFE_METER)) {
         m_LifeMeter.move();
-        bullet.move();
-        action.move();
-        countDown.move();
+        m_BlltInfo.move();
+        m_ActBttn.move();
+        m_CountDown.move();
     }
 }
 
@@ -129,7 +129,7 @@ void LifeMeter::roomInit()
         break;
     }
     disp(1);
-    life = (f32) (s16) pG->pl_life;
+    m_life = (f32) (s16) pG->pl_life;
     m_life_sub = (f32) (s16) pG->ashley_life;
     u = IdSys.unitPtr(0x11, IDC_LIFE_METER);
     m_state_color0[0][0] = u->col0[0];
@@ -204,7 +204,7 @@ void LifeMeter::move()
     ang = METER_ANGLE(m_life_level_sub, 5.0f, 90.0f, 0.0f);
     IdSys.unitPtr(2, IDC_LIFE_METER)->rot0.z = ang;
 
-    life = a_ratio * life + (1.0f - a_ratio) * (f32) (s16) pG->pl_life;
+    m_life = a_ratio * m_life + (1.0f - a_ratio) * (f32) (s16) pG->pl_life;
     m_life_sub = a_ratio * m_life_sub + (1.0f - a_ratio) * (f32) (s16) pG->ashley_life;
 
     u = IdSys.unitPtr(7, IDC_LIFE_METER);
@@ -213,7 +213,7 @@ void LifeMeter::move()
     u->be_flag &= ~8;
     u2->be_flag &= ~8;
     u3->be_flag &= ~8;
-    rate = life / 400.0f;
+    rate = m_life / 400.0f;
     if (rate > 4.0f) {
         u->be_flag |= 8;
         u2->be_flag |= 8;
@@ -459,17 +459,17 @@ void ActionButton::roomInit()
     IdSys.set(ARC_PTR(ofs_80), 1, IDC_ACT_BUTTON, 0x13, 5, 0);
     IdSys.set(ARC_PTR(ofs_80), 0xF0, IDC_ACT_BUTTON, 0x13, 5, 0);
     m_disp_flag_old = 0;
-    no = 0;
+    m_disp_flag = 0;
 }
 
 // Per-frame: when the prompt button `no` (set by ActBtn) changed, rebuilds the action button ids
 // (frame + the icon for A / B / X / Y / L / R / Z / stick...).
 void ActionButton::move()
 {
-    if (no != m_disp_flag_old) {
+    if (m_disp_flag != m_disp_flag_old) {
         u8 id;
 
-        switch (no) {
+        switch (m_disp_flag) {
         case 6:
             id = 9;
             break;
@@ -519,18 +519,18 @@ void ActionButton::move()
         IdSys.kill(0xFF, IDC_ACT_BUTTON);
         IdSys.set(ARC_PTR(ofs_80), 1, IDC_ACT_BUTTON, 0x13, 5, 0);
         IdSys.set(ARC_PTR(ofs_80), 0xF0, IDC_ACT_BUTTON, 0x13, 5, 0);
-        if (no != 0) {
+        if (m_disp_flag != 0) {
             IdSys.set(ARC_PTR(ofs_80), id, IDC_ACT_BUTTON, 0x13, 5, 0);
         }
     }
-    m_disp_flag_old = no;
+    m_disp_flag_old = m_disp_flag;
 }
 
 // ---------------------------------------------------------------- BulletInfo
 
 void BulletInfo::roomInit()
 {
-    markNo = -1;
+    m_mark_old = -1;
 }
 
 // Per-frame ammo display: the equipped weapon's loaded count as three digit ids (leading zeros
@@ -582,7 +582,7 @@ void BulletInfo::move()
     if (mark == 0xFF) {
         IdSys.kill(0xFF, IDC_BLLT_ICON);
     }
-    if (markNo != mark) {
+    if (m_mark_old != mark) {
         if (mark == 0xFF) {
             IdSys.kill(0xFF, IDC_BLLT_ICON);
         } else {
@@ -592,7 +592,7 @@ void BulletInfo::move()
             IdSys.unitParent(IdSys.unitPtr(0x30, IDC_LIFE_METER), p);
         }
     }
-    markNo = mark;
+    m_mark_old = mark;
 
     if (dispBulletDigit(wepNo) == 1) {
         if (noBullet == 0) {
@@ -768,9 +768,9 @@ void CountDown::move()
     } else {
         m_state &= ~TIMER_STA_PAUSE;
     }
-    if (pG->cdown_add_sec != 0) {
-        m_frame += pG->cdown_add_sec * 30;
-        pG->cdown_add_sec = 0;
+    if (pG->time_bonus != 0) {
+        m_frame += pG->time_bonus * 30;
+        pG->time_bonus = 0;
     }
     if (!DbgFlagChk(pG, DBG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & TIMER_STA_PAUSE)) {
         if (m_frame != 0) {
@@ -789,14 +789,14 @@ void CountDown::move()
         u->col0[2] = (u8) s->col[2];
         u->col0[3] = (u8) s->col[3];
     }
-    oldTens = cs / 10;
+    oldTens = m_centisecond / 10;
     ft = (f32) m_frame * 10.0f / 3.0f + 0.5f;
     t = (u32) ft;
-    cs = t % 100;
+    m_centisecond = t % 100;
     t /= 100;
     m_minute = t / 60;
     m_second = t % 60;
-    newTens = cs / 10;
+    newTens = m_centisecond / 10;
     if (oldTens != newTens) {
         m_counter = (m_counter + 1) % 6;
     }
@@ -826,8 +826,8 @@ void CountDown::move()
     p->texNo = d.lo;
     p->tex_flag |= 2;
 
-    d.hi = cs / 10;
-    d.lo = cs % 10;
+    d.hi = m_centisecond / 10;
+    d.lo = m_centisecond % 10;
     p = IdSys.unitPtr(4, IDC_COUNT_DOWN);
     p->texNo = d.hi;
     p->tex_flag |= 2;
@@ -890,7 +890,7 @@ void CountDown::initTime(int m, int s, int c)
     m_frame = TIME_FRAME(m, s, c);
     m_minute = m;
     m_second = s;
-    cs = c;
+    m_centisecond = c;
     m_counter = 0;
     u = IdSys.unitPtr(0x10, IDC_COUNT_DOWN);
     u->col0[0] = 0xFF;
@@ -922,7 +922,7 @@ void CountDown::getTime(int* m, int* s, int* c)
 {
     *m = m_minute;
     *s = m_second;
-    *c = cs;
+    *c = m_centisecond;
 }
 
 // Remaining frames.

@@ -135,9 +135,9 @@ void titleSet(TitleWork* w, int time)
 {
     IdSys.kill(0xFF, IDC_TITLE);
     if (!ExtFlagChk(pSys, EXT_HARD_MODE)) {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 6), 0xFF, IDC_TITLE, 0x13, 6, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pIdDat, 6), 0xFF, IDC_TITLE, 0x13, 6, 0);
     } else {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 7), 0xFF, IDC_TITLE, 0x13, 6, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pIdDat, 7), 0xFF, IDC_TITLE, 0x13, 6, 0);
     }
     IdSys.setTime(IdSys.unitPtr(0, IDC_TITLE), (s16) time);
 }
@@ -168,13 +168,13 @@ void titleWait(TitleWork* w)
         w->Rno1 = 2;
         break;
     case 2: {
-        int stat = Dvd.ReadCheck(w->req, 0, 0, (void**) &w->pDat);
+        int stat = Dvd.ReadCheck(w->req, 0, 0, (void**) &w->pIdDat);
         if (stat == 1) {
             pG->nPrim = 0x20000;
             primInit();
             IdTexRoomInit();
             IdSys.roomInit();
-            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), TEX_OWNER_ID_TITLE);
+            IdTexDataLoad(TITLE_ARC_PTR(w->pIdDat, 4), TEX_OWNER_ID_TITLE);
             {
                 register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
                 z = 0;
@@ -189,10 +189,10 @@ void titleWait(TitleWork* w)
                 w->counter = TTL_START_BIO4;
                 titleSet(w, TTL_START_BIO4);
                 if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
-                    w->saveStep = w->Rno1;
-                    w->saveSub = w->Rno2;
-                    w->saveX3 = w->Rno3;
-                    w->saveCnt = w->counter;
+                    w->Rno1_bak = w->Rno1;
+                    w->Rno2_bak = w->Rno2;
+                    w->Rno3_bak = w->Rno3;
+                    w->counter_bak = w->counter;
                     w->Rno0 = 6;
                     w->Rno1 = 0;
                 }
@@ -201,8 +201,8 @@ void titleWait(TitleWork* w)
         {
             Camera* cam = &pG->Camera;
             C_MTXPerspective(cam->ProjMat, cam->param.fovy, 4.0f / 3.0f, ZNEAR, ZFAR);
-            cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-            C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
+            cam->Distance = PSVECDistance(&cam->param.pos, &cam->param.at);
+            C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->Up, &cam->param.at);
         }
         break;
     }
@@ -226,7 +226,7 @@ void titleNintendo(TitleWork* w)
     }
     switch (w->Rno1) {
     case 0:
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 0xB), 0xFF, IDC_TITLE, 0x13, 6, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pIdDat, 0xB), 0xFF, IDC_TITLE, 0x13, 6, 0);
         c0.w = 0x000000FF;
         c1.w = 0x00000000;
         FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
@@ -381,20 +381,20 @@ void titleMenuInit(TitleWork* w)
 {
     IdSys.kill(0xFF, IDC_TITLE_MENU);
     if (ExtFlagChk(pSys, EXT_HARD_MODE)) {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 9), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pIdDat, 9), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
         w->menu_num = 5;
-        w->menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
-        w->menu[1] = IdSys.unitPtr(7, IDC_TITLE_MENU);
-        w->menu[2] = IdSys.unitPtr(9, IDC_TITLE_MENU);
-        w->menu[3] = IdSys.unitPtr(3, IDC_TITLE_MENU);
-        w->menu[4] = IdSys.unitPtr(5, IDC_TITLE_MENU);
+        w->p_menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
+        w->p_menu[1] = IdSys.unitPtr(7, IDC_TITLE_MENU);
+        w->p_menu[2] = IdSys.unitPtr(9, IDC_TITLE_MENU);
+        w->p_menu[3] = IdSys.unitPtr(3, IDC_TITLE_MENU);
+        w->p_menu[4] = IdSys.unitPtr(5, IDC_TITLE_MENU);
         w->cursor = 3;
     } else {
-        IdSys.set(TITLE_ARC_PTR(w->pDat, 8), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
+        IdSys.set(TITLE_ARC_PTR(w->pIdDat, 8), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
         w->menu_num = 3;
-        w->menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
-        w->menu[1] = IdSys.unitPtr(5, IDC_TITLE_MENU);
-        w->menu[2] = IdSys.unitPtr(3, IDC_TITLE_MENU);
+        w->p_menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
+        w->p_menu[1] = IdSys.unitPtr(5, IDC_TITLE_MENU);
+        w->p_menu[2] = IdSys.unitPtr(3, IDC_TITLE_MENU);
         w->cursor = 1;
     }
     w->scroll = 0;
@@ -419,16 +419,16 @@ void titleMenuInit(TitleWork* w)
             int i;                                                                         \
             for (i = 0; i < (w)->menu_num; i++) {                                           \
                 if (i == (w)->cursor) {                                                    \
-                    (w)->menu[i]->be_flag |= 8;                                              \
+                    (w)->p_menu[i]->be_flag |= 8;                                              \
                 } else {                                                                   \
-                    (w)->menu[i]->be_flag &= ~8;                                             \
+                    (w)->p_menu[i]->be_flag &= ~8;                                             \
                 }                                                                          \
             }                                                                              \
         }                                                                                  \
         if ((w)->menu_num > 1 && (Key.trg & (KEY_UP | KEY_DOWN))) {                        \
             int i;                                                                         \
             for (i = 0; i < (w)->menu_num; i++) {                                           \
-                IdUnit* u = (w)->menu[i];                                                  \
+                IdUnit* u = (w)->p_menu[i];                                                  \
                 u->timer[3] = 0;                                                           \
                 u->timer[1] = 0;                                                           \
                 u->timer[2] = 0;                                                           \
@@ -485,10 +485,10 @@ int titleMenuSelect(TitleWork* w)
 void titleLevelInit(TitleWork* w)
 {
     IdSys.kill(0xFF, IDC_TITLE_MENU);
-    IdSys.set(TITLE_ARC_PTR(w->pDat, 0xA), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
-    w->menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
-    w->menu[1] = IdSys.unitPtr(3, IDC_TITLE_MENU);
-    w->menu[2] = IdSys.unitPtr(5, IDC_TITLE_MENU);
+    IdSys.set(TITLE_ARC_PTR(w->pIdDat, 0xA), 0xFF, IDC_TITLE_MENU, 0x13, 5, 0);
+    w->p_menu[0] = IdSys.unitPtr(1, IDC_TITLE_MENU);
+    w->p_menu[1] = IdSys.unitPtr(3, IDC_TITLE_MENU);
+    w->p_menu[2] = IdSys.unitPtr(5, IDC_TITLE_MENU);
     if (pSys->language == 1) {
         IdSys.unitPtr(5, IDC_TITLE_MENU)->be_flag &= ~8;
         IdSys.unitPtr(6, IDC_TITLE_MENU)->be_flag &= ~8;
@@ -596,10 +596,10 @@ void titleMain(TitleWork* w)
                 SysFlagOn(pG, SYS_OMAKE_ETC_GAME);
                 break;
             }
-            w->saveStep = w->Rno1;
-            w->saveSub = w->Rno2;
-            w->saveX3 = w->Rno3;
-            w->saveCnt = w->counter;
+            w->Rno1_bak = w->Rno1;
+            w->Rno2_bak = w->Rno2;
+            w->Rno3_bak = w->Rno3;
+            w->counter_bak = w->counter;
             w->Rno0 = 6;
             w->Rno1 = 0;
             w->omk_char_no = 0;
@@ -616,9 +616,9 @@ void titleMain(TitleWork* w)
             MesData.ptr[2] = (u8*) G_ARC_PTR(ofs_28);
             OptScrn.init(1);
             IdTexDataLoad(G_ARC_PTR(ofs_74), TEX_OWNER_ID_COCKPIT);
-            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 0xC), TEX_OWNER_ID_EVENT);
-            IdSys.set(TITLE_ARC_PTR(w->pDat, 0xD), 0xFF, IDC_EVENT, 0x13, 5, 0);
-            w->saveCnt = w->counter;
+            IdTexDataLoad(TITLE_ARC_PTR(w->pIdDat, 0xC), TEX_OWNER_ID_EVENT);
+            IdSys.set(TITLE_ARC_PTR(w->pIdDat, 0xD), 0xFF, IDC_EVENT, 0x13, 5, 0);
+            w->counter_bak = w->counter;
             w->Rno1 = 4;
             SndCall(0, 0x33, 0, 0, 0, 0);
             break;
@@ -669,12 +669,12 @@ void titleMain(TitleWork* w)
             IdTexRelease(TEX_OWNER_ID_EVENT);
             IdSys.kill(0xFF, IDC_EVENT);
             OptScrn.quit();
-            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), TEX_OWNER_ID_TITLE);
+            IdTexDataLoad(TITLE_ARC_PTR(w->pIdDat, 4), TEX_OWNER_ID_TITLE);
             w->Rno0 = 5;
             w->Rno1 = 0;
             w->cursor = 2;
-            w->counter = w->saveCnt;
-            titleSet(w, w->saveCnt);
+            w->counter = w->counter_bak;
+            titleSet(w, w->counter_bak);
         }
         break;
     case 5:
@@ -772,10 +772,10 @@ void titleMain(TitleWork* w)
                 int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
                 w->Rno0 = 7;
                 if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
-                    w->saveSub = w->Rno2;
-                    w->saveStep = w->Rno1;
-                    w->saveX3 = w->Rno3;
-                    w->saveCnt = w->counter;
+                    w->Rno2_bak = w->Rno2;
+                    w->Rno1_bak = w->Rno1;
+                    w->Rno3_bak = w->Rno3;
+                    w->counter_bak = w->counter;
                     w->Rno0 = 6;
                     w->Rno1 = zero;
                 } else {
@@ -803,40 +803,40 @@ void titleLoop(TitleWork* w)
     static f32 zoom_in_limit = 170.0f;
     IdUnit* u;
 
-    IdSys.unitPtr(1, IDC_TITLE)->scr.x = width * 0.0f;
-    IdSys.unitPtr(2, IDC_TITLE)->scr.x = width * 1.0f;
-    IdSys.unitPtr(3, IDC_TITLE)->scr.x = width * -1.0f;
-    IdSys.unitPtr(4, IDC_TITLE)->scr.x = width * -2.0f;
-    IdSys.unitPtr(5, IDC_TITLE)->scr.x = width * 2.0f;
+    IdSys.unitPtr(1, IDC_TITLE)->pos0.x = width * 0.0f;
+    IdSys.unitPtr(2, IDC_TITLE)->pos0.x = width * 1.0f;
+    IdSys.unitPtr(3, IDC_TITLE)->pos0.x = width * -1.0f;
+    IdSys.unitPtr(4, IDC_TITLE)->pos0.x = width * -2.0f;
+    IdSys.unitPtr(5, IDC_TITLE)->pos0.x = width * 2.0f;
     u = IdSys.unitPtr(6, IDC_TITLE);
     if (w->scroll == 0) {
-        u->scr.x -= w->scroll_add;
+        u->pos0.x -= w->scroll_add;
         if (Key.on & (KEY_RIGHT | KEY_LEFT)) {
             w->scroll = 1;
         }
     } else {
         if ((f32) Key.stickX != 0.0f) {
             f32 spd = (f32) Key.stickX / 59.0f * 3.0f;
-            u->scr.x -= spd;
+            u->pos0.x -= spd;
             if (__builtin_fabsf((f32) Key.stickX) > 3.0f) {
                 w->scroll_add = spd;
             }
         } else {
-            u->scr.x -= w->scroll_add;
+            u->pos0.x -= w->scroll_add;
         }
         if (Key.on & 0x00400000) {
-            u->scr.z -= 5.0f;
+            u->pos0.z -= 5.0f;
         }
         if (Key.on & 0x00800000) {
-            u->scr.z += 5.0f;
+            u->pos0.z += 5.0f;
         }
-        u->scr.z = u->scr.z < 0.0f ? 0.0f : (u->scr.z > zoom_in_limit ? zoom_in_limit : u->scr.z);
+        u->pos0.z = u->pos0.z < 0.0f ? 0.0f : (u->pos0.z > zoom_in_limit ? zoom_in_limit : u->pos0.z);
     }
-    if (u->scr.x > width * 2.0f) {
-        u->scr.x -= width * 3.0f;
+    if (u->pos0.x > width * 2.0f) {
+        u->pos0.x -= width * 3.0f;
     }
-    if (u->scr.x < -width) {
-        u->scr.x += width * 3.0f;
+    if (u->pos0.x < -width) {
+        u->pos0.x += width * 3.0f;
     }
 }
 
@@ -889,7 +889,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 1:
-        if (Dvd.ReadCheck(w->req, &w->omkSize, 0, (void**) &w->pOmk) != 0) {
+        if (Dvd.ReadCheck(w->req, &w->data_size, 0, (void**) &w->pOmk) != 0) {
             omk_addr = w->pOmk;
             w->Rno1++;
         }
@@ -1007,11 +1007,11 @@ void titleSub(TitleWork* w)
             Mem_free(w->pOmk);
             FadeSetW(0x80000000, 5, 0, 0);
             w->Rno0 = 5;
-            w->Rno1 = w->saveStep;
-            w->Rno2 = w->saveSub;
-            w->Rno3 = w->saveX3;
-            w->counter = w->saveCnt;
-            titleSet(w, w->saveCnt);
+            w->Rno1 = w->Rno1_bak;
+            w->Rno2 = w->Rno2_bak;
+            w->Rno3 = w->Rno3_bak;
+            w->counter = w->counter_bak;
+            titleSet(w, w->counter_bak);
             titleMenuInit(w);
         }
         break;
@@ -1118,7 +1118,7 @@ void titleSub(TitleWork* w)
             IdUnit* a = IdSys.unitPtr(sel, IDC_OPTION);
             IdUnit* b = IdSys.unitPtr(0xFE, IDC_OPTION);
             IdUnit* u;
-            b->scr = a->scr;
+            b->pos0 = a->pos0;
             u = IdSys.unitPtr(5, IDC_OPTION);
             u->texNo = sel;
             u->tex_flag |= 2;
@@ -1458,52 +1458,52 @@ void titleExit(TitleWork* w)
             G_ROOM_ID = 0x405;
             pG->JumpPoint = point;
             pG->Part = point;
-            pG->sub_pos.x = 28450.0f;
-        pG->sub_pos.y = -16798.0f;
-        pG->sub_pos.z = -40000.0f;
-        pG->sub_angle = -2.49f;
+            pG->pl_pos.x = 28450.0f;
+        pG->pl_pos.y = -16798.0f;
+        pG->pl_pos.z = -40000.0f;
+        pG->pl_ang_y = -2.49f;
         } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         switch (w->omk_stage_no) {
         case 0:
             G_ROOM_ID = 0x400;
             pG->JumpPoint = point;
             pG->Part = point;
-            pG->sub_pos.x = -12400.0f;
-            pG->sub_pos.y = 2576.0f;
-            pG->sub_pos.z = 31080.0f;
-            pG->sub_angle = 2.486f;
+            pG->pl_pos.x = -12400.0f;
+            pG->pl_pos.y = 2576.0f;
+            pG->pl_pos.z = 31080.0f;
+            pG->pl_ang_y = 2.486f;
             break;
         case 1:
             G_ROOM_ID = 0x402;
             pG->JumpPoint = point;
             pG->Part = point;
-            pG->sub_pos.x = 21035.0f;
-            pG->sub_pos.y = 3065.0f;
-            pG->sub_pos.z = -26370.0f;
-            pG->sub_angle = -1.53f;
+            pG->pl_pos.x = 21035.0f;
+            pG->pl_pos.y = 3065.0f;
+            pG->pl_pos.z = -26370.0f;
+            pG->pl_ang_y = -1.53f;
             break;
         case 2:
             G_ROOM_ID = 0x403;
             pG->JumpPoint = point;
             pG->Part = point;
-            pG->sub_pos.x = 31558.0f;
-            pG->sub_pos.y = 8314.0f;
-            pG->sub_pos.z = 38823.0f;
-            pG->sub_angle = 2.345f;
+            pG->pl_pos.x = 31558.0f;
+            pG->pl_pos.y = 8314.0f;
+            pG->pl_pos.z = 38823.0f;
+            pG->pl_ang_y = 2.345f;
             break;
         case 3:
             G_ROOM_ID = 0x404;
             pG->JumpPoint = point;
             pG->Part = point;
-            pG->sub_pos.x = -640.0f;
-            pG->sub_pos.y = 0.0f;
-            pG->sub_pos.z = -15890.0f;
-            pG->sub_angle = 3.13f;
+            pG->pl_pos.x = -640.0f;
+            pG->pl_pos.y = 0.0f;
+            pG->pl_pos.z = -15890.0f;
+            pG->pl_ang_y = 3.13f;
             break;
         }
         } else {
-            pG->sub_pos = pG->NextPos;
-            pG->sub_angle = pG->NextY;
+            pG->pl_pos = pG->NextPos;
+            pG->pl_ang_y = pG->NextY;
             G_ROOM_ID = pG->RoomNo_next;
             pG->Part = pG->Part_next;
         }
@@ -1517,9 +1517,9 @@ void titleExit(TitleWork* w)
     IdTexRelease(TEX_OWNER_ID_EVENT);
     IdSys.roomInit();
     primFree();
-    if (w->pDat) {
-        Mem_free(w->pDat);
-        w->pDat = 0;
+    if (w->pIdDat) {
+        Mem_free(w->pIdDat);
+        w->pIdDat = 0;
     }
     if (FlagChkSignW(pG->System_flg, SYS_OMAKE_ADA_GAME) || (SysFlagChk(pG, SYS_OMAKE_ETC_GAME))) {
         Mem_free(w->pOmk);
@@ -1598,7 +1598,7 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%d", pG->game_costume);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->eff_country]);
-    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->language]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->game_country]);
     if (SysFlagChk(pG, SYS_OMAKE_ADA_GAME)) {
         eprintf(x + 96, y += 16, 4, 0, "ADA GAME");
     } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
@@ -1781,7 +1781,7 @@ void titleDebugMenu(TitleWork* w)
         pSys->eff_country = num;
         break;
     case 17:
-        num = pG->language;
+        num = pG->game_country;
         if (Joy[0].trg & 0x00020002) {
             num++;
         }
@@ -1789,7 +1789,7 @@ void titleDebugMenu(TitleWork* w)
             num--;
         }
         num = num < 0 ? 0 : (num > 7 ? 7 : num);
-        pG->language = num;
+        pG->game_country = num;
         break;
     case 18:
         break;

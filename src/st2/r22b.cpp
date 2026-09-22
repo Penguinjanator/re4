@@ -53,7 +53,7 @@ extern "C" void R22bEventS00()
 // Event r22bs00 callback: fade-outs / fade-ins at fixed frames of cuts 0 and 1 (skipped when the event is skipped).
 extern "C" void Evt_R22bS00_Func(Event* e)
 {
-    if (e->funcMode == 1) {
+    if (e->FuncType == 1) {
         switch (e->NowCut) {
         case 0:
             if (e->NowFrame == 0) {

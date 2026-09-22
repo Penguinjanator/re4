@@ -348,7 +348,7 @@ static void r203_StreamCheck()
 // Event r203s00 callback: light mask 2 on the pl0400 model on its first frame.
 extern "C" void Evt_R203S00_Func(Event* e)
 {
-    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
+    if (e->FuncType == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         void* mod;
 
         if (e->GetMod(&mod, "pl0400", 0, 0) == 1) {

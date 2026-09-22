@@ -71,7 +71,7 @@ extern "C" void Evt_R325S00_Func(Event* e)
     void* info;
     void* bin;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         setRoomEtcDisp(0, 0, 1);
         pG->Room_flg[0] &= ~0x80000000;
@@ -95,19 +95,19 @@ extern "C" void Evt_R325S00_Func(Event* e)
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 6, r325_work->texTbl0, r325_work->tex[0], 0, 0, 1, 1, 1.0f);
                 }
-                EffectEspDelete(r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 0, r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspDelete(r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 0, r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
         } else {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModRes((cModel*) mod, 6);
                 }
-                EffectEspDelete(r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r325_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEspDelete(r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r325_work->tex[0]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
             }
         }
         if (pG->game_costume == 1) {
@@ -122,19 +122,19 @@ extern "C" void Evt_R325S00_Func(Event* e)
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 7, r325_work->texTbl1, r325_work->tex[1], 0, 0, 1, 1, 1.0f);
                 }
-                EffectEspDelete(r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 1, r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspDelete(r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 1, r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
         } else {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModRes((cModel*) mod, 7);
                 }
-                EffectEspDelete(r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EffectEspgenDelete(r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-                EffectEfmDelete(r325_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEspDelete(r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EffectEspgenDelete(r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
+                EffectEfmDelete(r325_work->tex[1]->m_Core_flg | 0x3001, ESP_CORE_KIND_NONE, 0);
             }
         }
         switch (e->NowCut) {

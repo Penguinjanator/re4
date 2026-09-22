@@ -8,7 +8,7 @@
 
 
 struct Esp1bWork {
-    int n;   // 0x00 number of points
+    int div;   // 0x00 number of points
     Vec Vec0;  // 0x04
     Vec Vec1;  // 0x10
     Vec Vec2;  // 0x1C
@@ -58,7 +58,7 @@ int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
         n = 0x40;
     }
     m_Flg |= 0x10;
-    w->n = n;
+    w->div = n;
     // Vec0..Vec2 through byte pointers: `&w->Vec1` changes the schedule (7 words)
     memcpy((u8*)w + 4, &gen->Vec0.x, sizeof(Vec));
     memcpy((u8*)w + 0x10, &gen->Vec1.x, sizeof(Vec));

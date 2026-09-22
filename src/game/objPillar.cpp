@@ -633,10 +633,10 @@ void EscapeCamMove()
         Vec* ca = &cam->param.at;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam->up.x = 0.0f;
-        cam->up.y = 1.0f;
-        cam->up.z = 0.0f;
-        cam->dist = SQRTF(len);
+        cam->Up.x = 0.0f;
+        cam->Up.y = 1.0f;
+        cam->Up.z = 0.0f;
+        cam->Distance = SQRTF(len);
         CameraSetOrientationUp(cam);
         CamCtrl.m_pExtraCamera = (s32) cam;
     }

@@ -455,8 +455,8 @@ void gameRoomInit()
         EatMgr.roomInit();
         EatMgr.arrayAlloc(ConsGetRoomValue(CONS_R_NEAT));
         EatMgr.create(p, 0, &pos, &rot, 0);
-        SatMgr.seCk = 0;
-        EatMgr.seCk = 1;
+        SatMgr.type = 0;
+        EatMgr.type = 1;
         EatMgr.initEffInfo();
         EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &effInfoWater);
         EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &effInfoNormal);
@@ -778,8 +778,8 @@ void GameContinue(int mode)
     pG->play_time = time;
     PlSetCostume();
     ContinueWepData();
-    pG->NextPos = pG->sub_pos;
-    pG->NextY = pG->sub_angle;
+    pG->NextPos = pG->pl_pos;
+    pG->NextY = pG->pl_ang_y;
     pG->RoomNo_next = pG->room_id;
     pG->Part_next = pG->Part;
     pG->Rno0 = 4;
@@ -806,7 +806,7 @@ void clearGlobalSaveData()
     GlobalKeep2 keep2;
     u16 x4F8E = pG->game_cnt;
     u32 x4F98 = pG->peseta;
-    u8 x4F93 = pG->language;
+    u8 x4F93 = pG->game_country;
     u8 x8354 = pG->game_mode;
     s32 game_mode = pG->SaveKind;
 
@@ -821,7 +821,7 @@ void clearGlobalSaveData()
     memcpy(&pG->pl_life, &keep, sizeof(keep));
     pG->game_cnt = x4F8E;
     pG->peseta = x4F98;
-    pG->language = x4F93;
+    pG->game_country = x4F93;
     pG->game_mode = x8354;
     pG->SaveKind = game_mode;
     pG->pl_life = pG->pl_life_max;
@@ -845,20 +845,20 @@ bool cGameSave::load(SAVE_DATA_HEAD* data)
     }
     if (pG->SaveKind == 3) {
         clearGlobalSaveData();
-        RoomData.clear(data->pRoom);
+        RoomData.clear(data->pRm);
         SndBgmTblInit();
-        MerchantDataLoad(data->pMerchant);
-        ItemMgr.load(data->pItem);
+        MerchantDataLoad(data->pMr);
+        ItemMgr.load(data->pItm);
         if (pG->game_cnt == 1) {
             Merchant2ndRoundInit();
         }
         ItemMgr.dumpType(7);
         pG->room_id = 0x120;
     } else {
-        RoomData.load(data->pRoom);
+        RoomData.load(data->pRm);
         SscrnDataLoad(data->pSscrn);
-        MerchantDataLoad(data->pMerchant);
-        ItemMgr.load(data->pItem);
+        MerchantDataLoad(data->pMr);
+        ItemMgr.load(data->pItm);
         PlSetCostume();
     }
     return 1;
@@ -873,15 +873,15 @@ bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
     }
     checkAddr(data);
     if (pG->Rno0 == 3) {
-        VEC_COPY(pG->sub_pos, pPL->pos);
-        pG->sub_angle = pPL->ang.y;
+        VEC_COPY(pG->pl_pos, pPL->pos);
+        pG->pl_ang_y = pPL->ang.y;
     }
     pG->SaveKind = mode;
     *data->pGlobal = *(GameSaveBlock*) pG->save_data_start_addr;
-    RoomData.save(data->pRoom);
+    RoomData.save(data->pRm);
     SscrnDataSave(data->pSscrn);
-    MerchantDataSave(data->pMerchant);
-    ItemMgr.save(data->pItem);
+    MerchantDataSave(data->pMr);
+    ItemMgr.save(data->pItm);
     return 1;
 }
 
@@ -911,14 +911,14 @@ void cGameSave::calcOffset(SAVE_DATA_HEAD* data, u32 base)
     data->base = 0;
     p = (u32) data->pGlobal;
     data->pGlobal = (GameSaveBlock*) (p - base);
-    p = (u32) data->pRoom;
-    data->pRoom = (void*) (p - base);
+    p = (u32) data->pRm;
+    data->pRm = (void*) (p - base);
     p = (u32) data->pSscrn;
     data->pSscrn = (u32*) (p - base);
-    p = (u32) data->pMerchant;
-    data->pMerchant = (void*) (p - base);
-    p = (u32) data->pItem;
-    data->pItem = (void*) (p - base);
+    p = (u32) data->pMr;
+    data->pMr = (void*) (p - base);
+    p = (u32) data->pItm;
+    data->pItm = (void*) (p - base);
 }
 
 // Converts the image's section offsets back to pointers (base = the image itself).
@@ -932,14 +932,14 @@ void cGameSave::calcAddr(SAVE_DATA_HEAD* data)
     data->base = data;
     p = (u32) data->pGlobal;
     data->pGlobal = (GameSaveBlock*) ((u32) data + p);
-    p = (u32) data->pRoom;
-    data->pRoom = (void*) ((u32) data + p);
+    p = (u32) data->pRm;
+    data->pRm = (void*) ((u32) data + p);
     p = (u32) data->pSscrn;
     data->pSscrn = (u32*) ((u32) data + p);
-    p = (u32) data->pMerchant;
-    data->pMerchant = (void*) ((u32) data + p);
-    p = (u32) data->pItem;
-    data->pItem = (void*) ((u32) data + p);
+    p = (u32) data->pMr;
+    data->pMr = (void*) ((u32) data + p);
+    p = (u32) data->pItm;
+    data->pItm = (void*) ((u32) data + p);
 }
 
 // Allocates the save image: global block at 0x40, room data at 0x3740, then sub screen, merchant
@@ -969,10 +969,10 @@ SAVE_DATA_HEAD* cGameSave::alloc()
 #line 1385 "D:/Bio4/Prog/game.cpp"
     d = (SAVE_DATA_HEAD*) MEM_CALLOC(size, 1, 13);
     d->pGlobal = (GameSaveBlock*) globalOfs;
-    d->pRoom = (void*) roomOfs;
+    d->pRm = (void*) roomOfs;
     d->pSscrn = (u32*) sscrnOfs;
-    d->pMerchant = (void*) merchantOfs;
-    d->pItem = (void*) itemOfs;
+    d->pMr = (void*) merchantOfs;
+    d->pItm = (void*) itemOfs;
     d->size = size;
     d->base = 0;
     calcAddr(d);
@@ -1280,8 +1280,8 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         DoorSeCall(0);
     }
-    pG->sub_pos = pG->NextPos;
-    pG->sub_angle = pG->NextY;
+    pG->pl_pos = pG->NextPos;
+    pG->pl_ang_y = pG->NextY;
     pG->room_id = pG->RoomNo_next;
     pG->Part = pG->Part_next;
     if (!FlagChkSign(pG->Debug_flg, DBG_ROOMJMP) && !SysFlagChk(pG, SYS_CONTINUE)) {
@@ -1472,7 +1472,7 @@ void GameAddPoint(int type)
     if (pG->shooting_mode != 0) {
         pG->point = 0x2AF7;
     }
-    if (pG->language != 0) {
+    if (pG->game_country != 0) {
         if (pG->point < 1000) {
             pG->point = 1000;
         }

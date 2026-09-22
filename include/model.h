@@ -142,7 +142,7 @@ struct ModelBound {
 // vptr 0x08). Partial layout.
 class cModelInfo : public cUnit {
 public:
-    cModelData* pData;    // 0x0C
+    cModelData* model_addr;    // 0x0C
     void* tpl_addr;          // 0x10  texture palette of the model (eff_sys RoomEfmRegist)
     cModelInfo* pList;   // 0x14  next parts info
     u8 pad_18[0x38 - 0x18];
@@ -283,7 +283,7 @@ struct MotionParts {
     Vec scale;       // 0x18C
     f32 ikAng;       // 0x198  ik: previous twist angle of the effector (InverseKinematics; PS2 cParts ang_x_bak)
     u16 hist[6][3];  // 0x19C  key history: rot, pos, scale; then the same for the flipped histories
-    u32 flags;       // 0x1C0  bit0 / bit16: animated this frame, bit1: skip partsWorldCalc, bit17: scale cancelled, bit24-25: skip blend, bit26: no cross frame, bit28: hokan pending, bit29: skip, bit30: apply cParts::addRot, bit31: hokan pending (blend)
+    u32 flags;       // 0x1C0  bit0 / bit16: animated this frame, bit1: skip partsWorldCalc, bit17: scale cancelled, bit24-25: skip blend, bit26: no cross frame, bit28: hokan pending, bit29: skip, bit30: apply cParts::inv_offset, bit31: hokan pending (blend)
                      //        ik (game/ik.cpp): bit2: IK chain root, bit4: 4-joint chain, bit6/bit11: floor search range, bit7: no IK,
                      //        bit8: heel-to-toe, bit9: no floor, bit10: reach limit, bit12: twist, bit13-15: IK plane axis
 };
@@ -350,7 +350,7 @@ class cParts : public cCoord {
 public:
     cParts* pList;   // 0xF4  next parts of the model (the cModel::pParts chain; createSequential links them). Not `next`: cManager<cParts> must keep using cUnit::next
     Mtx lt_inv_mat;     // 0xF8  bind pose matrix (motion.h PARTS_BIND_MAT); setPartsOffset: identity with -mat translation
-    Vec addRot;      // 0x128  rotation partsWorldCalc applies (x, then z, then y) while motParts.flags bit30 is set (ik.cpp overlays IkParts len / mat here)
+    Vec inv_offset;      // 0x128  rotation partsWorldCalc applies (x, then z, then y) while motParts.flags bit30 is set (ik.cpp overlays IkParts len / mat here)
     u8 pad_134[0x174 - 0x134];
     MotionParts motParts;  // 0x174 .. 0x1C4
     u8 pad_1C4[0x1D8 - 0x1C4];
@@ -386,7 +386,7 @@ public:
         cModel* pParts;      // 0xF4 child parts list (a cParts chain; every source addresses it as cModel*)
         cParts* pList;  // 0xF4 the same pointer typed as the parts (model.cpp)
     };
-    u32 serial;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
+    u32 guid;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
 
     u8 r_no_0;  // 0xFC  routine / state
     u8 r_no_1;  // 0xFD  routine index (move table)
@@ -407,7 +407,7 @@ public:
             u8 TevScaleGroup;         // 0x12D  (pl_leon setModel sets 1)
             u8 kindid;         // 0x12E  2 = scroll (Smd) object
             u8 ot_type;         // 0x12F  scroll: SmxWork.type2 (3 by default)
-            void* pCldShMd;  // 0x130  (db_work "pCldShMd")
+            void* pChildShadowModel;  // 0x130  (db_work "pCldShMd")
             u8 Shd_color;       // 0x134  (db_work "SHD COL")
             u8 CullMode;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
             u8 Shader_type;         // 0x136  TexRender: 2 while rendered to texture, 0 after
@@ -448,7 +448,7 @@ public:
             cAtariInfo atari;          // 0x2B4 .. 0x300  (rect size at 0x2C0/0x2C4)
             u32 inscreen_pos;                  // 0x300  (cModel::cModel clears it)
             u32 pPath;                  // 0x304  (cModel::cModel clears it)
-            void* pFootShadowTbl;      // 0x308  foot shadow table (pl_leon: pl_fs_tbl; trans FootShadow)
+            void* pFsdTbl;      // 0x308  foot shadow table (pl_leon: pl_fs_tbl; trans FootShadow)
             EmLightArea litArea;       // 0x30C .. 0x31C  light_area: per-light colour scale (trans_lit lightSetColor)
             cTexChg* pTexChg;          // 0x31C  texture change work (trans commonModelTrans: pTexChg->move)
         };

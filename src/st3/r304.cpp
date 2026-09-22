@@ -153,7 +153,7 @@ extern "C" void Evt_R304S00_Func(Event* e)
     cObj* obj;
     SmdWork* w;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         StaFlagOn(pG, STA_CAMERA_SET_ROOM);
         break;

@@ -26,16 +26,16 @@ enum YARARE_ATARI_FLAG {
 // pointers to these per target), 0x34 bytes; extra boxes are chained through `next` (at_mod.cpp
 // YarareAdd / YarareAddCube).
 struct YARARE_INFO {
-    Vec ofs;              // 0x00  box centre offset from the model / parts (yarareInit0 x, y, z)
-    Vec pos;              // 0x0C  hit position in the parts (obj1b: the spear sticks here)
-    f32 width;            // 0x18
+    Vec offset;              // 0x00  box centre offset from the model / parts (yarareInit0 x, y, z)
+    Vec cross;              // 0x0C  hit position in the parts (obj1b: the spear sticks here)
+    f32 radius;            // 0x18  box half width (PS2 radius)
     f32 height;           // 0x1C
-    f32 depth;            // 0x20  cube depth (YarareInitCube / YarareAddCube set it with flags bit3)
-    u16 flags;            // 0x24  YARARE_ATARI_FLAG bits: CUBE, THROUGH (the hit sets cDmgInfo bit5 too, pl_wep PlWepHitCheck2)
-    s16 partsNo;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
-    f32 rad;              // 0x28  squared distance hit point -> line start (em_sub emLineAtCk / emBoxAtCk)
-    f32 dist;             // 0x2C  squared distance of the hit from the aim line (em_sub GetWepTargetList sorts on it)
-    YARARE_INFO* next;      // 0x30  next hit box of the model (YarareAdd)
+    f32 extent;            // 0x20  cube depth (YarareInitCube / YarareAddCube set it with flags bit3)
+    u16 flag;            // 0x24  YARARE_ATARI_FLAG bits: CUBE, THROUGH (the hit sets cDmgInfo bit5 too, pl_wep PlWepHitCheck2)
+    s16 parts_no;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
+    f32 len;              // 0x28  squared distance hit point -> line start (em_sub emLineAtCk / emBoxAtCk)
+    f32 c_dis;             // 0x2C  squared distance of the hit from the aim line (em_sub GetWepTargetList sorts on it)
+    YARARE_INFO* pList;      // 0x30  next hit box of the model (YarareAdd)
 };
 
 // Damage info at cEm+0x324 (game/em.cpp), 0x18 bytes. set(0, 10, kind, pos, rad, part) registers a hit.

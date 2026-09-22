@@ -440,7 +440,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
 {
     void* mod;
 
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         ZFAR = 100000000.0f;
         StaFlagOn(pG, STA_CAMERA_SET_ROOM);

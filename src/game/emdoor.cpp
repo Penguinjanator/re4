@@ -323,7 +323,7 @@ void emDoorDmCkWood(cEmDoor* em)
             emDoorChainHit(em, 2);
             return;
         }
-        if (part->partsNo != 0) {
+        if (part->parts_no != 0) {
             if (em->plDist2 < 9000000.0f && Rnd() % 5 == 0) {
                 w->Door_hp = 0.0f;
             } else {
@@ -369,7 +369,7 @@ void emDoorDmCkWood(cEmDoor* em)
             emDoorChainHit(em, 2);
             return;
         }
-        if (part->partsNo != 0) {
+        if (part->parts_no != 0) {
             w->Door_hp = 0.0f;
         }
         emDoorSetDmgDoor(em);
@@ -399,7 +399,7 @@ void emDoorDmCkWood(cEmDoor* em)
             emDoorSetDmgLock_R(em, 0);
             return;
         }
-        if (part->partsNo != 0 && part->rad < 64000000.0f) {
+        if (part->parts_no != 0 && part->len < 64000000.0f) {
             w->Door_hp = 0.0f;
         }
         if (part == &w->hit[13]) {
@@ -751,7 +751,7 @@ void emDoorDmCkIron2(cEmDoor* em)
             emDoorChainHit(em, 2);
             return;
         }
-        if (part->partsNo != 0) {
+        if (part->parts_no != 0) {
             w->Door_hp = 0.0f;
             emDoorSetDmgDoor(em);
             return;
@@ -784,7 +784,7 @@ void emDoorDmCkIron2(cEmDoor* em)
             emDoorChainHit(em, 2);
             return;
         }
-        if (part->partsNo != 0) {
+        if (part->parts_no != 0) {
             w->Door_hp = 0.0f;
             emDoorSetDmgDoor(em);
             return;
@@ -821,7 +821,7 @@ void emDoorDmCkIron2(cEmDoor* em)
             emDoorChainHit(em, 2);
             return;
         }
-        if (part->partsNo != 0) {
+        if (part->parts_no != 0) {
             w->Door_hp = 0.0f;
             emDoorSetDmgDoor(em);
             return;
@@ -840,7 +840,7 @@ void emDoorDmCkIron2(cEmDoor* em)
     case 0x2D:
     default:
         emDoorBreakLocks(em);
-        if (part->partsNo != 0) {
+        if (part->parts_no != 0) {
             w->Door_hp = 0.0f;
             emDoorSetDmgDoor(em);
             return;
@@ -1011,7 +1011,7 @@ void emDoorDmCkIronDown(cEmDoor* em)
 // A hit box no longer takes hits.
 static inline void emDoorHitOff(YARARE_INFO* hit)
 {
-    hit->flags &= ~1;
+    hit->flag &= ~1;
 }
 
 // Damages the left lock (mode 0: one hit, 4 for strong locks; mode 1: destroy): rattle est / SE,
@@ -1230,17 +1230,17 @@ void emDoorSetDmgDoor(cEmDoor* em)
     u32 bit;
     u32 i;
 
-    if (part->partsNo != 0) {
-        parts = em->getPartsPtr(part->partsNo - 1);
+    if (part->parts_no != 0) {
+        parts = em->getPartsPtr(part->parts_no - 1);
         if (w->Door_hp <= 0.0f) {
             w->Door_hp = (Rnd() & 1) + 1;
             parts->scale.x = 0.0f;
             parts->scale.y = 0.0f;
             parts->scale.z = 0.0f;
-            part->flags &= ~1;
+            part->flag &= ~1;
             if (em->type == 4) {
                 if (w->Eff_id != 0xFF) {
-                    wpos = &em->getPartsPtr(part->partsNo - 1)->world;
+                    wpos = &em->getPartsPtr(part->parts_no - 1)->world;
                     v.x = 0.0f;
                     v.y = 0.0f;
                     v.z = 1.0f;
@@ -2522,7 +2522,7 @@ void cEmDoor::setYarare()
         parts->scale.y = 1.0f;
         parts->scale.z = 1.0f;
         if (flg && (*flg & 8)) {
-            w->hit[3].flags &= ~1;
+            w->hit[3].flag &= ~1;
             parts->scale.x = 0.0f;
             parts->scale.y = 0.0f;
             parts->scale.z = 0.0f;

@@ -119,7 +119,7 @@ public:
     void* pIdExtra;    // 0x18  unlock screen
     void* pIdEnd;      // 0x1C
     u8 pad_20[0xC];
-    void* pData;       // 0x2C
+    void* omk_addr;       // 0x2C
     s8 _rno0;           // 0x30
     s8 _rno1;            // 0x31
     u8 _rno2;
@@ -136,7 +136,7 @@ public:
     void* pTex;        // 0x00
     void* pId;         // 0x04
     u8 pad_8[0x24];
-    void* pData;       // 0x2C
+    void* omk_addr;       // 0x2C
     s8 _rno0;           // 0x30
     s8 _rno1;            // 0x31
     u8 _rno2;

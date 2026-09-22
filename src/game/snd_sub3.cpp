@@ -65,7 +65,7 @@ SND_SHD* Snd_get_shd_adrs(u16 blk_no, u16 req_no)
 
     rit = Snd_get_rit_adrs(blk_no, req_no);
     shd = Snd_str_blk[blk_no].shd;
-    shd += ((u32*) shd)[rit->shd_no];
+    shd += ((u32*) shd)[rit->str_no];
     return (SND_SHD*) shd;
 }
 
@@ -161,9 +161,9 @@ s8 get_dls_vol_pan(u16 blk_no, u16 req_no, int mode)
     sit = Snd_get_sit_adrs(blk_no, req_no);
     hdr = (SND_WT_HDR*) blk->dls;
     inst = (WTINST*) (blk->dls + hdr->inst_ofs);
-    inst += (u16) (sit->prog >> 8);
+    inst += (u16) (sit->note >> 8);
     rgn = (WTREGION*) (blk->dls + hdr->rgn_ofs);
-    rgn += inst->keyRegion[sit->prog & 0xFF];
+    rgn += inst->keyRegion[sit->note & 0xFF];
     art = (WTART*) (blk->dls + hdr->art_ofs);
     art += rgn->articulationIndex;
     if (mode == 0) {

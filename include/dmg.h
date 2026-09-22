@@ -25,7 +25,7 @@ enum DMG_TYPE {
 class cDmg : public cUnit {
 public:
     u32 m_Id;      // 0x0C  construct id (cDmgMgr::ID): ID_CYLINDER, ID_POINT4
-    int kind;    // 0x10  DMG_TYPE, returned by hitCheck (FIRE/FLAME/LAMP/ENV_FIRE break the item enemies)
+    int m_Type;    // 0x10  DMG_TYPE, returned by hitCheck (FIRE/FLAME/LAMP/ENV_FIRE break the item enemies)
     int m_Time;   // 0x14  frames left
 
     virtual ~cDmg() {}
@@ -45,7 +45,7 @@ public:
 class cDmgP4 : public cDmg {
 public:
     Vec m_Pos[4];  // 0x18
-    f32 h;      // 0x48
+    f32 m_Height;      // 0x48
 
     virtual int hitCheck(Vec* pos, Vec* out);
 };

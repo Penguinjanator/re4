@@ -42,8 +42,8 @@ CameraMotion::CameraMotion(void* data, int hokan, int flags, f32 frame)
     w->flags = flags;
     w->frame = frame;
     w->state = 0;
-    base_mat = NULL;
-    end = 0;
+    m_p_base_mat = NULL;
+    m_state = 0;
 }
 
 // Poisons the object (memset 9) so a stale pointer is caught.
@@ -92,15 +92,15 @@ void CameraMotion::move()
     param.roll = roll.y;
     param.fovy = fov.y * 180.0f / PI;
     CameraSetOrientationRoll(this);
-    if (base_mat) {
-        PSMTXMultVec(*base_mat, &param.pos, &param.pos);
-        PSMTXMultVec(*base_mat, &param.at, &param.at);
-        PSMTXMultVec(*base_mat, &up, &up);
+    if (m_p_base_mat) {
+        PSMTXMultVec(*m_p_base_mat, &param.pos, &param.pos);
+        PSMTXMultVec(*m_p_base_mat, &param.at, &param.at);
+        PSMTXMultVec(*m_p_base_mat, &Up, &Up);
         CameraSetOrientationUp(this);
     }
-    end = 0;
+    m_state = 0;
     if (CameraSequenceCtrl(&m_info) == 4) {
-        end = 1;
+        m_state = 1;
     }
 }
 

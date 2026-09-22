@@ -62,7 +62,7 @@ struct SymHeader {
 // A loaded symbol file and the load address of the module it describes.
 struct SymbolInfo {
     SymHeader* symbol_ptr;  // 0x00
-    u32 base;        // 0x04
+    u32 virtual_addr;        // 0x04
 };
 
 // Memory dump window state (`test`).
@@ -227,9 +227,9 @@ int excepLoadSymbolSub(char* name, OSModuleHeader* module)
         p->symbol_ptr = (SymHeader*) addr;
         nSymbolInfo++;
         if (module) {
-            p->base = OSGetSectionInfo(module)[1].offset - 1;
+            p->virtual_addr = OSGetSectionInfo(module)[1].offset - 1;
         } else {
-            p->base = (u32) module;
+            p->virtual_addr = (u32) module;
         }
     }
     return ret;
@@ -301,13 +301,13 @@ void excepLoadSymbol()
             symbol_err = excepLoadSymbolSub("Bio4.Sscrn.sym", mod);
         }
     }
-    if (RoomData.pModule) {
-        OSModuleHeader* mod = RoomData.pModule;
+    if (RoomData.m_pModule) {
+        OSModuleHeader* mod = RoomData.m_pModule;
         if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->info.sectionInfoOffset < 0) {
             strcpy(buf, FileTbl[RoomData.m_RelNo].name + 4);
             *strchr(buf, '.') = 0;
             sprintf(tmp_str, "Bio4.%s.sym", buf);
-            symbol_err = excepLoadSymbolSub(tmp_str, RoomData.pModule);
+            symbol_err = excepLoadSymbolSub(tmp_str, RoomData.m_pModule);
         }
     }
 }
@@ -342,8 +342,8 @@ char* excepGetSymbolNameSub(u32 addr, SymbolInfo* info)
     int i;
 
     for (i = 0; i < n; i++, e++) {
-        u32 start = e->addr + info->base;
-        u32 end = e->addr + e->size + info->base;
+        u32 start = e->addr + info->virtual_addr;
+        u32 end = e->addr + e->size + info->virtual_addr;
         if (start <= addr && addr < end) {
             sprintf(tmp_str, "%s (%s)", names + e->name, files + fo[e->file]);
             return tmp_str;

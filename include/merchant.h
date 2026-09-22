@@ -34,9 +34,9 @@ struct LEVEL_INFO {
 struct MerchantData {
     STOCK_INFO stock;  // 0x000
     LEVEL_INFO level;  // 0x200
-    s8 favor;          // 0x300  0..100
+    s8 friendship;          // 0x300  0..100
     u8 study_num;
-    s8 discount;       // 0x302  percent off the selling price
+    s8 reduction_ratio;       // 0x302  percent off the selling price
     u8 bonus_flag;
 };                     // 0x304
 
@@ -51,10 +51,10 @@ struct PriceEntry {
 // Weapon tune price table entry (0x2A bytes): price / 10 per level (index lv - 2).
 struct LevelPrice {
     u16 id;       // 0x00
-    s16 fire[7];  // 0x02
-    s16 mag[3];   // 0x10
-    s16 speed[3]; // 0x16
-    s16 ex[7];    // 0x1C
+    s16 power[7];  // 0x02  firepower levels 2.. (levelupPrice type 0)
+    s16 speed[3];  // 0x10  firing speed levels (type 1) (PS2 speed; was `mag`)
+    s16 reload[3]; // 0x16  reload speed levels (type 2) (PS2 reload; was `speed`)
+    s16 bullet[7]; // 0x1C  capacity levels (type 3) (PS2 bullet; was `ex`)
 };
 
 // Merchant personality constants (merchant_info_A).
@@ -63,7 +63,7 @@ struct MerchantInfo {
     s8 shift_Discount;
     s8 shift_Recommend;
     s8 shift_Bonus;
-    s8 buyFavor;   // 0x07  favor change per purchase
+    s8 shift_Buyup;   // 0x07  favor change per purchase
     s32 threshold;   // 0x08  sell points from which sellFavorBig applies
     u8 sellFavorBig;   // 0x0C
     u8 sellFavor;      // 0x0D
@@ -99,12 +99,12 @@ public:
     LevelPrice* m_p_lvup;      // 0x00C  weapon tune price table
     STOCK_INFO m_stock;        // 0x010
     LEVEL_INFO level;        // 0x210
-    s8 favor;                // 0x310
+    s8 m_friendship;                // 0x310
     u8 m_study_num;
-    s8 discount;             // 0x312
+    s8 m_reduction_ratio;             // 0x312
     u8 m_bonus_flag;
-    u8 exerciseNum;          // 0x314
-    u8 sellingNum;           // 0x315
+    u8 m_exer_tbl_num;          // 0x314
+    u8 m_sell_tbl_num;           // 0x315
     u8 exerciseList[0xFF];   // 0x316  cItemMgr slot indexes of the items the player can sell
     u8 sellingList[0xFF];    // 0x415  sellPrice indexes of the items for sale
 

@@ -228,30 +228,30 @@ void setLogMesAddr(SUB_SCREEN* wk)
 {
     u8** p = fileLogMes;
 
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0xA);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0xB);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0xC);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0xD);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0xE);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0xF);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x10);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x11);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x12);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x13);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x14);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x15);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x16);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x17);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x18);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x19);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x1A);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x1B);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x1C);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x1D);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x1E);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x1F);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x20);
-    *p++ = (u8*) SS_ARC_PTR(wk->pFile, 0x21);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0xA);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0xB);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0xC);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0xD);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0xE);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0xF);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x10);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x11);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x12);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x13);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x14);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x15);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x16);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x17);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x18);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x19);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x1A);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x1B);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x1C);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x1D);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x1E);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x1F);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x20);
+    *p++ = (u8*) SS_ARC_PTR(wk->pFileDat, 0x21);
 }
 
 // The file screen uses the common sub screen camera.
@@ -264,7 +264,7 @@ void fileCameraInit(SUB_SCREEN* wk, Camera* cam)
 // SS_OPEN_FILE (0x40: a picked-up file).
 void SsFileInit::init(SUB_SCREEN* wk)
 {
-    if (wk->type == 0x40) {
+    if (wk->open_flag == 0x40) {
         state = 2;
     } else {
         state = 0;
@@ -302,11 +302,11 @@ void SsFileInit::move(SUB_SCREEN* wk)
         IdSub.dispSw(IDC_SSCRN_PESETA, 1);
         sscrnDataFilename(wk, "ss_file.dat");
 #line 437 "D:/Bio4/Prog/ss_file.cpp"
-        file_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
+        file_read_req = DVD_READ_N(wk->filename, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (file_read_req <= 0) {
             break;
         }
-        if (wk->menu_old == 2 && wk->type != 0x40) {
+        if (wk->menu_old == 2 && wk->open_flag != 0x40) {
             sscrnModelFree(wk);
             generalModelAlloc(wk);
             playerModelInit();
@@ -327,11 +327,11 @@ void SsFileInit::move(SUB_SCREEN* wk)
         if (Dvd.ReadCheck(file_read_req, &stat, &size, 0) != 1) {
             break;
         }
-        wk->pFile = wk->pSwitchDat;
+        wk->pFileDat = wk->pSwitchDat;
         state++;
     }
     case 4:
-        if (wk->type == 0x40) {
+        if (wk->open_flag == 0x40) {
             FadeSetW(0x80000000, 5, 0, 0);
         }
         transit(0, wk);
@@ -401,52 +401,52 @@ void SsFileMain::init(SUB_SCREEN* wk)
     sel->connect(0, disp);
     disp->connect(0, sel);
     fileCameraInit(wk, &pG->Camera);
-    IdTexDataLoad(SS_ARC_PTR(wk->pFile, 6), TEX_OWNER_ID_SSCRN);
+    IdTexDataLoad(SS_ARC_PTR(wk->pFileDat, 6), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(IDC_SSCRN_0) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 6, 0);
     }
-    IdSub.set(SS_ARC_PTR(wk->pFile, 7), 0xFF, IDC_SSCRN_FAR_1, 9, 2, 0);
-    IdSub.set(SS_ARC_PTR(wk->pFile, 9), 0xFF, IDC_SSCRN_CKPT_1, 0x13, 4, 0);
-    IdSub.set(SS_ARC_PTR(wk->pFile, 8), 0xFF, IDC_SSCRN_CKPT_2, 0x13, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pFileDat, 7), 0xFF, IDC_SSCRN_FAR_1, 9, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pFileDat, 9), 0xFF, IDC_SSCRN_CKPT_1, 0x13, 4, 0);
+    IdSub.set(SS_ARC_PTR(wk->pFileDat, 8), 0xFF, IDC_SSCRN_CKPT_2, 0x13, 2, 0);
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->be_flag &= ~8;
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_2)->be_flag &= ~8;
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_2)->rev_flag |= 0xF;
     IdSub.unitPtr(4, IDC_SSCRN_CKPT_2)->be_flag &= ~8;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    if (wk->menu_old == 2 && wk->type != 0x40) {
+    if (wk->menu_old == 2 && wk->open_flag != 0x40) {
         wk->alpha_flag = 0;
         wk->alpha_cnt = 10;
     }
     MesData.setPtr(0, (u8*) SS_ARC_PTR(wk->pCmmn, 5));
-    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pFile, 5));
+    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pFileDat, 5));
     sscrnMainMenuInit(wk, 0);
     state = 0;
 #line 623 "D:/Bio4/Prog/ss_file.cpp"
-    wk->pFileWk = (SsFileWork*) MEM_ALLOC(0x10, 1, 13);
-    wk->pFileWk->mode = 0;
-    wk->pFileWk->cat = 0;
-    wk->pFileWk->scroll = 0;
-    wk->pFileWk->cursor = 0;
+    wk->file = (SsFileWork*) MEM_ALLOC(0x10, 1, 13);
+    wk->file->mode = 0;
+    wk->file->cat = 0;
+    wk->file->scroll = 0;
+    wk->file->cursor = 0;
 #line 629 "D:/Bio4/Prog/ss_file.cpp"
     wk->pTplDat = MEM_ALLOC(0x20000, 1, 13);
     cMes.setLayout(0, LAYOUT_SUBSCRN);
-    if (wk->type == 0x40) {
+    if (wk->open_flag == 0x40) {
         int no = fileId2No(wk->get_item_id);
         ItemMgr.get(wk->get_item_id, 0);
         wk->model_flag = 1;
         if (pSys->language == 0) {
-            cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);
+            cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFileDat, 4), 3);
         }
         {
             u8* p = fileInfo[no - 1];
-            wk->pFileWk->msgBase = p[0];
-            wk->pFileWk->x7 = p[1];
-            wk->pFileWk->attr = getMsgAttr(p[2]);
-            wk->pFileWk->layout = p[3];
-            wk->pFileWk->pageNum = getMsgNum(no - 1);
-            wk->pFileWk->page = 0;
-            wk->pFileWk->cursor = 1;
-            wk->pFileWk->fileNo = no;
+            wk->file->msgBase = p[0];
+            wk->file->x7 = p[1];
+            wk->file->attr = getMsgAttr(p[2]);
+            wk->file->layout = p[3];
+            wk->file->pageNum = getMsgNum(no - 1);
+            wk->file->page = 0;
+            wk->file->cursor = 1;
+            wk->file->fileNo = no;
         }
         cur = disp;
         cur->init(wk);
@@ -535,7 +535,7 @@ void SsFileMain::quit(SUB_SCREEN* wk)
         delete disp;
     }
     Mem_free(wk->pTplDat);
-    Mem_free(wk->pFileWk);
+    Mem_free(wk->file);
     sscrn_file_out_init(wk);
     wk->scrn_out_func = sscrn_file_out;
 }
@@ -554,7 +554,7 @@ void sscrn_file_out_init(SUB_SCREEN* wk)
 // Exit routine (scrn_out_func): 1 once the list panel animation ended.
 static int sscrn_file_out(SUB_SCREEN* wk)
 {
-    if (IdSub.unitPtr(0, IDC_SSCRN_FAR_1)->end & 1) {
+    if (IdSub.unitPtr(0, IDC_SSCRN_FAR_1)->anima_state & 1) {
         return 1;
     }
     return 0;
@@ -565,7 +565,7 @@ static int sscrn_file_out(SUB_SCREEN* wk)
 // files not owned; row 0 is the radio log).
 void dispFileList(SUB_SCREEN* wk, int n)
 {
-    SsFileWork* fw = wk->pFileWk;
+    SsFileWork* fw = wk->file;
     int num = fileNum[fw->cat];
     int top = fw->scroll;
     IdUnit* bar = IdSub.unitPtr(0xFC, IDC_SSCRN_FAR_1);
@@ -580,7 +580,7 @@ void dispFileList(SUB_SCREEN* wk, int n)
     dispScrollBar(top, n, num, bar, up, IdSub.unitPtr(0xFD, IDC_SSCRN_FAR_1));
     if (fw->mode == 0) {
         IdUnit* c = IdSub.unitPtr(0x10, IDC_SSCRN_FAR_1);
-        IdSub.unitPtr(1, IDC_SSCRN_FAR_1)->scr = c->scr;
+        IdSub.unitPtr(1, IDC_SSCRN_FAR_1)->pos0 = c->pos0;
     }
     u = IdSub.unitPtr(0xF9, IDC_SSCRN_FAR_1);
     mes_col_tbl[8] = (u8) u->col[0] << 24;
@@ -593,11 +593,11 @@ void dispFileList(SUB_SCREEN* wk, int n)
     mes_col_tbl[9] |= (u8) u->col[2] << 8;
     mes_col_tbl[9] |= (u8) u->col[3];
     pos = IdSub.unitPtr(0x20, IDC_SSCRN_FAR_1);
-    x = (int) ((pos->scr.x + 320.0f) * 0.8f);
-    y = (int) ((240.0f - pos->scr.y) * 0.8f);
+    x = (int) ((pos->pos0.x + 320.0f) * 0.8f);
+    y = (int) ((240.0f - pos->pos0.y) * 0.8f);
     cMes.setFontSize(4, file_title_w[1], file_title_h[1]);
     cMes.getMes(4)->m_line_gap = 0;
-    cMes.getMes(4)->charSpace = file_title_space[3];
+    cMes.getMes(4)->m_char_gap = file_title_space[3];
     cMes.MesSet(fw->cat + 3, x, y, 0x20081, 4, 8, 3);
     for (i = top; i < top + n; i++, k++) {
         int id = 0;
@@ -608,7 +608,7 @@ void dispFileList(SUB_SCREEN* wk, int n)
         if (fw->mode == 1) {
             IdUnit* c = IdSub.unitPtr(k + 0x11, IDC_SSCRN_FAR_1);
             if (i == fw->cursor) {
-                IdSub.unitPtr(1, IDC_SSCRN_FAR_1)->scr = c->scr;
+                IdSub.unitPtr(1, IDC_SSCRN_FAR_1)->pos0 = c->pos0;
             }
         }
         if (i == 0) {
@@ -627,14 +627,14 @@ void dispFileList(SUB_SCREEN* wk, int n)
         {
             IdUnit* p = IdSub.unitPtr(k + 0x21, IDC_SSCRN_FAR_1);
             slot = k + 8;
-            x = (int) ((p->scr.x + 320.0f) * 0.8f);
-            y = (int) ((240.0f - p->scr.y) * 0.8f);
+            x = (int) ((p->pos0.x + 320.0f) * 0.8f);
+            y = (int) ((240.0f - p->pos0.y) * 0.8f);
         }
         cMes.setFontSize(slot, file_name_w[1], file_name_h[1]);
         {
             MessageControl* pm = &cMes;
             u16 zero = 0;
-            U16Set(SS_MES(pm, slot)->charSpace, file_name_space[3]);
+            U16Set(SS_MES(pm, slot)->m_char_gap, file_name_space[3]);
             SS_MES(pm, slot)->m_line_gap = zero;
             if (i == 0) {
                 pm->MesSet(2, x, y, 0x20081, slot, col, 3);
@@ -657,7 +657,7 @@ void FileSelect::init(SUB_SCREEN* wk)
 // (row 0, the last OpeGetMdtNo call's messages) in MessageDisplay; error sound otherwise.
 void FileSelect::move(SUB_SCREEN* wk)
 {
-    SsFileWork* fw = wk->pFileWk;
+    SsFileWork* fw = wk->file;
 
     dispFileList(wk, 5);
     state = 0;
@@ -668,7 +668,7 @@ void FileSelect::move(SUB_SCREEN* wk)
             return;
         }
         if ((Key.trg & 0x40000000) || (Key.trg & 0x01000000)) {
-            if (wk->type == 0x40) {
+            if (wk->open_flag == 0x40) {
                 return;
             }
             state = 2;
@@ -690,7 +690,7 @@ void FileSelect::move(SUB_SCREEN* wk)
             if (pG->game_cnt != 0) {
                 fw->cat = fw->cat < 0 ? 0 : (fw->cat > 2 ? 2 : fw->cat);
             } else {
-                int st = (s8) wk->stage;
+                int st = (s8) wk->stage_no;
                 if (st > 0) {
                     fw->cat = fw->cat < 0 ? 0 : (fw->cat > st - 1 ? st - 1 : fw->cat);
                 } else {
@@ -720,7 +720,7 @@ void FileSelect::move(SUB_SCREEN* wk)
                     for (i = 0; i < 16; i++) {
                         m->Delete(i);
                     }
-                    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pFile, 5));
+                    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pFileDat, 5));
                     ok = 1;
                     no = fileNo(fw->cat, fw->cursor);
                     {
@@ -799,12 +799,12 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     IdUnit* u;
     SsFileWork* fw;
 
-    x = (int) ((pos->scr.x + 320.0f) * 0.8f);
-    y = (int) ((240.0f - pos->scr.y) * 0.8f);
+    x = (int) ((pos->pos0.x + 320.0f) * 0.8f);
+    y = (int) ((240.0f - pos->pos0.y) * 0.8f);
     if (pSys->language == 0) {
-        cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);
+        cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFileDat, 4), 3);
     }
-    switch (wk->pFileWk->layout) {
+    switch (wk->file->layout) {
     case 0:
         cMes.setLayout(0, LAYOUT_FILE);
         break;
@@ -815,16 +815,16 @@ void MessageDisplay::init(SUB_SCREEN* wk)
         cMes.setLayout(0, LAYOUT_OPERATOR);
         break;
     }
-    fw = wk->pFileWk;
+    fw = wk->file;
     cMes.MesSet(fw->msgBase + fw->page, x, y, fw->attr, 0, fw->x7, 4);
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_1)->be_flag |= 8;
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_2)->be_flag |= 8;
     IdSub.unitPtr(0, IDC_SSCRN_CKPT_2)->rev_flag &= ~0xF;
     u = IdSub.unitPtr(0xFC, IDC_SSCRN_CKPT_2);
-    if (wk->pFileWk->layout == 1) {
-        u->scr = IdSub.unitPtr(0xFD, IDC_SSCRN_CKPT_2)->scr;
+    if (wk->file->layout == 1) {
+        u->pos0 = IdSub.unitPtr(0xFD, IDC_SSCRN_CKPT_2)->pos0;
     } else {
-        u->scr = IdSub.unitPtr(0xFB, IDC_SSCRN_CKPT_2)->scr;
+        u->pos0 = IdSub.unitPtr(0xFB, IDC_SSCRN_CKPT_2)->pos0;
     }
     state = 0;
     tplState = 0;
@@ -838,7 +838,7 @@ void MessageDisplay::init(SUB_SCREEN* wk)
 // "page/total" digits and the prev/next arrows.
 void MessageDisplay::move(SUB_SCREEN* wk)
 {
-    SsFileWork* fw = wk->pFileWk;
+    SsFileWork* fw = wk->file;
     u8 page = fw->page;
     u16 cur;
     u16 nxt;
@@ -857,7 +857,7 @@ void MessageDisplay::move(SUB_SCREEN* wk)
             s8 c = fw->cursor;
             if (c == 0) {
                 cMes.WaitEnd(0);
-                if (cMes.mes[c].flags2 & 2) {
+                if (cMes.m_Msg[c].m_state & 2) {
                     fw->page++;
                     if (fw->page >= fw->pageNum) {
                         state = 1;

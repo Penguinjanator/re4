@@ -125,7 +125,7 @@ void em18BloodSet(cEm18* em)
     switch (em->dmg.m_Wep) {
     case 7:
     case 8:
-        if (part->rad < 36000000.0f) {
+        if (part->len < 36000000.0f) {
             EmDmBloodSet2(em, 0x15, 1, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, 0x15, 0, 0, 0, 0);
@@ -249,7 +249,7 @@ static void em18_R0_Init(cEm18* em)
     w->pGoods = 0;
     em18ClothPartsSet(em, 0);
     em18GoodsPartsSet(em, 0);
-    em->pFootShadowTbl = &Em10_fs_tbl;
+    em->pFsdTbl = &Em10_fs_tbl;
     em->Motion.flip = em18_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -525,9 +525,9 @@ void em18NeckMove(cEm18* em)
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.x = 0.0f;
-    ((cParts*) p)->addRot.y = w->Neck_dir_y;
-    ((cParts*) p)->addRot.z = 0.0f;
+    ((cParts*) p)->inv_offset.x = 0.0f;
+    ((cParts*) p)->inv_offset.y = w->Neck_dir_y;
+    ((cParts*) p)->inv_offset.z = 0.0f;
 }
 
 // Swaps the coat model (pCloth): `on` 1 the open coat ARC 0xB, 0 the closed coat ARC 0xC.
@@ -550,7 +550,7 @@ void em18ClothPartsSet(cEm18* em, int on)
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         if (w->pCloth) {
-            em->swapModelInfo(w->pCloth->pData, info);
+            em->swapModelInfo(w->pCloth->model_addr, info);
         } else {
             em->addModel(info);
         }
@@ -590,7 +590,7 @@ void em18HandSet(cEm18* em)
     info = ModInfoMgr.create(binL, ARC(6));
     if (info) {
         if (w->pRHand) {
-            em->swapModelInfo(w->pRHand->pData, info);
+            em->swapModelInfo(w->pRHand->model_addr, info);
         } else {
             em->addModel(info);
         }
@@ -599,7 +599,7 @@ void em18HandSet(cEm18* em)
     info = ModInfoMgr.create(binR, ARC(6));
     if (info) {
         if (w->pLHand) {
-            em->swapModelInfo(w->pLHand->pData, info);
+            em->swapModelInfo(w->pLHand->model_addr, info);
         } else {
             em->addModel(info);
         }

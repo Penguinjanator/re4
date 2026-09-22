@@ -15,9 +15,9 @@
 
 struct Esp01Work {
     u16 Wari_num;      // 0x00 number of strip segments (15 - gen->Work8[0], clamped)
-    u16 interval;  // 0x02 frames between two trail points (gen->Work8[1])
+    u16 Long_num;  // 0x02 frames between two trail points (gen->Work8[1])
     u32 x4;        // 0x04
-    Vec pos0;      // 0x08 position at the time the sprite left its parent
+    Vec BasePos;      // 0x08 position at the time the sprite left its parent
 };
 
 // Motion trail strip: replays the speed/acceleration backwards to get the last positions and
@@ -50,7 +50,7 @@ void cEsp01::move()
 
     if (parent != pEffParentWorld && m_Release_time != 0xFF && m_Release_time <= m_Life_time) {
         ApplyMatrix(parent->mat);
-        w->pos0 = m_Pos;
+        w->BasePos = m_Pos;
         parent = pEffParentWorld;
     }
     if (m_Size_start_cnt <= m_Life_time) {
@@ -99,7 +99,7 @@ void EspStrip01_setup(cEsp01* esp)
     }
     PSMTXIdentity(esp->m_Mat);
     RotMatrix(esp->m_Mat, &esp->m_Ang);
-    TransMatrix(esp->m_Mat, &w->pos0);
+    TransMatrix(esp->m_Mat, &w->BasePos);
     PSMTXConcat(pG->Camera.v_mat, esp->parent->mat, m);
     PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     PSMTXIdentity(id);
@@ -146,7 +146,7 @@ void esp01Trans_sub(cEsp01* esp)
     for (i = 0; i < w->Wari_num + 1; i++) {
         int n;
 
-        n = esp->m_Life_time - i * (w->interval + 1);
+        n = esp->m_Life_time - i * (w->Long_num + 1);
         if (n < 0) {
             n = 0;
         }
@@ -185,7 +185,7 @@ void esp01Trans_sub(cEsp01* esp)
             int n;
 
             s2 = spd;
-            n = esp->m_Life_time - i * (w->interval + 1);
+            n = esp->m_Life_time - i * (w->Long_num + 1);
             pts[i] = org;
             if (n < 0) {
                 n = 0;
@@ -400,9 +400,9 @@ int cEsp01::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp01Work* w = &m_Free;
 
-    w->pos0 = m_Pos;
+    w->BasePos = m_Pos;
     w->Wari_num = (s8)gen->Work8[0];
-    w->interval = (s8)gen->Work8[1];
+    w->Long_num = (s8)gen->Work8[1];
     if (w->Wari_num > 12) {
         w->Wari_num = 2;
     } else {

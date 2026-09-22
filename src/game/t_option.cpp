@@ -29,7 +29,7 @@ class cDbOption {
 public:
     JOY joy[2];   // 0x000
     u8 rno[8];    // 0x4D0  menu routine numbers per level
-    u8 count;     // 0x4D8  frames since the last pad input (cursor blink)
+    u8 cursorCtr;     // 0x4D8  frames since the last pad input (cursor blink)
     s8 cursor;    // 0x4D9
     u8 be_flag;    // 0x4DA  0 = leave the tool
     u8 pad_4DB;
@@ -66,7 +66,7 @@ void printCursor(int x, int y);
 void cDbOption::clear(u8 flag)
 {
     setRno(0, 0, 0, 0, 0, 0, 0, 0);
-    count = 0;
+    cursorCtr = 0;
     cursor = 0;
     be_flag = flag;
 }
@@ -81,9 +81,9 @@ void cDbOption::joySet()
 // Counts idle frames (cursor blink), reset by any pad repeat.
 void cDbOption::move()
 {
-    pT->count++;
+    pT->cursorCtr++;
     if (Joy[0].rep != 0) {
-        pT->count = 0;
+        pT->cursorCtr = 0;
     }
 }
 
@@ -699,15 +699,15 @@ void tp_pl_face()
     }
     if (pT->joy[0].rep & JOY_A) {
         if (pT->cursor == 0) {
-            ShapeEnd(pl->Body->pShape);
+            ShapeEnd(pl->Body->m_pFace);
         } else {
             if (pData != NULL) {
                 Debug_free(pData);
             }
             if (HDReadDebugAlloc(pFileName[pG->pl_type][pT->cursor - 1], &pData, 1)) {
-                ShapeSet(pl->Body->pShape, 0, pData, 2);
+                ShapeSet(pl->Body->m_pFace, 0, pData, 2);
             } else {
-                ShapeEnd(pl->Body->pShape);
+                ShapeEnd(pl->Body->m_pFace);
             }
         }
     }
@@ -880,7 +880,7 @@ void tp_scr_view()
 // Draws the blinking ">" cursor at text cell (x, y).
 void printCursor(int x, int y)
 {
-    if (!(pT->count & 8)) {
+    if (!(pT->cursorCtr & 8)) {
         eprintf(x * 8, y * 14, 0, 0, ">");
     }
 }

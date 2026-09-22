@@ -368,7 +368,7 @@ void em31DmCk(cEm31* em)
     if (w->Be_flg & 0x10) {
         return;
     }
-    switch (part->partsNo) {
+    switch (part->parts_no) {
     case 0x1B:
         if (em31EyelidDmcK(em, 1)) {
             EM31_SET_DOWN(210, 0);
@@ -487,7 +487,7 @@ void em31DmCkT(cEm31* em)
     part = em->dmg.m_pDamageYarare;
     dmg = em31SetDmVal(em);
     LifeDownSet2(em, dmg, 0, 0);
-    if (part->partsNo == 0xC) {
+    if (part->parts_no == 0xC) {
         w->Be_flg |= 0x2000;
         w->Total_damage += dmg;
         w->Be_flg |= 0x100;
@@ -1586,10 +1586,10 @@ void em31EscapeCamMove(cEm31* em)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->Cam.param.at, &d, &w->Cam.param.pos);
     }
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(&w->Cam);
     CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
@@ -3549,10 +3549,10 @@ void em31StampCamMove(cEm31* em)
     PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, 0.3f);
-    w->Cam.up.x = 0.0f;
-    w->Cam.up.y = 1.0f;
-    w->Cam.up.z = 0.0f;
-    w->Cam.dist = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
+    w->Cam.Up.x = 0.0f;
+    w->Cam.Up.y = 1.0f;
+    w->Cam.Up.z = 0.0f;
+    w->Cam.Distance = VEC_DIST(&w->Cam.param.pos, &w->Cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -4082,18 +4082,18 @@ void em31EyelidMove(cEm31* em)
         d.z = 0.0f;
         PSMTXMultVecSR(p->pParent->mat, &d, &d);
         ang = atan2f(d.x, d.z);
-        p->addRot.y = Muku(&p->world, &pp, ang, 0.7853982f);
+        p->inv_offset.y = Muku(&p->world, &pp, ang, 0.7853982f);
         PSVECSubtract(&pp, &p->world, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
         ang = atan2f(d.y, len);
         ang = -ang;
         ang = Muku2(0.0f, ang, 0.7853982f);
         if (e->Dir > 0.0f) {
-            p->addRot.z = ang;
+            p->inv_offset.z = ang;
         } else {
-            p->addRot.z = -ang;
+            p->inv_offset.z = -ang;
         }
-        p->addRot.x = 0.0f;
+        p->inv_offset.x = 0.0f;
         p->motParts.flags |= 0x40000000;
     }
 }
@@ -4113,7 +4113,7 @@ int em31EyelidDmcK(cEm31* em, int dmg)
     for (i = 0; i < 4; i++) {
         EYELID_WK* e = &w->Eyelid[i];
 
-        if (e->Parts2 == part->partsNo - 1) {
+        if (e->Parts2 == part->parts_no - 1) {
             if (e->Flag) {
                 return 0;
             }
@@ -4124,7 +4124,7 @@ int em31EyelidDmcK(cEm31* em, int dmg)
                 e->Hp--;
                 if (e->Hp <= 0) {
                     e->Hp = 0;
-                    part->flags &= ~1;
+                    part->flag &= ~1;
                     e->Rno = 4;
                 } else {
                     e->Rno = 2;
@@ -4228,7 +4228,7 @@ int em31SetDmVal(cEm31* em)
     int dmg;
 
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     {
@@ -4245,7 +4245,7 @@ int em31SetDmVal(cEm31* em)
         dmg /= 5;
         break;
     case 1:
-        if (part->partsNo != 0xC) {
+        if (part->parts_no != 0xC) {
             dmg /= 5;
         }
         break;
@@ -4260,11 +4260,11 @@ void em31WeakMode(cEm31* em, int on)
     Em31Work* w = EM31_WK(em);
 
     if (on) {
-        em->hitInfo.flags |= 1;
-        w->hit[0].flags &= ~1;
+        em->hitInfo.flag |= 1;
+        w->hit[0].flag &= ~1;
     } else {
-        em->hitInfo.flags &= ~1;
-        w->hit[0].flags |= 1;
+        em->hitInfo.flag &= ~1;
+        w->hit[0].flag |= 1;
     }
 }
 
@@ -4511,7 +4511,7 @@ void em31BloodSet(cEm31* em)
     int kind;
 
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
     kind = 0;
@@ -4578,7 +4578,7 @@ void em31TBloodSet(cEm31* em)
     int kind;
 
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     kind = 0;
@@ -5184,7 +5184,7 @@ void em31WeakMove(cEm31* em)
         break;
     case 1:
         if (w->pWeak) {
-            if (StaFlagChk(pG, STA_THERMO_GRAPH) && em->hp > 0 && (em->hitInfo.flags & 1)) {
+            if (StaFlagChk(pG, STA_THERMO_GRAPH) && em->hp > 0 && (em->hitInfo.flag & 1)) {
                 w->pWeak->be_flag |= 2;
             } else {
                 w->pWeak->be_flag &= ~2;

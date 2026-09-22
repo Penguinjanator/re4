@@ -31,8 +31,8 @@ struct Esp4cWork {
     u8 wave_ratio_base;        // 0x03
     s16 Shimmer_pow1;     // 0x04 indirect matrix parameters (SetIndMtx)
     s16 Shimmer_pow2;     // 0x06
-    f32 damp;     // 0x08 (Espgen42Work::damp)
-    f32 spread;   // 0x0C (Espgen42Work::spread)
+    f32 Prm_a;       // 0x08  wave coefficient (PS2 Prm_a; was `damp`)
+    f32 Prm_dmp;     // 0x0C  decay per frame (PS2 Prm_dmp; was `spread`)
     Vec ang;      // 0x10 surface rotation (SetWaterWork45)
     u8 flag;      // 0x1C
     u8 Mask_Tex;       // 0x1D
@@ -234,15 +234,15 @@ void Espgen45_Move00(EspgenWork* w)
         f32 damp;
         f32 spread;
         if (g_bSetParam == 0) {
-            damp = p->damp;
+            damp = p->Prm_a;
         } else {
-            damp = g_Free.damp;
+            damp = g_Free.Prm_a;
         }
         f32 cdamp = 2.0f - damp * 4.0f;
         if (g_bSetParam == 0) {
-            spread = p->spread;
+            spread = p->Prm_dmp;
         } else {
-            spread = g_Free.spread;
+            spread = g_Free.Prm_dmp;
         }
         f32* cur;
         f32* next;
@@ -652,7 +652,7 @@ void Espgen45_TransSub(EspgenWork* w)
                 // the same frame slots as the first block's tex/tm: PRE shares their addresses
                 GXTexObj tex;
                 GXTlutObj tlut;
-                TEXDescriptor* td = TEXGet(tw->pTpl, 0);
+                TEXDescriptor* td = TEXGet(tw->Tpl_addr, 0);
                 TEXHeader* th = td->textureHeader;
 
                 if (th->format == 8 || th->format == 9) {
@@ -663,7 +663,7 @@ void Espgen45_TransSub(EspgenWork* w)
                     GXInitTexObj(&tex, th->data, th->width, th->height, th->format, 0, 0, 0);
                 }
                 GXLoadTexObj(&tex, st->texMap);
-                GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+                GXLoadTexMtxImm(tw->_Mtx, 0x21, 1);
                 GXSetTexCoordGen(st->texCoord, 1, 4, 0x21);
                 GXSetTevOrder(st->tevStage, st->texCoord, st->texMap, 4);
                 GXSetTevColorIn(st->tevStage, 0xF, 0xF, 0xF, 0);
@@ -796,8 +796,8 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     p->nx = nx;
     p->ny = ny;
     p->size = size;
-    p->damp = 0.05f;
-    p->spread = 0.95f;
+    p->Prm_a = 0.05f;
+    p->Prm_dmp = 0.95f;
     p->pos0 = *pos;
     if (g_bSetParam == 0) {
         PSMTXScale(p->mat, p->size, p->size * 0.05f + 100.0f, p->size);
@@ -1075,14 +1075,14 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->mode = rec->Work8[0];
         p->Base_y = p->pos0.y;
         if (p->mode == 2) {
-            p->damp = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
-            if (p->damp > 0.5f) {
-                p->damp = 0.5f;
+            p->Prm_a = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
+            if (p->Prm_a > 0.5f) {
+                p->Prm_a = 0.5f;
             }
-            if (p->damp < 0.0f) {
-                p->damp = 0.0f;
+            if (p->Prm_a < 0.0f) {
+                p->Prm_a = 0.0f;
             }
-            p->spread = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
+            p->Prm_dmp = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
         }
         p->texId = rec->Tex_id;
         p->indS = rec->prm.h.xCE;

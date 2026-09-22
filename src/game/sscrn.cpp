@@ -77,32 +77,32 @@ void SubScreenAramRead()
     int size;
     int req;
 
-    wk->aramSize = 0;
+    wk->pFreeOffs = 0;
 #line 119 "D:/Bio4/Prog/sscrn.cpp"
     req = DVD_READ_N("rel/Sscrn.rel", 0, SS_ARAM, 0, 0, 9);
-    wk->pPreplfOffs = wk->aramSize;
+    wk->pPreplfOffs = wk->pFreeOffs;
     Dvd.ReadCheck(req, &stat, &size, (void**) &wk->p_module);
-    wk->aramSize += size;
+    wk->pFreeOffs += size;
     sscrnDataFilename(wk, "ss_cmmn.dat");
 #line 130 "D:/Bio4/Prog/sscrn.cpp"
-    req = DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9);
-    wk->pCommonOffs = wk->aramSize;
+    req = DVD_READ_N(wk->filename, 0, SS_ARAM + wk->pFreeOffs, 0, 0, 9);
+    wk->pCommonOffs = wk->pFreeOffs;
     Dvd.ReadCheck(req, &stat, &size, 0);
-    wk->aramSize += size;
+    wk->pFreeOffs += size;
     sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 140 "D:/Bio4/Prog/sscrn.cpp"
-    req = DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9);
-    wk->pzzlOfs = wk->aramSize;
+    req = DVD_READ_N(wk->filename, 0, SS_ARAM + wk->pFreeOffs, 0, 0, 9);
+    wk->pSwitchOffs = wk->pFreeOffs;
     Dvd.ReadCheck(req, &stat, &size, 0);
-    wk->aramSize += size;
-    OSReport("SubScrn Data: 0x%08x\n", wk->aramSize);
-    OSReport("SubScrn Free: 0x%08x\n", SS_ARAM_SIZE - wk->aramSize);
+    wk->pFreeOffs += size;
+    OSReport("SubScrn Data: 0x%08x\n", wk->pFreeOffs);
+    OSReport("SubScrn Free: 0x%08x\n", SS_ARAM_SIZE - wk->pFreeOffs);
 }
 
 // Writes the language directory ("jpn" / "eng" / "ger" / "fra" / "esp" / "ita") into wk->path.
 void sscrnSetLanguage(SubScreenWork* wk, int lang)
 {
-    char* p = strchr(wk->path, '/') + 1;
+    char* p = strchr(wk->filename, '/') + 1;
 
     switch (lang) {
     case 0:
@@ -135,7 +135,7 @@ void sscrnSetLanguage(SubScreenWork* wk, int lang)
 // Replaces the file name part of wk->path.
 void sscrnDataFilename(SubScreenWork* wk, const char* name)
 {
-    strcpy(strrchr(wk->path, '/') + 1, name);
+    strcpy(strrchr(wk->filename, '/') + 1, name);
 }
 
 // Game start: language path, ARAM data, attache case size / map mode reset, the radio (ope) state
@@ -144,7 +144,7 @@ void SubScreenGameInit()
 {
     SubScreenWork* wk = &SubScreenWk;
 
-    strcpy(wk->path, "SS/___/");
+    strcpy(wk->filename, "SS/___/");
     sscrnSetLanguage(wk, pSys->language);
     wk->relAddr = 0;
     SubScreenAramRead();
@@ -162,7 +162,7 @@ void SubScreenRoomInit()
 {
     SubScreenWork* wk = &SubScreenWk;
 
-    wk->type = 0;
+    wk->open_flag = 0;
     wk->flags = 0;
     wk->close_flag = 0;
     wk->wait = 0;
@@ -226,7 +226,7 @@ void SubScreenCall()
             }
         }
     }
-    if (wk->type) {
+    if (wk->open_flag) {
         StaFlagOff(pG, STA_SSCRN_ENABLE);
         if (TaskExec(1, SubScreenExec, 0) == 0) {
             SubScreenMiss();
@@ -276,7 +276,7 @@ int SubScreenOpen(int type, int flags)
         return 0;
     }
     StaFlagOn(pG, STA_SSCRN_REQUEST);
-    wk->type = type;
+    wk->open_flag = type;
     wk->flags = flags;
     wk->close_flag = 0;
     wk->model_flag = 0;
@@ -305,7 +305,7 @@ void SubScreenMiss()
         pG->Stop_flg = wk->stop_bak;
     }
     wk->flags = 0;
-    wk->type = 0;
+    wk->open_flag = 0;
     StaFlagOff(pG, STA_SSCRN_REQUEST);
 }
 
@@ -324,15 +324,15 @@ void SubScreenExec()
         case 0:
             SndSubScreenInit();
             wk->str_id = 0;
-            if (!(wk->type & 0x20)) {
+            if (!(wk->open_flag & 0x20)) {
                 SndCall(0, 2, 0, 0, 0, 0);
             }
             wk->alpha_flag = 0;
             wk->alpha_cnt = 0;
             if (pSUB && pSUB->id == 3) {
-                wk->healing = SubCharCheckHealing();
+                wk->sub_cure_flag = SubCharCheckHealing();
             } else {
-                wk->healing = 0;
+                wk->sub_cure_flag = 0;
             }
             StaFlagOn(pG, STA_SUB_SCRN);
             StaFlagOff(pG, STA_CAMERA);
@@ -344,7 +344,7 @@ void SubScreenExec()
             }
             wk->camera_bak = pG->Camera;
             step++;
-            wk->stage = sscrnStageNo();
+            wk->stage_no = sscrnStageNo();
             wk->room_no = sscrnRoomNo(pG->room_id);
             FadeSetW(0, 3, 0, 0);
         case 1:
@@ -378,13 +378,13 @@ void SubScreenExec()
             } else {
                 wk->jacket_flag = 0;
             }
-            wk->noBullet = 0;
+            wk->swep_flag = 0;
             {
                 ItemInfo info;
                 itemInfo(ItemMgr.m_wep_id, &info);
                 if (info.type == 3) {
                     if (ItemMgr.bulletNumCurrent() == 0) {
-                        wk->noBullet = 1;
+                        wk->swep_flag = 1;
                     }
                 }
             }
@@ -418,7 +418,7 @@ void SubScreenExec()
             systemVISetBlack(0);
             DpfFlagOn(pG, DPF_TEX_RENDER);
             FadeKill(FADE_NO_SCENARIO);
-            switch (wk->type) {
+            switch (wk->open_flag) {
             case 2:
             case 0x10:
             case 0x20:
@@ -435,14 +435,14 @@ void SubScreenExec()
             DC.m_data_ctrl_flag = 0;
             MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
             MemSuspendHeap(4);
-            if (wk->type & 0x10) {
-                wk->pHeapOffs = wk->aramSize + 0x50000;
-            } else if (wk->type & 0x20) {
-                wk->pHeapOffs = wk->pzzlOfs;
+            if (wk->open_flag & 0x10) {
+                wk->pHeapOffs = wk->pFreeOffs + 0x50000;
+            } else if (wk->open_flag & 0x20) {
+                wk->pHeapOffs = wk->pSwitchOffs;
             } else {
-                wk->pHeapOffs = wk->pzzlOfs + 0xE4000;
+                wk->pHeapOffs = wk->pSwitchOffs + 0xE4000;
             }
-            if (wk->type & 0x30) {
+            if (wk->open_flag & 0x30) {
                 MemCreateHeap(12, (u32) wk->pBuf + wk->pHeapOffs, (u32) wk->pBuf + SS_ARAM_SIZE);
             } else {
                 MemCreateHeap(12, (u32) wk->pBuf + wk->pHeapOffs, (u32) wk->pBuf + 0x2E5E00);
@@ -451,7 +451,7 @@ void SubScreenExec()
             if (wk->relAddr >= 0) {
                 wk->relAddr = wk->pPreplfOffs + (u32) wk->pBuf;
                 wk->pCmmn = (SsArc*) (wk->pCommonOffs + (u32) wk->pBuf);
-                wk->pSwitchDat = (SsArc*) (wk->pzzlOfs + (u32) wk->pBuf);
+                wk->pSwitchDat = (SsArc*) (wk->pSwitchOffs + (u32) wk->pBuf);
             }
             wk->p_module = (OSModuleHeader*) wk->relAddr;
             {
@@ -466,24 +466,24 @@ void SubScreenExec()
             }
             cMes.setLayout(1, LAYOUT_SUBSCRN);
             cMes.setLayout(7, LAYOUT_SUBSCRN);
-            if (wk->type == 0x20) {
+            if (wk->open_flag == 0x20) {
                 IdSub.gameInit(0x80);
             } else {
                 IdSub.gameInit(0x200);
             }
             IdTexDataLoad(SS_ARC_PTR(wk->pCmmn, 6), TEX_OWNER_ID_SHARE);
-            if (wk->type == 0x20) {
+            if (wk->open_flag == 0x20) {
                 IdNum.gameInit(0);
             } else {
                 IdNum.gameInit(0x1B2);
             }
             IdSub.set(SS_ARC_PTR(wk->pCmmn, 7), 0xFF, IDC_SSCRN_PESETA, 0x13, 7, 0);
-            if (!(wk->type & 0x10)) {
+            if (!(wk->open_flag & 0x10)) {
                 IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xB), 0xFF, IDC_SSCRN_MAIN_MENU, 0xF, 0, 0);
             }
             IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x11), 0xFF, IDC_SSCRN_ETC, 0x13, 9, 0);
             IdSub.set(SS_ARC_PTR(wk->pCmmn, 9), 0xFF, IDC_SSCRN_BACK_GROUND, 9, 3, 0);
-            switch (wk->type) {
+            switch (wk->open_flag) {
             case 2:
                 IdSys.dispSw(IDC_LIFE_METER, 0);
             case 4:
@@ -509,7 +509,7 @@ void SubScreenExec()
             Cckpt.m_LifeMeter.fix(0);
 #line 808 "D:/Bio4/Prog/sscrn.cpp"
             wk->pExamDat = MEM_ALLOC(0x3E800, 1, 13);
-            if (wk->type == 2) {
+            if (wk->open_flag == 2) {
                 wk->menu_next = 2;
                 wk->menu_no = 2;
             } else {
@@ -628,7 +628,7 @@ void SubScreenExit()
             step = 3;
             sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 979 "D:/Bio4/Prog/sscrn.cpp"
-            Dvd.ReadCheck(DVD_READ_N(wk->path, 0, SS_ARAM + wk->pzzlOfs, 0, 0, 9), 0, 0, 0);
+            Dvd.ReadCheck(DVD_READ_N(wk->filename, 0, SS_ARAM + wk->pSwitchOffs, 0, 0, 9), 0, 0, 0);
             DpfFlagOff(pG, DPF_TEX_RENDER);
             break;
         case 3:
@@ -652,7 +652,7 @@ void SubScreenExit()
                 pG->bullet_type = wepLv;
                 pl->weaponInit();
                 wk->scope_flag = 0;
-                wk->noBullet = 0;
+                wk->swep_flag = 0;
             }
             {
                 int change = 0;
@@ -698,7 +698,7 @@ void SubScreenExit()
             if (wk->binocular_flag) {
                 CamCtrl.HoldBinocular(wk->binoA, wk->binoB, 0, 0);
             }
-            if (wk->noBullet) {
+            if (wk->swep_flag) {
                 if (ItemMgr.bulletNumCurrent()) {
                     PlReloadBullet();
                 }
@@ -711,7 +711,7 @@ void SubScreenExit()
                 }
                 {
                     Cockpit* ck = &Cckpt;
-                    ck->countDown.loadDisp();
+                    ck->m_CountDown.loadDisp();
                 }
                 FadeSetBlackOut(clear, 3, 0, 0);
             }
@@ -736,7 +736,7 @@ void SubScreenExit()
             } else {
                 pG->Stop_flg = wk->stop_bak;
             }
-            wk->type = 0;
+            wk->open_flag = 0;
             wk->flags = 0;
             pG->debug_mode = wk->debugMode;
             if (wk->debug_flg_bak) {

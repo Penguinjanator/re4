@@ -44,7 +44,7 @@ int cap_read_req;
 // was opened as SS_OPEN_CAP (0x100: the shooting gallery shows a freshly won cap).
 void SsCapInit::init(SUB_SCREEN* wk)
 {
-    if (wk->type == 0x100) {
+    if (wk->open_flag == 0x100) {
         state = 2;
     } else {
         state = 0;
@@ -71,7 +71,7 @@ void SsCapInit::move(SUB_SCREEN* wk)
         IdSub.dispSw(IDC_SSCRN_MAIN_MENU, 0);
         sscrnDataFilename(wk, "ss_cap.dat");
 #line 108 "D:/Bio4/Prog/ss_cap.cpp"
-        cap_read_req = DVD_READ_N(wk->path, wk->pSwitchDat, 0, 0, 0, 0x10);
+        cap_read_req = DVD_READ_N(wk->filename, wk->pSwitchDat, 0, 0, 0, 0x10);
         if (cap_read_req <= 0) {
             break;
         }
@@ -119,7 +119,7 @@ void SsCapMain::init(SUB_SCREEN* wk)
     wk->pCapCursor[0] = 0;
     wk->pCapCursor[1] = 0;
     wk->pCapCursor[2] = 0;
-    if (wk->type == 0x100) {
+    if (wk->open_flag == 0x100) {
         cur = exam;
     } else {
         cur = sel;
@@ -217,7 +217,7 @@ void dispCapList(SUB_SCREEN* wk)
     }
     u = IdSub.unitPtr(0xFE, IDC_SSCRN_0);
     c = IdSub.unitPtr(sel[2] + 1, IDC_SSCRN_0);
-    u->scr = c->scr;
+    u->pos0 = c->pos0;
 }
 
 // Cap grid cursor: nothing to set up (the cursor lives in wk->pCapCursor).

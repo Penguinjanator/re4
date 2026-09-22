@@ -141,7 +141,7 @@ void em38DmCk(cEm38* em)
     dmg = em38SetDmVal(em);
     LifeDownSet2(em, dmg, 0, 1);
     em38BloodSet(em);
-    if (em->type == 0 && part->partsNo == 0x3B) {
+    if (em->type == 0 && part->parts_no == 0x3B) {
         w->dmgCnt += dmg;
     }
     if (em->type == 4) {
@@ -149,7 +149,7 @@ void em38DmCk(cEm38* em)
             Em38Para* p = &w->para[i];
 
             if (p->pEm) {
-                if (part->partsNo == p->parts + 1 || part->partsNo == p->parts + 2) {
+                if (part->parts_no == p->parts + 1 || part->parts_no == p->parts + 2) {
                     p->hp -= dmg;
                     if (p->hp <= 0) {
                         p->hp = 0;
@@ -183,7 +183,7 @@ void em38DmCk(cEm38* em)
             return;
         }
         if (em->type == 0) {
-            if (part->partsNo == 0x3B) {
+            if (part->parts_no == 0x3B) {
                 if (!(w->flags & 8) && w->seWait == 0 && w->pUpper) {
                     Ctrl11SetSeEm38(w->pCtrl11, w->pUpper, 0x2D);
                     w->seWait = 180;
@@ -1718,9 +1718,9 @@ void em38EyeMove(cEm38* em)
         }
         w->eyeX = w->eyeX * 0.5f + e * 0.5f;
         p->motParts.flags |= 0x40000000;
-        p->addRot.x = w->eyeX;
-        p->addRot.y = w->eyeY;
-        p->addRot.z = 0.0f;
+        p->inv_offset.x = w->eyeX;
+        p->inv_offset.y = w->eyeY;
+        p->inv_offset.z = 0.0f;
     }
 }
 
@@ -1986,12 +1986,12 @@ void em38BloodSet(cEm38* em)
     int near;
 
     near = 0;
-    if (part->rad < 36000000.0f) {
+    if (part->len < 36000000.0f) {
         near = 1;
     }
-    p = em->getPartsPtr(part->partsNo - 1);
+    p = em->getPartsPtr(part->parts_no - 1);
     if (em->type == 0) {
-        if (part->partsNo == 0x3B) {
+        if (part->parts_no == 0x3B) {
             SndCall(8, 5, &p->world, em->id, 0, em);
             switch (em->dmg.m_Wep) {
             case 1:
@@ -2044,7 +2044,7 @@ void em38BloodSet(cEm38* em)
             SndCall(8, 0x1A, &p->world, em->id, 0, em);
             EmDmBloodSet2(em, 0x2E, 3, 0, 0, 0);
         }
-    } else if (em->type == 4 && part->partsNo == 3) {
+    } else if (em->type == 4 && part->parts_no == 3) {
         SndCall(8, 0x1A, &p->world, em->id, 0, em);
         EmDmBloodSet2(em, 0x2E, 3, 0, 0, 0);
     } else {
@@ -2198,7 +2198,7 @@ int em38SetDmVal(cEm38* em)
     int dmg;
 
     near = 0;
-    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->len < 36000000.0f) {
         near = 1;
     }
     {
@@ -2453,10 +2453,10 @@ void em38EscapeCamMove(cEm38* em)
         PSVECScale(&d, &d, len);
         PSVECAdd(&w->cam.param.at, &d, &w->cam.param.pos);
     }
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
+    w->cam.Up.x = 0.0f;
+    w->cam.Up.y = 1.0f;
+    w->cam.Up.z = 0.0f;
+    w->cam.Distance = VEC_DIST(&w->cam.param.pos, &w->cam.param.at);
     CameraSetOrientationUp(&w->cam);
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }

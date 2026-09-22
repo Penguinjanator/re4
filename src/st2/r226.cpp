@@ -1386,10 +1386,10 @@ void playerRunCamMovePassage(cPlayer* pl, f32 t)
     PSMTXMultVec(pl->mat, &r226_camOfsAt, &at);
     PosToPos(&g->Camera.param.at, &at, &r226_cam.param.at, t);
     PosToPos(&g->Camera.param.pos, &pos, &r226_cam.param.pos, t);
-    cam->up.x = 0.0f;
-    cam->up.y = 1.0f;
-    cam->up.z = 0.0f;
-    cam->dist = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
+    cam->Up.x = 0.0f;
+    cam->Up.y = 1.0f;
+    cam->Up.z = 0.0f;
+    cam->Distance = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -1415,10 +1415,10 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     PSMTXMultVec(pl->mat, &r226_work->camAt, &at);
     PosToPos(&g->Camera.param.at, &at, &r226_cam.param.at, t);
     PosToPos(&g->Camera.param.pos, &pos, &r226_cam.param.pos, t);
-    cam->up.x = 0.0f;
-    cam->up.y = 1.0f;
-    cam->up.z = 0.0f;
-    cam->dist = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
+    cam->Up.x = 0.0f;
+    cam->Up.y = 1.0f;
+    cam->Up.z = 0.0f;
+    cam->Distance = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
@@ -1434,10 +1434,10 @@ void playerRunCamDiePassage(cPlayer* pl)
     parts = pl->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &parts->world, &r226_cam.param.at, 1.0f);
     cam->param.pos = g->Camera.param.pos;
-    cam->up.x = 0.0f;
-    cam->up.y = 1.0f;
-    cam->up.z = 0.0f;
-    cam->dist = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
+    cam->Up.x = 0.0f;
+    cam->Up.y = 1.0f;
+    cam->Up.z = 0.0f;
+    cam->Distance = VEC_DIST(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
     CamCtrl.m_pExtraCamera = (s32) cam;
 }

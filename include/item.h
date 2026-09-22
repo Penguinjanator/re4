@@ -69,10 +69,10 @@ public:
     ItemWork* pArm;             // 0x0C  equipped weapon slot (NULL = bare hands)
     u16 m_wep_id;                  // 0x10  equipped weapon item id
     s8 m_to_whom;                     // 0x12  0 player, 1 sub character heals (sce_at clears it before use())
-    u8 type;                    // 0x13  inventory type (num(id) / search count only this type)
-    ItemWork* pItems;           // 0x14
+    u8 m_char;                    // 0x13  inventory type (num(id) / search count only this type)
+    ItemWork* m_pItem;           // 0x14
     ItemWork* pLast;            // 0x18  slot the last get() filled (puzzle PutInCase copies the piece position into it)
-    s32 nItems;                 // 0x1C
+    s32 m_array_num;                 // 0x1C
     ItemOrder* m_p_order_tbl;          // 0x20  ordering() result (merchant: sorted slots of one item id)
     s32 m_order_tbl_num;                 // 0x24  entries in pOrder
     u32 m_bonus_time;                    // 0x28  (sce_at: number shown with item 0x73; get(0x73, n): mercenaries add time)

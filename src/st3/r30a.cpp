@@ -258,7 +258,7 @@ static void R30aEventS00()
 // Events r30as00 / r30as98: the light follows the player model, the fades and the hidden enemy part.
 extern "C" void Evt_R30AS00_Func(Event* e)
 {
-    switch (e->funcMode) {
+    switch (e->FuncType) {
     case 0:
         setRoomEtcBreakDisp(0, 0, 1);
         StaFlagOn(pG, STA_CAMERA_SET_ROOM);

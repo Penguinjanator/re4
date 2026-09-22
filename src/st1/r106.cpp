@@ -493,7 +493,7 @@ extern "C" void Evt_R106S00_Func(Event* ev)
 {
     void* mod;
 
-    switch (ev->funcMode) {
+    switch (ev->FuncType) {
     case 0:
         r106_work->closet->be_flag &= ~2;
         break;

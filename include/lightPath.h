@@ -14,7 +14,7 @@ public:
 // Path file: count, then byte offsets of each path from the header.
 class cLightPathHeader {
 public:
-    u8 num;      // 0x00
+    u8 nPath;      // 0x00
     u8 pad_1[3];
     // 0x04: u32[num] byte offset of each path from the header
 

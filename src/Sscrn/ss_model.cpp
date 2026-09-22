@@ -169,8 +169,8 @@ void tel00ModelInit(cModel* m, SsArc* arc)
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     m->addModel(ssModInfoMgr.create(PL_ARC(10), PL_ARC(5)));
-    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(wk->pTerm, 10), SS_ARC_PTR(wk->pTerm, 11)));
-    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(wk->pTerm, 12), SS_ARC_PTR(wk->pTerm, 13)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(wk->pTermDat, 10), SS_ARC_PTR(wk->pTermDat, 11)));
+    m->addModel(ssModInfoMgr.create(SS_ARC_PTR(wk->pTermDat, 12), SS_ARC_PTR(wk->pTermDat, 13)));
     m->addModel(ssModInfoMgr.create(PL_ARC(9), PL_ARC(7)));
     ssModelLight(m);
 }

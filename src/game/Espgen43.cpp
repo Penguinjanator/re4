@@ -23,7 +23,7 @@ struct Espgen43Work {
     Mtx Wld_mat;           // 0x14 grid -> world
     Mtx Inv_mat;           // 0x44 world -> grid
     u16 Width;            // 0x74 grid cells along x
-    u16 ny;            // 0x76 grid cells along z
+    u16 Height;            // 0x76 grid cells along z
     u8 pad_78[4];
     f32 Size;          // 0x7C cell size
     Vec* pNorBuf;          // 0x80
@@ -78,20 +78,20 @@ void AddSandPowerSub(EspgenWork* w)
     if (v.x < (f32) (-p->Width / 2)) {
         return;
     }
-    if (v.z < (f32) (-p->ny / 2)) {
+    if (v.z < (f32) (-p->Height / 2)) {
         return;
     }
     if (v.x > (f32) (p->Width / 2)) {
         return;
     }
-    if (v.z > (f32) (p->ny / 2)) {
+    if (v.z > (f32) (p->Height / 2)) {
         return;
     }
-    z = (u32) (v.z + (f32) (p->ny / 2));
+    z = (u32) (v.z + (f32) (p->Height / 2));
     x = (u32) (v.x + (f32) (p->Width / 2));
     idx = z * (p->Width + 1) + x;
     p->pHeightBuf[idx].y += Add_power;
-    total = (p->ny + 1) * (p->Width + 1);
+    total = (p->Height + 1) * (p->Width + 1);
     stride = p->Width + 1;
     for (i = -3; i <= 3; i++) {
         for (j = -3; j <= 3; j++) {
@@ -121,8 +121,8 @@ void AddSandPowerSub(EspgenWork* w)
         for (j = -3; j <= 3; j++) {
             k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= stride) {
-                p->pHeightBuf[k].y = p->pHeightBuf[k].y * 2.5f + p->pHeightBuf[k + 1].y * 0.5f + p->pHeightBuf[p->ny + k + 1].y * 0.5f +
-                              p->pHeightBuf[p->ny + k + 2].y * 0.5f;
+                p->pHeightBuf[k].y = p->pHeightBuf[k].y * 2.5f + p->pHeightBuf[k + 1].y * 0.5f + p->pHeightBuf[p->Height + k + 1].y * 0.5f +
+                              p->pHeightBuf[p->Height + k + 2].y * 0.5f;
                 p->pHeightBuf[k].y *= 0.25f;
             }
         }
@@ -161,13 +161,13 @@ void GetSandHeightSub(EspgenWork* w)
     if (v.x < (f32) (-p->Width / 2)) {
         return;
     }
-    if (v.z < (f32) (-p->ny / 2)) {
+    if (v.z < (f32) (-p->Height / 2)) {
         return;
     }
     if (v.x > (f32) (p->Width / 2)) {
         return;
     }
-    if (v.z > (f32) (p->ny / 2)) {
+    if (v.z > (f32) (p->Height / 2)) {
         return;
     }
     v.y = 0.0f;
@@ -205,7 +205,7 @@ void Espgen43_Move00(EspgenWork* w)
     u32 n;
 
     StaFlagOn(pG, STA_SAND_ALIVE);
-    for (i = 1; i < p->ny; i++) {
+    for (i = 1; i < p->Height; i++) {
         k = i * (p->Width + 1);
         for (j = 1; j < p->Width; j++) {
             Vec* n = &p->pNorBuf[k];
@@ -217,7 +217,7 @@ void Espgen43_Move00(EspgenWork* w)
             k++;
         }
     }
-    n = sizeof(Vec) * (p->Width + 1) * (p->ny + 1);
+    n = sizeof(Vec) * (p->Width + 1) * (p->Height + 1);
     DCStoreRange(p->pHeightBuf, n);
     DCStoreRange(p->pNorBuf, n);
 }
@@ -362,14 +362,14 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
 
     w->id = 0x43;
     p->Width = nx;
-    p->ny = ny;
+    p->Height = ny;
     p->Size = size;
     RotMatrix(p->Wld_mat, rot);
     PSMTXScale(m, p->Size, p->Size * sizeRate, p->Size);
     PSMTXConcat(p->Wld_mat, m, p->Wld_mat);
     PSMTXTransApply(p->Wld_mat, p->Wld_mat, pos->x, pos->y, pos->z);
     PSMTXInverse(p->Wld_mat, p->Inv_mat);
-    n = sizeof(Vec) * (p->Width + 1) * (p->ny + 1);
+    n = sizeof(Vec) * (p->Width + 1) * (p->Height + 1);
 #line 445 "D:/Bio4/Prog/Espgen43.cpp"
     p->pHeightBuf = (Vec*) MEM_ALLOC(n, 1, 13);
     if (p->pHeightBuf == NULL) {
@@ -386,7 +386,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
         return 0;
     }
     memclr_asm(p->pNorBuf, n);
-    p->Dpl_size = ((p->Width + 1) * (p->ny + p->ny) * 12 + 0x61) & ~0x1F;
+    p->Dpl_size = ((p->Width + 1) * (p->Height + p->Height) * 12 + 0x61) & ~0x1F;
 #line 466 "D:/Bio4/Prog/Espgen43.cpp"
     p->pDisplayList = (u8*) MEM_ALLOC(p->Dpl_size, 1, 13);
     if (p->pDisplayList == NULL) {
@@ -407,11 +407,11 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
     d++;
     *d = 0x98;
     d++;
-    *(u16*) d = (p->Width + 1) * (p->ny + p->ny);
+    *(u16*) d = (p->Width + 1) * (p->Height + p->Height);
     d++;
     d++;
     rep = p->texRep;
-    for (i = 0; i < p->ny; i++) {
+    for (i = 0; i < p->Height; i++) {
         k = i * (p->Width + 1);
         for (j = 0; j < p->Width + 1; j++) {
             *(u16*) d = k;
@@ -427,7 +427,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
-            *(f32*) d = (f32) i / p->ny * rep;
+            *(f32*) d = (f32) i / p->Height * rep;
             TEX_WRAP(*(f32*) d);
             d++;
             d++;
@@ -445,7 +445,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
-            *(f32*) d = (f32) (i + 1) / p->ny * rep;
+            *(f32*) d = (f32) (i + 1) / p->Height * rep;
             TEX_WRAP(*(f32*) d);
             d++;
             d++;
@@ -453,7 +453,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
         }
         i++;
-        if (i < p->ny) {
+        if (i < p->Height) {
             for (j = p->Width; j >= 0; j--) {
                 k = i * (p->Width + 1) + j;
                 *(u16*) d = k;
@@ -469,7 +469,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
                 k++;
-                *(f32*) d = (f32) i / p->ny * rep;
+                *(f32*) d = (f32) i / p->Height * rep;
                 TEX_WRAP(*(f32*) d);
                 d++;
             d++;
@@ -487,7 +487,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
-                *(f32*) d = (f32) (i + 1) / p->ny * rep;
+                *(f32*) d = (f32) (i + 1) / p->Height * rep;
                 TEX_WRAP(*(f32*) d);
                 d++;
                 d++;
@@ -501,13 +501,13 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
         int x;
         int y;
         int idx;
-        for (y = 0; y < p->ny + 1; y++) {
+        for (y = 0; y < p->Height + 1; y++) {
             fx = 0.0f;
             idx = y * (p->Width + 1);
             for (x = 0; x < p->Width + 1; x++) {
                 p->pHeightBuf[idx].x = fx - (f32) (p->Width / 2);
                 p->pHeightBuf[idx].y = fRand1_1() * 0.15f;
-                p->pHeightBuf[idx].z = fy - (f32) (p->ny / 2);
+                p->pHeightBuf[idx].z = fy - (f32) (p->Height / 2);
                 p->pNorBuf[idx].x = 0.0f;
                 p->pNorBuf[idx].y = 1.0f;
                 p->pNorBuf[idx].z = 0.0f;
@@ -518,7 +518,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
         }
     }
     {
-        u32 n2 = sizeof(Vec) * (p->Width + 1) * (p->ny + 1);
+        u32 n2 = sizeof(Vec) * (p->Width + 1) * (p->Height + 1);
         DCStoreRange(p->pHeightBuf, n2);
         DCStoreRange(p->pNorBuf, n2);
     }

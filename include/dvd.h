@@ -71,9 +71,9 @@ public:
                          //       0x04000000 all parts done, 0x20000000 keep slot,
                          //       0x40000000 synchronous, 0x80000000 headered file
     s8 m_Rno0;             // 0x04  func_tbl index (0 init, 1 main, 2 cancel wait, 3 exit)
-    s8 step;             // 0x05
+    s8 m_Rno1;             // 0x05
     u8 pad_6[2];
-    DVDFileInfo fileInfo;  // 0x08
+    DVDFileInfo m_Info;  // 0x08
     u8 pad_44[4];
     s32 entrynum;        // 0x48
     u16 m_FileNo;          // 0x4C
@@ -102,10 +102,10 @@ public:
     u32 mramSize;        // 0x2C8
     u32 aramSize;        // 0x2CC
     s32 pcMode;          // 0x2D0  pG->flags_54 & 0x20000 at Initialize
-    u16 cnt[2];          // 0x2D4  parts done per level
+    u16 m_FileIdx[2];          // 0x2D4  parts done per level
     char reqfile[0x30];     // 0x2D8
     int reqline;            // 0x308
-    u32 startTick;       // 0x30C
+    u32 tick;       // 0x30C
 
     int chk(u32 bit) { return (m_be_flag & bit) ? 1 : 0; }
     void setStatus(int s) {
@@ -148,8 +148,8 @@ struct AramReq {
 // ARAM DMA queue (`Aram`, 0x1A8 bytes).
 class cAram {
 public:
-    AramReq* pCur;       // 0x00
-    AramReq* pList;      // 0x04
+    AramReq* pCur_queue;       // 0x00
+    AramReq* pQueue_list;      // 0x04
     ARQRequest ArqReq;      // 0x08
     AramReq AramQueue[16];   // 0x28
 

@@ -60,16 +60,16 @@ void knife_r2_ready(cPlayer* pl)
         pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
-        if (pl->Wep->knifeStance != 0) {
-            pl->Wep->knifeStance = 0;
+        if (pl->Wep->m_WepUd != 0) {
+            pl->Wep->m_WepUd = 0;
         }
     } else if (Key.on & 2) {
-        if (pl->Wep->knifeStance != 2) {
-            pl->Wep->knifeStance = 2;
+        if (pl->Wep->m_WepUd != 2) {
+            pl->Wep->m_WepUd = 2;
         }
     } else {
-        if (pl->Wep->knifeStance != 1) {
-            pl->Wep->knifeStance = 1;
+        if (pl->Wep->m_WepUd != 1) {
+            pl->Wep->m_WepUd = 1;
         }
     }
     func_tbl[pl->r_no_3](pl);
@@ -497,7 +497,7 @@ void setWepTrans(cPlayer* pl, int on)
     case 0x19:
     case 0x1F:
     case 0x20:
-        pl->Wep->pObj2->setDisp(1, on);
+        pl->Wep->m_pWepHand->setDisp(1, on);
         break;
     case 0xD:
         break;

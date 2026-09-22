@@ -82,10 +82,10 @@ struct AttachCamera {
     u8 type;        // 0x05  0 = off, 1 = follows the model matrix, 2 = own matrix copy (MotionSetCore)
     u8 frame;       // 0x06  (u8)(out[4].y / 100)
     u8 pad_7;
-    Mtx* pMat;      // 0x08  &model->mat or &mat
+    Mtx* p_mat;      // 0x08  &model->mat or &mat
     Mtx mat;        // 0x0C
-    Vec out[5];     // 0x3C  interpolated channels (MotionMoveCore)
-    u16 hist[5][3]; // 0x78  key history per channel / axis
+    Vec camera_data[5];     // 0x3C  interpolated channels (MotionMoveCore)
+    u16 history[5][3]; // 0x78  key history per channel / axis
 };
 
 // B-spline rail work used by the Track/RailPan/RailBehind cameras (static CamBSpline, 0x3B8).
@@ -151,18 +151,18 @@ public:
     u8 r0;                     // 0x34
     u8 r1;                 // 0x35
     u8 r2;                       // 0x36
-    u8 prev_state;                // 0x37
+    u8 r0_old;                // 0x37
     CameraParam cur;              // 0x38
     u32 counter_58;               // 0x58
-    CameraDataHeader* data;       // 0x5C
+    CameraDataHeader* pCamData;       // 0x5C
     Camera camera;                // 0x60
     Mtx prev_mat;                 // 0x158  camera matrix CamStick2World keeps while the cut changes
     u8 pad_188[0x250 - 0x188];
     s32 m_pExtraCamera;           // 0x250  Camera* of a boss/event camera (em2a/em2b/em2c/em2d); nonzero blocks the fall-check in Check()
-    CameraInterpolation interp;   // 0x254
+    CameraInterpolation m_Inter;   // 0x254
     CameraQuasiFPS m_QuasiFPS;          // 0x278
     u8 m_Free[0x200];          // 0x48C  placement storage for cCamera subclasses
-    cCamera* extra;               // 0x68C
+    cCamera* m_pProc;               // 0x68C
     s8 areaNo;                   // 0x690
     s8 areaSuffix;                      // 0x691
     s8 cameraNo;                 // 0x692
