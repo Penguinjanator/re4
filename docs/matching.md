@@ -2809,7 +2809,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   runs after sched1.
 - WeaponSet with `lbz type; cmpwi 4; bne` = `if (em->type == 4) { mot[67] = ..; [mot[68] = ..] }
   else {..}` with the identical `add; stw` tail cross-jumped (em10/em15/em16; em16 differs in two
-  slots). em20's case 2 also does `em->flags_3C8 |= 0x10000000;` before its `Em10SetSeTbl`.
+  slots). em20's case 2 also does `em->flag |= 0x10000000;` before its `Em10SetSeTbl`.
 - `Em10SetFunc` is em10.cpp's `.data+0` (declared in em10.h); `EmInitFunc` is game/em.cpp's
   (`extern void (*EmInitFunc)(cEm*)`); `Em10SetSeTbl` is `extern "C"`.
 
