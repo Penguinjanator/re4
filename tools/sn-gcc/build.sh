@@ -14,9 +14,10 @@
 #       - toplev.c: _MAX_PATH for the devstudio-error filename buffer.
 #       - cp/decl.c: grokdeclarator took the address of a block-local (`next = &name`) and used
 #         it after the block; modern GCC reuses the slot -> crash on every virtual destructor.
-#     then patches/shipped-build-temp-flags.patch (function.c: non-aggregate stack temps and parm
-#     slots get neither MEM_IN_STRUCT_P nor MEM_SCALAR_P -- the shipped build's behaviour, see the
-#     patch header for the whole-tree evidence; installed 2026-09-11).
+#     then patches/shipped-build-mem-flags.patch (rtl.h, varasm.c: no MEM gets MEM_SCALAR_P, so a
+#     load of a global pointer, a temp or an address-taken slot is ordered against member stores;
+#     C globals keep the stock flag for the vendor libc units -- the shipped build's behaviour, see
+#     the patch header for the evidence; replaces the temp-flags and global-flags patches, 2026-09-22).
 #   * The gen* tools are built and run against config/rs6000/rs6000.md (the pregenerated
 #     cp/parse.c and c-parse.c are used as-is, bison is never run).
 #   * Compiler defines follow SN's vsgcc.dsp/dolphin.bat: -DIN_GCC -DHAIFA -DCROSS_COMPILE
@@ -50,7 +51,7 @@ if [ ! -d src/gcc ]; then
     find src -type f \( -name '*.c' -o -name '*.h' -o -name '*.md' -o -name '*.def' -o -name '*.y' \
         -o -name '*.cc' -o -name '*.cpp' -o -name '*.in' \) -print0 | xargs -0 sed -i 's/\r$//'
     (cd src && patch -p1 < "$HERE/patches/linux-host.patch")
-    (cd src && patch -p1 < "$HERE/patches/shipped-build-temp-flags.patch")
+    (cd src && patch -p1 < "$HERE/patches/shipped-build-mem-flags.patch")
 fi
 
 make -j"$(nproc)" all
