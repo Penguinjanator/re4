@@ -1103,11 +1103,11 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
                 SetPlDamage((cEm*) obj, plemDmMStar);
                 if (fabsf(Muku(&pPL->pos, &w->body->pos, pPL->ang.y, PI)) < PI / 2) {
                     ang = Muku(&pPL->pos, &w->body->pos, pPL->ang.y, PI);
-                    FSet(pPL->ang.y, pPL->ang.y + ang);
+                    pPL->ang.y = pPL->ang.y + ang;
                     pPL->r_no_3 = 0;
                 } else {
                     ang = Muku(&w->body->pos, &pPL->pos, pPL->ang.y, PI);
-                    FSet(pPL->ang.y, pPL->ang.y + ang);
+                    pPL->ang.y = pPL->ang.y + ang;
                     pPL->r_no_3 = 1;
                 }
             } else {

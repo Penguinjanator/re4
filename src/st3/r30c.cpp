@@ -46,12 +46,8 @@ struct R30cModView {
     u32 flags;
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R30cWorkPtr {
-    R30cWork* p;
-};
 
-static R30cWorkPtr r30c_work;
+static R30cWork* r30c_work;
 
 
 
@@ -80,11 +76,11 @@ void R30cInit()
 {
     // The store's address is computed before the calloc call (a reference bound first): the `li r5`
     // of getRoomEtcDoor then issues before the stw (sched1 slot).
-    R30cWork*& wp = r30c_work.p;
+    R30cWork*& wp = r30c_work;
 #line 51 "D:/Bio4/Prog/r30c.cpp"
     wp = (R30cWork*) MEM_CALLOC(sizeof(R30cWork), 1, 0xd);
-    if (getRoomEtcDoor(1, &r30c_work.p->door, 1)) {
-        r30c_work.p->door->setKey(0x13);
+    if (getRoomEtcDoor(1, &r30c_work->door, 1)) {
+        r30c_work->door->setKey(0x13);
     }
     if (!KyfFlagChk(pG, KYF_R30C_DOOR)) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r30c_checkImprisonDoor, 0, 1);
@@ -126,22 +122,22 @@ void R30cInit()
             AtariOffV(&pSUB->atari, ~0x100);
             AtariOffV(&pSUB->atari, ~0x200);
             pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 4, 0);
-            r30c_work.p->shout = SceExec(0x12, (TaskFunc) r30c_AshleyShout, 0, 0, 2, 0);
-            if (RsfCheck(*(u16*) &pGS->stage_no, 1) == 0) {
+            r30c_work->shout = SceExec(0x12, (TaskFunc) r30c_AshleyShout, 0, 0, 2, 0);
+            if (RsfCheck(*(u16*) &pG->stage_no, 1) == 0) {
                 SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r30c_EventCut, 0, 1);
             }
         }
-        r30c_work.p->ashley = pSUB;
+        r30c_work->ashley = pSUB;
         pSUB = 0;
     } else {
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r30c_PlaneMove, 0, 1);
-            r30c_work.p->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
+            r30c_work->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
         }
         SceExec(0x12, (TaskFunc) r30c_StrCheck, 0, 0, 2, 0);
     }
-    r30c_work.p->em[0].setEm(0x40, 6, 0, 1, 1);
-    r30c_work.p->em[1].setEm(0x50, 6, 0, 1, 1);
+    r30c_work->em[0].setEm(0x40, 6, 0, 1, 1);
+    r30c_work->em[1].setEm(0x50, 6, 0, 1, 1);
     SceSetItemEvent(7, 0x80, 2, 3, r30c_ItemBoxOpen, r30c_ItemBoxOpened, 0xF, 0);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtSetEnable(0x82, 0);
@@ -205,22 +201,22 @@ static void R30cEventS00()
             pl->setAng(&ang);
         }
         StaFlagOn(pG, STA_SUB_ASHLEY);
-        pSUB = r30c_work.p->ashley;
+        pSUB = r30c_work->ashley;
         AtariOnV(&pSUB->atari, 0x100);
         MotionClear(pSUB, 1);
         pSUB->be_flag |= 0x200000;
         SubCharCtrl(4, 0);
         SceSetChapterEnd(0xE, -1);
-        if (r30c_work.p->em[0].isActive()) {
-            r30c_work.p->em[0].destroy();
+        if (r30c_work->em[0].isActive()) {
+            r30c_work->em[0].destroy();
             setEm(0x56, 6, 1, 1, 1);
         }
-        if (r30c_work.p->em[1].isActive()) {
-            r30c_work.p->em[1].destroy();
+        if (r30c_work->em[1].isActive()) {
+            r30c_work->em[1].destroy();
             setEm(0x57, 6, 1, 1, 1);
         }
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r30c_PlaneMove, 0, 1);
-        r30c_work.p->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
+        r30c_work->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
         SndBgmTblSet(0x30C, 1);
         ScfFlagOn(pG, SCF_R30C_SAVE_ASHLEY);
     }
@@ -258,10 +254,10 @@ static void r30c_EventCut()
 {
     RsfSet(G_ROOM_ID, 1);
     SceEventStart(0);
-    r30c_work.p->ashley->setNoSuspend(1);
-    r30c_work.p->em[0].setNoSuspend(1);
-    r30c_work.p->em[1].setNoSuspend(1);
-    r30c_work.p->shout->task->flag |= 2;
+    r30c_work->ashley->setNoSuspend(1);
+    r30c_work->em[0].setNoSuspend(1);
+    r30c_work->em[1].setNoSuspend(1);
+    r30c_work->shout->task->flag |= 2;
     SceSetEventCancel(1, (TaskFunc) r30c_EventCutEndProc, 0, -1, 1);
     CamCtrl.CutCall(1);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -280,11 +276,11 @@ static void r30c_EventCut()
 static void r30c_EventCutEndProc()
 {
     CamCtrl.Comeback(0);
-    r30c_work.p->ashley->setNoSuspend(0);
-    r30c_work.p->em[0].setNoSuspend(0);
-    r30c_work.p->em[1].setNoSuspend(0);
+    r30c_work->ashley->setNoSuspend(0);
+    r30c_work->em[0].setNoSuspend(0);
+    r30c_work->em[1].setNoSuspend(0);
     SceEventEnd(0);
-    r30c_work.p->shout->task->flag &= ~2;
+    r30c_work->shout->task->flag &= ~2;
     ScfFlagOn(pG, SCF_R30C_ASHLEY_SCREAM);
 }
 
@@ -292,14 +288,14 @@ static void r30c_EventCutEndProc()
 // player comes close.
 static void r30c_AshleyShout()
 {
-    if (r30c_work.p->ashley == 0) {
+    if (r30c_work->ashley == 0) {
         return;
     }
     SceExec(0x12, (TaskFunc) r31c_AshleyDieCheck, 0, 0, 2, 0);
     for (;;) {
-        switch ((u32) r30c_work.p->ashley->Motion.Seq_frame) {
+        switch ((u32) r30c_work->ashley->Motion.Seq_frame) {
         case 0x46:
-            RoomSeCall(2, &r30c_work.p->ashley->getPartsPtr(4)->world, 0, 0, 0);
+            RoomSeCall(2, &r30c_work->ashley->getPartsPtr(4)->world, 0, 0, 0);
             break;
         case 0x9:
         case 0x12:
@@ -313,15 +309,15 @@ static void r30c_AshleyShout()
         case 0x77:
         case 0x85:
         case 0x92:
-            RoomSeCall(5, &r30c_work.p->ashley->getPartsPtr(0xA)->world, 0, 0, 0);
+            RoomSeCall(5, &r30c_work->ashley->getPartsPtr(0xA)->world, 0, 0, 0);
             break;
         }
         if (SceAtHitCheck(9)) {
-            r30c_work.p->ashley->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 0, 0);
-            while (!(MotionGetState(r30c_work.p->ashley) & 4)) {
+            r30c_work->ashley->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 0, 0);
+            while (!(MotionGetState(r30c_work->ashley) & 4)) {
                 SceSleep(1);
             }
-            r30c_work.p->ashley->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 0, 0);
+            r30c_work->ashley->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 0, 0);
             break;
         }
         SceSleep(1);
@@ -334,12 +330,12 @@ static void r31c_AshleyDieCheck()
     for (;;) {
         u32 stat;
 
-        pSUB = r30c_work.p->ashley;
+        pSUB = r30c_work->ashley;
         stat = SubCharGetStatus();
         pSUB = 0;
         if (!(stat & 1)) {
             pG->ashley_life = 0;
-            EmRoutineSetW(r30c_work.p->ashley, 2, 0, 0, 0);
+            EmRoutineSetW(r30c_work->ashley, 2, 0, 0, 0);
         }
         if ((s16) pG->ashley_life > 0) {
             SceSleep(1);
@@ -361,9 +357,9 @@ static void r30c_PlaneMove()
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &pos, 0x10, 1);
     obj->setNoSuspend(1);
 #line 494 "D:/Bio4/Prog/r30c.cpp"
-    PSet(obj->Motion.pAttachCam, (AttachCamera*) MEM_ALLOC(0x98, 1, 0xd));
+    (obj->Motion.pAttachCam = (AttachCamera*) MEM_ALLOC(0x98, 1, 0xd));
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 0x201, 0);
-    SndStrReq(r30c_work.p->strId, 2, 0, 0);
+    SndStrReq(r30c_work->strId, 2, 0, 0);
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceSetEventCancel(1, (TaskFunc) r30c_PlaneMoveEndProc, (int) obj, 0, 1);
     while (!(MotionGetState(obj) & 4)) {

@@ -14,7 +14,6 @@
 #include "db_log.h"
 #include "t_prim.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -82,17 +81,10 @@ struct RckNode {
     u32 dist;  // 0x4
 };
 
-// every store through the work pointer reloads it: the pointers are struct members
-struct RckWorkPtr {
-    RckWork* p;
-};
-struct RckSavePtr {
-    u8* p;
-};
-static RckWorkPtr rckWork;
-static RckSavePtr rckSave;
-#define RCK (rckWork.p)
-#define RCK_SAVE (rckSave.p)
+static RckWork* rckWork;
+static u8* rckSave;
+#define RCK (rckWork)
+#define RCK_SAVE (rckSave)
 #define RCK_SAVE_SIZE 0x14818
 
 void rckInit();
@@ -139,8 +131,8 @@ void ToolRctRouteCheck()
 {
     void (*tbl[6])() = {tool_quit, mode_clear, mode_main, mode_menu, mode_save, mode_load};
 
-    RckWork*& wp = rckWork.p;
-    u8*& sp = rckSave.p;
+    RckWork*& wp = rckWork;
+    u8*& sp = rckSave;
 
     wp = (RckWork*) Debug_alloc(sizeof(RckWork), 1);
     sp = (u8*) Debug_alloc(RCK_SAVE_SIZE, 1);
@@ -168,18 +160,18 @@ void rckInit()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    BitOn(pG->Stop_flg, 0x00200000);
-    BitOn(pG->Disp_flg, 0x01000000);
-    BitOn(pG->Disp_flg, 0x00800000);
+    pG->Stop_flg |= 0x00200000;
+    pG->Disp_flg |= 0x01000000;
+    pG->Disp_flg |= 0x00800000;
     DbgFlagOn(pG, DBG_TEST_MODE);
     DbgFlagOn(pG, DBG_BACK_CLIP);
-    BitOn(pG->Stop_flg, 0x00800000);
-    BitOn(pG->Stop_flg, 0x00200000);
-    BitOn(pG->Disp_flg, 0x04000000);
+    pG->Stop_flg |= 0x00800000;
+    pG->Stop_flg |= 0x00200000;
+    pG->Disp_flg |= 0x04000000;
     pG->Disp_flg |= 0x02000000;
     memclr_asm(RCK, sizeof(RckWork));
     RCK->mode = 2;
-    RCK->savedRtp = pGS->Rtp;
+    RCK->savedRtp = pG->Rtp;
     RCK->cur = -1;
     RCK->near = -1;
     RCK->catchTimer = zero;
@@ -187,7 +179,7 @@ void rckInit()
     RCK->x290 = RCK->x298 = RCK->curX = (Screen.x + Screen.width) * 0.5f;
     RCK->x294 = RCK->x29C = RCK->curY = (Screen.y + Screen.height) * 0.5f;
     RCK->camMode = zero;
-    if (pGS->Rtp != NULL) {
+    if (pG->Rtp != NULL) {
         rckMakeEditData(pG->Rtp);
     } else {
         rckFileLoad(0);
@@ -201,10 +193,10 @@ static void tool_quit()
     pG->Rtp = RCK->savedRtp;
     TutilQuitDefault();
     StaFlagOff(pG, STA_BG_OFF);
-    BitOff(pG->Stop_flg, 0x00200000);
-    BitOff(pG->Stop_flg, 0x00200000);
-    BitOff(pG->Disp_flg, 0x04000000);
-    BitOff(pG->Disp_flg, 0x02000000);
+    pG->Stop_flg &= ~0x00200000;
+    pG->Stop_flg &= ~0x00200000;
+    pG->Disp_flg &= ~0x04000000;
+    pG->Disp_flg &= ~0x02000000;
     DbgFlagOff(pG, DBG_DBG_CAM);
     TaskSignal(0);
     TaskExit();
@@ -1253,7 +1245,7 @@ void rckCameraMove()
         CamDbg.move(&pG->Camera, Joy, 0);
         RCK->joy.trg = 0;
         RCK->joy.on = 0;
-        U32Set(RCK->joy.rep, 0);
+        RCK->joy.rep = 0;
         DbgFlagOn(pG, DBG_DBG_CAM);
         if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");

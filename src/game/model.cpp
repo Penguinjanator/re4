@@ -34,11 +34,6 @@ cModelInfo* GetModelInfoAddr(cModelInfo* info, int no);
 cModInfoMgr* cModel::mm = &ModInfoMgr;
 cPartsMgr* cModel::pm = &PartsMgr;
 
-// `mm` read as a struct member: keeps its load below a preceding store through `this`
-struct ModInfoMgrPtr {
-    cModInfoMgr* p;
-};
-#define MM (((ModInfoMgrPtr*) &cModel::mm)->p)
 
 
 // Clears a model's light-area state.
@@ -748,7 +743,7 @@ cModelInfo::cModelInfo() : cUnit(1)
 {
     static u32 col = 0xFFFFFFFF;
 
-    colorWord = U32Ref(col);
+    colorWord = col;
     PSMTXIdentity(mat);
     be_flag |= 8;
     invisible_factor = 1.0f;
@@ -855,13 +850,13 @@ int cModel::deleteModelData(cModelData* data)
 
     if (info->pData == data) {
         pModelInfo = info->pList;
-        MM->destroy(info);
+        cModel::mm->destroy(info);
         return 1;
     }
     while (info) {
         if (info->pData == data) {
             prev->pList = info->pList;
-            MM->destroy(info);
+            cModel::mm->destroy(info);
             return 1;
         }
         prev = info;
@@ -878,13 +873,13 @@ int cModel::deleteModelInfo(cModelInfo* target)
 
     if (info == target) {
         pModelInfo = info->pList;
-        MM->destroy(info);
+        cModel::mm->destroy(info);
         return 1;
     }
     while (info) {
         if (info == target) {
             prev->pList = info->pList;
-            MM->destroy(info);
+            cModel::mm->destroy(info);
             return 1;
         }
         prev = info;
@@ -901,7 +896,7 @@ int cModel::swapModelInfo(cModelData* data, cModelInfo* newInfo)
 
     if (info->pData == data) {
         pModelInfo = info->pList;
-        MM->destroy(info);
+        cModel::mm->destroy(info);
         addModel(newInfo);
         return 1;
     }
@@ -909,7 +904,7 @@ int cModel::swapModelInfo(cModelData* data, cModelInfo* newInfo)
         if (info->pData == data) {
             prev->pList = newInfo;
             newInfo->pList = info->pList;
-            MM->destroy(info);
+            cModel::mm->destroy(info);
             return 1;
         }
         prev = info;
@@ -1509,21 +1504,21 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     f32 sz = bound->size.z;
 
     c = v;
-    VecSet(c, -sx, -sy, -sz);
+    c->x = -sx; c->y = -sy; c->z = -sz;
     c++;
-    VecSet(c, sx, -sy, -sz);
+    c->x = sx; c->y = -sy; c->z = -sz;
     c++;
-    VecSet(c, -sx, -sy, sz);
+    c->x = -sx; c->y = -sy; c->z = sz;
     c++;
-    VecSet(c, sx, -sy, sz);
+    c->x = sx; c->y = -sy; c->z = sz;
     c++;
-    VecSet(c, -sx, sy, -sz);
+    c->x = -sx; c->y = sy; c->z = -sz;
     c++;
-    VecSet(c, sx, sy, -sz);
+    c->x = sx; c->y = sy; c->z = -sz;
     c++;
-    VecSet(c, -sx, sy, sz);
+    c->x = -sx; c->y = sy; c->z = sz;
     c++;
-    VecSet(c, sx, sy, sz);
+    c->x = sx; c->y = sy; c->z = sz;
     // A counted loop: loop.c's giv init for `&v[j]` is emitted in the preheader after gcse's
     // `&q[k]` insertions (LUID order decides the sched2 slot of `mr r30,r24`) and the eliminated biv
     // compares the stepped pointer against `&v[7]` (`cmplw; ble`), which the do-while form with an

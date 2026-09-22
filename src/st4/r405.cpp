@@ -35,14 +35,10 @@ struct R405Work {
     int timer;              // 0x0C  frames until the next wave check
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R405WorkPtr {
-    R405Work* p;
-};
 
 static u8 r405_texTbl0[0x20];
 static u8 r405_texTbl1[0x20];
-static R405WorkPtr r405_work;
+static R405Work* r405_work;
 
 // Hit effects of attribute type 2 (water)
 static const AtEffInfo r405_eff_info = {
@@ -75,7 +71,7 @@ static void snd_tbl_set()
 void R405Init()
 {
 #line 69 "D:/Bio4/Prog/r405.cpp"
-    r405_work.p = (R405Work*) MEM_CALLOC(sizeof(R405Work), 1, 0xd);
+    r405_work = (R405Work*) MEM_CALLOC(sizeof(R405Work), 1, 0xd);
     st4_initAdaGame();
     void* zero = 0;
     GamePointInit(1);
@@ -114,28 +110,28 @@ void R405Init()
 void R405Main()
 {
     if (RsfCheck(G_ROOM_ID, 1)) {
-        if (r405_work.p->cnt <= 4) {
-            if (r405_work.p->timer <= 0) {
+        if (r405_work->cnt <= 4) {
+            if (r405_work->timer <= 0) {
                 if ((u32) SceCountEmAlive(0x10, 0x20) <= 8) {
                     if (pG->Room_flg[2] & 0x20000000) {
                         R405_EmSetEvent(&pG->Em_list[0x10]);
                         R405_EmSetEvent(&pG->Em_list[0x11]);
-                        r405_work.p->cnt++;
-                        r405_work.p->timer = 240;
+                        r405_work->cnt++;
+                        r405_work->timer = 240;
                     } else if (pG->Room_flg[2] & 0x10000000) {
                         R405_EmSetEvent(&pG->Em_list[0x13]);
                         R405_EmSetEvent(&pG->Em_list[0x14]);
-                        r405_work.p->cnt++;
-                        r405_work.p->timer = 240;
+                        r405_work->cnt++;
+                        r405_work->timer = 240;
                     } else if (pG->Room_flg[2] & 0x40000000) {
                         R405_EmSetEvent(&pG->Em_list[0x25]);
                         R405_EmSetEvent(&pG->Em_list[0x26]);
-                        r405_work.p->cnt++;
-                        r405_work.p->timer = 240;
+                        r405_work->cnt++;
+                        r405_work->timer = 240;
                     }
                 }
             } else {
-                r405_work.p->timer--;
+                r405_work->timer--;
             }
         }
     }
@@ -148,26 +144,26 @@ void setTexRender()
     u8* tbl0 = r405_texTbl0;
     u8* tbl1 = r405_texTbl1;
 
-    if (GetTexRenderMgr(&r405_work.p->tex[0])) {
+    if (GetTexRenderMgr(&r405_work->tex[0])) {
         tbl0[0] = 1;
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
-        tbl0[5] = r405_work.p->tex[0]->texId;
-        r405_work.p->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r405_work.p->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl0[5] = r405_work->tex[0]->texId;
+        r405_work->tex[0]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r405_work->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xC);
     obj->pModelInfo->setTexBlendTbl(tbl0);
     obj->pModelInfo->setBlendRatio(0xFF);
-    if (GetTexRenderMgr(&r405_work.p->tex[1])) {
+    if (GetTexRenderMgr(&r405_work->tex[1])) {
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
-        tbl1[5] = r405_work.p->tex[1]->texId;
-        r405_work.p->tex[1]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r405_work.p->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl1[5] = r405_work->tex[1]->texId;
+        r405_work->tex[1]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r405_work->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }

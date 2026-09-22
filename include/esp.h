@@ -650,14 +650,6 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, u16 e, 
 int EspGenGetMoveLoop();
 extern cCoord* pEffParentWorld;
 extern char* owner_name_tbl[0xD1];   // effect owner names 0..0xD0 (debug display; eff_sys.cpp)
-// Struct-member view of the same pointer (the pLog trick, db_log.h): a load through it is not
-// hoisted above a preceding struct copy through `this` (esp01 move: `w->pos0 = pos; parent =
-// pEffParentWorld`). Only use where the target shows the load after such stores; wrapping the
-// global itself changes load order in units that already match (esp0b, esp1a, esp40).
-struct EffParentWorldPtr {
-    cCoord* p;
-};
-#define pEffParentWorldS (((EffParentWorldPtr*) &pEffParentWorld)->p)
 // game/esp_app.cpp
 extern "C" void EspCallSeType(int type, Vec* pos);
 void EffCallRoomSeFunc(int no, Vec* pos);
@@ -666,7 +658,7 @@ void EspFootCall(int type, int no, Vec* pos);
 int EspPlWaterCall(int type, Vec* pos);
 // game/Espgen42.cpp
 int GetWaterHeight(Vec* pos, f32* height);
-extern "C" void AddWaterPower(Vec* pos, f32 power);
+extern "C" void AddWaterPower(Vec& pos, f32 power);
 extern "C" {
 void EspWaterInit();
 void Espgen42SetNoWater(int on);
@@ -675,7 +667,7 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);
 // game/Espgen43.cpp
 extern "C" {
 int GetSandHeight(Vec* pos, f32* height);
-void AddSandPower(Vec* pos, f32 power);
+void AddSandPower(Vec& pos, f32 power);
 // game/eff_sys.cpp
 int EspChkTexId(int no);   // 1 when texture `no` has an object
 GXTexObj* EspGetTexObj(int no, int ptn_no);

@@ -13,7 +13,6 @@
 #include "model.h"
 #include "player.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include <string.h>
 #include "item.h"
 #include "dbmodule.h"
@@ -54,7 +53,7 @@ void ToolBugcheck()
 // Freezes the game (Stop_flg saved, all but 0x4000 set), menu at (80, 60).
 void cToolBugcheck::init()
 {
-    BitSet(m_stop_flag_bak, pG->Stop_flg);
+    m_stop_flag_bak = pG->Stop_flg;
     BitOn(pG->Stop_flg, ~0x4000);
     m_base_dx = 80;
     m_base_dy = 60;
@@ -102,8 +101,8 @@ void cToolBugcheck::menuPosMove()
     f32 floor;
     cModel* pl;
 
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Stop_flg, 0x40000000);
+    pG->Stop_flg &= ~0x10000000;
+    pG->Stop_flg &= ~0x40000000;
     while (1) {
         if (Joy[0].on & JOY_X) {
             DbgFlagOn(pG, DBG_PL_NOHIT);
@@ -164,8 +163,8 @@ void cToolBugcheck::menuPosMove()
         TaskSleep(1);
     }
     DbgFlagOff(pG, DBG_PL_NOHIT);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x40000000);
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x40000000;
 }
 
 // Sub menu: edits the player's / Ashley's life and life maximum (stick / L / R), shows the level.
@@ -214,7 +213,7 @@ void cToolBugcheck::menuLife()
         cur = n;
         switch (n) {
         case 0:
-            U16Set(pG->pl_life, pG->pl_life + (s16) (Joy[0].stickX * 0.4f));
+            pG->pl_life = pG->pl_life + (s16) (Joy[0].stickX * 0.4f);
             if (Joy[0].on & JOY_RIGHT) {
                 pG->pl_life += 25;
             }
@@ -237,13 +236,13 @@ void cToolBugcheck::menuLife()
                 } else {
                     lv = 0;
                 }
-                U16Set(pG->pl_life_max, 1200);
-                U16Set(pG->pl_life_max, pG->pl_life_max + ROUND_TO_INT((f32) (lv * 60)));
+                pG->pl_life_max = 1200;
+                pG->pl_life_max = pG->pl_life_max + ROUND_TO_INT((f32) (lv * 60));
                 pG->pl_life = pG->pl_life_max;
             }
             break;
         case 1:
-            U16Set(pG->ashley_life, pG->ashley_life + (s16) (Joy[0].stickX * 0.4f));
+            pG->ashley_life = pG->ashley_life + (s16) (Joy[0].stickX * 0.4f);
             if (Joy[0].on & JOY_RIGHT) {
                 pG->ashley_life += 25;
             }
@@ -266,14 +265,14 @@ void cToolBugcheck::menuLife()
                 } else {
                     lv = 0;
                 }
-                U16Set(pG->ashley_life_max, 600);
-                U16Set(pG->ashley_life_max, pG->ashley_life_max + ROUND_TO_INT((f32) (lv * 120)));
+                pG->ashley_life_max = 600;
+                pG->ashley_life_max = pG->ashley_life_max + ROUND_TO_INT((f32) (lv * 120));
                 pG->ashley_life = pG->ashley_life_max;
             }
             break;
         case 2:
             if (Joy[0].trg & JOY_A) {
-                U16Set(pG->pl_life, pG->pl_life_max);
+                pG->pl_life = pG->pl_life_max;
                 pG->ashley_life = pG->ashley_life_max;
             }
             break;
@@ -451,14 +450,14 @@ void cToolBugcheck::menu()
         if (Joy[0].trg & 0x30103) {
             FlagXor(&pG->Disp_flg, 1);
             if (pG->Disp_flg & 0x40000000) {
-                BitOn(pG->Disp_flg, 0x80000000);
-                BitOn(pG->Disp_flg, 0x10000000);
-                BitOn(pG->Stop_flg, 0x20000000);
+                pG->Disp_flg |= 0x80000000;
+                pG->Disp_flg |= 0x10000000;
+                pG->Stop_flg |= 0x20000000;
                 pG->Stop_flg |= 0x4000000;
             } else {
-                BitOff(pG->Disp_flg, 0x80000000);
-                BitOff(pG->Disp_flg, 0x10000000);
-                BitOff(pG->Stop_flg, 0x20000000);
+                pG->Disp_flg &= ~0x80000000;
+                pG->Disp_flg &= ~0x10000000;
+                pG->Stop_flg &= ~0x20000000;
                 pG->Stop_flg &= ~0x4000000;
             }
         }

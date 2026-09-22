@@ -50,12 +50,8 @@ struct R224Work {
     Vec plPos;       // 0x124  player position before the enemy event
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R224WorkPtr {
-    R224Work* p;
-};
 
-static R224WorkPtr r224_work;
+static R224Work* r224_work;
 
 static f32 reva_low = 1763.0f;
 static f32 reva_high = 1424.0f;
@@ -103,30 +99,30 @@ void R224Init()
     cObj* yagura;
 
 #line 74 "D:/Bio4/Prog/r224.cpp"
-    r224_work.p = (R224Work*) MEM_CALLOC(sizeof(R224Work), 1, 0xd);
+    r224_work = (R224Work*) MEM_CALLOC(sizeof(R224Work), 1, 0xd);
     SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r224_toroko, 0, 1);
     SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) reva_move, 0, 1);
     EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r224_eff_info);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    r224_work.p->obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
-    r224_work.p->obj->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x23), 0xA, 0, 1, 0);
-    r224_work.p->obj->Motion.Seq_speed = 0.0f;
+    r224_work->obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
+    r224_work->obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0xA, 0, 1, 0);
+    r224_work->obj->Motion.Seq_speed = 0.0f;
     {
-        cObj* obj = r224_work.p->obj;
+        cObj* obj = r224_work->obj;
 
         obj->be_flag |= 8;
         obj->AddAmb_r = 0x3C;
         obj->AddAmb_g = 0x50;
         obj->AddAmb_b = 0x64;
     }
-    r224_work.p->obj2 = ObjMgr.create(cObjMgr::ID_SCROLL);
-    r224_work.p->obj2->pos.x = -4413.0f;
-    r224_work.p->obj2->pos.y = 0.0f;
-    r224_work.p->obj2->pos.z = -543.0f;
-    AtariInit(&r224_work.p->obj2->atari, 0.0f, 0.0f, 0.0f, 0.0f, 5100.0f, 5100.0f, 50000.0f, 0, 0x18, 0);
-    AtariOff(&r224_work.p->obj2->atari, 0xFEFF);
-    AtariOff(&r224_work.p->obj2->atari, 0xFDFF);
+    r224_work->obj2 = ObjMgr.create(cObjMgr::ID_SCROLL);
+    r224_work->obj2->pos.x = -4413.0f;
+    r224_work->obj2->pos.y = 0.0f;
+    r224_work->obj2->pos.z = -543.0f;
+    AtariInit(&r224_work->obj2->atari, 0.0f, 0.0f, 0.0f, 0.0f, 5100.0f, 5100.0f, 50000.0f, 0, 0x18, 0);
+    AtariOff(&r224_work->obj2->atari, 0xFEFF);
+    AtariOff(&r224_work->obj2->atari, 0xFDFF);
     SmdGetObjPtr(0x13)->be_flag |= 0x20;
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
     SceAtSetEnable(5, 0);
@@ -215,31 +211,31 @@ static void r224_em_set_exit()
     Vec v;
 
     ScfFlagOff(pG, SCF_89);
-    SndStop(r224_work.p->se0, 0);
-    SndStop(r224_work.p->se1, 0);
+    SndStop(r224_work->se0, 0);
+    SndStop(r224_work->se1, 0);
     SmdGetObjPtr(0x16)->pos.y = 7838.0f;
-    AtariOn(&r224_work.p->em0.getPtr()->atari, 0x300);
-    AtariOn(&r224_work.p->em1.getPtr()->atari, 0x300);
-    pGS->Room_flg[0] |= 0x04000000;
+    AtariOn(&r224_work->em0.getPtr()->atari, 0x300);
+    AtariOn(&r224_work->em1.getPtr()->atari, 0x300);
+    pG->Room_flg[0] |= 0x04000000;
     SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r224_door_mes, 0, 1);
     SceExec(0x12, (TaskFunc) em_die_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     GamePointBossReset();
-    AtariOn(&r224_work.p->em0.getPtr()->atari, 0x300);
-    AtariOn(&r224_work.p->em1.getPtr()->atari, 0x300);
+    AtariOn(&r224_work->em0.getPtr()->atari, 0x300);
+    AtariOn(&r224_work->em1.getPtr()->atari, 0x300);
     v.x = 7812.0f;
     v.y = 0.0f;
     v.z = -2048.0f;
-    r224_work.p->em0.setPos(&v);
+    r224_work->em0.setPos(&v);
     v.x = 12864.0f;
     v.y = 0.0f;
     v.z = -4906.0f;
-    r224_work.p->em1.setPos(&v);
-    r224_work.p->em0.setFlag(1);
-    r224_work.p->em1.setFlag(1);
-    r224_work.p->em0.setNoSuspend(0);
-    r224_work.p->em1.setNoSuspend(0);
+    r224_work->em1.setPos(&v);
+    r224_work->em0.setFlag(1);
+    r224_work->em1.setFlag(1);
+    r224_work->em0.setNoSuspend(0);
+    r224_work->em1.setNoSuspend(0);
     SceEventEnd(0);
-    pPL->setPos(&r224_work.p->plPos);
+    pPL->setPos(&r224_work->plPos);
     door_close();
 }
 
@@ -248,9 +244,9 @@ static void r224_em_set()
 {
     Vec v;
 
-    r224_work.p->plPos = pPLS->pos;
+    r224_work->plPos = pPL->pos;
     {
-        cPlayer* pl = pPLS;
+        cPlayer* pl = pPL;
 
         v.x = 3000.0f;
         v.y = 0.0f;
@@ -259,25 +255,25 @@ static void r224_em_set()
     }
     SceEventStart(0);
     SceExec(0x12, (TaskFunc) r224_cam_task, 0, 0, SCE_PRIO_DEF_2, 0);
-    r224_work.p->em0.setEm(0xC8, -1, 1, 1, 1);
-    r224_work.p->em1.setEm(0xC9, -1, 1, 1, 1);
-    r224_work.p->em0.setNoSuspend(1);
-    r224_work.p->em1.setNoSuspend(1);
-    if (r224_work.p->em0.getPtr()) {
-        AtariOff(&r224_work.p->em0.getPtr()->atari, 0xFCFF);
-        AtariOff(&r224_work.p->em1.getPtr()->atari, 0xFCFF);
+    r224_work->em0.setEm(0xC8, -1, 1, 1, 1);
+    r224_work->em1.setEm(0xC9, -1, 1, 1, 1);
+    r224_work->em0.setNoSuspend(1);
+    r224_work->em1.setNoSuspend(1);
+    if (r224_work->em0.getPtr()) {
+        AtariOff(&r224_work->em0.getPtr()->atari, 0xFCFF);
+        AtariOff(&r224_work->em1.getPtr()->atari, 0xFCFF);
         v.x = 16700.0f;
         v.y = 0.0f;
         v.z = -7320.0f;
-        r224_work.p->em0.setPos(&v);
+        r224_work->em0.setPos(&v);
         v.x = 19580.0f;
         v.y = 0.0f;
         v.z = -8040.0f;
-        r224_work.p->em1.setPos(&v);
+        r224_work->em1.setPos(&v);
     }
     SceSetEventCancel(1, (TaskFunc) r224_em_set_exit, 0, -1, 1);
-    r224_work.p->se0 = SndCall(6, 2, &SmdGetObjPtr(0x16)->pos, 0, 0, 0);
-    r224_work.p->se1 = SndCall(6, 6, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
+    r224_work->se0 = SndCall(6, 2, &SmdGetObjPtr(0x16)->pos, 0, 0, 0);
+    r224_work->se1 = SndCall(6, 6, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
     SceAtDataReset(0);
     SceAtSetEnable(8, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0x3E, 1, ESP_CORE_KIND_ROOM01, 0, 0);
@@ -291,12 +287,12 @@ static void r224_em_set()
     }
     SndCall(6, 3, &SmdGetObjPtr(0x16)->pos, 0, 0, 0);
     SndCall(6, 7, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
-    r224_work.p->em0.setFlag(1);
+    r224_work->em0.setFlag(1);
     SceSleep(10);
-    r224_work.p->em1.setFlag(1);
+    r224_work->em1.setFlag(1);
     SceSleep(60);
-    AtariOn(&r224_work.p->em0.getPtr()->atari, 0x300);
-    AtariOn(&r224_work.p->em1.getPtr()->atari, 0x300);
+    AtariOn(&r224_work->em0.getPtr()->atari, 0x300);
+    AtariOn(&r224_work->em1.getPtr()->atari, 0x300);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -316,15 +312,15 @@ static void r224_toroko()
     }
     pG->Room_flg[0] |= 0x08000000;
     pl->beginAction();
-    AtariOff(&pPLS->atari, 0xFEFF);
-    AtariOff(&pPLS->atari, 0xFDFF);
-    pPLS->atari.setPriority(PRI_LV1);
+    AtariOff(&pPL->atari, 0xFEFF);
+    AtariOff(&pPL->atari, 0xFDFF);
+    pPL->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     {
-        cModel* parts = r224_work.p->obj->getPartsPtr(0);
+        cModel* parts = r224_work->obj->getPartsPtr(0);
 
         v.x = -29.17f;
         v.y = 0.0f;
@@ -334,12 +330,12 @@ static void r224_toroko()
     v.y = 6000.0f;
     SndCall(6, 8, 0, 0, 0, 0);
     pPL->setPos(&v);
-    pPLS->ang.y = -2.1991148f;
-    pPLS->setNoSuspend(1);
+    pPL->ang.y = -2.1991148f;
+    pPL->setNoSuspend(1);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 0x201, 0);
-    r224_work.p->obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
-    r224_work.p->obj->Motion.Seq_speed = 1.0f;
-    frames = (u32) MotionGetMaxFrame(&pPLS->Motion);
+    r224_work->obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
+    r224_work->obj->Motion.Seq_speed = 1.0f;
+    frames = (u32) MotionGetMaxFrame(&pPL->Motion);
     SceSleep(90);
     SndCall(6, 9, 0, 0, 0, 0);
     SceSleep(frames - 90);
@@ -348,9 +344,9 @@ static void r224_toroko()
     pl->Wep->setTrans(1, 0);
     pl->endAction(0);
     pPL->dmg.clear();
-    AtariOn(&pPLS->atari, 0x100);
-    AtariOn(&pPLS->atari, 0x200);
-    pPLS->atari.setPriority(0);
+    AtariOn(&pPL->atari, 0x100);
+    AtariOn(&pPL->atari, 0x200);
+    pPL->atari.setPriority(0);
     pG->Room_flg[0] &= ~0x08000000;
 }
 
@@ -390,7 +386,7 @@ static void reva_common_move()
     spd = r224_zero_v;
     hi = reva_high;
     SndCall(6, 4, &obj->pos, 0, 0, 0);
-    BitOn(obj->be_flag, 0x20);
+    obj->be_flag |= 0x20;
     acc = reva_acc;
     zero = r224_zero;
     for (;;) {
@@ -437,8 +433,8 @@ static void futa_move()
 
     SceSleep(15);
     pG->Room_flg[0] |= 0x80000000;
-    em0 = r224_work.p->em0.getPtr();
-    em1 = r224_work.p->em1.getPtr();
+    em0 = r224_work->em0.getPtr();
+    em1 = r224_work->em1.getPtr();
     if (em0 && ((cEm2b*) em0)->ckThrow2() == 1) {
         RsfSet(G_ROOM_ID, 0);
         em0->setNoSuspend(1);
@@ -498,8 +494,8 @@ static void gnd_open()
     SmdGetObjPtr(0x13)->ang.x = 0.0f;
     SmdGetObjPtr(0x14)->ang.x = 0.0f;
     SceAtSetEnable(4, 0);
-    AtariOn(&r224_work.p->obj2->atari, 0x100);
-    AtariOn(&r224_work.p->obj2->atari, 0x200);
+    AtariOn(&r224_work->obj2->atari, 0x100);
+    AtariOn(&r224_work->obj2->atari, 0x200);
     SceAtSetEnable(5, 1);
     SceAtSetEnable(6, 1);
     SceAtSetEnable(7, 0);
@@ -523,8 +519,8 @@ void gnd_close()
 
     SmdGetObjPtr(0x13)->be_flag |= 0x20;
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
-    AtariOn(&r224_work.p->obj2->atari, 0x100);
-    AtariOn(&r224_work.p->obj2->atari, 0x200);
+    AtariOn(&r224_work->obj2->atari, 0x100);
+    AtariOn(&r224_work->obj2->atari, 0x200);
     SndCall(6, 0xB, &SmdGetObjPtr(0x13)->pos, 0, 0, 0);
     for (;;) {
         spd += acc;
@@ -550,9 +546,9 @@ void gnd_close()
     }
     SceAtSetEnable(6, 0);
     SceAtSetEnable(7, 1);
-    AtariOff(&r224_work.p->obj2->atari, 0xFEFF);
-    AtariOff(&r224_work.p->obj2->atari, 0xFDFF);
-    pGS->Room_flg[0] &= ~0x40000000;
+    AtariOff(&r224_work->obj2->atari, 0xFEFF);
+    AtariOff(&r224_work->obj2->atari, 0xFDFF);
+    pG->Room_flg[0] &= ~0x40000000;
 }
 
 // The lever: the player holds the button, the camera swings with the stick, the grate opens.
@@ -571,15 +567,15 @@ static void reva_move()
     {
         Vec p = {-13250.0f, 0.0f, -7400.0f};
 
-        pPLS->ang.y = -2.5132742f;
-        pPLS->setPos(&p);
+        pPL->ang.y = -2.5132742f;
+        pPL->setPos(&p);
     }
     while ((PlGetStatus() & 0x00020000) && !(Key.trg & 0x40000000)) {
         if (state == 0) {
             if (--frames == 0) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 5, 0, 5, 0);
                 state = 1;
-                r224_work.p->cam = pG->Camera;
+                r224_work->cam = pG->Camera;
             }
         } else if (state == 1) {
             Camera* cam;
@@ -589,7 +585,7 @@ static void reva_move()
             f32 add;
 
             ActBtn.set(ACT_OPERATION, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
-            cam = &r224_work.p->cam;
+            cam = &r224_work->cam;
             add = 0.0f;
             d.x = cam->param.at.x - cam->param.pos.x;
             d.y = cam->param.at.y - cam->param.pos.y;
@@ -608,8 +604,8 @@ static void reva_move()
             PSMTXRotRad(mtx, 'y', add * 0.017453292f);
             PSMTXMultVecSR(mtx, &d, &d);
             PSVECAdd(&d, &cam->param.pos, &cam->param.at);
-            CameraSetOrientationUp(&r224_work.p->cam);
-            CamCtrl.m_pExtraCamera = (s32) &r224_work.p->cam;
+            CameraSetOrientationUp(&r224_work->cam);
+            CamCtrl.m_pExtraCamera = (s32) &r224_work->cam;
             if (Key.trg & 0x00080000) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 5, 0, 1, 0);
                 frames = (u32) MotionGetMaxFrame(&pPL->Motion);

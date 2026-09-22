@@ -38,11 +38,6 @@ void Esp1b_SpTrans(cEsp* esp);
 #undef DEG2RAD
 #define DEG2RAD (3.14f / 180.0f)
 
-// The pulled effect is kept in a one-member struct: the original reloads the pointer from its
-// stack slot after every store through it (a struct-member slot aliases the member stores).
-struct EspPtr {
-    cEsp* p;
-};
 
 #define ESP_PARTS_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 
@@ -1170,7 +1165,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
     Vec v;
     Mtx m;
     Mtx m2;
-    EspPtr e;
+    cEsp* e;
     f32 rnd;
     int ret;
     cModel* parts;
@@ -1190,122 +1185,122 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         *out = EspGetDmyPtr();
         return 0;
     }
-    if (PullEsp(&e.p, rec->Id) != 0) {
-        e.p->info = *info;
-        e.p->m_Id = rec->Id;
-        e.p->m_Tex_id = rec->Tex_id;
-        e.p->m_Type = rec->Type;
-        e.p->m_Parts_no = rec->Parts_no;
+    if (PullEsp(&e, rec->Id) != 0) {
+        e->info = *info;
+        e->m_Id = rec->Id;
+        e->m_Tex_id = rec->Tex_id;
+        e->m_Type = rec->Type;
+        e->m_Parts_no = rec->Parts_no;
         if (!(info->Core_flg & 0x1000) && rec->Parent_no != 0) {
             model = SmdGetObjPtr(rec->Parent_no - 1);
             if (model == 0) {
                 pLog->err(0, 0, "ESP : PARENT_NO[%d] Invalid.", rec->Parent_no);
-                PushEsp(e.p);
+                PushEsp(e);
                 *out = EspGetDmyPtr();
                 return 0;
             }
         }
-        e.p->m_Tool_flg = rec->Tool_flg;
-        if (e.p->m_Tool_flg & 8) {
+        e->m_Tool_flg = rec->Tool_flg;
+        if (e->m_Tool_flg & 8) {
             if (fRandSeed1_1(seed) > 0.0f) {
-                e.p->m_Tool_flg |= 2;
+                e->m_Tool_flg |= 2;
             } else {
-                e.p->m_Tool_flg &= ~2;
+                e->m_Tool_flg &= ~2;
             }
         }
-        if (e.p->m_Tool_flg & 0x10) {
+        if (e->m_Tool_flg & 0x10) {
             if (fRandSeed1_1(seed) > 0.0f) {
-                e.p->m_Tool_flg |= 4;
+                e->m_Tool_flg |= 4;
             } else {
-                e.p->m_Tool_flg &= ~4;
+                e->m_Tool_flg &= ~4;
             }
         }
-        e.p->m_Pos = rec->Pos;
-        e.p->m_Pos.x += rec->R_pos.x * fRandSeed1_1(seed);
-        e.p->m_Pos.y += rec->R_pos.y * fRandSeed1_1(seed);
-        e.p->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
-        e.p->m_Speed = rec->Speed;
-        e.p->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
-        e.p->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
-        e.p->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
+        e->m_Pos = rec->Pos;
+        e->m_Pos.x += rec->R_pos.x * fRandSeed1_1(seed);
+        e->m_Pos.y += rec->R_pos.y * fRandSeed1_1(seed);
+        e->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
+        e->m_Speed = rec->Speed;
+        e->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
+        e->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
+        e->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
         if (flg) {
             v.x = 0.0f;
             v.y = f;
             v.z = 0.0f;
             RotMatrixZXY(m, &v);
-            PSMTXMultVecSR(m, &e.p->m_Speed, &e.p->m_Speed);
+            PSMTXMultVecSR(m, &e->m_Speed, &e->m_Speed);
         }
-        e.p->m_D_speed = rec->D_speed;
-        e.p->m_Speed_plus = rec->Speed_plus;
-        e.p->m_Speed_plus.x += rec->R_speed_plus.x * fRandSeed1_1(seed);
-        e.p->m_Speed_plus.y += rec->R_speed_plus.y * fRandSeed1_1(seed);
-        e.p->m_Speed_plus.z += rec->R_speed_plus.z * fRandSeed1_1(seed);
-        e.p->m_Ang = rec->Ang;
-        e.p->m_Ang.x += rec->R_ang.x * fRandSeed1_1(seed);
-        e.p->m_Ang.y += rec->R_ang.y * fRandSeed1_1(seed);
-        e.p->m_Ang.z += rec->R_ang.z * fRandSeed1_1(seed);
-        PSVECScale(&e.p->m_Ang, &e.p->m_Ang, DEG2RAD);
-        e.p->m_Ang_plus = rec->Ang_plus;
-        e.p->m_Ang_plus.x += rec->R_ang_plus.x * fRandSeed1_1(seed);
-        e.p->m_Ang_plus.y += rec->R_ang_plus.y * fRandSeed1_1(seed);
-        e.p->m_Ang_plus.z += rec->R_ang_plus.z * fRandSeed1_1(seed);
-        PSVECScale(&e.p->m_Ang_plus, &e.p->m_Ang_plus, DEG2RAD);
-        e.p->m_Size_base_x = rec->Size_base_x;
-        e.p->m_Size_base_y = rec->Size_base_y;
-        e.p->m_Size_mul = 1.0f;
+        e->m_D_speed = rec->D_speed;
+        e->m_Speed_plus = rec->Speed_plus;
+        e->m_Speed_plus.x += rec->R_speed_plus.x * fRandSeed1_1(seed);
+        e->m_Speed_plus.y += rec->R_speed_plus.y * fRandSeed1_1(seed);
+        e->m_Speed_plus.z += rec->R_speed_plus.z * fRandSeed1_1(seed);
+        e->m_Ang = rec->Ang;
+        e->m_Ang.x += rec->R_ang.x * fRandSeed1_1(seed);
+        e->m_Ang.y += rec->R_ang.y * fRandSeed1_1(seed);
+        e->m_Ang.z += rec->R_ang.z * fRandSeed1_1(seed);
+        PSVECScale(&e->m_Ang, &e->m_Ang, DEG2RAD);
+        e->m_Ang_plus = rec->Ang_plus;
+        e->m_Ang_plus.x += rec->R_ang_plus.x * fRandSeed1_1(seed);
+        e->m_Ang_plus.y += rec->R_ang_plus.y * fRandSeed1_1(seed);
+        e->m_Ang_plus.z += rec->R_ang_plus.z * fRandSeed1_1(seed);
+        PSVECScale(&e->m_Ang_plus, &e->m_Ang_plus, DEG2RAD);
+        e->m_Size_base_x = rec->Size_base_x;
+        e->m_Size_base_y = rec->Size_base_y;
+        e->m_Size_mul = 1.0f;
         rnd = rec->R_size_base * fRandSeed1_1(seed);
-        e.p->m_Size_base_x += rnd;
-        e.p->m_Size_base_y += rnd;
-        e.p->m_Size_plus = rec->Size_plus;
-        e.p->m_D_size_plus = rec->D_size_plus;
-        e.p->m_Col_start_r = rec->Col_start_r;
-        e.p->m_Col_start_g = rec->Col_start_g;
-        e.p->m_Col_start_b = rec->Col_start_b;
-        e.p->m_Col_start_a = rec->Col_start_a;
-        e.p->m_Col_r = (f32) rec->Col_start_r;
-        e.p->m_Col_g = (f32) rec->Col_start_g;
-        e.p->m_Col_b = (f32) rec->Col_start_b;
-        e.p->m_Col_a = (f32) rec->Col_start_a;
-        e.p->m_Col_d_r = rec->Col_d_r;
-        e.p->m_Col_d_g = rec->Col_d_g;
-        e.p->m_Col_d_b = rec->Col_d_b;
-        e.p->m_Col_d_a = rec->Col_d_a;
+        e->m_Size_base_x += rnd;
+        e->m_Size_base_y += rnd;
+        e->m_Size_plus = rec->Size_plus;
+        e->m_D_size_plus = rec->D_size_plus;
+        e->m_Col_start_r = rec->Col_start_r;
+        e->m_Col_start_g = rec->Col_start_g;
+        e->m_Col_start_b = rec->Col_start_b;
+        e->m_Col_start_a = rec->Col_start_a;
+        e->m_Col_r = (f32) rec->Col_start_r;
+        e->m_Col_g = (f32) rec->Col_start_g;
+        e->m_Col_b = (f32) rec->Col_start_b;
+        e->m_Col_a = (f32) rec->Col_start_a;
+        e->m_Col_d_r = rec->Col_d_r;
+        e->m_Col_d_g = rec->Col_d_g;
+        e->m_Col_d_b = rec->Col_d_b;
+        e->m_Col_d_a = rec->Col_d_a;
         if (rec->Blend_type > 5) {
             pLog->err(0, 0, "ESP : BLEND_TYPE[%d] Invalid.", rec->Blend_type);
-            PushEsp(e.p);
+            PushEsp(e);
             *out = EspGetDmyPtr();
             return 0;
         }
-        e.p->m_Blend_type = rec->Blend_type;
-        e.p->m_Blend_mode = bl[rec->Blend_type][0];
-        e.p->m_Src_factor = bl[rec->Blend_type][1];
-        e.p->m_Dst_factor = bl[rec->Blend_type][2];
-        e.p->m_Logic_op = bl[rec->Blend_type][3];
+        e->m_Blend_type = rec->Blend_type;
+        e->m_Blend_mode = bl[rec->Blend_type][0];
+        e->m_Src_factor = bl[rec->Blend_type][1];
+        e->m_Dst_factor = bl[rec->Blend_type][2];
+        e->m_Logic_op = bl[rec->Blend_type][3];
         if (rec->Blend_type == 4) {
-            e.p->m_Flg |= 1;
+            e->m_Flg |= 1;
         }
-        e.p->m_Col_max_cnt = rec->Col_max_cnt;
-        e.p->m_Col_start_cnt = rec->Col_start_cnt;
-        e.p->m_Pos_start_cnt = rec->Pos_start_cnt;
-        e.p->m_Size_start_cnt = rec->Size_start_cnt;
-        e.p->m_Life_max = rec->Life_max;
-        e.p->m_Life_time = rec->Life_time;
-        e.p->m_Ptn_no = rec->Ptn_no;
-        e.p->m_Anm_rate = rec->Anm_rate + 0x20;
-        e.p->m_Anm_cnt = rec->Anm_cnt;
-        e.p->m_Release_time = rec->Release_time;
-        e.p->m_Shimmer_type = rec->Shimmer_type;
-        e.p->m_Shimmer_pow = rec->Shimmer_pow;
-        e.p->m_MaskTex_id = rec->MaskTex_id;
-        e.p->m_Del_far = rec->Del_far * 10;
-        e.p->m_Del_near = rec->Del_near * 10;
-        if (e.p->m_Shimmer_type != 0) {
-            e.p->m_Flg |= 4;
+        e->m_Col_max_cnt = rec->Col_max_cnt;
+        e->m_Col_start_cnt = rec->Col_start_cnt;
+        e->m_Pos_start_cnt = rec->Pos_start_cnt;
+        e->m_Size_start_cnt = rec->Size_start_cnt;
+        e->m_Life_max = rec->Life_max;
+        e->m_Life_time = rec->Life_time;
+        e->m_Ptn_no = rec->Ptn_no;
+        e->m_Anm_rate = rec->Anm_rate + 0x20;
+        e->m_Anm_cnt = rec->Anm_cnt;
+        e->m_Release_time = rec->Release_time;
+        e->m_Shimmer_type = rec->Shimmer_type;
+        e->m_Shimmer_pow = rec->Shimmer_pow;
+        e->m_MaskTex_id = rec->MaskTex_id;
+        e->m_Del_far = rec->Del_far * 10;
+        e->m_Del_near = rec->Del_near * 10;
+        if (e->m_Shimmer_type != 0) {
+            e->m_Flg |= 4;
         }
-        switch (e.p->m_Parts_no) {
+        switch (e->m_Parts_no) {
         case 0xFF:
-            e.p->parent = pEffParentWorld;
-            e.p->ApplyMatrix(*mtx);
+            e->parent = pEffParentWorld;
+            e->ApplyMatrix(*mtx);
             break;
         case 0xF8:
         case 0xF9:
@@ -1313,174 +1308,174 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         case 0xFB:
         case 0xFC:
         case 0xFD:
-            e.p->parent = pEffParentWorld;
-            e.p->m_Pos.x += (*mtx)[0][3];
-            e.p->m_Pos.y += (*mtx)[1][3];
-            e.p->m_Pos.z += (*mtx)[2][3];
+            e->parent = pEffParentWorld;
+            e->m_Pos.x += (*mtx)[0][3];
+            e->m_Pos.y += (*mtx)[1][3];
+            e->m_Pos.z += (*mtx)[2][3];
             break;
         case 0xFE:
-            e.p->parent = pEffParentWorld;
+            e->parent = pEffParentWorld;
             if (rec->Release_time != 0) {
                 pLog->warn(0, 0, "ESP:ReleaseTime not 0 but no parent.");
             }
             break;
         default:
             if (model == 0) {
-                pLog->err(0, 0, "ESP : PARTS_NO[%d] but Not on parts.", e.p->m_Parts_no);
-                PushEsp(e.p);
+                pLog->err(0, 0, "ESP : PARTS_NO[%d] but Not on parts.", e->m_Parts_no);
+                PushEsp(e);
                 *out = EspGetDmyPtr();
                 return 0;
             }
-            if (e.p->m_Parts_no < model->nParts) {
-                if (e.p->m_Tool_flg & 0x20) {
-                    parts = model->getPartsPtr(e.p->m_Parts_no);
+            if (e->m_Parts_no < model->nParts) {
+                if (e->m_Tool_flg & 0x20) {
+                    parts = model->getPartsPtr(e->m_Parts_no);
                     PSMTXIdentity(m2);
                     low_RotMatrix(m2, &model->ang);
                     PSMTXMultVecSR(m2, &rec->Pos, &v);
                     m2[0][3] = parts->mat[0][3] + v.x;
                     m2[1][3] = parts->mat[1][3] + v.y;
                     m2[2][3] = parts->mat[2][3] + v.z;
-                    e.p->parent = pEffParentWorld;
-                    e.p->m_Pos.x = 0.0f;
-                    e.p->m_Pos.y = 0.0f;
-                    e.p->m_Pos.z = 0.0f;
-                    e.p->ApplyMatrix(m2);
-                    e.p->m_Pos.x += rec->R_pos.x * fRandSeed1_1(seed);
-                    e.p->m_Pos.y += rec->R_pos.y * fRandSeed1_1(seed);
-                    e.p->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
+                    e->parent = pEffParentWorld;
+                    e->m_Pos.x = 0.0f;
+                    e->m_Pos.y = 0.0f;
+                    e->m_Pos.z = 0.0f;
+                    e->ApplyMatrix(m2);
+                    e->m_Pos.x += rec->R_pos.x * fRandSeed1_1(seed);
+                    e->m_Pos.y += rec->R_pos.y * fRandSeed1_1(seed);
+                    e->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
                 } else {
-                    e.p->m_pMod = model;
-                    e.p->m_Guid_pMod = model->serial;
-                    e.p->parent = model->getPartsPtr(e.p->m_Parts_no);
+                    e->m_pMod = model;
+                    e->m_Guid_pMod = model->serial;
+                    e->parent = model->getPartsPtr(e->m_Parts_no);
                     if (pos) {
-                        PSVECAdd(&e.p->m_Pos, pos, &e.p->m_Pos);
+                        PSVECAdd(&e->m_Pos, pos, &e->m_Pos);
                     }
                 }
             } else {
-                pLog->err(0, 0, "ESP : PARTS_NO[%d] is invalid(MAX:%d).", e.p->m_Parts_no, model->nParts);
-                PushEsp(e.p);
+                pLog->err(0, 0, "ESP : PARTS_NO[%d] is invalid(MAX:%d).", e->m_Parts_no, model->nParts);
+                PushEsp(e);
                 *out = EspGetDmyPtr();
                 return 0;
             }
             break;
         }
-        ret = e.p->SetFreeWork(rec, seed);
+        ret = e->SetFreeWork(rec, seed);
         if (pSct) {
             if (pSct->OverWrite_flg & 1) {
-                e.p->m_Speed = pSct->Speed;
-                e.p->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
-                e.p->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
-                e.p->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
+                e->m_Speed = pSct->Speed;
+                e->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
+                e->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
+                e->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
             }
             if (pSct->OverWrite_flg & 2) {
-                e.p->m_Size_base_x = pSct->Size_base_x;
-                e.p->m_Size_base_y = pSct->Size_base_y;
+                e->m_Size_base_x = pSct->Size_base_x;
+                e->m_Size_base_y = pSct->Size_base_y;
             }
             if (pSct->OverWrite_flg & 4) {
-                e.p->m_Col_start_r = pSct->Col_start_r;
-                e.p->m_Col_start_g = pSct->Col_start_g;
-                e.p->m_Col_start_b = pSct->Col_start_b;
-                e.p->m_Col_start_a = pSct->Col_start_a;
-                e.p->m_Col_r = (f32) pSct->Col_start_r;
-                e.p->m_Col_g = (f32) pSct->Col_start_g;
-                e.p->m_Col_b = (f32) pSct->Col_start_b;
-                e.p->m_Col_a = (f32) pSct->Col_start_a;
+                e->m_Col_start_r = pSct->Col_start_r;
+                e->m_Col_start_g = pSct->Col_start_g;
+                e->m_Col_start_b = pSct->Col_start_b;
+                e->m_Col_start_a = pSct->Col_start_a;
+                e->m_Col_r = (f32) pSct->Col_start_r;
+                e->m_Col_g = (f32) pSct->Col_start_g;
+                e->m_Col_b = (f32) pSct->Col_start_b;
+                e->m_Col_a = (f32) pSct->Col_start_a;
             }
             if (pSct->Mul_flg & 1) {
-                e.p->m_Speed.x *= pSct->Speed.x;
-                e.p->m_Speed.y *= pSct->Speed.y;
-                e.p->m_Speed.z *= pSct->Speed.z;
+                e->m_Speed.x *= pSct->Speed.x;
+                e->m_Speed.y *= pSct->Speed.y;
+                e->m_Speed.z *= pSct->Speed.z;
             }
             if (pSct->Mul_flg & 2) {
-                e.p->m_Size_base_x *= pSct->Size_base_x;
-                e.p->m_Size_base_y *= pSct->Size_base_y;
+                e->m_Size_base_x *= pSct->Size_base_x;
+                e->m_Size_base_y *= pSct->Size_base_y;
             }
             if (pSct->Mul_flg & 4) {
                 f32 c;
-                c = (f32) e.p->m_Col_start_r * (f32) (int) pSct->Col_start_r * (1.0f / 255.0f);
+                c = (f32) e->m_Col_start_r * (f32) (int) pSct->Col_start_r * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_r = (u8) c;
-                c = (f32) e.p->m_Col_start_g * (f32) (int) pSct->Col_start_g * (1.0f / 255.0f);
+                e->m_Col_start_r = (u8) c;
+                c = (f32) e->m_Col_start_g * (f32) (int) pSct->Col_start_g * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_g = (u8) c;
-                c = (f32) e.p->m_Col_start_b * (f32) (int) pSct->Col_start_b * (1.0f / 255.0f);
+                e->m_Col_start_g = (u8) c;
+                c = (f32) e->m_Col_start_b * (f32) (int) pSct->Col_start_b * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_b = (u8) c;
-                c = (f32) e.p->m_Col_start_a * (f32) (int) pSct->Col_start_a * (1.0f / 255.0f);
+                e->m_Col_start_b = (u8) c;
+                c = (f32) e->m_Col_start_a * (f32) (int) pSct->Col_start_a * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_a = (u8) c;
-                e.p->m_Col_r = (f32) e.p->m_Col_start_r;
-                e.p->m_Col_g = (f32) e.p->m_Col_start_g;
-                e.p->m_Col_b = (f32) e.p->m_Col_start_b;
-                e.p->m_Col_a = (f32) e.p->m_Col_start_a;
+                e->m_Col_start_a = (u8) c;
+                e->m_Col_r = (f32) e->m_Col_start_r;
+                e->m_Col_g = (f32) e->m_Col_start_g;
+                e->m_Col_b = (f32) e->m_Col_start_b;
+                e->m_Col_a = (f32) e->m_Col_start_a;
             }
             if (pSct->Add_flg & 1) {
-                e.p->m_Speed.x += pSct->Speed.x;
-                e.p->m_Speed.y += pSct->Speed.y;
-                e.p->m_Speed.z += pSct->Speed.z;
+                e->m_Speed.x += pSct->Speed.x;
+                e->m_Speed.y += pSct->Speed.y;
+                e->m_Speed.z += pSct->Speed.z;
             }
             if (pSct->Add_flg & 2) {
-                e.p->m_Size_base_x += pSct->Size_base_x;
-                e.p->m_Size_base_y += pSct->Size_base_y;
+                e->m_Size_base_x += pSct->Size_base_x;
+                e->m_Size_base_y += pSct->Size_base_y;
             }
             if (pSct->Add_flg & 4) {
                 f32 c;
-                c = (f32) e.p->m_Col_start_r + (f32) (int) pSct->Col_start_r * (1.0f / 255.0f);
+                c = (f32) e->m_Col_start_r + (f32) (int) pSct->Col_start_r * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_r = (u8) c;
-                c = (f32) e.p->m_Col_start_g + (f32) (int) pSct->Col_start_g * (1.0f / 255.0f);
+                e->m_Col_start_r = (u8) c;
+                c = (f32) e->m_Col_start_g + (f32) (int) pSct->Col_start_g * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_g = (u8) c;
-                c = (f32) e.p->m_Col_start_b + (f32) (int) pSct->Col_start_b * (1.0f / 255.0f);
+                e->m_Col_start_g = (u8) c;
+                c = (f32) e->m_Col_start_b + (f32) (int) pSct->Col_start_b * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_b = (u8) c;
-                c = (f32) e.p->m_Col_start_a + (f32) (int) pSct->Col_start_a * (1.0f / 255.0f);
+                e->m_Col_start_b = (u8) c;
+                c = (f32) e->m_Col_start_a + (f32) (int) pSct->Col_start_a * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->m_Col_start_a = (u8) c;
-                e.p->m_Col_r = (f32) e.p->m_Col_start_r;
-                e.p->m_Col_g = (f32) e.p->m_Col_start_g;
-                e.p->m_Col_b = (f32) e.p->m_Col_start_b;
-                e.p->m_Col_a = (f32) e.p->m_Col_start_a;
+                e->m_Col_start_a = (u8) c;
+                e->m_Col_r = (f32) e->m_Col_start_r;
+                e->m_Col_g = (f32) e->m_Col_start_g;
+                e->m_Col_b = (f32) e->m_Col_start_b;
+                e->m_Col_a = (f32) e->m_Col_start_a;
             }
         }
     } else {
@@ -1488,12 +1483,12 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
     }
     if (ret == 0) {
         *out = EspGetDmyPtr();
-        if (e.p->m_Be_flg & 1) {
-            PushEsp(e.p);
+        if (e->m_Be_flg & 1) {
+            PushEsp(e);
         }
         return 0;
     }
-    *out = e.p;
+    *out = e;
     return ret;
 }
 

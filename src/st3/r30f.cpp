@@ -67,13 +67,9 @@ struct R30fWork {
     Vec liftAdd;          // 0x500  bulldozer movement this frame
 };
 
-// The work pointer is a struct member: every store through the work reloads it (r30d).
-struct R30fWorkPtr {
-    R30fWork* p;
-};
 
-static R30fWorkPtr r30f_wp;
-#define r30f_work (r30f_wp.p)
+static R30fWork* r30f_wp;
+#define r30f_work (r30f_wp)
 
 static f32 reva_rate = 0.008f;
 // The truck's two hit boxes (YarareInitCube)
@@ -715,7 +711,7 @@ static void track_move()
     YarareInitCube(r30f_work->hit[0], hit0_x, hit0_y, hit0_z, hit0_w, hit0_h, hit0_d, 0, YAT_FLAG_ON);
     r30f_work->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
     YarareInitCube(r30f_work->hit[1], hit1_x, hit1_y, hit1_z, hit1_w, hit1_h, hit1_d, 0, YAT_FLAG_ON);
-    IntSet(r30f_work->truckLife, 0x1F4);
+    r30f_work->truckLife = 0x1F4;
     if (pG->Game_level > 8) {
         r30f_work->truckLife += r30f_work->truckLife;
     }
@@ -1585,9 +1581,9 @@ void setLiftMoveAdd(Vec* add)
         PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.pos, &v, &((Camera*) CamCtrl.m_pExtraCamera)->param.pos);
     }
     pG->quake_ofs = v;
-    // Struct-member view of pSUB: its load is not hoisted above the quake_ofs copy (the pGS trick).
-    if (pSUBS) {
-        addPos(add, pSUBS);
+    // Struct-member view of pSUB: its load is not hoisted above the quake_ofs copy (the pG trick).
+    if (pSUB) {
+        addPos(add, pSUB);
     }
     addPos(add, SmdGetObjPtr(0x1E));
     for (i = 0; i < 90; i++) {

@@ -51,19 +51,19 @@ cRoomJmp* pRj;
 void CRoomInfo::setNextPos()
 {
     if (flag & 1) {
-        FSet(pG->NextPos.x, pos.x);
-        FSet(pG->NextPos.y, pos.y);
-        FSet(pG->NextPos.z, pos.z);
-        FSet(pG->NextY, angle);
+        pG->NextPos.x = pos.x;
+        pG->NextPos.y = pos.y;
+        pG->NextPos.z = pos.z;
+        pG->NextY = angle;
     } else {
-        FSet(pG->NextPos.x, 0.0f);
-        FSet(pG->NextPos.y, 0.0f);
-        FSet(pG->NextPos.z, 0.0f);
-        FSet(pG->NextY, 0.0f);
+        pG->NextPos.x = 0.0f;
+        pG->NextPos.y = 0.0f;
+        pG->NextPos.z = 0.0f;
+        pG->NextY = 0.0f;
     }
-    U16Set(pG->room_id_prev, pG->room_id);
+    pG->room_id_prev = pG->room_id;
     pG->Part_old = pG->Part;
-    U16Set(pG->RoomNo_next, roomNo);
+    pG->RoomNo_next = roomNo;
     pG->Part_next = 0;
 }
 
@@ -265,7 +265,7 @@ void RoomJump()
 void roomJumpInit(test* w)
 {
     w->state++;
-    U32Set(w->stop_bak, pG->Stop_flg);
+    w->stop_bak = pG->Stop_flg;
     BitOn(pG->Stop_flg, 0xFFFFBFFF);
     pRj = new cRoomJmp(roomInfoAddr);
     w->stage = pG->stage_no;
@@ -360,7 +360,7 @@ void roomJumpExec(test* w)
     int i;
 
     w->state++;
-    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     DbgFlagOn(pG, DBG_ROOMJMP);
     pRj->getRoomInfo(w->stage, w->room[w->stage] + w->point)->setNextPos();
     pG->JumpPoint = w->point;
@@ -372,7 +372,7 @@ void roomJumpExec(test* w)
             mes->Delete(i);
         }
     }
-    U16Set(pG->pl_life, pG->pl_life_max);
+    pG->pl_life = pG->pl_life_max;
     pG->r_continue_cnt = 0;
     w->flag = 1;
 }
@@ -389,7 +389,7 @@ void roomJumpExit(test* w)
         pG->Rno3 = 0;
         SysFlagOff(pG, SYS_START_EVT_SKIP);
     }
-    BitSet(pG->Stop_flg, w->stop_bak);
+    pG->Stop_flg = w->stop_bak;
     DbgFlagOff(pG, DBG_TEST_MODE);
     TaskExit();
 }

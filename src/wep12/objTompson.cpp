@@ -39,7 +39,7 @@ void cObjTompson::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    U16Set(wep.itemId, 0x34);
+    wep.itemId = 0x34;
     wep.motReset[0] = WEP_ARC_PTR(0x29);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);

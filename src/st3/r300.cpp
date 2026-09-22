@@ -85,20 +85,12 @@ extern "C" void* r300_memset(void*, ...) asm("memset");
 // Reference store: the work pointer and the field are reloaded after it.
 
 // Room id through the struct-member view of pG: the load stays below a preceding member store.
-#define GS_ROOM_ID (*(u16*) &pGS->stage_no)
+#define GS_ROOM_ID (*(u16*) &pG->stage_no)
 
 static u8 r300_texTbl0[0x20];
 static u8 r300_texTbl1[0x20];
-// The work pointer is read through a struct-member view (r300_wk): every store through the work
-// reloads it. Its own initialising store is the plain scalar (R300Init: a scalar store is disjoint
-// from the following `pG->flags_64` load, so the `pG` load is scheduled above it and the two `pG`
-// values take r11/r9 around the r300_work high in r9).
-struct R300WorkPtr {
-    R300Work* p;
-};
 
 static R300Work* r300_work;
-#define r300_wk (((R300WorkPtr*) &r300_work)->p)
 
 // Mirror rotation targets (radians): A default / A on the gate / unused; B on the gate / unused.
 static f32 r300_miraAng[6] = {3.7768784f, 2.99148f, 2.2060819f, 1.4206837f, 1.5360988f, 1.2742994f};
@@ -289,7 +281,7 @@ void R300Init()
 {
 #line 185 "D:/Bio4/Prog/r300.cpp"
     r300_work = (R300Work*) MEM_CALLOC(sizeof(R300Work), 1, 0xd);
-    DbgFlagOn(pGS, DBG_EMW_ERR_NO_DISP);
+    DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (pG->JumpPoint != 0) {
         RsfSet(G_ROOM_ID, 0);
     }
@@ -303,8 +295,8 @@ void R300Init()
         Vec pos = {40449.0f, -20000.0f, -40999.0f};
         Vec rot = {0.0f, -2.19f, 0.0f};
 
-        r300_wk->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot, 0x10, 1);
-        r300_wk->smd->setNoSuspend(0);
+        r300_work->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot, 0x10, 1);
+        r300_work->smd->setNoSuspend(0);
     }
     EatMgr.registEffInfo(2, (AtEffInfo*) &r300_eff_info);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -312,9 +304,9 @@ void R300Init()
         const f32 h = 450.0f;
 
         EstSet(SmdGetObjPtr(0x37), -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        r300_wk->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        r300_work->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                     &SmdGetObjPtr(0x37)->pos, &SmdGetObjPtr(0x37)->ang, 0);
-        YarareInitCube(r300_wk->hit, 0.0f, w, 0.0f, h, h, h, 0, YAT_FLAG_ON);
+        YarareInitCube(r300_work->hit, 0.0f, w, 0.0f, h, h, h, 0, YAT_FLAG_ON);
     } else {
         LightMgr.offKind(1);
     }
@@ -328,13 +320,13 @@ void R300Init()
         rot.x = 0.0f;
         rot.y = 0.0f;
         rot.z = 0.0f;
-        r300_wk->rock = SetRock(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 3);
-        if (r300_wk->rock) {
-            r300_wk->rock->setDropMot2(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
+        r300_work->rock = SetRock(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 3);
+        if (r300_work->rock) {
+            r300_work->rock->setDropMot2(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
                                          ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x25),
                                          ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28),
                                          ROOM_ARC_PTR(pG->pRoom, 0x29));
-            r300_wk->rock->setNoSuspend(1);
+            r300_work->rock->setNoSuspend(1);
         }
         {
             EmListData d;
@@ -397,7 +389,7 @@ void R300Init()
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r300_asl, 0, 1);
-        r300_wk->sirenTimer = (u8) (Rnd() % 60u);
+        r300_work->sirenTimer = (u8) (Rnd() % 60u);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) r300_find_camera, 0, 1);
@@ -406,16 +398,16 @@ void R300Init()
         SmdGetObjPtr(0x42)->be_flag |= 0x20;
         SmdGetObjPtr(0x42)->pos.y += 3000.0f;
         SceAtSetEnable(8, 0);
-        SmdGetObjPtr(0x3C)->ang.y = r300_wk->miraAng = r300_miraAng[1];
-        SmdGetObjPtr(0x3D)->ang.y = r300_wk->mirbAng = r300_mirbAng[0];
-        pGS->Room_flg[0] |= 0x40000000;
-        r300_wk->cnt = 1;
+        SmdGetObjPtr(0x3C)->ang.y = r300_work->miraAng = r300_miraAng[1];
+        SmdGetObjPtr(0x3D)->ang.y = r300_work->mirbAng = r300_mirbAng[0];
+        pG->Room_flg[0] |= 0x40000000;
+        r300_work->cnt = 1;
         SceExec(0x12, (TaskFunc) r300_StrCheck, 0, 0, 2, 0);
         SceAtSetEnable(6, 0);
         SceAtSetEnable(7, 0);
     } else {
-        r300_wk->miraAng = r300_miraAng[0];
-        r300_wk->mirbAng = 0.85f;
+        r300_work->miraAng = r300_miraAng[0];
+        r300_work->mirbAng = 0.85f;
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r300_mira_exec, 0, 1);
         SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r300_mirb_exec, 0, 1);
         if (RsfCheck(G_ROOM_ID, 7)) {
@@ -435,7 +427,7 @@ void R300Init()
     {
         Vec target;
 
-        r300_wk->target = r300_lightTarget;
+        r300_work->target = r300_lightTarget;
         target = r300_lightTarget;
         setSearchLightTarget(SmdGetObjPtr(0x37), &target, SmdGetObjPtr(0x36));
     }
@@ -483,24 +475,24 @@ void R300Main()
     Vec v5;
     Vec v6;
 
-    if (SceCountEmAlive(0x10, 0x20) == 3 && r300_wk->rock && (s16) pG->pl_life > 0) {
+    if (SceCountEmAlive(0x10, 0x20) == 3 && r300_work->rock && (s16) pG->pl_life > 0) {
         int skip = 1;
 
         if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
             skip = 0;
         }
         if (skip == 0) {
-            if ((pPL->pos.x - r300_wk->rock->pos.x) * (pPL->pos.x - r300_wk->rock->pos.x) +
-                    (pPL->pos.z - r300_wk->rock->pos.z) * (pPL->pos.z - r300_wk->rock->pos.z) <
+            if ((pPL->pos.x - r300_work->rock->pos.x) * (pPL->pos.x - r300_work->rock->pos.x) +
+                    (pPL->pos.z - r300_work->rock->pos.z) * (pPL->pos.z - r300_work->rock->pos.z) <
                 6250000.0f) {
                 RsfSet(G_ROOM_ID, 4);
-                r300_wk->rock->flag |= 1;
+                r300_work->rock->flag |= 1;
             }
         }
     }
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        if (r300_wk->hit->ckStatus() == 1) {
-            r300_wk->hit->hp = 0;
+        if (r300_work->hit->ckStatus() == 1) {
+            r300_work->hit->hp = 0;
             RsfSet(GS_ROOM_ID, 6);
             EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -511,15 +503,15 @@ void R300Main()
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             f32 s;
 
-            r300_wk->sweepAng += r300_sweepSpd;
-            r300_wk->sweepAng = LIMIT_ANGLE(r300_wk->sweepAng);
-            s = SINF(r300_wk->sweepAng) * 0.5f + 0.5f;
+            r300_work->sweepAng += r300_sweepSpd;
+            r300_work->sweepAng = LIMIT_ANGLE(r300_work->sweepAng);
+            s = SINF(r300_work->sweepAng) * 0.5f + 0.5f;
             PSVECScale(&r300_sweepA, &v1, s);
             PSVECScale(&r300_sweepB, &v2, 1.0f - s);
             PSVECAdd(&v1, &v2, &v0);
-            r300_wk->sweepAng2 += r300_sweepSpd2;
-            r300_wk->sweepAng2 = LIMIT_ANGLE(r300_wk->sweepAng2);
-            s = SINF(r300_wk->sweepAng2) * 0.5f + 0.5f;
+            r300_work->sweepAng2 += r300_sweepSpd2;
+            r300_work->sweepAng2 = LIMIT_ANGLE(r300_work->sweepAng2);
+            s = SINF(r300_work->sweepAng2) * 0.5f + 0.5f;
             PSVECScale(&r300_sweepC, &v1, s);
             PSVECScale(&r300_sweepD, &v2, 1.0f - s);
             PSVECAdd(&v1, &v2, &v3);
@@ -531,18 +523,18 @@ void R300Main()
             v0 = pPL->pos;
             v0.y += 0.0f;
         } else {
-            v0 = r300_wk->target;
+            v0 = r300_work->target;
         }
-        PSVECSubtract(&v0, &r300_wk->target, &v1);
+        PSVECSubtract(&v0, &r300_work->target, &v1);
         PSVECScale(&v1, &v1, 0.035f);
-        PSVECAdd(&r300_wk->target, &v1, &r300_wk->target);
-        v2 = r300_wk->target;
+        PSVECAdd(&r300_work->target, &v1, &r300_work->target);
+        v2 = r300_work->target;
         setSearchLightTarget(SmdGetObjPtr(0x37), &v2, SmdGetObjPtr(0x36));
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0 && (pG->Room_flg[2] & 0x40000000)) {
-        r300_wk->sirenTimer--;
-        if (r300_wk->sirenTimer < 0) {
-            r300_wk->sirenTimer = (u8) (Rnd() % 180u) + 90;
+        r300_work->sirenTimer--;
+        if (r300_work->sirenTimer < 0) {
+            r300_work->sirenTimer = (u8) (Rnd() % 180u) + 90;
             SndCall(6, 0x19, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
         }
     }
@@ -563,29 +555,29 @@ void R300Main()
             SmdSetTrans(0x1A, 1);
         }
     }
-    r300_wk->lightAng.x += 0.05f;
-    r300_wk->lightAng.y += 0.035f;
-    r300_wk->lightAng.z += 0.065f;
-    r300_wk->lightAng.x = LIMIT_ANGLE(r300_wk->lightAng.x);
-    r300_wk->lightAng.y = LIMIT_ANGLE(r300_wk->lightAng.y);
-    r300_wk->lightAng.z = LIMIT_ANGLE(r300_wk->lightAng.z);
-    r300_wk->smd->pos.y = SINF(r300_wk->lightAng.x) * 100.0f + -20000.0f;
-    r300_wk->smd->ang.x = SINF(r300_wk->lightAng.y) * 0.05f;
-    r300_wk->smd->ang.z = COSF(r300_wk->lightAng.z) * 0.01f;
+    r300_work->lightAng.x += 0.05f;
+    r300_work->lightAng.y += 0.035f;
+    r300_work->lightAng.z += 0.065f;
+    r300_work->lightAng.x = LIMIT_ANGLE(r300_work->lightAng.x);
+    r300_work->lightAng.y = LIMIT_ANGLE(r300_work->lightAng.y);
+    r300_work->lightAng.z = LIMIT_ANGLE(r300_work->lightAng.z);
+    r300_work->smd->pos.y = SINF(r300_work->lightAng.x) * 100.0f + -20000.0f;
+    r300_work->smd->ang.x = SINF(r300_work->lightAng.y) * 0.05f;
+    r300_work->smd->ang.z = COSF(r300_work->lightAng.z) * 0.01f;
     {
         cObj* obj;
         f32 a;
 
         obj = SmdGetObjPtr(0x3C);
         obj->be_flag |= 0x20;
-        a = obj->ang.y + Muku2(obj->ang.y, r300_wk->miraAng, 0.25f);
+        a = obj->ang.y + Muku2(obj->ang.y, r300_work->miraAng, 0.25f);
         obj->ang.y += (a - obj->ang.y) * r300_mirRate;
         obj = SmdGetObjPtr(0x3D);
         obj->be_flag |= 0x20;
-        a = obj->ang.y + Muku2(obj->ang.y, r300_wk->mirbAng, 0.25f);
+        a = obj->ang.y + Muku2(obj->ang.y, r300_work->mirbAng, 0.25f);
         obj->ang.y += (a - obj->ang.y) * r300_mirRate;
     }
-    pGS->Room_flg[0] &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     if (RsfCheck(GS_ROOM_ID, 7)) {
         f32 dAng;
 
@@ -604,11 +596,11 @@ void R300Main()
         } else {
             PSVECScale(&v1, &v1, r300_laserLen * 3.0f);
         }
-        PSVECAdd(&v1, &r300_laser[1], &r300_wk->laserPos[0]);
+        PSVECAdd(&v1, &r300_laser[1], &r300_work->laserPos[0]);
         v3 = r300_laser[1];
-        v5 = r300_wk->laserPos[0];
+        v5 = r300_work->laserPos[0];
         DrawLaserLine(&v3, &v5, 0xFF, 0, 0, 0x80, 1, 128000.0f);
-        BitOn(pG->Room_flg[0], 0x20000000);
+        pG->Room_flg[0] |= 0x20000000;
         if (dAng < 0.0055f) {
             if (!(pG->Room_flg[0] & 0x40000000)) {
                 SndCall(6, 0x12, &SmdGetObjPtr(0x3C)->pos, 0, 0, 0);
@@ -618,7 +610,7 @@ void R300Main()
             v0.y = 0.0f;
             v0.x = SINF(SmdGetObjPtr(0x3C)->ang.y);
             v0.z = COSF(SmdGetObjPtr(0x3C)->ang.y);
-            PSVECSubtract(&r300_wk->laserPos[0], &r300_laser[1], &v1);
+            PSVECSubtract(&r300_work->laserPos[0], &r300_laser[1], &v1);
             PSVECScale(&v0, &v2, PSVECDotProduct(&v0, &v1) * -2.0f);
             PSVECAdd(&v1, &v2, &v1);
             if (dAng < 0.0055f) {
@@ -626,33 +618,33 @@ void R300Main()
             } else {
                 PSVECScale(&v1, &v1, r300_laserLen2 * 3.0f);
             }
-            PSVECAdd(&v1, &r300_wk->laserPos[0], &r300_wk->laserPos[1]);
-            v3 = r300_wk->laserPos[0];
-            v6 = r300_wk->laserPos[1];
+            PSVECAdd(&v1, &r300_work->laserPos[0], &r300_work->laserPos[1]);
+            v3 = r300_work->laserPos[0];
+            v6 = r300_work->laserPos[1];
             DrawLaserLine(&v3, &v6, 0xFF, 0, 0, 0x80, 1, 64000.0f);
             if (dAng < 0.0055f) {
                 f32 m1;
                 f32 m2;
 
-                m1 = Muku2(SmdGetObjPtr(0x3C)->ang.y, r300_wk->miraAng, 0.25f);
-                m2 = Muku2(SmdGetObjPtr(0x3D)->ang.y, r300_wk->mirbAng, 0.25f);
+                m1 = Muku2(SmdGetObjPtr(0x3C)->ang.y, r300_work->miraAng, 0.25f);
+                m2 = Muku2(SmdGetObjPtr(0x3D)->ang.y, r300_work->mirbAng, 0.25f);
                 if (__builtin_fabsf(m1) < 0.0055f && __builtin_fabsf(m2) < 0.0055f) {
-                    r300_wk->miraAng = r300_miraAng[1];
-                    r300_wk->mirbAng = r300_mirbAng[0];
-                    r300_wk->cnt++;
-                    if (r300_wk->cnt > 0x18) {
+                    r300_work->miraAng = r300_miraAng[1];
+                    r300_work->mirbAng = r300_mirbAng[0];
+                    r300_work->cnt++;
+                    if (r300_work->cnt > 0x18) {
                         if (!(pG->Room_flg[0] & 0x80000000)) {
                             pG->Room_flg[0] |= 0x80000000;
                         }
                     }
                 } else {
-                    r300_wk->cnt = 0;
+                    r300_work->cnt = 0;
                 }
             } else {
                 pG->Room_flg[0] &= ~0x80000000;
             }
         } else {
-            BitOff(pG->Room_flg[0], 0x40000000);
+            pG->Room_flg[0] &= ~0x40000000;
             pG->Room_flg[0] &= ~0x80000000;
         }
     }
@@ -678,32 +670,32 @@ static void setTexRender()
     u8* tbl0 = r300_texTbl0;
     u8* tbl1 = r300_texTbl1;
 
-    if (GetTexRenderMgr(&r300_wk->tex[0])) {
+    if (GetTexRenderMgr(&r300_work->tex[0])) {
         tbl0[0] = 1;
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
-        tbl0[5] = r300_wk->tex[0]->texId;
-        r300_wk->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r300_wk->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl0[5] = r300_work->tex[0]->texId;
+        r300_work->tex[0]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r300_work->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xC);
     obj->pModelInfo->setTexBlendTbl(tbl0);
     obj->pModelInfo->setBlendRatio(0xFF);
-    if (GetTexRenderMgr(&r300_wk->tex[1])) {
+    if (GetTexRenderMgr(&r300_work->tex[1])) {
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
-        tbl1[5] = r300_wk->tex[1]->texId;
-        r300_wk->tex[1]->m_Rep_type = 1;
+        tbl1[5] = r300_work->tex[1]->texId;
+        r300_work->tex[1]->m_Rep_type = 1;
         {
-            TexRenderMng* t = r300_wk->tex[1];
+            TexRenderMng* t = r300_work->tex[1];
 
             t->m_W_size = 0x20;
             t->m_H_size = 0x20;
         }
-        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r300_wk->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, r300_work->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
@@ -742,8 +734,8 @@ static void R300_Event()
         // The struct-member view of pPL (the r10c idiom): the `this` load is not a fixed scalar, so it
         // ranks below the two pointer-based pos word stores (true dependence, store latency 2) and
         // those outrank the rot word0 pool load, which then sinks below them like the target.
-        pPLS->setPos(&pos);
-        pPLS->setAng(&rot);
+        pPL->setPos(&pos);
+        pPL->setAng(&rot);
     }
     CamCtrl.Comeback(0);
     OpeSetOpenTerm(0x13, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -895,9 +887,9 @@ static void r300_find_camera_event()
         pos.y = ry;
         pPL->setAng(&pos);
     }
-    FSet(r300_wk->target.x, -27548.0f);
-    FSet(r300_wk->target.y, -18000.0f);
-    FSet(r300_wk->target.z, -10660.0f);
+    r300_work->target.x = -27548.0f;
+    r300_work->target.y = -18000.0f;
+    r300_work->target.z = -10660.0f;
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r300_find_camera_event_exit, 0, -1, 1);
     CamCtrl.CutCall(9);
@@ -961,9 +953,9 @@ void setAslPos(cObj* obj)
     ofs.x = -176.17f;
     ofs.y = 0.0f;
     ofs.z = 40.95f;
-    PSMTXMultVec(obj->mat, &ofs, &r300_wk->asl->pos);
-    FSet(r300_wk->asl->ang.y, obj->ang.y + 3.1415927f);
-    r300_wk->asl->ang.y = LIMIT_ANGLE(r300_wk->asl->ang.y);
+    PSMTXMultVec(obj->mat, &ofs, &r300_work->asl->pos);
+    r300_work->asl->ang.y = obj->ang.y + 3.1415927f;
+    r300_work->asl->ang.y = LIMIT_ANGLE(r300_work->asl->ang.y);
 }
 
 // End of the Ashley scene (also its cancel path): the stream stopped unless it ended itself, the
@@ -972,13 +964,13 @@ void setAslPos(cObj* obj)
 static void r300_asl_exit()
 {
     if (!(pG->Room_flg[0] & 0x02000000)) {
-        SndStrReq(r300_wk->strId, 8, 0, 0);
+        SndStrReq(r300_work->strId, 8, 0, 0);
     }
-    r300_wk->aslEm.destroy();
-    ObjMgr.destroy(r300_wk->asl);
-    SndStop(r300_wk->se[0], 0);
-    SndStop(r300_wk->se[1], 0);
-    SmdGetObjPtr(0x42)->pos.y = r300_wk->doorY;
+    r300_work->aslEm.destroy();
+    ObjMgr.destroy(r300_work->asl);
+    SndStop(r300_work->se[0], 0);
+    SndStop(r300_work->se[1], 0);
+    SmdGetObjPtr(0x42)->pos.y = r300_work->doorY;
     SceAtSetEnable(8, 1);
     RsfSet(G_ROOM_ID, 3);
     pPL->setNoSuspend(0);
@@ -992,34 +984,34 @@ static void r300_asl_exit()
 static void r300_asl()
 {
     SceEventStart(1);
-    U32Set(r300_wk->strId, SndStrReq(0, 0x39, 0x80000003, 0, 0, 0.0f));
+    r300_work->strId = SndStrReq(0, 0x39, 0x80000003, 0, 0, 0.0f);
     pPL->setNoSuspend(1);
     SpfFlagOn(pG, SPF_PL);
     SmdGetObjPtr(0x42)->be_flag |= 0x20;
-    r300_wk->doorY = SmdGetObjPtr(0x42)->pos.y;
+    r300_work->doorY = SmdGetObjPtr(0x42)->pos.y;
     SmdGetObjPtr(0x42)->pos.y += 3000.0f;
     SceAtSetEnable(8, 0);
     modelSet();
-    r300_wk->aslEm.setEm(0x27, -1, 1, 1, 1);
+    r300_work->aslEm.setEm(0x27, -1, 1, 1, 1);
     SceSetEventCancel(1, (TaskFunc) r300_asl_exit, 0, -1, 1);
-    if (r300_wk->aslEm.getPtr() != 0) {
+    if (r300_work->aslEm.getPtr() != 0) {
         u32 i = 0;
 
-        r300_wk->aslEm.setNoSuspend(1);
+        r300_work->aslEm.setNoSuspend(1);
         CamCtrl.CutCall(0x15);
         while (CamCtrl.IsMotionEnd() == 0) {
-            setAslPos((cObj*) r300_wk->aslEm.getPtr());
+            setAslPos((cObj*) r300_work->aslEm.getPtr());
             if (i++ == 0x95) {
-                r300_wk->se[0] = SndCall(6, 0xD, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
+                r300_work->se[0] = SndCall(6, 0xD, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
             }
             if (i > 0x96) {
                 if (i <= 0xC2) {
                     SmdGetObjPtr(0x42)->pos.y -= 66.666664f;
                 }
-                setAslPos((cObj*) r300_wk->aslEm.getPtr());
+                setAslPos((cObj*) r300_work->aslEm.getPtr());
             }
             if (i == 0xC) {
-                r300_wk->se[1] = SndCall(6, 0xF, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
+                r300_work->se[1] = SndCall(6, 0xF, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
             }
             if (i == 0x7A) {
                 SndCall(6, 0x10, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
@@ -1094,41 +1086,41 @@ static void r300_mira_exec()
     if (SceMesGetSelection() == 1) {
         CamCtrl.CutCall(0xD);
         SceSleep(1);
-        r300_wk->cnt = 0;
-        pGS->Room_flg[0] &= ~0x80000000;
-        r300_wk->cam = pGS->Camera;
+        r300_work->cnt = 0;
+        pG->Room_flg[0] &= ~0x80000000;
+        r300_work->cam = pG->Camera;
         CameraControl* cc = &CamCtrl;
         while (1) {
             ActBtn.set(ACT_OPERATION, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_GACHA, ACT_FUNC_NORMAL, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
-            if (r300_wk->cnt == 0) {
+            if (r300_work->cnt == 0) {
                 if (Key.trg & 0x40000000) {
                     break;
                 }
                 if (Key.on & 0x08000000) {
-                    r300_wk->miraAng += 0.0052359877f;
+                    r300_work->miraAng += 0.0052359877f;
                 }
                 if (Key.on & 0x04000000) {
-                    r300_wk->miraAng -= 0.0052359877f;
+                    r300_work->miraAng -= 0.0052359877f;
                 }
             }
-            if (r300_wk->cnt == 1) {
+            if (r300_work->cnt == 1) {
                 SndCall(6, 0x12, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
             }
             if (pG->Room_flg[0] & 0x80000000) {
                 SceExec(0x12, (TaskFunc) DoorOpen, 0, 0, 2, 0);
                 break;
             }
-            if (r300_wk->miraAng > 3.92f) {
-                r300_wk->miraAng = 3.92f;
+            if (r300_work->miraAng > 3.92f) {
+                r300_work->miraAng = 3.92f;
             }
-            if (r300_wk->miraAng < 2.59f) {
-                r300_wk->miraAng = 2.59f;
+            if (r300_work->miraAng < 2.59f) {
+                r300_work->miraAng = 2.59f;
             }
             Vec pos = {-20664.0f, -10229.0f, -19603.0f};
             Mtx m;
             Vec dir;
-            Camera* cam = &r300_wk->cam;
+            Camera* cam = &r300_work->cam;
             dir.x = cam->param.at.x - pos.x;
             dir.y = 0.0f;
             dir.z = cam->param.at.z - pos.z;
@@ -1136,7 +1128,7 @@ static void r300_mira_exec()
             dir.x = 0.0f;
             dir.y = 0.0f;
             if (pG->Room_flg[0] & 0x40000000) {
-                r300_rotToLaser(m, r300_wk->laserPos[1].x, r300_wk->laserPos[0].x, r300_wk->laserPos[1].z, r300_wk->laserPos[0].z, 0x3C);
+                r300_rotToLaser(m, r300_work->laserPos[1].x, r300_work->laserPos[0].x, r300_work->laserPos[1].z, r300_work->laserPos[0].z, 0x3C);
             } else {
                 PSMTXRotRad(m, 'y', SmdGetObjPtr(0x3C)->ang.y);
             }
@@ -1150,7 +1142,7 @@ static void r300_mira_exec()
             dir.x = 0.0f;
             dir.y = 0.0f;
             if (pG->Room_flg[0] & 0x40000000) {
-                r300_rotToLaser(m, r300_wk->laserPos[1].x, r300_wk->laserPos[0].x, r300_wk->laserPos[1].z, r300_wk->laserPos[0].z, 0x3C);
+                r300_rotToLaser(m, r300_work->laserPos[1].x, r300_work->laserPos[0].x, r300_work->laserPos[1].z, r300_work->laserPos[0].z, 0x3C);
             } else {
                 PSMTXRotRad(m, 'y', SmdGetObjPtr(0x3C)->ang.y);
             }
@@ -1159,9 +1151,9 @@ static void r300_mira_exec()
             dir.y = cam->param.pos.y - pos.y;
             dir.z = -dir.z;
             PSVECAdd(&dir, &pos, &cam->param.pos);
-            r300_wk->cam.param.roll = 0.0f;
-            CameraSetOrientationRoll(&r300_wk->cam);
-            cc->m_pExtraCamera = (s32) &r300_wk->cam;
+            r300_work->cam.param.roll = 0.0f;
+            CameraSetOrientationRoll(&r300_work->cam);
+            cc->m_pExtraCamera = (s32) &r300_work->cam;
             SceSleep(1);
         }
     }
@@ -1179,42 +1171,42 @@ static void r300_mirb_exec()
     if (SceMesGetSelection() == 1) {
         CamCtrl.CutCall(0xC);
         SceSleep(1);
-        r300_wk->cnt = 0;
-        pGS->Room_flg[0] &= ~0x80000000;
-        r300_wk->cam = pGS->Camera;
+        r300_work->cnt = 0;
+        pG->Room_flg[0] &= ~0x80000000;
+        r300_work->cam = pG->Camera;
         Vec* lp = r300_laser;
         CameraControl* cc = &CamCtrl;
         while (1) {
             ActBtn.set(ACT_OPERATION, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_GACHA, ACT_FUNC_NORMAL, 0);
             SpfFlagOff(pG, SPF_ACTBTN);
-            if (r300_wk->cnt == 0) {
+            if (r300_work->cnt == 0) {
                 if (Key.trg & 0x40000000) {
                     break;
                 }
                 if (Key.on & 0x08000000) {
-                    r300_wk->mirbAng += 0.0052359877f;
+                    r300_work->mirbAng += 0.0052359877f;
                 }
                 if (Key.on & 0x04000000) {
-                    r300_wk->mirbAng -= 0.0052359877f;
+                    r300_work->mirbAng -= 0.0052359877f;
                 }
             }
-            if (r300_wk->cnt == 1) {
+            if (r300_work->cnt == 1) {
                 SndCall(6, 0x12, &SmdGetObjPtr(0x42)->pos, 0, 0, 0);
             }
             if (pG->Room_flg[0] & 0x80000000) {
                 SceExec(0x12, (TaskFunc) DoorOpen, 0, 0, 2, 0);
                 break;
             }
-            if (r300_wk->mirbAng > 1.26f) {
-                r300_wk->mirbAng = 1.26f;
+            if (r300_work->mirbAng > 1.26f) {
+                r300_work->mirbAng = 1.26f;
             }
-            if (r300_wk->mirbAng < 0.67f) {
-                r300_wk->mirbAng = 0.67f;
+            if (r300_work->mirbAng < 0.67f) {
+                r300_work->mirbAng = 0.67f;
             }
             Vec pos = {-33306.0f, -10229.0f, -40392.0f};
             Mtx m;
             Vec dir;
-            Camera* cam = &r300_wk->cam;
+            Camera* cam = &r300_work->cam;
             dir.x = cam->param.at.x - pos.x;
             dir.y = 0.0f;
             dir.z = cam->param.at.z - pos.z;
@@ -1222,7 +1214,7 @@ static void r300_mirb_exec()
             dir.x = 0.0f;
             dir.y = 0.0f;
             if (pG->Room_flg[0] & 0x20000000) {
-                r300_rotToLaser(m, r300_wk->laserPos[0].x, lp[1].x, r300_wk->laserPos[0].z, lp[1].z, 0x3D);
+                r300_rotToLaser(m, r300_work->laserPos[0].x, lp[1].x, r300_work->laserPos[0].z, lp[1].z, 0x3D);
             } else {
                 PSMTXRotRad(m, 'y', SmdGetObjPtr(0x3D)->ang.y);
             }
@@ -1236,7 +1228,7 @@ static void r300_mirb_exec()
             dir.x = 0.0f;
             dir.y = 0.0f;
             if (pG->Room_flg[0] & 0x20000000) {
-                r300_rotToLaser(m, r300_wk->laserPos[0].x, lp[1].x, r300_wk->laserPos[0].z, lp[1].z, 0x3D);
+                r300_rotToLaser(m, r300_work->laserPos[0].x, lp[1].x, r300_work->laserPos[0].z, lp[1].z, 0x3D);
             } else {
                 PSMTXRotRad(m, 'y', SmdGetObjPtr(0x3D)->ang.y);
             }
@@ -1245,13 +1237,13 @@ static void r300_mirb_exec()
             dir.y = cam->param.pos.y - pos.y;
             dir.z = -dir.z;
             PSVECAdd(&dir, &pos, &cam->param.pos);
-            r300_wk->cam.param.roll = 0.0f;
-            CameraSetOrientationRoll(&r300_wk->cam);
-            cc->m_pExtraCamera = (s32) &r300_wk->cam;
+            r300_work->cam.param.roll = 0.0f;
+            CameraSetOrientationRoll(&r300_work->cam);
+            cc->m_pExtraCamera = (s32) &r300_work->cam;
             SceSleep(1);
         }
         if (pG->Room_flg[0] & 0x40000000) {
-            r300_wk->mirbAng = r300_mirbAng[0];
+            r300_work->mirbAng = r300_mirbAng[0];
         }
     }
     CamCtrl.Comeback(0);
@@ -1406,14 +1398,14 @@ static void r300_laser_door_exec()
 // player put back, the reset task starts.
 static void r300_em_set_exit()
 {
-    r300_wk->em[20].destroy();
-    r300_wk->em[21].setEm(0xBF, -1, 1, 1, 1);
-    r300_wk->em[21].setFindPL();
+    r300_work->em[20].destroy();
+    r300_work->em[21].setEm(0xBF, -1, 1, 1, 1);
+    r300_work->em[21].setFindPL();
     RsfSet(G_ROOM_ID, 8);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    pPL->setPos(&r300_wk->plPos);
+    pPL->setPos(&r300_work->plPos);
     SceExec(0x12, (TaskFunc) r300_em_reset_task, 0, 0, 2, 0);
 }
 
@@ -1434,11 +1426,11 @@ static void r300_em_set()
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     Vec pos = {-28500.0f, -14200.0f, -24783.0f};
     f32 ry = 1.32f;
-    r300_wk->em[20].setEm(0x4B, -1, 1, 1, 1);
-    ((cEmGanado*) r300_wk->em[20].getPtr())->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x33), ROOM_ARC_PTR(pG->pRoom, 0x34), 0, 0);
-    r300_wk->em[20].setNoSuspend(1);
-    r300_wk->em[20].setFindPL();
-    r300_wk->plPos = pPLS->pos;
+    r300_work->em[20].setEm(0x4B, -1, 1, 1, 1);
+    ((cEmGanado*) r300_work->em[20].getPtr())->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x33), ROOM_ARC_PTR(pG->pRoom, 0x34), 0, 0);
+    r300_work->em[20].setNoSuspend(1);
+    r300_work->em[20].setFindPL();
+    r300_work->plPos = pPL->pos;
     // COMPILER-DIFF: #5 (local-alloc qty order) -- y/z of `p` take f13/f0 in the target: z's lifetime is
     // one insn shorter than y's in its sched1 order, i.e. one insn sits between the two loads. The
     // codeless anchor is a fake store to the work pointer word (symbol-based: no alias with the frame
@@ -1454,7 +1446,7 @@ static void r300_em_set()
         pp->z = -14061.0f;
         // The `this` load through the struct view stays below the plPos word stores: the work pointer
         // load then ranks below the `pPL` load and the three constant `lis` (the target's order).
-        pPLS->setPos(pp);
+        pPL->setPos(pp);
     }
     CamCtrl.CutCall(0x16);
     SceSetEventCancel(1, (TaskFunc) r300_em_set_exit, 0, -1, 1);
@@ -1462,14 +1454,14 @@ static void r300_em_set()
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    r300_wk->em[20].setPos(&pos);
+    r300_work->em[20].setPos(&pos);
     {
         Vec ang;
 
-        r300_setEmAng(&r300_wk->em[20], &ang, ry);
+        r300_setEmAng(&r300_work->em[20], &ang, ry);
     }
     for (i = 0; i <= 0x22; i++) {
-        r300_wk->em[20].getPtr()->move();
+        r300_work->em[20].getPtr()->move();
     }
     CamCtrl.CutCall(0x17);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -1491,26 +1483,26 @@ static void r300_em_set_last()
 void modelLoad()
 {
     if (pG->game_costume != 1) {
-        r300_wk->data[0] = DC.setData("etc/pl010a.bin");
-        r300_wk->data[1] = DC.setData("etc/pl010a.tpl");
-        r300_wk->data[2] = DC.setData("etc/pl010d.bin");
-        r300_wk->data[3] = DC.setData("etc/pl010e.bin");
-        r300_wk->data[4] = DC.setData("etc/pl01rh00.bin");
-        r300_wk->data[5] = DC.setData("etc/pl01lh00.bin");
+        r300_work->data[0] = DC.setData("etc/pl010a.bin");
+        r300_work->data[1] = DC.setData("etc/pl010a.tpl");
+        r300_work->data[2] = DC.setData("etc/pl010d.bin");
+        r300_work->data[3] = DC.setData("etc/pl010e.bin");
+        r300_work->data[4] = DC.setData("etc/pl01rh00.bin");
+        r300_work->data[5] = DC.setData("etc/pl01lh00.bin");
     } else {
-        r300_wk->data[0] = DC.setData("etc/pl050a.bin");
-        r300_wk->data[1] = DC.setData("etc/pl050a.tpl");
-        r300_wk->data[2] = DC.setData("etc/pl050d.bin");
-        r300_wk->data[3] = DC.setData("etc/pl050e.bin");
-        r300_wk->data[4] = DC.setData("etc/pl05rh00.bin");
-        r300_wk->data[5] = DC.setData("etc/pl05lh00.bin");
+        r300_work->data[0] = DC.setData("etc/pl050a.bin");
+        r300_work->data[1] = DC.setData("etc/pl050a.tpl");
+        r300_work->data[2] = DC.setData("etc/pl050d.bin");
+        r300_work->data[3] = DC.setData("etc/pl050e.bin");
+        r300_work->data[4] = DC.setData("etc/pl05rh00.bin");
+        r300_work->data[5] = DC.setData("etc/pl05lh00.bin");
     }
-    r300_wk->data[0]->setCommand(1, 0, 1);
-    r300_wk->data[1]->setCommand(1, 0, 1);
-    r300_wk->data[2]->setCommand(1, 0, 1);
-    r300_wk->data[3]->setCommand(1, 0, 1);
-    r300_wk->data[4]->setCommand(1, 0, 1);
-    r300_wk->data[5]->setCommand(1, 0, 1);
+    r300_work->data[0]->setCommand(1, 0, 1);
+    r300_work->data[1]->setCommand(1, 0, 1);
+    r300_work->data[2]->setCommand(1, 0, 1);
+    r300_work->data[3]->setCommand(1, 0, 1);
+    r300_work->data[4]->setCommand(1, 0, 1);
+    r300_work->data[5]->setCommand(1, 0, 1);
 }
 
 // Ashley's carried model: SetObjSmd from the loaded model files with her motion and the extra model
@@ -1522,31 +1514,31 @@ void modelSet()
     cModelInfo* info;
 
     r300_memset(pz, 0, sizeof(Vec));
-    PSet(r300_wk->asl, SetObjSmd(r300_wk->data[0]->m_addr, r300_wk->data[1]->m_addr, pz, pz, 0x10, 1));
-    MotionSetCore(r300_wk->asl, &r300_wk->asl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 5, 0);
+    r300_work->asl = SetObjSmd(r300_work->data[0]->m_addr, r300_work->data[1]->m_addr, pz, pz, 0x10, 1);
+    MotionSetCore(r300_work->asl, &r300_work->asl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 5, 0);
     info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2F));
     if (info) {
-        r300_wk->asl->addModel(info);
+        r300_work->asl->addModel(info);
     }
     info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2C), ROOM_ARC_PTR(pG->pRoom, 0x2E));
     if (info) {
-        r300_wk->asl->addModel(info);
+        r300_work->asl->addModel(info);
     }
-    info = ModInfoMgr.create(r300_wk->data[2]->m_addr, r300_wk->data[1]->m_addr);
+    info = ModInfoMgr.create(r300_work->data[2]->m_addr, r300_work->data[1]->m_addr);
     if (info) {
-        r300_wk->asl->addModel(info);
+        r300_work->asl->addModel(info);
     }
-    info = ModInfoMgr.create(r300_wk->data[3]->m_addr, r300_wk->data[1]->m_addr);
+    info = ModInfoMgr.create(r300_work->data[3]->m_addr, r300_work->data[1]->m_addr);
     if (info) {
-        r300_wk->asl->addModel(info);
+        r300_work->asl->addModel(info);
     }
-    info = ModInfoMgr.create(r300_wk->data[4]->m_addr, r300_wk->data[1]->m_addr);
+    info = ModInfoMgr.create(r300_work->data[4]->m_addr, r300_work->data[1]->m_addr);
     if (info) {
-        r300_wk->asl->addModel(info);
+        r300_work->asl->addModel(info);
     }
-    info = ModInfoMgr.create(r300_wk->data[5]->m_addr, r300_wk->data[1]->m_addr);
+    info = ModInfoMgr.create(r300_work->data[5]->m_addr, r300_work->data[1]->m_addr);
     if (info) {
-        r300_wk->asl->addModel(info);
+        r300_work->asl->addModel(info);
     }
 }
 

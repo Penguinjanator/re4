@@ -74,12 +74,8 @@ struct R11cWork {
     u32 seGate;              // 0x104 SndCall handle of the gate
 };
 
-// One-member struct: every store into the work reloads the pointer afterwards.
-struct R11cWorkPtr {
-    R11cWork* p;
-};
-static R11cWorkPtr r11c_work;
-#define W r11c_work.p
+static R11cWork* r11c_work;
+#define W r11c_work
 
 // The room save block: +4 is the flag word (bit 25 event done, bits 21..24 ladders 3..0 down,
 // bit 30 a route chosen, bit 29 the right route).
@@ -88,7 +84,7 @@ struct R11cSave {
     u32 flags;
 };
 
-static inline R11cSave* r11c_save() { return (R11cSave*) RoomData.getRoomSavePtr(pGS->room_id); }
+static inline R11cSave* r11c_save() { return (R11cSave*) RoomData.getRoomSavePtr(pG->room_id); }
 
 // Death bit of entry `no` of the loaded enemy list (0 while no list is loaded), em_set.cpp style: the
 // row offset is added to pG before the table offset (`lwz 0x5034(pG + list * 0x20)`).
@@ -322,7 +318,7 @@ static void r11c_EventBesiegedStart()
             Vec pos = {109264.0f, 4.0f, -50575.0f};
             Vec ang;
             f32 ry = 1.11f;
-            cPlayer* pl = pPLS;
+            cPlayer* pl = pPL;
             Vec* pa = &ang;
 
             pl->setPos(&pos);
@@ -337,7 +333,7 @@ static void r11c_EventBesiegedStart()
             Vec pos = {109264.0f, 4.0f, -50575.0f};
             Vec ang;
             f32 ry = 1.11f;
-            cPlayer* pl = pPLS;
+            cPlayer* pl = pPL;
             Vec* pa = &ang;
 
             pl->setPos(&pos);
@@ -376,7 +372,7 @@ static void r11c_EventBesiegedStart()
     W->ashley->set = 1;
     W->mod4 = SearchEmModule(4);
     {
-        cPlayer* pl = pPLS;
+        cPlayer* pl = pPL;
         const f32 x = 107436.0f;
         const f32 y = 4.0f;
         const f32 z = -47160.0f;
@@ -850,7 +846,7 @@ static void r11c_moveChain(int dir)
     c = SmdGetObjPtr(id);
     spd = 0.0f;
     c->be_flag |= 0x20;
-    while (!RmfFlagChk(pGS, RMF_GATE_OPEN)) {
+    while (!RmfFlagChk(pG, RMF_GATE_OPEN)) {
         spd += acc;
         if (spd > max) {
             spd = max;
@@ -997,7 +993,7 @@ static void r11c_selectRoute()
     W->chain = 0;
     W->seGate = 0;
     W->seGear = 0;
-    RmfFlagOff(pGS, RMF_GATE_OPEN);
+    RmfFlagOff(pG, RMF_GATE_OPEN);
     SceEventStart(0);
     CamCtrl.CutCall(3);
     SceMesSet(0, 0x220, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);

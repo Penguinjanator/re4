@@ -49,7 +49,7 @@ static void r30e_checkEmSet()
     u8 set[6] = {0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B};
     u32 i;
 
-    if (ItfFlagChk(pGS, ITF_R309_KEY)) {
+    if (ItfFlagChk(pG, ITF_R309_KEY)) {
         for (i = 0; i < 6; i++) {
             EmListSetAlive(dead[i], 0);
         }

@@ -239,7 +239,7 @@ void cBlock::dispAllBlock(int on)
         }
         useDebugMemory(0, 0);
         allDisp = 0;
-        pGS->AreaNo = -1;
+        pG->AreaNo = -1;
     }
 }
 
@@ -760,7 +760,7 @@ void cBlock::checkCondition()
         }
     }
     if (stopFlagSet == 1) {
-        BitSet(stopFlag, pG->Stop_flg);
+        stopFlag = pG->Stop_flg;
         pG->Stop_flg = 0xFFFFFFFF;
     }
 }

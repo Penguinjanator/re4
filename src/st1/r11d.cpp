@@ -192,7 +192,7 @@ static void r11d_checkEmDead()
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 4);
-    BitOff(r11d_work->mi->be_flag, 8);
+    r11d_work->mi->be_flag &= ~8;
     EffectEspDelete(0, r11d_work->eff0, 0, 0);
     EffectEspgenDelete(0, r11d_work->eff0, 0);
     EffectEfmDelete(0, r11d_work->eff0, 0);
@@ -204,7 +204,7 @@ extern "C" void r11d_appearBigSister()
     void* zero = 0;
 
     r11d_work->em0.setEm(0xE6, -1, 0, 1, 1);
-    BitOn(pG->Room_flg[0], 0x80000000);
+    pG->Room_flg[0] |= 0x80000000;
     if (r11d_work->em0.isAlive() == 1) {
         Vec pos = {0.0f, -2.0f, 180.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
@@ -213,7 +213,7 @@ extern "C" void r11d_appearBigSister()
         obj = SetObj00((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, &rot);
         OyaSetObj00(obj, r11d_work->em0.getPtr(), 2);
         obj->setNoSuspend(1);
-        PSet(r11d_work->mi, ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22)));
+        r11d_work->mi = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22));
         if (r11d_work->mi != 0) {
             r11d_work->em0.addModel(r11d_work->mi);
         }
@@ -236,8 +236,8 @@ extern "C" void r11d_appearLittleSister()
     // The two EstSet stack zeros come from one callee-saved `li r31,0` set here (after the join).
     int zero = 0;
     pG->Room_flg[0] |= 0x40000000;
-    BitOff(SmdGetObjPtr(0x32)->be_flag, 2);
-    BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
+    SmdGetObjPtr(0x32)->be_flag &= ~2;
+    SmdGetObjPtr(0x1A)->be_flag |= 2;
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
         EstSet(0, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
@@ -266,7 +266,7 @@ static void r11d_execEmAppear_end()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    BitOff(pG->Room_flg[0], 0x20000000);
+    pG->Room_flg[0] &= ~0x20000000;
     int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
     int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
     cObjLadder* ladder;
@@ -381,7 +381,7 @@ static void r11d_execShowView()
     void* zero = 0;
 
     RsfSet(G_ROOM_ID, 2);
-    r11d_work->strId = SndStrReq(0, 0x16, 0x80000003, 0, 0, FCRef(vol));
+    r11d_work->strId = SndStrReq(0, 0x16, 0x80000003, 0, 0, *(const f32*) &vol);
     SceSetEventCancel(1, (TaskFunc) r11d_execShowView_end, 0, -1, 1);
     SceEventStart(1);
     StaFlagOff(pG, STA_SUSPEND);

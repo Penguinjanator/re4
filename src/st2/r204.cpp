@@ -64,12 +64,8 @@ struct R204Work {
 };
 
 static u8 r204_texTbl[0x20];
-// The work pointer is a struct member: every store through the work reloads it.
-struct R204WorkPtr {
-    R204Work* p;
-};
 
-static R204WorkPtr r204_work;
+static R204Work* r204_work;
 
 
 static void door_rsf_off();
@@ -114,10 +110,10 @@ void R204Init()
 
     DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (pG->JumpPoint == 1) {
-        U16Set(pG->room_id_prev, 0x205);
+        pG->room_id_prev = 0x205;
         pG->Part = 1;
     }
-    wp = &r204_work.p;
+    wp = &r204_work;
 #line 98 "D:/Bio4/Prog/r204.cpp"
     *wp = (R204Work*) MEM_CALLOC(sizeof(R204Work), 1, 0xd);
     EvtMgr.SetFunc("evt_r204s00_func", (void*) Evt_R204S00_Func);
@@ -125,15 +121,15 @@ void R204Init()
     if (RsfCheck(G_ROOM_ID, 0) && RsfCheck(G_ROOM_ID, 7) == 0) {
         SceExec(0x12, (TaskFunc) r204_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    getRoomEtcSwitch(8, &r204_work.p->sw, 1);
-    getRoomEtcBarred(0xB, &r204_work.p->barred[0], 1);
-    getRoomEtcBarred(6, &r204_work.p->barred[1], 1);
-    if (r204_work.p->sw != 0 && r204_work.p->barred[0] != 0) {
-        ((cEmSwitch*) r204_work.p->sw)->setBarred((cEmBarred*) r204_work.p->barred[0]);
-        ((cEmSwitch*) r204_work.p->sw)->setBarred2nd((cEmBarred*) r204_work.p->barred[1]);
-        ((cEmSwitch*) r204_work.p->sw)->setClosed();
-        ((cEmBarred*) r204_work.p->barred[0])->setClosed();
-        ((cEmBarred*) r204_work.p->barred[1])->setClosed();
+    getRoomEtcSwitch(8, &r204_work->sw, 1);
+    getRoomEtcBarred(0xB, &r204_work->barred[0], 1);
+    getRoomEtcBarred(6, &r204_work->barred[1], 1);
+    if (r204_work->sw != 0 && r204_work->barred[0] != 0) {
+        ((cEmSwitch*) r204_work->sw)->setBarred((cEmBarred*) r204_work->barred[0]);
+        ((cEmSwitch*) r204_work->sw)->setBarred2nd((cEmBarred*) r204_work->barred[1]);
+        ((cEmSwitch*) r204_work->sw)->setClosed();
+        ((cEmBarred*) r204_work->barred[0])->setClosed();
+        ((cEmBarred*) r204_work->barred[1])->setClosed();
     }
     {
         Mtx m;
@@ -142,15 +138,15 @@ void R204Init()
         low_RotMatrix(m, (Vec*) &r204_chandRot0);
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &pos);
         PSVECAdd((Vec*) &r204_chandPos0, &pos, &pos);
-        r204_work.p->chand[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
+        r204_work->chand[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
                                           (Vec*) &r204_chandRot0, 0x10, 1);
-        r204_work.p->chand[0]->be_flag |= 0x1000;
+        r204_work->chand[0]->be_flag |= 0x1000;
         low_RotMatrix(m, (Vec*) &r204_chandRot1);
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &pos);
         PSVECAdd((Vec*) &r204_chandPos1, &pos, &pos);
-        r204_work.p->chand[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
+        r204_work->chand[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
                                           (Vec*) &r204_chandRot1, 0x10, 1);
-        r204_work.p->chand[1]->be_flag |= 0x1000;
+        r204_work->chand[1]->be_flag |= 0x1000;
     }
     SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
     SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
@@ -170,32 +166,32 @@ void R204Init()
             }
         }
         if (!RsfCheck(G_ROOM_ID, 2)) {
-            r204_work.p->str = SndStrReq(1, 0x32, 0x80000003, 0, 0, 0.0f);
+            r204_work->str = SndStrReq(1, 0x32, 0x80000003, 0, 0, 0.0f);
             SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
             for (i = 0; i <= 10; i++) {
-                r204_work.p->em[i].setEm(0x4A + i, 3, 0, 1, 1);
-                if (r204_work.p->em[i].isAlive() == 1) {
+                r204_work->em[i].setEm(0x4A + i, 3, 0, 1, 1);
+                if (r204_work->em[i].isAlive() == 1) {
                     Vec ofs = {0.0f, 10.0f, 179.0f};
                     Vec rot = {-0.17453292f, 0.0f, 0.0f};
 
                     if (i == 7) {
-                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), &ofs, &rot);
-                        r204_work.p->head[i]->setNoSuspend(1);
-                        OyaSetObj00(r204_work.p->head[i], r204_work.p->em[7].getPtr(), 2);
-                        r204_work.p->esp[i] = EspPullCoreKind();
-                        EstSet(r204_work.p->head[i], -1, 0, 0, EFF_CORE, 0x2D, 0x801, r204_work.p->esp[i], 0, 0);
+                        r204_work->head[i] = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), &ofs, &rot);
+                        r204_work->head[i]->setNoSuspend(1);
+                        OyaSetObj00(r204_work->head[i], r204_work->em[7].getPtr(), 2);
+                        r204_work->esp[i] = EspPullCoreKind();
+                        EstSet(r204_work->head[i], -1, 0, 0, EFF_CORE, 0x2D, 0x801, r204_work->esp[i], 0, 0);
                     } else {
-                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &ofs, &rot);
-                        r204_work.p->head[i]->setNoSuspend(1);
-                        OyaSetObj00(r204_work.p->head[i], r204_work.p->em[i].getPtr(), 2);
-                        r204_work.p->esp[i] = EspPullCoreKind();
-                        EstSet(r204_work.p->head[i], -1, 0, 0, EFF_ROOM, 0x1F, 0x801, r204_work.p->esp[i], 0, 0);
+                        r204_work->head[i] = SetObj00(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &ofs, &rot);
+                        r204_work->head[i]->setNoSuspend(1);
+                        OyaSetObj00(r204_work->head[i], r204_work->em[i].getPtr(), 2);
+                        r204_work->esp[i] = EspPullCoreKind();
+                        EstSet(r204_work->head[i], -1, 0, 0, EFF_ROOM, 0x1F, 0x801, r204_work->esp[i], 0, 0);
                     }
                 }
                 if (0x4A + i == 0x51) {
-                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 0, 5, 0);
+                    r204_work->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 0, 5, 0);
                 } else {
-                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 5, 0);
+                    r204_work->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 5, 0);
                 }
             }
         }
@@ -286,13 +282,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r204_texTbl;
 
-    if (GetTexRenderMgr(&r204_work.p->tex)) {
+    if (GetTexRenderMgr(&r204_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r204_work.p->tex->texId;
-        r204_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r204_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r204_work->tex->texId;
+        r204_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r204_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -316,34 +312,34 @@ void R204Main()
     u32 no;
 
     if (RsfCheck(G_ROOM_ID, 1)) {
-        if (!(pG->Room_flg[0] & 0x80000000) && ((cEmBarred*) r204_work.p->barred[1])->ckOpen() == 1) {
-            BitOn(pG->Room_flg[0], 0x80000000);
+        if (!(pG->Room_flg[0] & 0x80000000) && ((cEmBarred*) r204_work->barred[1])->ckOpen() == 1) {
+            pG->Room_flg[0] |= 0x80000000;
             for (i = 0; i <= 10; i++) {
-                r204_work.p->em[i].setFindPL();
+                r204_work->em[i].setFindPL();
             }
             Vec pos = {-8927.0f, 6000.0f, -20216.0f};
-            r204_work.p->em[0].setGoto(&pos, 0xC);
-            r204_work.p->em[2].setGoto(&pos, 0xC);
-            r204_work.p->em[4].setGoto(&pos, 0xC);
-            r204_work.p->em[6].setGoto(&pos, 0xC);
-            r204_work.p->em[8].setGoto(&pos, 0xC);
-            r204_work.p->em[9].setGoto(&pos, 0xC);
+            r204_work->em[0].setGoto(&pos, 0xC);
+            r204_work->em[2].setGoto(&pos, 0xC);
+            r204_work->em[4].setGoto(&pos, 0xC);
+            r204_work->em[6].setGoto(&pos, 0xC);
+            r204_work->em[8].setGoto(&pos, 0xC);
+            r204_work->em[9].setGoto(&pos, 0xC);
         }
         if (!(pG->Room_flg[0] & 0x40000000) && !RsfCheck(G_ROOM_ID, 2)) {
             if (pG->Room_flg[2] & 0x40000000) {
-                SceDebugDisp("CNT[%d/%d]", r204_work.p->cnt2, 0x10E);
-                r204_work.p->cnt2++;
-                if (r204_work.p->cnt2 == 0x10E) {
-                    BitOn(pG->Room_flg[2], 0x80000000);
+                SceDebugDisp("CNT[%d/%d]", r204_work->cnt2, 0x10E);
+                r204_work->cnt2++;
+                if (r204_work->cnt2 == 0x10E) {
+                    pG->Room_flg[2] |= 0x80000000;
                 }
             } else {
-                r204_work.p->cnt2 = 0;
+                r204_work->cnt2 = 0;
             }
             if (SceCkFindPL(0) == 1 || (pG->Room_flg[2] & 0x80000000) || (StaFlagChk(pG, STA_PL_FIRE))) {
-                BitOn(pG->Room_flg[0], 0x40000000);
+                pG->Room_flg[0] |= 0x40000000;
                 RsfSet(G_ROOM_ID, 2);
-                r204_work.p->cnt = 1;
-                SndStrReq(r204_work.p->str, 4, 200, 0);
+                r204_work->cnt = 1;
+                SndStrReq(r204_work->str, 4, 200, 0);
                 for (no = 0x4A; no < 0x55; no++) {
                     pG->Em_list[no].be_flag &= ~1;
                 }
@@ -351,7 +347,7 @@ void R204Main()
         }
     }
     if (!RsfCheck(G_ROOM_ID, 6)) {
-        if (((cEmSwitch*) r204_work.p->sw)->ckSwitch() == 1 || DebugTrg(0)) {
+        if (((cEmSwitch*) r204_work->sw)->ckSwitch() == 1 || DebugTrg(0)) {
             RsfSet(G_ROOM_ID, 6);
             SceExec(0x12, (TaskFunc) door_move, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -490,7 +486,7 @@ static void r204_first_cut_exit()
     SpfFlagOff(pG, SPF_PL);
     SpfFlagOff(pG, SPF_KEY);
     for (i = 0; i <= 10; i++) {
-        r204_work.p->em[i].setNoSuspend(0);
+        r204_work->em[i].setNoSuspend(0);
     }
 }
 
@@ -500,7 +496,7 @@ static void r204_first_cut()
     u32 i;
 
     for (i = 0; i <= 10; i++) {
-        r204_work.p->em[i].setNoSuspend(1);
+        r204_work->em[i].setNoSuspend(1);
     }
     SceUpCutStart();
     StaFlagOff(pG, STA_SUSPEND);
@@ -532,21 +528,21 @@ static void r204_nige_check()
         u32 alive;
 
         alive = SceCountEmAlive(0x10, 0x20);
-        if (r204_work.p->cnt != 0) {
-            if (r204_work.p->cnt == 1) {
-                cEm* em = r204_work.p->em[7].getPtr();
+        if (r204_work->cnt != 0) {
+            if (r204_work->cnt == 1) {
+                cEm* em = r204_work->em[7].getPtr();
 
                 if (em != 0 && EmDeadCk(em)) {
                     started = 1;
-                    SndStrReq(r204_work.p->str, 4, 200, 0);
-                    r204_work.p->cnt = 0x23;
+                    SndStrReq(r204_work->str, 4, 200, 0);
+                    r204_work->cnt = 0x23;
                 }
             }
             pl = pPL;
             if (started == 0 && pl->checkEvent() == 1 && (alive > 3 || (pG->Room_flg[0] & 0x08000000))) {
-                if (r204_work.p->cnt == 1) {
-                    BitOn(pG->Room_flg[0], 0x08000000);
-                    SndStrReq(r204_work.p->str, 4, 200, 0);
+                if (r204_work->cnt == 1) {
+                    pG->Room_flg[0] |= 0x08000000;
+                    SndStrReq(r204_work->str, 4, 200, 0);
                     SceUpCutStart();
                     StaFlagOff(pG, STA_SUSPEND);
                     pPL->dmg.set(0, 0x80);
@@ -556,16 +552,16 @@ static void r204_nige_check()
                     pl->Wep->m_pWep->setDisp(1, 1);
                     CamCtrl.CutCall(0xF);
                     for (u32 i = 0; i <= 10; i++) {
-                        r204_work.p->em[i].setNoSuspend(1);
+                        r204_work->em[i].setNoSuspend(1);
                     }
-                    r204_work.p->em[7].setGoto(&pPL->pos, 8);
+                    r204_work->em[7].setGoto(&pPL->pos, 8);
                 }
-                if (r204_work.p->cnt == 0x33) {
+                if (r204_work->cnt == 0x33) {
                     Vec ang;
 
-                    r204_work.p->em[7].setGoto(&p1, 8);
+                    r204_work->em[7].setGoto(&p1, 8);
                     if (!SpfFlagChk(pG, SPF_PL)) {
-                        BitOn(pG->Room_flg[0], 0x08000000);
+                        pG->Room_flg[0] |= 0x08000000;
                         SceUpCutStart();
                         StaFlagOff(pG, STA_SUSPEND);
                         pPL->dmg.set(0, 0x80);
@@ -575,27 +571,27 @@ static void r204_nige_check()
                     }
                     CamCtrl.CutCall(0x10);
                     for (u32 i = 0; i <= 10; i++) {
-                        r204_work.p->em[i].setNoSuspend(1);
+                        r204_work->em[i].setNoSuspend(1);
                     }
                     Vec* pa = &ang;
                     if (pPL->pos.x > 0.0f) {
                         ang.x = 0.0f;
                         pa->y = 1.44f;
                         ang.z = 0.0f;
-                        r204_work.p->em[7].setAng(pa);
+                        r204_work->em[7].setAng(pa);
                     } else {
                         ang.x = 0.0f;
                         pa->y = -1.84f;
                         ang.z = 0.0f;
-                        r204_work.p->em[7].setAng(pa);
+                        r204_work->em[7].setAng(pa);
                     }
                 }
-                if (r204_work.p->cnt == 0x87 && !(pG->Room_flg[0] & 0x20000000)) {
-                    r204_work.p->em[7].setGoto(&p1, 1);
+                if (r204_work->cnt == 0x87 && !(pG->Room_flg[0] & 0x20000000)) {
+                    r204_work->em[7].setGoto(&p1, 1);
                 }
-                if (r204_work.p->cnt == 0x8C && (pG->Room_flg[0] & 0x08000000)) {
+                if (r204_work->cnt == 0x8C && (pG->Room_flg[0] & 0x08000000)) {
                     for (u32 i = 0; i <= 10; i++) {
-                        r204_work.p->em[i].setNoSuspend(0);
+                        r204_work->em[i].setNoSuspend(0);
                     }
                     CamCtrl.Comeback(0);
                     pPL->dmg.clear();
@@ -607,60 +603,60 @@ static void r204_nige_check()
             if (!(pG->Room_flg[0] & 0x20000000)) {
                 // The switch index is `cnt - 30` (19 nodes, root 0x52 = cnt 0x70): the tree compares
                 // the biased value and combine folds the root's EQ test back onto cnt.
-                switch (r204_work.p->cnt - 30) {
+                switch (r204_work->cnt - 30) {
                 case 0x26 - 30:
-                    r204_work.p->em[0].setGoto(&p1, 1);
+                    r204_work->em[0].setGoto(&p1, 1);
                     break;
                 case 0x31 - 30:
-                    r204_work.p->em[2].setGoto(&p3, 1);
+                    r204_work->em[2].setGoto(&p3, 1);
                     break;
                 case 0x32 - 30:
-                    r204_work.p->em[5].setGoto(&p3, 1);
+                    r204_work->em[5].setGoto(&p3, 1);
                     break;
                 case 0x3C - 30:
-                    r204_work.p->em[9].setGoto(&p3, 1);
+                    r204_work->em[9].setGoto(&p3, 1);
                     break;
                 case 0x46 - 30:
-                    r204_work.p->em[3].setGoto(&p2, 1);
+                    r204_work->em[3].setGoto(&p2, 1);
                     break;
                 case 0x50 - 30:
-                    r204_work.p->em[10].setGoto(&p2, 1);
+                    r204_work->em[10].setGoto(&p2, 1);
                     break;
                 case 0x5F - 30:
-                    r204_work.p->em[1].setGoto(&p2, 1);
+                    r204_work->em[1].setGoto(&p2, 1);
                     break;
                 case 0x64 - 30:
-                    r204_work.p->em[4].setGoto(&p1, 1);
+                    r204_work->em[4].setGoto(&p1, 1);
                     break;
                 case 0x73 - 30:
-                    r204_work.p->em[6].setGoto(&p1, 1);
+                    r204_work->em[6].setGoto(&p1, 1);
                     break;
                 case 0x70 - 30:
-                    r204_work.p->em[8].setGoto(&p1, 1);
+                    r204_work->em[8].setGoto(&p1, 1);
                     break;
                 case 0x6E - 30:
-                    r204_work.p->em[7].setGoto(&p1, 1);
+                    r204_work->em[7].setGoto(&p1, 1);
                 case 0x82 - 30:
-                    r204_work.p->em[7].setGoto(&p1, 1);
+                    r204_work->em[7].setGoto(&p1, 1);
                 case 0x96 - 30:
-                    r204_work.p->em[7].setGoto(&p1, 1);
+                    r204_work->em[7].setGoto(&p1, 1);
                 case 0xF9 - 30:
-                    r204_work.p->em[2].setGoto(&p1, 1);
+                    r204_work->em[2].setGoto(&p1, 1);
                     break;
                 case 0xFA - 30:
-                    r204_work.p->em[5].setGoto(&p1, 1);
+                    r204_work->em[5].setGoto(&p1, 1);
                     break;
                 case 0x104 - 30:
-                    r204_work.p->em[9].setGoto(&p1, 1);
+                    r204_work->em[9].setGoto(&p1, 1);
                     break;
                 case 0x10E - 30:
-                    r204_work.p->em[3].setGoto(&p1, 1);
+                    r204_work->em[3].setGoto(&p1, 1);
                     break;
                 case 0x118 - 30:
-                    r204_work.p->em[10].setGoto(&p1, 1);
+                    r204_work->em[10].setGoto(&p1, 1);
                     break;
                 case 0x127 - 30:
-                    r204_work.p->em[1].setGoto(&p1, 1);
+                    r204_work->em[1].setGoto(&p1, 1);
                     break;
                 }
             }
@@ -669,15 +665,15 @@ static void r204_nige_check()
                     int far = 0;
 
                     for (u32 i = 0; i <= 10; i++) {
-                        if (r204_work.p->em[i].getPosZ() < -28000.0f) {
+                        if (r204_work->em[i].getPosZ() < -28000.0f) {
                             far = 1;
                         }
                     }
-                    if (r204_work.p->cnt > 0x1C1 && far == 1) {
+                    if (r204_work->cnt > 0x1C1 && far == 1) {
                         SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
                     }
-                    if (r204_work.p->cnt > 0x12C) {
-                        FSub(SmdGetObjPtr(0x39)->pos.y, 7.0666666f);
+                    if (r204_work->cnt > 0x12C) {
+                        SmdGetObjPtr(0x39)->pos.y -= 7.0666666f;
                         if (!(pG->Room_flg[0] & 0x20000000)) {
                             if (SmdGetObjPtr(0x39)->pos.y < 1800.0f) {
                                 SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -687,14 +683,14 @@ static void r204_nige_check()
                 }
             } else {
                 if (!(pG->Room_flg[0] & 0x10000000)) {
-                    BitOn(pG->Room_flg[0], 0x10000000);
-                    BitOn(pG->Room_flg[0], 0x20000000);
+                    pG->Room_flg[0] |= 0x10000000;
+                    pG->Room_flg[0] |= 0x20000000;
                     for (u32 i = 0; i <= 10; i++) {
-                        r204_work.p->em[i].setGoto(&pPL->pos, 0xC);
+                        r204_work->em[i].setGoto(&pPL->pos, 0xC);
                     }
                 }
             }
-            r204_work.p->cnt++;
+            r204_work->cnt++;
         }
         if (alive != 0 && !(pG->Room_flg[0] & 0x20000000)) {
             if (pPL->pos.y < 3000.0f && pPL->pos.z < -25000.0f) {
@@ -714,14 +710,14 @@ static void door5_close()
     u32 k;
     int cnt;
 
-    BitOn(pG->Room_flg[0], 0x20000000);
+    pG->Room_flg[0] |= 0x20000000;
     for (i = 0; i <= 10; i++) {
-        if (r204_work.p->em[i].getPosZ() < -26000.0f) {
-            r204_work.p->em[i].setNoSuspend(1);
+        if (r204_work->em[i].getPosZ() < -26000.0f) {
+            r204_work->em[i].setNoSuspend(1);
         }
     }
-    r204_work.p->chand[0]->setNoSuspend(0);
-    r204_work.p->chand[1]->setNoSuspend(0);
+    r204_work->chand[0]->setNoSuspend(0);
+    r204_work->chand[1]->setNoSuspend(0);
     SceEventStart(1);
     CamCtrl.CutCall(0xC);
     SndCall(6, 0x4D, &SmdGetObjPtr(0x39)->pos, 0, 0, 0);
@@ -732,8 +728,8 @@ static void door5_close()
             u32 j;
 
             for (j = 0; j <= 10; j++) {
-                if (r204_work.p->em[j].isAlive() == 1 && AreaHitCheck(&at->area, &r204_work.p->em[j].getPtr()->pos)) {
-                    r204_work.p->em[j].setGoto(&r204_work.p->em[j].getPtr()->pos, 0xA);
+                if (r204_work->em[j].isAlive() == 1 && AreaHitCheck(&at->area, &r204_work->em[j].getPtr()->pos)) {
+                    r204_work->em[j].setGoto(&r204_work->em[j].getPtr()->pos, 0xA);
                 }
             }
         }
@@ -753,19 +749,19 @@ static void door5_close()
     SceEventEnd(0);
     SceAtSetEnable(0xF, 1);
     for (i = 0; i <= 10; i++) {
-        if (r204_work.p->em[i].getPosZ() < -33000.0f) {
-            r204_work.p->em[i].destroy();
+        if (r204_work->em[i].getPosZ() < -33000.0f) {
+            r204_work->em[i].destroy();
         }
     }
     for (i = 0; i <= 10; i++) {
-        r204_work.p->em[i].setNoSuspend(0);
+        r204_work->em[i].setNoSuspend(0);
     }
-    r204_work.p->chand[0]->setNoSuspend(1);
-    r204_work.p->chand[1]->setNoSuspend(1);
+    r204_work->chand[0]->setNoSuspend(1);
+    r204_work->chand[1]->setNoSuspend(1);
     RsfSet(G_ROOM_ID, 8);
     SceSleep(1);
     for (k = 0; k <= 10; k++) {
-        r204_work.p->em[k].setGoto(&pPL->pos, 0xC);
+        r204_work->em[k].setGoto(&pPL->pos, 0xC);
     }
 }
 
@@ -773,7 +769,7 @@ static void door5_close()
 // landing spots and `ofsBase` the swing-start offsets. Shapes (the r117 EventChandelier idioms): the
 // first wait is a `do {} while (1)` (a `while (1)` gets rotated by jump.c: `b TOP; SLEEP: ..; TOP:`,
 // which loop.c then rejects as "phony" and nothing is hoisted), `frame = 0` right before it (flow nop),
-// the dead `do {} while (0)` after it re-materialises `lis pPL@ha` for the second block, FSet + pPLS
+// the dead `do {} while (0)` after it re-materialises `lis pPL@ha` for the second block, FSet + pPL
 // reload pPL after each pos store. `if (mf - 5 > 0x41) .. else ..; mf -= 5;` is the target's
 // `subi r0,mf,5; mr mf,r0; cmplwi r0,0x41`: gcse deletes the redundant `mf - 5` at the join and
 // inserts its reaching copy at the END of the compare block (before the branch); a `mf -= 5` before
@@ -823,18 +819,18 @@ static void door5_close()
         Vec* ang;                                                                                                  \
                                                                                                                    \
         pl->beginEvent(0);                                                                     \
-        r204_work.p->chand[no]->beginEvent(0);                                                 \
+        r204_work->chand[no]->beginEvent(0);                                                 \
         low_RotMatrix(m, (Vec*) &crot0);                                                                           \
         ang = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
-        FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
-        FSet(pPL->pos.x, cpos.x + (dx0));                                                                          \
-        mdl = pPLS;                                                                                                \
+        (pPL->pos.z = cpos.z - (dz0));                                                                          \
+        (pPL->pos.x = cpos.x + (dx0));                                                                          \
+        mdl = pPL;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
         mdl->setAng(ang);                                                                                          \
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 1, 0);                                             \
-        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);                          \
+        r204_work->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);                          \
         PlSeCall(0x29, &pPL->pos, 0, 0, 0);                                                                        \
         pl->dmg.set(0, 0x80);                                                                                      \
         pl->be_flag &= ~0x10;                                                                                      \
@@ -850,7 +846,7 @@ static void door5_close()
         } while (1);                                                                                               \
         do { } while (0);                                                                                          \
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 5, 0);                                             \
-        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 3, 0, 5, 0);                          \
+        r204_work->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 3, 0, 5, 0);                          \
         RoomSeCall(0x13, &pPL->pos, 0, 0, 0);                                                                      \
         while (1) {                                                                                                \
             if (MotionGetState(pPL) & 1) {                                                                         \
@@ -884,9 +880,9 @@ static void door5_close()
             SceSleep(1);                                                                                           \
         }                                                                                                          \
         frame = 0;                                                                                                 \
-        FSet(pPL->pos.x, nx);                                                                                      \
-        FSet(pPL->pos.z, nz);                                                                                      \
-        mdl = pPLS;                                                                                                \
+        (pPL->pos.x = nx);                                                                                      \
+        (pPL->pos.z = nz);                                                                                      \
+        mdl = pPL;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
         {                                                                                                          \
             Vec* rp = &mdl->ang;                                                                                   \
@@ -894,7 +890,7 @@ static void door5_close()
             mdl->setAng(rp);                                                                                       \
         }                                                                                                          \
         pPL->motionSet(motPl, 3, 0, 1, 0);                                                                         \
-        r204_work.p->chand[no]->motionSet(motCh, 3, 0, 1, 0);                                                      \
+        r204_work->chand[no]->motionSet(motCh, 3, 0, 1, 0);                                                      \
         PlSeCall(0x29, &pPL->pos, 0, 0, 0);                                                                        \
         while (!(MotionGetState(pPL) & 4)) {                                                                       \
             frame++;                                                                                               \
@@ -910,14 +906,14 @@ static void door5_close()
                 }                                                                                                  \
             }                                                                                                      \
             if (frame == 0x1E) {                                                                                   \
-                RoomSeCall(0x14, &r204_work.p->chand[no]->pos, 0, 0, 0);                                           \
+                RoomSeCall(0x14, &r204_work->chand[no]->pos, 0, 0, 0);                                           \
             }                                                                                                      \
             SceSleep(1);                                                                                           \
         }                                                                                                          \
         pl->dmg.clear();                                                                                           \
-        BitOn(pl->be_flag, 0x10);                                                                                  \
+        (pl->be_flag |= 0x10);                                                                                  \
         pPL->endEvent(0);                                                                      \
-        r204_work.p->chand[no]->endEvent(0);                                                   \
+        r204_work->chand[no]->endEvent(0);                                                   \
         postLoop                                                                                                   \
     }
 
@@ -956,7 +952,7 @@ static void r204_EventChandelier2()
     CHANDELIER(1, r204_chandPos1, r204_chandRot1, -5927.0f, -258.0f, -1964.0f, 606.0f, -926.0f, 647.0f, {
         u32 i;
         for (i = 0; i <= 10; i++) {
-            r204_work.p->em[i].setFindPL();
+            r204_work->em[i].setFindPL();
         }
     })
 }
@@ -1069,12 +1065,12 @@ static void r204_checkEmDead()
 
     while (1) {
         for (i = 0; i <= 10; i++) {
-            if (r204_work.p->esp[i] != 0 && r204_work.p->em[i].isActive() != 1) {
-                r204_work.p->head[i]->be_flag &= ~2;
-                EffectEspDelete(0, r204_work.p->esp[i], 0, 0);
-                EffectEspgenDelete(0, r204_work.p->esp[i], 0);
-                EffectEfmDelete(0, r204_work.p->esp[i], 0);
-                r204_work.p->esp[i] = 0;
+            if (r204_work->esp[i] != 0 && r204_work->em[i].isActive() != 1) {
+                r204_work->head[i]->be_flag &= ~2;
+                EffectEspDelete(0, r204_work->esp[i], 0, 0);
+                EffectEspgenDelete(0, r204_work->esp[i], 0);
+                EffectEfmDelete(0, r204_work->esp[i], 0);
+                r204_work->esp[i] = 0;
             }
         }
         SceSleep(1);
@@ -1087,14 +1083,14 @@ static void door_move()
 {
     SceEventStart(1);
     pPL->setNoSuspend(1);
-    r204_work.p->sw->setNoSuspend(1);
+    r204_work->sw->setNoSuspend(1);
     SpfFlagOn(pG, SPF_KEY);
     DpfFlagOff(pG, DPF_PL);
     CamCtrl.CutCall(0xD);
     SceSleep(0x28);
-    ((cEmBarred*) r204_work.p->barred[1])->setClosed();
+    ((cEmBarred*) r204_work->barred[1])->setClosed();
     SceSleep(1);
-    ((cEmBarred*) r204_work.p->barred[1])->setOpen(0);
+    ((cEmBarred*) r204_work->barred[1])->setOpen(0);
     CamCtrl.CutCall(0xE);
     SceSleep(0x28);
     CamCtrl.Comeback(0);

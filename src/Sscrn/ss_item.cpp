@@ -248,7 +248,7 @@ void SsItemMain::init(SUB_SCREEN* wk)
     comb->connect(1, cmd);
     exam->connect(0, sel);
     cur = sel;
-    itemCameraInit(wk, &pGS->Camera);
+    itemCameraInit(wk, &pG->Camera);
     IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(IDC_SSCRN_0) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, IDC_SSCRN_0, 0xC, 2, 0);
@@ -985,8 +985,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
             case 1:
                 // Both stores through PSet: the x24C store may then alias `item_sel`, so its `lis`
                 // and load stay below it (the store is on the critical path).
-                (void*&) wk->p_exam_model = MapMgr.getWork(2);
-                (void*&) wk->p_exam_item = item_sel;
+                wk->p_exam_model = MapMgr.getWork(2);
+                wk->p_exam_item = item_sel;
                 if (item_sel->id == 0xA2) {
                     state = 2;
                     return;

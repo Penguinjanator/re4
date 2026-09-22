@@ -50,12 +50,8 @@ struct R222Work {
     f32 fallY;           // 0xA4
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R222WorkPtr {
-    R222Work* p;
-};
 
-static R222WorkPtr r222_work;
+static R222Work* r222_work;
 
 static Vec r222_zero = {0.0f, 0.0f, 0.0f};  // local in the REL (ADDR16 fields hold S+A)
 static f32 r222_angA0 = 0.68f;
@@ -101,8 +97,8 @@ void em_reset();
 // RTX_UNCHANGING_P from an inlined body's pool loads, which then wait for the `hit[no]` store (cost 2);
 // as pool MEMs of the function itself the YarareInitCube constants are `mem/u` and issue before it.
 #define r222_setHit(no, objId)                                                                                  \
-    r222_work.p->hit[no] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
-    YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, YAT_FLAG_ON)
+    r222_work->hit[no] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
+    YarareInitCube(r222_work->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, YAT_FLAG_ON)
 
 // Room init (the dragon hall): Debug_flg[1] 0x20000, Status_flg[1] bit 0, no water splashes, the moving
 // objects marked script-moved. Per dragon (Room_flg bits 0/1/2 = fallen): fallen -> its collision
@@ -118,7 +114,7 @@ void R222Init()
     // stays below it. The reference is declared after the pG flag store so that `high(pG)` is the earlier
     // gcse expression: the two PRE'd highs fill the prologue's free slots in first-occurrence order.
     DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
-    R222Work*& wp = r222_work.p;
+    R222Work*& wp = r222_work;
 #line 70 "D:/Bio4/Prog/r222.cpp"
     wp = (R222Work*) MEM_CALLOC(sizeof(R222Work), 1, 0xd);
     StaFlagOn(pG, STA_LASERSITE_NOADD);
@@ -128,7 +124,7 @@ void R222Init()
     SmdGetObjPtr(0xF)->be_flag |= 0x20;
     SmdGetObjPtr(0x10)->be_flag |= 0x20;
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
-    BitOn(SmdGetObjPtr(0x15)->be_flag, 0x20);
+    SmdGetObjPtr(0x15)->be_flag |= 0x20;
     if (RsfCheck(G_ROOM_ID, 0)) {
         SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 4);
         EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 5);
@@ -143,14 +139,14 @@ void R222Init()
         SceAtSetEnable(5, 1);
         r222_setHit(0, 0x16);
         r222_setHit(1, 0x17);
-        r222_work.p->hp[0] = 7000;
-        r222_work.p->hp[1] = 7000;
+        r222_work->hp[0] = 7000;
+        r222_work->hp[1] = 7000;
         SmdGetObjPtr(0x14)->pos.y += 30000.0f;
         SmdGetObjPtr(0x15)->pos.y += 30000.0f;
         SmdGetObjPtr(0x16)->pos.y += 30000.0f;
         SmdGetObjPtr(0x17)->pos.y += 30000.0f;
     }
-    r222_work.p->dragon.setEm(0x16, -1, 1, 1, 1);
+    r222_work->dragon.setEm(0x16, -1, 1, 1, 1);
     if (RsfCheck(G_ROOM_ID, 1)) {
         SmdGetObjPtr(0xA)->be_flag &= ~2;
         SmdGetObjPtr(0xB)->be_flag &= ~2;
@@ -159,16 +155,16 @@ void R222Init()
     } else {
         r222_setHit(2, 0xD);
         r222_setHit(3, 0xE);
-        r222_work.p->hp[2] = 7000;
-        r222_work.p->hp[3] = 7000;
+        r222_work->hp[2] = 7000;
+        r222_work->hp[3] = 7000;
         SmdGetObjPtr(0x25)->be_flag |= 0x20;
         SmdGetObjPtr(8)->be_flag |= 0x20;
         SmdGetObjPtr(9)->be_flag |= 0x20;
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
         SmdGetObjPtr(0x27)->be_flag |= 0x20;
-        r222_work.p->boxY1[0] = SmdGetObjPtr(0x25)->pos.y;
-        r222_work.p->boxY1[1] = SmdGetObjPtr(8)->pos.y;
-        r222_work.p->boxY1[2] = SmdGetObjPtr(9)->pos.y;
+        r222_work->boxY1[0] = SmdGetObjPtr(0x25)->pos.y;
+        r222_work->boxY1[1] = SmdGetObjPtr(8)->pos.y;
+        r222_work->boxY1[2] = SmdGetObjPtr(9)->pos.y;
         SmdGetObjPtr(0x25)->pos.y = -3677.0f;
         SmdGetObjPtr(8)->pos.y = -3660.0f;
         SmdGetObjPtr(9)->pos.y = -3338.0f;
@@ -184,16 +180,16 @@ void R222Init()
     } else {
         r222_setHit(4, 0x12);
         r222_setHit(5, 0x13);
-        r222_work.p->hp[4] = 7000;
-        r222_work.p->hp[5] = 7000;
+        r222_work->hp[4] = 7000;
+        r222_work->hp[5] = 7000;
         SmdGetObjPtr(0x29)->be_flag |= 0x20;
         SmdGetObjPtr(6)->be_flag |= 0x20;
         SmdGetObjPtr(7)->be_flag |= 0x20;
         SmdGetObjPtr(0x2A)->be_flag |= 0x20;
         SmdGetObjPtr(0x2B)->be_flag |= 0x20;
-        r222_work.p->boxY2[0] = SmdGetObjPtr(0x29)->pos.y;
-        r222_work.p->boxY2[1] = SmdGetObjPtr(6)->pos.y;
-        r222_work.p->boxY2[2] = SmdGetObjPtr(7)->pos.y;
+        r222_work->boxY2[0] = SmdGetObjPtr(0x29)->pos.y;
+        r222_work->boxY2[1] = SmdGetObjPtr(6)->pos.y;
+        r222_work->boxY2[2] = SmdGetObjPtr(7)->pos.y;
         SmdGetObjPtr(0x29)->pos.y = -3589.0f;
         SmdGetObjPtr(6)->pos.y = -3573.0f;
         SmdGetObjPtr(7)->pos.y = -3250.0f;
@@ -201,12 +197,12 @@ void R222Init()
         SmdGetObjPtr(0x2B)->pParts->ang.z = 1.5707964f;
         SceAtSetEnable(0xA, 0);
     }
-    r222_work.p->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 6);
-    r222_work.p->satPos.x = -26987.0f;
-    r222_work.p->satPos.y = -1460.0f;
-    r222_work.p->satPos.z = -8329.0f;
-    r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->ang.y;
-    r222_work.p->sat->setCoord(&r222_work.p->satPos, &r222_work.p->satRot);
+    r222_work->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 6);
+    r222_work->satPos.x = -26987.0f;
+    r222_work->satPos.y = -1460.0f;
+    r222_work->satPos.z = -8329.0f;
+    r222_work->satRot.y = SmdGetObjPtr(1)->pParts->ang.y;
+    r222_work->sat->setCoord(&r222_work->satPos, &r222_work->satRot);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
         SceExec(0x12, (TaskFunc) first_cut, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -215,10 +211,10 @@ void R222Init()
         SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) em_appear, 0, 1);
     } else {
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            r222_work.p->em1.setEm(0x14, -1, 1, 1, 1);
+            r222_work->em1.setEm(0x14, -1, 1, 1, 1);
         }
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            r222_work.p->em2.setEm(0x15, -1, 1, 1, 1);
+            r222_work->em2.setEm(0x15, -1, 1, 1, 1);
         }
     }
     SceExec(0x12, (TaskFunc) dragon_down_ck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -319,9 +315,9 @@ void EmHitUpdate(cEmHit* h)
 // Damage on shot target `no`.
 void Hit(int no)
 {
-    r222_work.p->hp[no] -= GetWepDmVal(r222_work.p->hit[no], r222_work.p->hit[no]->dmg.m_Wep, 0);
-    EmDmBloodSet2(r222_work.p->hit[no], 1, 0xD, 0, 0, 0);
-    SndCall(6, 0xF, &r222_work.p->hit[no]->pos, 0, 0, 0);
+    r222_work->hp[no] -= GetWepDmVal(r222_work->hit[no], r222_work->hit[no]->dmg.m_Wep, 0);
+    EmDmBloodSet2(r222_work->hit[no], 1, 0xD, 0, 0, 0);
+    SndCall(6, 0xF, &r222_work->hit[no]->pos, 0, 0, 0);
 }
 
 // Per frame (debug trigger 0 drops the main dragon): reads the rotating platform's angle (object 1's
@@ -369,35 +365,35 @@ void R222Main()
         eprintf(0xD8, 0x46, 2, 0, "%f", ry);
         SceAtSetEnable(7, 1);
     }
-    r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->ang.y;
-    r222_work.p->sat->setCoord(&r222_work.p->satPos, &r222_work.p->satRot);
-    if (r222_work.p->seTimer <= 0) {
-        r222_work.p->seTimer = seReset;
+    r222_work->satRot.y = SmdGetObjPtr(1)->pParts->ang.y;
+    r222_work->sat->setCoord(&r222_work->satPos, &r222_work->satRot);
+    if (r222_work->seTimer <= 0) {
+        r222_work->seTimer = seReset;
         Vec pos = {-37635.0f, -7165.0f, -10599.0f};
 
         pos.x += fRand1_1() * 32107.0f;
         pos.z += fRand1_1() * 12726.0f;
         SndCall(6, 4, &pos, 0, 0, 0);
     } else {
-        r222_work.p->seTimer--;
+        r222_work->seTimer--;
     }
 }
 
 // One dragon's pair of shot targets follows its objects; the dragon drops when both are destroyed
 // (written out per dragon: an inline taking the wrap / task pointers precomputes them).
 #define R222_DRAGON_CHECK(no, objA, objB, em, down)                                     \
-    r222_work.p->hit[no]->pos = SmdGetObjPtr(objA)->pos;                                \
-    r222_work.p->hit[no + 1]->pos = SmdGetObjPtr(objB)->pos;                            \
-    EmHitUpdate(r222_work.p->hit[no]);                                                  \
-    EmHitUpdate(r222_work.p->hit[no + 1]);                                              \
-    if (r222_work.p->hit[no]->ckStatus() == 1) {                                        \
+    r222_work->hit[no]->pos = SmdGetObjPtr(objA)->pos;                                \
+    r222_work->hit[no + 1]->pos = SmdGetObjPtr(objB)->pos;                            \
+    EmHitUpdate(r222_work->hit[no]);                                                  \
+    EmHitUpdate(r222_work->hit[no + 1]);                                              \
+    if (r222_work->hit[no]->ckStatus() == 1) {                                        \
         Hit(no);                                                                        \
     }                                                                                   \
-    if (r222_work.p->hit[no + 1]->ckStatus() == 1) {                                    \
+    if (r222_work->hit[no + 1]->ckStatus() == 1) {                                    \
         Hit(no + 1);                                                                    \
     }                                                                                   \
-    if (r222_work.p->hp[no] <= 0 || r222_work.p->hp[no + 1] <= 0) {                     \
-        r222_work.p->em.setHp(0);                                                       \
+    if (r222_work->hp[no] <= 0 || r222_work->hp[no + 1] <= 0) {                     \
+        r222_work->em.setHp(0);                                                       \
         SceExec(0x12, (TaskFunc) down, 0, 0, SCE_PRIO_DEF_2, 0);                                     \
     }
 
@@ -416,19 +412,19 @@ static void dragon_down_ck()
                 RsfSet(G_ROOM_ID, 3);
                 SceExec(0x12, (TaskFunc) dragon_appear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
-            if ((r222_work.p->dragon.isAlive() == 1 && r222_work.p->dragon.ckResetEnable() != 0) || r222_work.p->dragon.getPosY() < -10000.0f) {
+            if ((r222_work->dragon.isAlive() == 1 && r222_work->dragon.ckResetEnable() != 0) || r222_work->dragon.getPosY() < -10000.0f) {
                 SceExec(0x12, (TaskFunc) dragon_down, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             R222_DRAGON_CHECK(2, 0xD, 0xE, em1, dragon_down2);
-            if ((r222_work.p->em1.isAlive() == 1 && r222_work.p->em1.ckResetEnable() != 0) || r222_work.p->em1.getPosY() < -10000.0f) {
+            if ((r222_work->em1.isAlive() == 1 && r222_work->em1.ckResetEnable() != 0) || r222_work->em1.getPosY() < -10000.0f) {
                 SceExec(0x12, (TaskFunc) dragon_down2, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             R222_DRAGON_CHECK(4, 0x12, 0x13, em2, dragon_down3);
-            if ((r222_work.p->em2.isAlive() == 1 && r222_work.p->em2.ckResetEnable() != 0) || r222_work.p->em2.getPosY() < -10000.0f) {
+            if ((r222_work->em2.isAlive() == 1 && r222_work->em2.ckResetEnable() != 0) || r222_work->em2.getPosY() < -10000.0f) {
                 SceExec(0x12, (TaskFunc) dragon_down3, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
@@ -439,7 +435,7 @@ static void dragon_down_ck()
 // End of the main dragon's fall (also its cancel path): the pit object 0x2E snapped to fallY, SceEventEnd, effect dropped.
 static void dragon_down_exit()
 {
-    SmdGetObjPtr(0x2E)->pos.y = r222_work.p->fallY;
+    SmdGetObjPtr(0x2E)->pos.y = r222_work->fallY;
     SceEventEnd(0);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -461,7 +457,7 @@ static void dragon_down()
     obj = SmdGetObjPtr(0x2E);
     obj->be_flag |= 0x20;
     obj->pos.y = -7500.0f;
-    RsfSet(pGS->room_id, 0);
+    RsfSet(pG->room_id, 0);
     SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 4);
     EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 5);
     SceAtSetEnable(5, 0);
@@ -471,7 +467,7 @@ static void dragon_down()
     o15->pos.y = -2362.0f;
     o14->ang.y = 1.5708f;
     o15->ang.y = 1.5708f;
-    r222_work.p->dragon.setNoSuspend(1);
+    r222_work->dragon.setNoSuspend(1);
     EstSet(o14, -1, 0, 0, EFF_ROOM, 7, 1, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
     CamCtrl.CutCall(3);
     MotionSetCore(o14, &o14->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
@@ -497,7 +493,7 @@ static void dragon_down()
         SceSleep(1);
     }
     h = 7500.0f;
-    r222_work.p->fallY = obj->pos.y + h;
+    r222_work->fallY = obj->pos.y + h;
     SceSetEventCancel(1, (TaskFunc) dragon_down_exit, 0, -1, 1);
     EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     CamCtrl.CutCall(5);
@@ -521,10 +517,10 @@ static void dragon_down()
 // heights, Room_flg[0] 0x20000000 off, camera back, SceEventEnd, item area 9 on.
 static void box_appear1_exit()
 {
-    SmdGetObjPtr(0x25)->pos.y = r222_work.p->boxY1[0];
-    SmdGetObjPtr(8)->pos.y = r222_work.p->boxY1[1];
-    SmdGetObjPtr(9)->pos.y = r222_work.p->boxY1[2];
-    pGS->Room_flg[0] &= ~0x20000000;
+    SmdGetObjPtr(0x25)->pos.y = r222_work->boxY1[0];
+    SmdGetObjPtr(8)->pos.y = r222_work->boxY1[1];
+    SmdGetObjPtr(9)->pos.y = r222_work->boxY1[2];
+    pG->Room_flg[0] &= ~0x20000000;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceAtSetEnable(9, 1);
@@ -558,9 +554,9 @@ static void box_appear1()
             SndCall(6, 0x12, 0, 0, 0, 0);
         }
         r = 1.0f - t;
-        SmdGetObjPtr(0x25)->pos.y = y[0] * r + r222_work.p->boxY1[0] * t;
-        SmdGetObjPtr(8)->pos.y = y[1] * r + r222_work.p->boxY1[1] * t;
-        SmdGetObjPtr(9)->pos.y = y[2] * r + r222_work.p->boxY1[2] * t;
+        SmdGetObjPtr(0x25)->pos.y = y[0] * r + r222_work->boxY1[0] * t;
+        SmdGetObjPtr(8)->pos.y = y[1] * r + r222_work->boxY1[1] * t;
+        SmdGetObjPtr(9)->pos.y = y[2] * r + r222_work->boxY1[2] * t;
         t += 0.016666668f;
         SceSleep(1);
     }
@@ -615,10 +611,10 @@ static void dragon_down2()
 // End of the second box rise: objects 0x29/6/7 snapped up, Room_flg[0] 0x10000000 off, camera back, item area 0xA on.
 static void box_appear2_exit()
 {
-    SmdGetObjPtr(0x29)->pos.y = r222_work.p->boxY2[0];
-    SmdGetObjPtr(6)->pos.y = r222_work.p->boxY2[1];
-    SmdGetObjPtr(7)->pos.y = r222_work.p->boxY2[2];
-    pGS->Room_flg[0] &= ~0x10000000;
+    SmdGetObjPtr(0x29)->pos.y = r222_work->boxY2[0];
+    SmdGetObjPtr(6)->pos.y = r222_work->boxY2[1];
+    SmdGetObjPtr(7)->pos.y = r222_work->boxY2[2];
+    pG->Room_flg[0] &= ~0x10000000;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceAtSetEnable(0xA, 1);
@@ -652,9 +648,9 @@ static void box_appear2()
             SndCall(6, 0x12, 0, 0, 0, 0);
         }
         r = 1.0f - t;
-        SmdGetObjPtr(0x29)->pos.y = y[0] * r + r222_work.p->boxY2[0] * t;
-        SmdGetObjPtr(6)->pos.y = y[1] * r + r222_work.p->boxY2[1] * t;
-        SmdGetObjPtr(7)->pos.y = y[2] * r + r222_work.p->boxY2[2] * t;
+        SmdGetObjPtr(0x29)->pos.y = y[0] * r + r222_work->boxY2[0] * t;
+        SmdGetObjPtr(6)->pos.y = y[1] * r + r222_work->boxY2[1] * t;
+        SmdGetObjPtr(7)->pos.y = y[2] * r + r222_work->boxY2[2] * t;
         t += 0.016666668f;
         SceSleep(1);
     }
@@ -710,14 +706,14 @@ static void dragon_down3()
 static void dragon_appear_exit()
 {
     SceEventEnd(0);
-    r222_work.p->dragon.setNoSuspend(0);
+    r222_work->dragon.setNoSuspend(0);
 }
 
 // Cutscene: camera cut 2 on the main dragon waking (effect 0xA); player-cancellable.
 static void dragon_appear()
 {
     SceEventStart(0);
-    r222_work.p->dragon.setNoSuspend(1);
+    r222_work->dragon.setNoSuspend(1);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_NONE, 0, 0);
     SceSetEventCancel(1, (TaskFunc) dragon_appear_exit, 0, -1, 1);
     CamCtrl.CutCall(2);
@@ -737,8 +733,8 @@ static void first_cut_exit()
     SmdGetObjPtr(0x17)->be_flag |= 2;
     SmdGetObjPtr(0x14)->be_flag |= 2;
     SmdGetObjPtr(0x15)->be_flag |= 2;
-    if (pGS->Room_flg[2] & 0x20000000) {   // struct view: the pG load stays below the be_flag store
-        SndStrReq(r222_work.p->strId, 8, 0, 0);
+    if (pG->Room_flg[2] & 0x20000000) {   // struct view: the pG load stays below the be_flag store
+        SndStrReq(r222_work->strId, 8, 0, 0);
     }
 }
 
@@ -750,7 +746,7 @@ static void first_cut()
     SmdGetObjPtr(0x14)->be_flag &= ~2;
     SmdGetObjPtr(0x15)->be_flag &= ~2;
     SceEventStart(0);
-    r222_work.p->strId = SndStrReq(0, 0x2E, 0x80000003, 0, 0, 0.0f);
+    r222_work->strId = SndStrReq(0, 0x2E, 0x80000003, 0, 0, 0.0f);
     SceSetEventCancel(1, (TaskFunc) first_cut_exit, 0, 0x42, 1);
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -771,8 +767,8 @@ static void first_cut()
 // End of the side dragons' appearance: they may suspend again, SceEventEnd.
 static void em_appear_exit()
 {
-    r222_work.p->em1.setNoSuspend(0);
-    r222_work.p->em2.setNoSuspend(0);
+    r222_work->em1.setNoSuspend(0);
+    r222_work->em2.setNoSuspend(0);
     SceEventEnd(0);
 }
 
@@ -781,15 +777,15 @@ static void em_appear()
 {
     RsfSet(G_ROOM_ID, 5);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        r222_work.p->em1.setEm(0x14, -1, 1, 1, 1);
+        r222_work->em1.setEm(0x14, -1, 1, 1, 1);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        r222_work.p->em2.setEm(0x15, -1, 1, 1, 1);
+        r222_work->em2.setEm(0x15, -1, 1, 1, 1);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceEventStart(0);
-        r222_work.p->em1.setNoSuspend(1);
-        r222_work.p->em2.setNoSuspend(1);
+        r222_work->em1.setNoSuspend(1);
+        r222_work->em2.setNoSuspend(1);
         CamCtrl.CutCall(7);
         SceSetEventCancel(1, (TaskFunc) em_appear_exit, 0, -1, 1);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -865,8 +861,8 @@ static void incResetNum()
 void em_reset()
 {
     if ((u32) getResetNum() <= 7 && (u32) SceCountEmAlive(0x10, 0x20) <= 3) {
-        if (r222_work.p->resetTimer > 0) {
-            r222_work.p->resetTimer--;
+        if (r222_work->resetTimer > 0) {
+            r222_work->resetTimer--;
         } else {
             // the remainder in its own variable: a fresh register (r9) instead of the call result's r3
             u32 idx = (u32) getResetNum() % 3;
@@ -876,7 +872,7 @@ void em_reset()
                 em->flag |= 1;
             }
             incResetNum();
-            r222_work.p->resetTimer = 210;
+            r222_work->resetTimer = 210;
         }
     }
 }

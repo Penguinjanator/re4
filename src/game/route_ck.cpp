@@ -311,7 +311,7 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         // 30 raw insns would have the whole body up to the `break` rotated instead.
         dmax = a.y - b.y;
         dmax = fabsf(dmax);
-        r = (RtpData*) pGS->Rtp;
+        r = (RtpData*) pG->Rtp;
         np = r->nPoint;
         next = em->RckMy;
         while ((next = tbl[np * next + em->RckTo]) != -1) {
@@ -546,7 +546,7 @@ static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag)
 
     pa = *from;
     pb = *to;
-    if (pGS->debug_mode == 8) {
+    if (pG->debug_mode == 8) {
         Draw_line3d(&pa, &pb, 0xFFFF0000, 0);
     }
     attr |= 0x4000;

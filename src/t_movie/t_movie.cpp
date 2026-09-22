@@ -135,7 +135,7 @@ static void movie_test_init(MovieTestWork* w)
     int on = 1;
 
     w->routine++;
-    if (DbgFlagChk(pGS, DBG_PROC_BAR) == 0) {
+    if (DbgFlagChk(pG, DBG_PROC_BAR) == 0) {
         on = 0;
     }
     w->flag = on;
@@ -206,7 +206,7 @@ static void movie_test_main(MovieTestWork* w)
     case 3:
         if (Sofdec.Move() == 1) {
             w->step = 0;
-            pGS->debug_mode = (u8) w->debugMode;
+            pG->debug_mode = (u8) w->debugMode;
         } else if (Joy[0].trg & 0x10) {
             int pause = 1;
 

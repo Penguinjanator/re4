@@ -39,12 +39,8 @@ struct R200Work {
     int eff2C;          // 0x2C  effect kind of the show view
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R200WorkPtr {
-    R200Work* p;
-};
 
-static R200WorkPtr r200_work;
+static R200Work* r200_work;
 
 // game/EtcModel.cpp (Bio4.sym marks it local; the room imports it)
 extern "C" int setRoomEtcBreakDisp(int no, int on, int flag);
@@ -70,7 +66,7 @@ extern "C" void Evt_R200S00_Func(Event* e);
 void R200Init()
 {
 #line 51 "D:/Bio4/Prog/r200.cpp"
-    R200Work*& wp = r200_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    R200Work*& wp = r200_work;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R200Work*) MEM_CALLOC(sizeof(R200Work), 1, 0xd);
     if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 4);
@@ -97,8 +93,8 @@ void R200Init()
     }
     EvtMgr.SetFunc("evt_r200s00_func", (void*) Evt_R200S00_Func);
     SceSetItemEvent(8, 0x84, 5, 6, r200_openBox, r200_openedBox, 0, 0);
-    r200_work.p->eff10 = EspPullCoreKind();
-    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, (u8) r200_work.p->eff10, 0, 0);
+    r200_work->eff10 = EspPullCoreKind();
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, (u8) r200_work->eff10, 0, 0);
     if (FlagChkSign(pG->Em_flg[2], 0) || FlagChkSign(pG->Em_flg[3], 0) || FlagChk(pG->Em_flg[4], 29)) {
         switch (checkEmListNo(G_ROOM_ID)) {
         case 2:
@@ -165,12 +161,12 @@ static void r200_openBox(int id)
 // End of the show view: stream faded (200 frames), camera back, SceEventEnd, its effect dropped.
 static void r200_execShowView_end()
 {
-    SndStrReq(r200_work.p->snd, 4, 200, 0);
+    SndStrReq(r200_work->snd, 4, 200, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    EffectEspDelete(0, (u8) r200_work.p->eff2C, 0, 0);
-    EffectEspgenDelete(0, (u8) r200_work.p->eff2C, 0);
-    EffectEfmDelete(0, (u8) r200_work.p->eff2C, 0);
+    EffectEspDelete(0, (u8) r200_work->eff2C, 0, 0);
+    EffectEspgenDelete(0, (u8) r200_work->eff2C, 0);
+    EffectEfmDelete(0, (u8) r200_work->eff2C, 0);
 }
 
 // The camera pans over the village on the first visit.
@@ -186,11 +182,11 @@ static void r200_execShowView()
     RsfSet(G_ROOM_ID, 4);
     if (SysFlagChk(pG, SYS_START_EVT_SKIP) == 0) {
         SysFlagOn(pG, SYS_START_EVT_SKIP);
-        r200_work.p->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, FCRef(vol));
+        r200_work->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, *(const f32*) &vol);
         SceSetEventCancel(1, (TaskFunc) r200_execShowView_end, 0, -1, 1);
         SceEventStart(0);
-        r200_work.p->eff2C = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r200_work.p->eff2C, 0, 0);
+        r200_work->eff2C = EspPullCoreKind();
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r200_work->eff2C, 0, 0);
         CamCtrl.CutCall(5);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -292,18 +288,18 @@ static void r200_execTruckEvent_end()
         ang.v.z = 0.0f;
         pl->setAng(pa);
         CamCtrl.Comeback(0);
-        EffectEspDelete(0, (u8) r200_work.p->eff0C, 0, 0);
-        EffectEspgenDelete(0, (u8) r200_work.p->eff0C, 0);
-        EffectEfmDelete(0, (u8) r200_work.p->eff0C, 0);
+        EffectEspDelete(0, (u8) r200_work->eff0C, 0, 0);
+        EffectEspgenDelete(0, (u8) r200_work->eff0C, 0);
+        EffectEfmDelete(0, (u8) r200_work->eff0C, 0);
         SceEventEnd(0);
         if ((pG->Room_flg[0] & 0x80000000) == 0) {
-            cEm* em = r200_work.p->em0.getPtr();
+            cEm* em = r200_work->em0.getPtr();
 
-            EstSet(em, -1, 0, 0, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, r200_work.p->em0.getPtr(), 0);
+            EstSet(em, -1, 0, 0, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, r200_work->em0.getPtr(), 0);
         }
-        r200_work.p->em0.setNoSuspend(0);
-        r200_work.p->em1.setNoSuspend(0);
-        while (r200_work.p->em0.isActive() == 1) {
+        r200_work->em0.setNoSuspend(0);
+        r200_work->em1.setNoSuspend(0);
+        while (r200_work->em0.isActive() == 1) {
             SceSleep(1);
         }
         SceAtSetEnable(0x8A, 1);
@@ -323,35 +319,35 @@ static void r200_execTruckEvent_end()
 static void r200_execTruckEvent()
 {
     r200_lockDoor();
-    r200_work.p->em0.setPtr(0x64, -1, 1);
-    r200_work.p->em1.setPtr(0x66, -1, 1);
-    if (r200_work.p->em0.getPtr() == 0) {
+    r200_work->em0.setPtr(0x64, -1, 1);
+    r200_work->em1.setPtr(0x66, -1, 1);
+    if (r200_work->em0.getPtr() == 0) {
         SceExit();
     }
-    r200_work.p->em0.setNoSuspend(1);
-    r200_work.p->em1.setNoSuspend(1);
+    r200_work->em0.setNoSuspend(1);
+    r200_work->em1.setNoSuspend(1);
     RsfSet(G_ROOM_ID, 0);
     SceEventStart(1);
     CamCtrl.CutCall(2);
-    r200_work.p->em0.setFlag(1);
+    r200_work->em0.setFlag(1);
     SceSetEventCancel(1, (TaskFunc) r200_execTruckEvent_end, 0, -1, 1);
-    r200_work.p->eff0C = 0;
-    r200_work.p->eff0C = EspPullCoreKind();
+    r200_work->eff0C = 0;
+    r200_work->eff0C = EspPullCoreKind();
     SceSleep(10);
-    SndCall(6, 5, &r200_work.p->em0.getPtr()->getPartsPtr(1)->world, 0, 0, 0);
+    SndCall(6, 5, &r200_work->em0.getPtr()->getPartsPtr(1)->world, 0, 0, 0);
     SceSleep(10);
     pG->Room_flg[0] |= 0x80000000;
     {
-        cEm* em = r200_work.p->em0.getPtr();
+        cEm* em = r200_work->em0.getPtr();
 
-        EstSet(em, -1, 0, 0, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, r200_work.p->em0.getPtr(), 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0x20, 0, ESP_CORE_KIND_NONE, r200_work->em0.getPtr(), 0);
     }
-    EstSet(r200_work.p->em0.getPtr(), -1, 0, 0, EFF_ROOM, 1, 1, (u8) r200_work.p->eff0C, 0, 0);
+    EstSet(r200_work->em0.getPtr(), -1, 0, 0, EFF_ROOM, 1, 1, (u8) r200_work->eff0C, 0, 0);
     SceSleep(70);
     {
-        cEm* em = r200_work.p->em0.getPtr();
+        cEm* em = r200_work->em0.getPtr();
 
-        EstSet(em, -1, 0, 0, EFF_ROOM, 0x22, 1, ESP_CORE_KIND_NONE, r200_work.p->em0.getPtr(), 0);
+        EstSet(em, -1, 0, 0, EFF_ROOM, 0x22, 1, ESP_CORE_KIND_NONE, r200_work->em0.getPtr(), 0);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -372,9 +368,9 @@ extern "C" void Evt_R200S00_Func(Event* e)
         SmdGetObjPtr(0x18)->setNoSuspend(0);
         SmdGetObjPtr(0x33)->setNoSuspend(0);
         SmdGetObjPtr(0x34)->setNoSuspend(0);
-        EffectEspDelete(1, (u8) r200_work.p->eff10, 0, 0);
-        EffectEspgenDelete(1, (u8) r200_work.p->eff10, 0);
-        EffectEfmDelete(1, (u8) r200_work.p->eff10, 0);
+        EffectEspDelete(1, (u8) r200_work->eff10, 0, 0);
+        EffectEspgenDelete(1, (u8) r200_work->eff10, 0);
+        EffectEfmDelete(1, (u8) r200_work->eff10, 0);
         setRoomEtcBreakDisp(6, 0, 1);
         break;
     case 1:

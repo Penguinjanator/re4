@@ -21,7 +21,6 @@
 #include "joy.h"
 #include "motion.h"
 #include "TexRender.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 
 
@@ -31,11 +30,7 @@
 
 static void pl_R1_KlauserAttack(cPlayer* pl);
 
-// The tex-render manager pointer is a one-member struct: every store through it reloads it (r10c idiom).
-struct TexRenderMngPtr {
-    TexRenderMng* p;
-};
-static TexRenderMngPtr pl0aTex;
+static TexRenderMng* pl0aTex;
 static u8 pl0aTexTbl[0x20];
 static f32 pl0aAlphaBase = 80.0f;
 asm(".section .data\n\t.balign 8\n\t.text");   // the module's .data is 8-aligned before the BSS tag
@@ -48,13 +43,13 @@ extern "C" void setTexRender(cModelInfo* info)
 {
     u8* tbl = pl0aTexTbl;
 
-    if (GetTexRenderMgr(&pl0aTex.p)) {
+    if (GetTexRenderMgr(&pl0aTex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = pl0aTex.p->texId;
-        pl0aTex.p->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_PL00, 0xC, pl0aTex.p->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = pl0aTex->texId;
+        pl0aTex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_PL00, 0xC, pl0aTex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
@@ -82,7 +77,7 @@ cPlKlauser::cPlKlauser()
     krX7C0 = 0;
     x890 = 0;
     krEffWait = 1;
-    StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
+    StaFlagOff(pG, STA_KLAUSER_TRANSFORM);
     pFootShadowTbl = pl_fs_tbl;
 }
 
@@ -262,7 +257,7 @@ void cPlKlauser::setModel()
         return;
     }
     addModel(info);
-    PSet(Body->pShape, info);
+    Body->pShape = info;
     info = ModInfoMgr.create(PL_ARC(8), PL_ARC(9));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlKlauser::setModel() failed.");
@@ -396,7 +391,7 @@ void cPlKlauser::setLeftHand(u32 no)
     }
     Body->oldLhandNo = Body->nowLhandNo;
     Body->nowLhandNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pG->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlKlauser::setLeftHand() ModInfoMgr.create() failed");
     } else {
@@ -425,7 +420,7 @@ void cPlKlauser::setHead(int no)
     }
     deleteModelInfo(Body->pShape);
     Body->pShape = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xC), PL_ARC_PTR(pGS->pPlayer, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7));
     if (info) {
         addModel(info);
     }
@@ -462,7 +457,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     case 0:
         pl->motionSet(PL_ARC(0x8A), 5, 0, 1, 0);
         pl->x890 = 10;
-        StaFlagOn(pGS, STA_KLAUSER_TRANSFORM);
+        StaFlagOn(pG, STA_KLAUSER_TRANSFORM);
         pl->Neck->motL = 0;
         DmgMgr.set(DMG_TYPE_PUSH, 0x1E, &pl->pos, 1000.0f, 2000.0f);
         EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
@@ -511,7 +506,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         }
         if (MotionCheckCrossFrame(&pl->Motion, 30.0f)) {
             pl->x890 = 0x14;
-            StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
+            StaFlagOff(pG, STA_KLAUSER_TRANSFORM);
         }
         if (pl->motionMove()) {
             pl->dmg.clear();
@@ -530,7 +525,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     case 0x1E:
         pl->motionSet(PL_ARC(0x89), 5, 0, 1, 0);
         pl->x890 = 0x14;
-        StaFlagOff(pGS, STA_KLAUSER_TRANSFORM);
+        StaFlagOff(pG, STA_KLAUSER_TRANSFORM);
         pl->krEffWait = 1;
         EffectEspDelete(0, ESP_CORE_KIND_MARK, pl, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_MARK, pl);

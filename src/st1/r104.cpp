@@ -146,13 +146,13 @@ void R104Init()
         {
             cEmDoor* d = r104_work->door0;
 
-            BitOn(d->be_flag, 8);
+            d->be_flag |= 8;
             d->AddAmb_b = d->AddAmb_g = d->AddAmb_r = 0x28;
         }
         {
             cEmDoor* d = r104_work->door1;
 
-            BitOn(d->be_flag, 8);
+            d->be_flag |= 8;
             d->AddAmb_b = d->AddAmb_g = d->AddAmb_r = 0x28;
         }
     }
@@ -426,7 +426,7 @@ static void r104_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 14);
-    r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, FCRef(vol));
+    r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, *(const f32*) &vol);
     SceSetEventCancel(1, (TaskFunc) r104_execShowView_end, 0, -1, 1);
     SceEventStart(1);
     StaFlagOff(pG, STA_SUSPEND);
@@ -479,7 +479,7 @@ extern "C" void EmReset_init(EmReset* r, R104ResetData* d)
     r->flagA = d->flagA;
     r->flagB = d->flagB;
     r->flagC = d->flagC;
-    IntSet(r->flagD, d->flagD);   // reference store: keeps the `lwz pG` of the RsfCheck below the copies
+    r->flagD = d->flagD;   // reference store: keeps the `lwz pG` of the RsfCheck below the copies
     if (RsfCheck(G_ROOM_ID, r->flagC) == 0) {
         if (RsfCheck(G_ROOM_ID, r->flagB)) {
             RsfClear(G_ROOM_ID, r->flagB);
@@ -508,8 +508,8 @@ extern "C" int EmReset_set(EmReset* r)
         r->em[1].setReset();
         r->em[2].setReset();
     }
-    U32Set(r104_work->emNum, r104_work->emNum + 3);
-    U32Set(r104_work->resetCnt, r104_work->resetCnt + 1);
+    r104_work->emNum = r104_work->emNum + 3;
+    r104_work->resetCnt = r104_work->resetCnt + 1;
     if (RsfCheck(G_ROOM_ID, r->flagA) == 0) {
         RsfSet(G_ROOM_ID, r->flagA);
     } else if (RsfCheck(G_ROOM_ID, r->flagB) == 0) {
@@ -633,7 +633,7 @@ static void r104_checkEmReset()
     int area;
 
     SceSleep(1);
-    U32Set(r104_work->emNum, SceCountEmAlive(0x10, 0x20));
+    r104_work->emNum = SceCountEmAlive(0x10, 0x20);
     if (r104_work->emNum <= 10) {
         r104_work->emNum = 10;
     }

@@ -185,7 +185,7 @@ void damageBlow(cPlayer* pl)
         if ((s16) pG->pl_life > 0) {
             dead = 0;
         }
-        BitSet(pl->m_Work0, dead);
+        pl->m_Work0 = dead;
         if (dead) {
             mot = PL_ARC_PTR(pG->pPlayer, 0x4E);
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x66);

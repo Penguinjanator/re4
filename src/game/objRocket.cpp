@@ -11,7 +11,6 @@
 #include "player.h"
 #include "pl_body.h"
 #include "motion.h"
-#include "ref_access.h"
 
 // Rocket launcher (weapon 0x13) and its rocket: the launcher carries a loaded cObjRocket on its
 // muzzle parts, launch() sends it along the marker line, drop() leaves an empty launcher model.
@@ -93,7 +92,7 @@ void cObjRocket::move()
                     EstSet(0, -1, &hitW, 0, EFF_CORE, 0x28, 0, ESP_CORE_KIND_NONE, 0, 0);
                 }
             }
-            AddWaterPower(&pos, 1.0f);
+            AddWaterPower(pos, 1.0f);
             SndCall(1, 0x17, &pos, 0, 0, 0);
             PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
             r_no_0 = 2;
@@ -104,7 +103,7 @@ void cObjRocket::move()
             if (res) {
                 StaFlagOn(pG, STA_SE_BURST);
                 pG->SeInfo.pos = pos;
-                pGS->SeInfo.type = 1;
+                pG->SeInfo.type = 1;
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                 EstSet(0, -1, &pos, 0, EFF_CORE, 0x27, 0, ESP_CORE_KIND_PL_WEP, 0, 0);
                 SndCall(1, 0x14, &pos, 0, 0, 0);
@@ -145,7 +144,7 @@ void cObjRocket::move()
                     }
                     StaFlagOn(pG, STA_SE_BURST);
                     pG->SeInfo.pos = pos;
-                    pGS->SeInfo.type = 1;
+                    pG->SeInfo.type = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                     PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                     r_no_0 = 2;
@@ -224,12 +223,12 @@ void cObjLauncher::init(cModel* parent)
     sub2B4.atari.throughOn();
     LightInfo.init2(1, 1, &cObjRocket::lightPos, &cObjRocket::lightSize, 1);
     grip(0);
-    PSet(wep.parent, parent);
+    wep.parent = parent;
     if (pG->weapon_type != 2) {
-        PSet(wep.motReset[0], WEP_ARC_PTR(0x1E));
+        wep.motReset[0] = WEP_ARC_PTR(0x1E);
         wep.motReset[1] = WEP_ARC_PTR(0x1E);
     } else {
-        PSet(wep.motReset[0], WEP_ARC_PTR(0x1D));
+        wep.motReset[0] = WEP_ARC_PTR(0x1D);
         wep.motReset[1] = WEP_ARC_PTR(0x1D);
     }
     resetMotion();
@@ -373,9 +372,9 @@ void cObjLauncher::drop(int se)
             ObjMgr.destroy(w);
         } else {
             w->pos = hit;
-            FSet(w->ang.z, 0.0f);
-            FSet(w->ang.x, 0.0f);
-            FSet(w->pos.y, w->pos.y + 100.0f);
+            w->ang.z = 0.0f;
+            w->ang.x = 0.0f;
+            w->pos.y = w->pos.y + 100.0f;
             w->ang.y = LIMIT_ANGLE(pPL->ang.y + 1.5707964f);
             if (se) {
                 SndCall(2, 3, &w->pParts->world, 0, 0, 0);
@@ -390,7 +389,7 @@ void cObjLauncher::drop(int se)
 void cObjLauncher::grip(int onoff)
 {
     if (pG->weapon_type == 2 || onoff == 1) {
-        PSet(pParts->pParent, pPL->getPartsPtr(10));
+        pParts->pParent = pPL->getPartsPtr(10);
         motionSet(WEP_ARC_PTR(0x1D), 0, 0, 1, 0);
     } else {
         gripBack();
@@ -400,7 +399,7 @@ void cObjLauncher::grip(int onoff)
 // Hangs the launcher on the player's back (parts 2) with the back motion.
 void cObjLauncher::gripBack()
 {
-    PSet(pParts->pParent, pPL->getPartsPtr(2));
+    pParts->pParent = pPL->getPartsPtr(2);
     motionSet(WEP_ARC_PTR(0x1F), 0, 0, 1, 0);
 }
 

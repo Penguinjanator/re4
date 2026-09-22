@@ -54,13 +54,6 @@ struct R10bWork {
 
 static R10bWork* r10b_work;
 
-// readEvent stores into the event unit table and reloads both the work pointer and the entry after
-// it: the pointer is read through a one-member struct view there (see r10f).
-struct R10bWorkPtr {
-    R10bWork* p;
-};
-#define R10B_WORK (((R10bWorkPtr*) &r10b_work)->p)
-
 // Hit effects of attribute type 2 (water)
 static const AtEffInfo r10b_eff_info = {
     1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
@@ -142,9 +135,9 @@ void R10bInit()
     obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[0] = obj;
     if (obj != 0) {
-        FSet(obj->scale.x, 1.5f);
-        FSet(obj->scale.y, 1.5f);
-        FSet(obj->scale.z, 1.5f);
+        obj->scale.x = 1.5f;
+        obj->scale.y = 1.5f;
+        obj->scale.z = 1.5f;
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
@@ -157,9 +150,9 @@ void R10bInit()
     obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[1] = obj;
     if (obj != 0) {
-        FSet(obj->scale.x, 2.0f);
-        FSet(obj->scale.y, 2.0f);
-        FSet(obj->scale.z, 2.0f);
+        obj->scale.x = 2.0f;
+        obj->scale.y = 2.0f;
+        obj->scale.z = 2.0f;
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
@@ -172,9 +165,9 @@ void R10bInit()
     obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[2] = obj;
     if (obj != 0) {
-        FSet(obj->scale.x, 1.7f);
-        FSet(obj->scale.y, 1.7f);
-        FSet(obj->scale.z, 1.7f);
+        obj->scale.x = 1.7f;
+        obj->scale.y = 1.7f;
+        obj->scale.z = 1.7f;
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
@@ -187,9 +180,9 @@ void R10bInit()
     obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[3] = obj;
     if (obj != 0) {
-        FSet(obj->scale.x, 1.5f);
-        FSet(obj->scale.y, 1.5f);
-        FSet(obj->scale.z, 1.5f);
+        obj->scale.x = 1.5f;
+        obj->scale.y = 1.5f;
+        obj->scale.z = 1.5f;
         ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
                                    ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
@@ -218,9 +211,9 @@ extern "C" int readEvent(int no, int wait, void** out)
     if (out != 0) {
         *out = 0;
     }
-    if (R10B_WORK->evt[no] == 0) {
-        R10B_WORK->evt[no] = DC.setData(EvtMgr.NameChange(r10b_evtName[no]));
-        if (R10B_WORK->evt[no] == 0) {
+    if (r10b_work->evt[no] == 0) {
+        r10b_work->evt[no] = DC.setData(EvtMgr.NameChange(r10b_evtName[no]));
+        if (r10b_work->evt[no] == 0) {
             goto fail;
         }
     }
@@ -228,25 +221,25 @@ extern "C" int readEvent(int no, int wait, void** out)
         ReadModule* m;
         u32 max;
 
-        if (R10B_WORK->evt[no]->waitLoadOk() == 0) {
-            R10B_WORK->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
-            pLog->err(0, 0, "readEvent() : out of memory (0x%x)", R10B_WORK->evt[no]->m_size);
+        if (r10b_work->evt[no]->waitLoadOk() == 0) {
+            r10b_work->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
+            pLog->err(0, 0, "readEvent() : out of memory (0x%x)", r10b_work->evt[no]->m_size);
             return 0;
         }
         EspEmDataSwapPush(0x2F);
         m = SearchEmModule(0x2F);
         max = m->size;
-        if (R10B_WORK->evt[no]->m_size > max) {
+        if (r10b_work->evt[no]->m_size > max) {
             // `return 0` (not `goto fail`): at sched2 the block continues past the err call with
             // `li r3,0`, whose output dependence on the pLog load and the block-end jump rank the
             // `mr r7,size` and `lwz r3` above the string `lis`; jump2 then cross-jumps the tail.
-            pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", R10B_WORK->evt[no]->m_size, max);
+            pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", r10b_work->evt[no]->m_size, max);
             return 0;
         }
-        MemorySwap(m->pArc, (u32) R10B_WORK->evt[no]->m_addr, R10B_WORK->evt[no]->m_size);
+        MemorySwap(m->pArc, (u32) r10b_work->evt[no]->m_addr, r10b_work->evt[no]->m_size);
         *out = m->pArc;
     } else {
-        R10B_WORK->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 0);
+        r10b_work->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 0);
     }
     return 1;
 fail:
@@ -276,7 +269,7 @@ static void R10b_chkEmDie()
     cEm* boss;
 
     SceSleep(1);
-    PSet(r10b_work->em0, GetEmPtrFromList(0xA0));
+    r10b_work->em0 = GetEmPtrFromList(0xA0);
     boss = r10b_work->boss;
     Cckpt.m_LifeMeter.flags = (u32) boss;
     for (;;) {
@@ -345,7 +338,7 @@ static void R10b_chkWater()
             cEm* em;
             Vec pos;
 
-            BitOn(pG->Room_flg[0], 0x40000000);    // reference RMW: the r10b_work load waits for the store
+            pG->Room_flg[0] |= 0x40000000;    // reference RMW: the r10b_work load waits for the store
             EmMgr.destroy(r10b_work->boat);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -431,7 +424,7 @@ static void r10b_GakeEvent()
             }
             freeEvent(3);
         }
-        PSet(r10b_work->boat, EmSetFromList2(0xA3, 0));    // reference store: the pG load waits for it
+        r10b_work->boat = EmSetFromList2(0xA3, 0);    // reference store: the pG load waits for it
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(4);
         SceEventEnd(0);
@@ -476,12 +469,12 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         case 7:
             if (e->NowFrame == 0 && !StaFlagChk(pG, STA_BINOCULAR)) {
                 StaFlagOn(pG, STA_BINOCULAR);
-                PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
+                r10b_work->bino = new (&r10b_work->binoObj) IdBinocular;
                 r10b_work->bino->init(&pG->Camera, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                 if (e->NowCut != 1) {
                     r10b_work->bino->cutin(0);
                 }
-                PSet(r10b_work->focus, &r10b_work->focusObj);
+                r10b_work->focus = &r10b_work->focusObj;
                 r10b_work->focus->init(-1);
             }
             r10b_work->bino->move(&pG->Camera);
@@ -538,7 +531,7 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
         }
         step = (*(u16*) fcv & 0x3FFF) / 6;
         for (i = 0; i < 6; i++) {
-            if (R10B_WORK->head[i] == 0) {
+            if (r10b_work->head[i] == 0) {
                 int parts;
                 Vec pos;
                 Vec rot;
@@ -570,9 +563,9 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
                 rot.x = 1.5707964f;
                 rot.y = 0.0f;
                 rot.z = fRand1_1() * 3.1415927f;
-                R10B_WORK->head[i] = SetObj16(bin, tpl, em, em, parts, 0xA, &pos, &rot);
-                if (R10B_WORK->head[i] != 0) {
-                    MotSetObj16(R10B_WORK->head[i], fcv, 4, i * step);
+                r10b_work->head[i] = SetObj16(bin, tpl, em, em, parts, 0xA, &pos, &rot);
+                if (r10b_work->head[i] != 0) {
+                    MotSetObj16(r10b_work->head[i], fcv, 4, i * step);
                 }
             }
         }
@@ -580,7 +573,7 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
         for (i = 0; i < 6; i++) {
             if (r10b_work->head[i] != 0) {
                 ((cObj16*) r10b_work->head[i])->clearLostWait();
-                R10B_WORK->head[i] = 0;
+                r10b_work->head[i] = 0;
             }
         }
     }

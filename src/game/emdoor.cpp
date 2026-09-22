@@ -1814,7 +1814,7 @@ void emDoor_R1_Break(cEmDoor* em)
         em->clearStatus(EM_STATUS_ACTIVE);
         emDoorSatClear(em);
         em->flag |= 0x30000000;
-        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
@@ -3036,8 +3036,8 @@ void emDoorAction2(cEmDoor* em)
 static inline void emDoorBellSet(Vec* pos)
 {
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->SeInfo.pos = *pos;
-    pGS->SeInfo.type = 0;
+    pG->SeInfo.pos = *pos;
+    pG->SeInfo.type = 0;
 }
 
 // Player damage routine of the kick: a kickable door plays the kick-open motion (0x1C) and
@@ -3053,7 +3053,7 @@ void plemDoorKick(cPlayer* pl)
 
     pl->subArc = door2->subArc;
     if (pl->r_no_2 == 0 || pl->r_no_2 == 4) {
-        if (door->ckKick(&pPLS->pos) && (w->pDoor == 0 || w->pDoor->ckKick(&pPL->pos))) {
+        if (door->ckKick(&pPL->pos) && (w->pDoor == 0 || w->pDoor->ckKick(&pPL->pos))) {
             if (pl->r_no_2 == 0) {
                 pl->r_no_2 = 2;
             }
@@ -3141,7 +3141,7 @@ void plemDoorOpen(cPlayer* pl)
             PSVECSubtract(&v, &pPL->pos, &pl->m_VecWork0);
             pl->m_VecWork0.y = 0.0f;
             pl->m_Fwork0 = pl->pEmCatch->ang.y + PI;
-            FSet(pl->m_Fwork0, LIMIT_ANGLE(pl->m_Fwork0));
+            pl->m_Fwork0 = LIMIT_ANGLE(pl->m_Fwork0);
             MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(0);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {
@@ -3155,7 +3155,7 @@ void plemDoorOpen(cPlayer* pl)
             PSMTXMultVec(((cEmDoor*) pl->pEmCatch)->mat, &v, &v);
             PSVECSubtract(&v, &pPL->pos, &pl->m_VecWork0);
             pl->m_VecWork0.y = 0.0f;
-            FSet(pl->m_Fwork0, ((cEmDoor*) pl->pEmCatch)->ang.y);
+            pl->m_Fwork0 = ((cEmDoor*) pl->pEmCatch)->ang.y;
             MotionSetCore(pl, &pl->Motion, PL_ARC_PTR(pG->pPlayer, 0x1E), 0, 5, 1, 0);
             door->setOpen2(1);
             if (pl->r_no_3 && w->pDoor && !(w->pDoor->flag & 0x10000000)) {

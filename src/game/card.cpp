@@ -29,7 +29,6 @@
 #include "path.h"
 #include "hermite.h"
 #include "room_data.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 #include <dolphin/os/OSCache.h>
@@ -738,7 +737,7 @@ void cCard::loadMain()
         memcpy(SD->p18, buf + SAVE_MERCHANT, MerchantDataSize());
         GameSave.load(pSaveData);
         GameSave.save(pSaveData, pG->SaveKind);
-        BitOn(pG->CardStatus, 4);
+        pG->CardStatus |= 4;
         SysFlagOff(pG, SYS_CARD_ACCESS);
         setMsgWindow(1, 0);
                 m_Rno0++;
@@ -782,7 +781,7 @@ void cCard::makeSaveData()
     d = TEXGet(tpl, i);
     src = (u8*) d->textureHeader->data;
     memcpy(buf + SAVE_BANNER, src, 0x1800);
-    U16Inc(pG->save_cnt);
+    pG->save_cnt++;
     if (!(pG->CardStatus & 0x60)) {
         SetGameTime();
     }
@@ -1067,7 +1066,7 @@ void cCard::saveMain()
         }
         break;
     case 10:
-        BitOn(m_Status, 1);
+        m_Status |= 1;
         SysFlagOff(pG, SYS_CARD_ACCESS);
         cardMesSet(MES_SAVE_DONE, 0, 0);
         if (Key.trg & (KEY_START | KEY_Z)) {
@@ -1113,7 +1112,7 @@ void cCard::exit()
     case 1:
         deleteAllMes();
         if (type == 2) {
-            BitOn(pG->CardStatus, 0x80000000);
+            pG->CardStatus |= 0x80000000;
             systemVISetBlack(1);
             workDestroy();
             exitFlag = 1;
@@ -1130,7 +1129,7 @@ void cCard::exit()
         if (Fade[0].flags & 1) {
             break;
         }
-        BitSet((u32&) dispFlag, 0);
+        (u32&) dispFlag = 0;
         if (!(pG->CardStatus & 0x80)) {
             g_id->quit();
         }
@@ -1156,7 +1155,7 @@ void cCard::exit()
                 SndRoomBgmMuteAll(0, -1);
             }
         }
-        BitOff(pG->CardStatus, 0x7FFFFFF8);
+        pG->CardStatus &= ~0x7FFFFFF8;
         MesData.ptr[0] = (u8*) (pG->pCore->ofs_28 + (u32) pG->pCore);
         exitFlag = 1;
         break;
@@ -1440,7 +1439,7 @@ void cCard::errorDisp()
     case 0:
         CoreSeCall(0x2A, 0, 0, 0, 0);
         cardcheck = 1;
-        switch (S32Ref(m_ErrCode)) {
+        switch (m_ErrCode) {
         case -3:
             if (type == 2) {
                 mesNo = MES_NO_CARD_START;
@@ -1734,7 +1733,7 @@ int cCard::initialize(int type)
         }
     } else {
         if (type == 0) {
-            BitOff(pG->CardStatus, 4);
+            pG->CardStatus &= ~4;
         }
         heap = MemGetCurrentHeap();
         TaskSuspend(0);
@@ -1750,16 +1749,16 @@ int cCard::initialize(int type)
             while (Fade[0].flags & 1) {
                 TaskSleep(1);
             }
-            BitSet(m_DPFbak, pG->Disp_flg);
-            BitSet(pG->Disp_flg, 0xFFFFFFFF);
+            m_DPFbak = pG->Disp_flg;
+            pG->Disp_flg = 0xFFFFFFFF;
             DpfFlagOff(pG, DPF_MESSAGE);
             DpfFlagOff(pG, DPF_ID_SYSTEM);
         }
         if (m_DataSwap.SwapOut(addr, m_NeedMemSize, 0) == 0) {
             return 0;
         }
-        BitSet(m_SPFbak, pG->Stop_flg);
-        BitSet(pG->Stop_flg, 0xFFFFFFFF);
+        m_SPFbak = pG->Stop_flg;
+        pG->Stop_flg = 0xFFFFFFFF;
         SpfFlagOff(pG, SPF_KEY);
         SpfFlagOff(pG, SPF_ID_SYSTEM);
         if (initSub() == 0) {
@@ -1869,7 +1868,7 @@ u32 cCard::getUseMemSize()
     sysBufSize = SYS_SIZE;
     m_SysSize = 1;
     size = 0;
-    if (!(pGS->CardStatus & 0x80)) {
+    if (!(pG->CardStatus & 0x80)) {
         saveBufSize = SAVE_SIZE;
         m_SaveSize = 8;
         if (Dvd.FileExistCheck(idpath, &size) < 0) {
@@ -2053,7 +2052,7 @@ void cCard::firstCheck10()
         break;
     case 2:
         *pSys = *(SYSTEM_SAVE_WORK*) (buf + SYS_WORK);
-        BitOn(pGS->CardStatus, 1);
+        pG->CardStatus |= 1;
         SndSetOutputMode(pSys->SndMode, 1);
         m_Rno1++;
         break;
@@ -2214,19 +2213,19 @@ int CardLoad()
 void CardSave(int no, int f)
 {
     if (f & 2) {
-        BitOn(pG->CardStatus, 8);
+        pG->CardStatus |= 8;
     }
     if (f & 4) {
-        BitOn(pG->CardStatus, 0x10);
+        pG->CardStatus |= 0x10;
     }
     if (f & 8) {
-        BitOn(pG->CardStatus, 0x20);
+        pG->CardStatus |= 0x20;
     }
     if (f & 0x10) {
-        BitOn(pG->CardStatus, 0x40);
+        pG->CardStatus |= 0x40;
     }
     if (f & 0x20) {
-        BitOn(pG->CardStatus, 0x98);
+        pG->CardStatus |= 0x98;
     }
     pG->snd_tbl_no = no;
     TaskExec(1, (TaskFunc) CardMainTask, 1);
@@ -2236,7 +2235,7 @@ void CardSave(int no, int f)
 // Saves the system file (options) through the save task and waits.
 void CardSysSave()
 {
-    BitOn(pG->CardStatus, 0x98);
+    pG->CardStatus |= 0x98;
     TaskExec(1, (TaskFunc) CardMainTask, 1);
     TaskSleep(1);
 }
@@ -2245,7 +2244,7 @@ void CardSysSave()
 void CardFirstCheck()
 {
     if (pRK->reset_flag != 0 && pRK->MemcardCheckDone == 1) {
-        BitOn(pG->CardStatus, 0x80000000);
+        pG->CardStatus |= 0x80000000;
         TaskExit();
     }
     TaskChain((TaskFunc) CardMainTask, 2);
@@ -3414,9 +3413,9 @@ void CardID::init(int type, CardArc* data)
         IdUnit* p = g_id->m_IdSave.unitPtr(0x15, 0x40 + j);
         IdUnit* q = g_id->m_IdSave.unitPtr((u8) (j + 0x10), IDC_SSCRN_FAR_0);
         q->type = 1;
-        FSet(p->scr.z, zero);
-        FSet(p->scr.y, zero);
-        FSet(p->scr.x, zero);
+        p->scr.z = zero;
+        p->scr.y = zero;
+        p->scr.x = zero;
         g_id->m_IdSave.unitParent(q, p);
     }
     u = g_id->m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0);
@@ -3490,7 +3489,7 @@ void CardID::wait(cCard* pCard)
         v = 0;
     }
     if (v) {
-        BitOff(pCard->m_Status, 2);
+        pCard->m_Status &= ~2;
         a = g_id->m_IdSave.unitPtr(0, IDC_SSCRN_FAR_0);
         b = g_id->m_IdSave.unitPtr(0xA, IDC_SSCRN_FAR_0);
         a->path0 = b->path0;

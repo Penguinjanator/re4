@@ -58,12 +58,8 @@ struct ConsWork {
 };
 
 static ConsWork consWork;
-// the work pointer is a struct member: every store through it reloads it (LightToolPtr idiom)
-struct ConsWorkPtr {
-    ConsWork* p;
-};
-static ConsWorkPtr consWorkPtr;
-#define pCons consWorkPtr.p
+static ConsWork* consWorkPtr;
+#define pCons consWorkPtr
 
 static char* roomPath = "x:\\soft/room/st%x/r%x%02x/r%x%02x.cns";
 static char* corePath = "x:\\soft/room/etc/core/core.cns";

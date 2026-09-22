@@ -54,7 +54,7 @@ void R102Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r102_execEvent00, 0, 1);
         EmReadSearch(0x18, 0, 0);
-        PSet(r102_work->evd, DC.setData(EvtMgr.NameChange("evd/r102s00.evd")));
+        r102_work->evd = DC.setData(EvtMgr.NameChange("evd/r102s00.evd"));
         r102_work->evd->setCommand(CMND_MRAM_LOAD, 0, 0);
     }
     SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -82,7 +82,7 @@ static void r102_execEvent00()
         Vec pos = {-10960.7f, -8769.21f, 38593.6f};
         Vec ang;
         f32 ry = -1.67305f;
-        cPlayer* pl = pPLS;
+        cPlayer* pl = pPL;
         Vec* pa = &ang;
 
         pl->setPos(&pos);

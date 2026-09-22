@@ -56,15 +56,11 @@ struct R213Work {
     u32 str;              // 0xB8  SndStrPlayBlock handle
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R213WorkPtr {
-    R213Work* p;
-};
 
 static inline void PSetTex(TexRenderMng*& d, TexRenderMng* v) { d = v; }
 
 static u8 r213_texTbl[0x20];
-static R213WorkPtr r213_work;
+static R213Work* r213_work;
 static R213SuYarare* r213_suYarare;
 PenCloth r213_cloth;
 
@@ -128,7 +124,7 @@ extern "C" void* r213_memset(void*, ...) asm("memset");
 void R213Init()
 {
 #line 67 "D:/Bio4/Prog/r213.cpp"
-    r213_work.p = (R213Work*) MEM_CALLOC(sizeof(R213Work), 1, 0xd);
+    r213_work = (R213Work*) MEM_CALLOC(sizeof(R213Work), 1, 0xd);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot;
     Vec* pr;
@@ -144,14 +140,14 @@ void R213Init()
     }
     asm volatile(""); // COMPILER-DIFF: 3
     for (i = 0; i < 3; i++) {
-        r213_work.p->sat[i] = 0;
-        r213_work.p->eat[i] = 0;
+        r213_work->sat[i] = 0;
+        r213_work->eat[i] = 0;
     }
-    PSet(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 1));
-    PSet(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, pr, 1));
-    PSet(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 2));
-    PSet(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 3));
-    r213_work.p->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r213_satPos, &r213_satRot, 2);
+    r213_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 1);
+    r213_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, pr, 1);
+    r213_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 2);
+    r213_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 3);
+    r213_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r213_satPos, &r213_satRot, 2);
     EvtMgr.SetFunc("evt_r213s00_func", (void*) Evt_R213S00_Func);
     if (getRoomEtcDoor(0x22, &door0, 1) && getRoomEtcDoor(0x23, &door1, 1)) {
         door0->setDoor(door1);
@@ -212,7 +208,7 @@ void R213SuInit()
     cObj* obj;
     u8* tbl = r213_texTbl;
 
-    PSetTex(r213_work.p->tex, 0);
+    r213_work->tex = 0;
     if (RsfCheck(G_ROOM_ID, 2)) {
         R213SuBreakModel();
     } else {
@@ -224,12 +220,12 @@ void R213SuInit()
         SceAtSetEnable(0x8C, 0);
         SceAtSetEnable(0x8D, 0);
         SceAtSetEnable(0x8E, 0);
-        if (GetTexRenderMgr(&r213_work.p->tex)) {
+        if (GetTexRenderMgr(&r213_work->tex)) {
             tbl[0] = 1;
             tbl[1] = 0;
             tbl[4] = 0xF7;
-            tbl[5] = r213_work.p->tex->texId;
-            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            tbl[5] = r213_work->tex->texId;
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
         } else {
             pLog->err(0, 0, "R213Init() : Manager alloc failed!!");
         }
@@ -248,9 +244,9 @@ void R213SuInit()
             cObj* o = SmdGetObjPtr(0x12);
 
             if (o) {
-                r213_work.p->hit[0] = SetEmHit(R213_EM_ARC(20), R213_EM_ARC(24), &o->pos, 0, 1);
-            if (r213_work.p->hit[0]) {
-                cEmHit* hit = r213_work.p->hit[0];
+                r213_work->hit[0] = SetEmHit(R213_EM_ARC(20), R213_EM_ARC(24), &o->pos, 0, 1);
+            if (r213_work->hit[0]) {
+                cEmHit* hit = r213_work->hit[0];
 
                 r213_suYarare = (R213SuYarare*) hit->free;
                 YarareInit(hit, 0.0f, -9000.0f, 0.0f, 6000.0f, 15000.0f, 0, YAT_FLAG_ON | YAT_FLAG_NO_SCR_BOMB_CK);
@@ -295,8 +291,8 @@ static void R213SuMove()
             o12->scale.x = sinf(a0) * r213_suAmpX + 1.0f;
             o12->scale.y = cosf(a1) * r213_suAmpY + 1.0f;
             o12->scale.z = sinf(a2) * r213_suAmpZ + 1.0f;
-            if (RsfCheck(*(u16*) &pGS->stage_no, 2) == 0) {   // struct view: the pG load stays below the scale store
-                cEmHit* hit = r213_work.p->hit[0];
+            if (RsfCheck(*(u16*) &pG->stage_no, 2) == 0) {   // struct view: the pG load stays below the scale store
+                cEmHit* hit = r213_work->hit[0];
 
                 if (hit) {
                     if (hit->ckStatus() == 1) {
@@ -352,23 +348,23 @@ void R213SuBreakModel()
     SceAtSetEnable(0x8C, 1);
     SceAtSetEnable(0x8D, 1);
     SceAtSetEnable(0x8E, 1);
-    if (r213_work.p->sat[0]) {
-        r213_work.p->sat[0]->m_Flag &= ~4;
+    if (r213_work->sat[0]) {
+        r213_work->sat[0]->m_Flag &= ~4;
     }
-    if (r213_work.p->eat[0]) {
-        r213_work.p->eat[0]->m_Flag &= ~4;
+    if (r213_work->eat[0]) {
+        r213_work->eat[0]->m_Flag &= ~4;
     }
-    r213_work.p->em[0].setFlag(0x20000000);
-    r213_work.p->em[1].setFlag(0x20000000);
-    r213_work.p->em[2].setFlag(0x20000000);
-    r213_work.p->em[4].setFlag(0x20000000);
-    r213_work.p->em[5].setFlag(0x20000000);
-    r213_work.p->em[7].setFlag(0x20000000);
-    r213_work.p->em[8].setFlag(0x20000000);
-    r213_work.p->em[3].setFlag(0x20000000);
-    r213_work.p->em[6].setFlag(0x20000000);
-    r213_work.p->em[3].setHp(0);
-    r213_work.p->em[6].setHp(0);
+    r213_work->em[0].setFlag(0x20000000);
+    r213_work->em[1].setFlag(0x20000000);
+    r213_work->em[2].setFlag(0x20000000);
+    r213_work->em[4].setFlag(0x20000000);
+    r213_work->em[5].setFlag(0x20000000);
+    r213_work->em[7].setFlag(0x20000000);
+    r213_work->em[8].setFlag(0x20000000);
+    r213_work->em[3].setFlag(0x20000000);
+    r213_work->em[6].setFlag(0x20000000);
+    r213_work->em[3].setHp(0);
+    r213_work->em[6].setHp(0);
 }
 
 // Task: the statue collapses (cut 5).
@@ -380,7 +376,7 @@ static void R213EventSuBreakMain()
 
         RsfSet(G_ROOM_ID, 2);
         SceEventStart(1);
-        hit = r213_work.p->hit[0];
+        hit = r213_work->hit[0];
         if (hit) {
             EffectEspDelete(0, ESP_CORE_KIND_ROOM00, hit, 0);
             EffectEspgenDelete(0, ESP_CORE_KIND_ROOM00, hit);
@@ -393,7 +389,7 @@ static void R213EventSuBreakMain()
         SmdSetTrans(0x11, 0);
         SmdSetTrans(0x12, 0);
         SceSetEventCancel(1, (TaskFunc) R213EventSuBreakEnd, 0, -1, 1);
-        r213_work.p->str = SndStrPlayBlock(1, 4, 0.0f);
+        r213_work->str = SndStrPlayBlock(1, 4, 0.0f);
         CamCtrl.CutCall(5);
         for (i = 210; i != 0; i--) {
             SceSleep(1);
@@ -407,7 +403,7 @@ static void R213EventSuBreakMain()
 // dropped, camera back, SceEventEnd, task exit.
 static void R213EventSuBreakEnd()
 {
-    SndStrReq(r213_work.p->str, 8, 0, 0);
+    SndStrReq(r213_work->str, 8, 0, 0);
     R213SuBreakModel();
     EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM01, 0, 0);
     EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM01, 0);
@@ -420,24 +416,24 @@ static void R213EventSuBreakEnd()
 // The enemies of the s00 event; the two behind the statue only while it stands.
 void R213EmSet()
 {
-    r213_work.p->em[0].setPtr(0xC2, -1, 0);
-    r213_work.p->em[1].setPtr(0xC3, -1, 0);
-    r213_work.p->em[2].setPtr(0xC4, -1, 0);
-    r213_work.p->em[4].setPtr(0xC6, -1, 0);
-    r213_work.p->em[5].setPtr(0xC7, -1, 0);
-    r213_work.p->em[7].setPtr(0xC9, -1, 0);
-    r213_work.p->em[8].setPtr(0xCA, -1, 0);
+    r213_work->em[0].setPtr(0xC2, -1, 0);
+    r213_work->em[1].setPtr(0xC3, -1, 0);
+    r213_work->em[2].setPtr(0xC4, -1, 0);
+    r213_work->em[4].setPtr(0xC6, -1, 0);
+    r213_work->em[5].setPtr(0xC7, -1, 0);
+    r213_work->em[7].setPtr(0xC9, -1, 0);
+    r213_work->em[8].setPtr(0xCA, -1, 0);
     if (RsfCheck(G_ROOM_ID, 2)) {
-        r213_work.p->em[0].setFlag(0x20000000);
-        r213_work.p->em[1].setFlag(0x20000000);
-        r213_work.p->em[2].setFlag(0x20000000);
-        r213_work.p->em[4].setFlag(0x20000000);
-        r213_work.p->em[5].setFlag(0x20000000);
-        r213_work.p->em[7].setFlag(0x20000000);
-        r213_work.p->em[8].setFlag(0x20000000);
+        r213_work->em[0].setFlag(0x20000000);
+        r213_work->em[1].setFlag(0x20000000);
+        r213_work->em[2].setFlag(0x20000000);
+        r213_work->em[4].setFlag(0x20000000);
+        r213_work->em[5].setFlag(0x20000000);
+        r213_work->em[7].setFlag(0x20000000);
+        r213_work->em[8].setFlag(0x20000000);
     } else {
-        r213_work.p->em[3].setPtr(0xC5, -1, 0);
-        r213_work.p->em[6].setPtr(0xC8, -1, 0);
+        r213_work->em[3].setPtr(0xC5, -1, 0);
+        r213_work->em[6].setPtr(0xC8, -1, 0);
     }
 }
 
@@ -508,31 +504,31 @@ void R213StatusSetBridge(int mode)
 {
     if (mode == 2) {
         RsfSet(G_ROOM_ID, 4);
-        if (r213_work.p->sat[1]) {
-            r213_work.p->sat[1]->m_Flag &= ~4;
+        if (r213_work->sat[1]) {
+            r213_work->sat[1]->m_Flag &= ~4;
         }
-        if (r213_work.p->sat[2]) {
-            r213_work.p->sat[2]->m_Flag |= 4;
+        if (r213_work->sat[2]) {
+            r213_work->sat[2]->m_Flag |= 4;
         }
     } else {
-        if (r213_work.p->sat[1]) {
-            r213_work.p->sat[1]->m_Flag |= 4;
+        if (r213_work->sat[1]) {
+            r213_work->sat[1]->m_Flag |= 4;
         }
-        if (r213_work.p->sat[2]) {
-            r213_work.p->sat[2]->m_Flag &= ~4;
+        if (r213_work->sat[2]) {
+            r213_work->sat[2]->m_Flag &= ~4;
         }
     }
     if (mode == 0) {
-        r213_work.p->ang = 0.34906587f;
+        r213_work->ang = 0.34906587f;
     }
     if (mode == 1) {
-        r213_work.p->ang = (f32) r213_work.p->breakNum * 0.0017453294f + 0.7853982f;
+        r213_work->ang = (f32) r213_work->breakNum * 0.0017453294f + 0.7853982f;
     }
     if (mode == 2) {
-        r213_work.p->ang = 1.5707964f;
+        r213_work->ang = 1.5707964f;
     }
-    r213_work.p->angCur = r213_work.p->ang;
-    R213BridgeAngSet(r213_work.p->ang);
+    r213_work->angCur = r213_work->ang;
+    R213BridgeAngSet(r213_work->ang);
 }
 
 // mode 0: create the chain object, 1: its hit box, 2: broken (falls), 3: broken and gone.
@@ -576,7 +572,7 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
         Vec rot = {0.0f, 0.0f, 0.0f};
 
         chain = SetChain(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
-        r213_work.p->chain[no] = chain;
+        r213_work->chain[no] = chain;
         if (chain) {
             ((cModel*) chain)->setNoSuspend(1);
             chain->setChain(&r213_cloth);
@@ -588,9 +584,9 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
         cObj* obj = SmdGetObjPtr(objId);
 
         if (obj) {
-            r213_work.p->hit[hitNo] = SetEmHit(R213_EM_ARC(20), R213_EM_ARC(24), &obj->pos, 0, 1);
-            if (r213_work.p->hit[hitNo]) {
-                cEmHit* hit = r213_work.p->hit[hitNo];
+            r213_work->hit[hitNo] = SetEmHit(R213_EM_ARC(20), R213_EM_ARC(24), &obj->pos, 0, 1);
+            if (r213_work->hit[hitNo]) {
+                cEmHit* hit = r213_work->hit[hitNo];
 
                 YarareInit(hit, -300.0f, 0.0f, 0.0f, 500.0f, 0.0f, 0, YAT_FLAG_ON);
                 hit->hp = 1;
@@ -601,14 +597,14 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
     case 2:
     case 3:
         RsfSet(G_ROOM_ID, flagNo);
-        if (r213_work.p->hit[hitNo]) {
-            r213_work.p->hit[hitNo]->hp = 0;
+        if (r213_work->hit[hitNo]) {
+            r213_work->hit[hitNo]->hp = 0;
         }
-        if (r213_work.p->chain[no]) {
+        if (r213_work->chain[no]) {
             if (mode == 3) {
-                ((cModel*) r213_work.p->chain[no])->be_flag &= ~2;
+                ((cModel*) r213_work->chain[no])->be_flag &= ~2;
             } else {
-                PenClothFixClear((cModel*) r213_work.p->chain[no], &r213_cloth, 0x10);
+                PenClothFixClear((cModel*) r213_work->chain[no], &r213_cloth, 0x10);
             }
         }
         SmdSetTrans(objId, 0);
@@ -625,7 +621,7 @@ static void R213BridgeManager()
         int i;
 
         for (;;) {
-            int prev = r213_work.p->breakNum;
+            int prev = r213_work->breakNum;
 
             for (i = 0; i < 2; i++) {
                 broken[i] = 0;
@@ -639,10 +635,10 @@ static void R213BridgeManager()
             R213ChainDamageCheck(0, 0x40, 1, 3);
             R213ChainDamageCheck(1, 0x41, 2, 4);
             R213ChainBreakNumCalc();
-            if (r213_work.p->breakNum - prev > 0) {
+            if (r213_work->breakNum - prev > 0) {
                 int which = 0;
 
-                FSet(r213_work.p->angDown, (f32) (r213_work.p->breakNum - prev) * 0.0017453294f + r213_work.p->ang);
+                r213_work->angDown = (f32) (r213_work->breakNum - prev) * 0.0017453294f + r213_work->ang;
                 if (RsfCheck(G_ROOM_ID, 3)) {
                     if (broken[0] == 0) {
                         which = 0;
@@ -668,25 +664,25 @@ void R213BridgeAngMove(int mode, f32 target)
 {
     int i;
 
-    if (r213_work.p->angCur > target) {
+    if (r213_work->angCur > target) {
         return;
     }
-    r213_work.p->angCur = target;
+    r213_work->angCur = target;
     f32 t = 0.5f;
     f32 step = 0.05f;
     f32 amp = 2.0f;
     f32 dec = 0.2f;
 
-    if (r213_work.p->ang < r213_work.p->angCur) {
+    if (r213_work->ang < r213_work->angCur) {
         do {
-            r213_work.p->ang += t * 3.1415927f / 180.0f;
+            r213_work->ang += t * 3.1415927f / 180.0f;
             t += step;
-            if (r213_work.p->ang >= r213_work.p->angCur) {
-                r213_work.p->ang = r213_work.p->angCur;
+            if (r213_work->ang >= r213_work->angCur) {
+                r213_work->ang = r213_work->angCur;
             }
-            R213BridgeAngSet(r213_work.p->ang);
+            R213BridgeAngSet(r213_work->ang);
             SceSleep(1);
-        } while (r213_work.p->ang < r213_work.p->angCur);
+        } while (r213_work->ang < r213_work->angCur);
     }
     if (mode == 1) {
         EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 1, ESP_CORE_KIND_ROOM04, 0, 0);
@@ -696,10 +692,10 @@ void R213BridgeAngMove(int mode, f32 target)
         if (amp < 0.1f) {
             amp = 0.1f;
         }
-        R213BridgeAngSet(r213_work.p->ang + fRand1_1() * amp * 3.1415927f / 180.0f);
+        R213BridgeAngSet(r213_work->ang + fRand1_1() * amp * 3.1415927f / 180.0f);
         SceSleep(1);
     }
-    R213BridgeAngSet(r213_work.p->ang);
+    R213BridgeAngSet(r213_work->ang);
 }
 
 // Sets the bridge (and its collision and chains) to angle `ang`.
@@ -724,8 +720,8 @@ void R213BridgeAngSet(f32 ang)
         a.y = ry;
         a.z = ang;
         obj->setAng(&a);
-        if (r213_work.p->eat[2]) {
-            r213_work.p->eat[2]->setCoord(&r213_satPos, &obj->ang);
+        if (r213_work->eat[2]) {
+            r213_work->eat[2]->setCoord(&r213_satPos, &obj->ang);
         }
     }
     R213ChainAngSet(0, 0x40, 3, ang, 0);
@@ -741,7 +737,7 @@ void R213ChainAngSet(int no, u32 objId, int hitNo, f32 ang, int flag)
     cObj* bridge = SmdGetObjPtr(0x3B);
 
     if (bridge) {
-        cObjChain* chain = r213_work.p->chain[no];
+        cObjChain* chain = r213_work->chain[no];
 
         if (chain) {
             RotMatrix(m, &bridge->ang);
@@ -794,7 +790,7 @@ void R213ChainAngSet(int no, u32 objId, int hitNo, f32 ang, int flag)
 void R213ChainDamageCheck(int no, u32 objId, int hitNo, int flagNo)
 {
     if (RsfCheck(G_ROOM_ID, flagNo) == 0) {
-        cEmHit* hit = r213_work.p->hit[hitNo];
+        cEmHit* hit = r213_work->hit[hitNo];
 
         if (hit) {
             if (hit->ckStatus() == 1) {
@@ -828,12 +824,12 @@ void R213ChainDamageCheck(int no, u32 objId, int hitNo, int flagNo)
 // breakNum = the number of broken chains (Room_flg bits 3/4).
 void R213ChainBreakNumCalc()
 {
-    IntSet(r213_work.p->breakNum, 0);
+    r213_work->breakNum = 0;
     if (RsfCheck(G_ROOM_ID, 3)) {
-        r213_work.p->breakNum++;
+        r213_work->breakNum++;
     }
     if (RsfCheck(G_ROOM_ID, 4)) {
-        r213_work.p->breakNum++;
+        r213_work->breakNum++;
     }
 }
 
@@ -915,7 +911,7 @@ static void R213EventSwitchMain()
             o41 = SmdGetObjPtr(0x41);
             EstSet(0, -1, &o41->pos, &o41->ang, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_ROOM04, 0, 0);
             SndCall(6, 8, &o41->pos, 0, 0, 0);
-            R213BridgeAngMove(0, r213_work.p->ang + 0.0017453294f);
+            R213BridgeAngMove(0, r213_work->ang + 0.0017453294f);
             while (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
                 // COMPILER-DIFF: candidate #17 -- dead test (o41 is not read again; jump2 deletes the
@@ -964,7 +960,7 @@ static void R213EventChainBreakMove(int which)
     } else {
         CamCtrl.CutCall(8);
     }
-    R213BridgeAngMove(0, r213_work.p->angDown);
+    R213BridgeAngMove(0, r213_work->angDown);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -1079,10 +1075,10 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 EffectEspDelete(0x4001, ESP_CORE_KIND_SST, 0, 0);
                 EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
-                if (r213_work.p->tex) {
-                    EffectEspDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
-                    EffectEspgenDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
-                    EffectEfmDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                if (r213_work->tex) {
+                    EffectEspDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+                    EffectEspgenDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEfmDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
                 }
                 SpfFlagOn(pG, SPF_ESP_AREA);
             }
@@ -1095,15 +1091,15 @@ extern "C" void Evt_R213S00_Func(Event* e)
                 EffectEspDelete(0x4001, ESP_CORE_KIND_SST, 0, 0);
                 EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
                 EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
-                if (r213_work.p->tex) {
-                    EffectEspDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
-                    EffectEspgenDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
-                    EffectEfmDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                if (r213_work->tex) {
+                    EffectEspDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+                    EffectEspgenDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+                    EffectEfmDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
                 }
                 StaFlagOff(pG, STA_EVENT);
                 SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 0);
-                if (r213_work.p->tex) {
-                    EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
+                if (r213_work->tex) {
+                    EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
                 }
                 StaFlagOn(pG, STA_EVENT);
                 SpfFlagOff(pG, SPF_ESP_AREA);
@@ -1124,16 +1120,16 @@ extern "C" void Evt_R213S00_Func(Event* e)
         EffectEspDelete(0x4001, ESP_CORE_KIND_SST, 0, 0);
         EffectEspgenDelete(0x4001, ESP_CORE_KIND_SST, 0);
         EffectEfmDelete(0x4001, ESP_CORE_KIND_SST, 0);
-        if (r213_work.p->tex) {
-            EffectEspDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
-            EffectEspgenDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
-            EffectEfmDelete(r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+        if (r213_work->tex) {
+            EffectEspDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0, 0);
+            EffectEspgenDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
+            EffectEfmDelete(r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, 0);
         }
         frame = 0;
         StaFlagOff(pG, STA_EVENT);
         SstSet(EFF_ROOM, 0xFFFF, ESP_CORE_KIND_SST, 0, 0x2F, 0);
-        if (r213_work.p->tex) {
-            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work.p->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
+        if (r213_work->tex) {
+            EstSet(0, -1, 0, 0, EFF_ROOM, 0, r213_work->tex->mask | 1, ESP_CORE_KIND_ROOM00, (void*) frame, (void*) frame);
         }
         StaFlagOn(pG, STA_EVENT);
         SpfFlagOff(pG, SPF_ESP_AREA);

@@ -364,7 +364,7 @@ static void em24_R1_Free(cEm24* em)
             MotionSetCore(em, MOTION(em), ARC(8), 0, 3, 5, 0);
         }
         w->motEnd = Rnd() % 3;
-        w->Target_dir = GetXZAngle(&pPLS->pos, &em->pos);
+        w->Target_dir = GetXZAngle(&pPL->pos, &em->pos);
         w->Target_dir += fRand1_1() * (PI / 2.0f);
         w->Target_dir = LIMIT_ANGLE(w->Target_dir);
         w->Timer = Rnd() % 3 + 3;

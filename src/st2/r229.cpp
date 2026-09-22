@@ -34,14 +34,10 @@ struct R229Work {
     u32 str;                // 0x10  SndStrReq handle of the camera event
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R229WorkPtr {
-    R229Work* p;
-};
 
 static u8 r229_texTbl0[0x20];
 static u8 r229_texTbl1[0x20];
-static R229WorkPtr r229_work;
+static R229Work* r229_work;
 
 // Water effect table (PlRegistRoomEff): {id, type} pairs, zero terminated.
 static const u32 r229_roomEff[] = {1, 0x21, 1, 0x22, 1, 0x23, 1, 0xA, 1, 0xB, 1, 0xC, 0};
@@ -56,7 +52,7 @@ static void setTexRender();
 // player OT type 5 (wading), Scenario_flg[2] 0x02000000.
 void R229Init()
 {
-    R229Work*& wp = r229_work.p;   // the store's `lis` sits before the mem_calloc call (r30)
+    R229Work*& wp = r229_work;   // the store's `lis` sits before the mem_calloc call (r30)
 
     SysFlagOff(pG, SYS_SCREEN_STOP);
 #line 56 "D:/Bio4/Prog/r229.cpp"
@@ -100,13 +96,13 @@ static void r229_openTerm()
 static void r221_execEmCamera1_end()
 {
     pPL->setNoSuspend(0);
-    if (r229_work.p->eff != 0) {
-        EffectEspDelete(0, (u8) r229_work.p->eff, 0, 0);
-        EffectEspgenDelete(0, (u8) r229_work.p->eff, 0);
-        EffectEfmDelete(0, (u8) r229_work.p->eff, 0);
+    if (r229_work->eff != 0) {
+        EffectEspDelete(0, (u8) r229_work->eff, 0, 0);
+        EffectEspgenDelete(0, (u8) r229_work->eff, 0);
+        EffectEfmDelete(0, (u8) r229_work->eff, 0);
     }
-    if (r229_work.p->str != 0) {
-        SndStrReq(r229_work.p->str, 4, 200, 0);
+    if (r229_work->str != 0) {
+        SndStrReq(r229_work->str, 4, 200, 0);
     }
     SceEventEnd(0);
     SetSstAddAreaFlag(0);
@@ -120,24 +116,24 @@ static void r221_execEmCamera1()
         SceSleep(1);
     }
     SetSstAddAreaFlag(2);
-    r229_work.p->str = SndStrReq(1, 0x36, 0x80000003, 0, 0, 0.0f);
-    r229_work.p->eff = 0;
+    r229_work->str = SndStrReq(1, 0x36, 0x80000003, 0, 0, 0.0f);
+    r229_work->eff = 0;
     SceSetEventCancel(1, (TaskFunc) r221_execEmCamera1_end, 0, -1, 1);
     SceEventStart(0);
     pPL->setNoSuspend(1);
     CamCtrl.CutCall(6);
-    r229_work.p->eff = EspPullCoreKind();
-    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r229_work.p->eff, 0, 0);
+    r229_work->eff = EspPullCoreKind();
+    EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r229_work->eff, 0, 0);
     SceSleep(1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    EffectEspDelete(0, (u8) r229_work.p->eff, 0, 0);
-    EffectEspgenDelete(0, (u8) r229_work.p->eff, 0);
-    EffectEfmDelete(0, (u8) r229_work.p->eff, 0);
-    r229_work.p->eff = 0;
+    EffectEspDelete(0, (u8) r229_work->eff, 0, 0);
+    EffectEspgenDelete(0, (u8) r229_work->eff, 0);
+    EffectEfmDelete(0, (u8) r229_work->eff, 0);
+    r229_work->eff = 0;
     CamCtrl.Comeback(0);
-    r229_work.p->str = 0;
+    r229_work->str = 0;
     SceSetEventCancel(0, 0, 0, -1, 1);
     r221_execEmCamera1_end();
 }
@@ -159,13 +155,13 @@ static void setTexRender()
     u8* tbl0 = r229_texTbl0;
     u8* tbl1 = r229_texTbl1;
 
-    if (GetTexRenderMgr(&r229_work.p->tex[0])) {
+    if (GetTexRenderMgr(&r229_work->tex[0])) {
         tbl0[0] = 1;
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
-        tbl0[5] = r229_work.p->tex[0]->texId;
-        r229_work.p->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r229_work.p->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl0[5] = r229_work->tex[0]->texId;
+        r229_work->tex[0]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r229_work->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -173,13 +169,13 @@ static void setTexRender()
     R229_TEX_OBJ(0xC, tbl0, 0xF0, 0x30, 2, 0x10);
     R229_TEX_OBJ(0xD, tbl0, 0xF0, 0x30, 2, 0x10);
     R229_TEX_OBJ(0xE, tbl0, 0xF0, 0x30, 2, 0x10);
-    if (GetTexRenderMgr(&r229_work.p->tex[1])) {
+    if (GetTexRenderMgr(&r229_work->tex[1])) {
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
-        tbl1[5] = r229_work.p->tex[1]->texId;
-        r229_work.p->tex[1]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r229_work.p->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl1[5] = r229_work->tex[1]->texId;
+        r229_work->tex[1]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r229_work->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

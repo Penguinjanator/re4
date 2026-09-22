@@ -24,7 +24,6 @@
 #include "dbmodule.h"
 #include "at_mod.h"
 #include "joy.h"
-#include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
 #include "pl_npc.h"
@@ -344,7 +343,7 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 // Installs the room's camera data (relocated).
 void CameraControl::RoomDataRead(CameraDataHeader* room)
 {
-    PSet(pG->pCamRoom, calcAddr(room));
+    pG->pCamRoom = calcAddr(room);
     data = (CameraDataHeader*) pG->pCamRoom;
 }
 
@@ -464,8 +463,9 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
                 }
             }
             if (hit == 1) {
+                cEm* sub = pSubEm;
                 at->m_radius *= GAIN;
-                if (ObaLineHitChk(pSubEm, at, *from, p, hp, hn)) {
+                if (ObaLineHitChk(sub, at, *from, p, hp, hn)) {
                     ret = 1;
                     *pos = hp;
                 }
@@ -567,8 +567,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     CameraCut* cut = rec->cut;
     CameraLerp* lerp = NULL;
     CameraDataHeader* d;
-    register int i asm("r11");  // COMPILER-DIFF: loop counter r11 / pointer r10 (global allocates `r` first in ours: 14 refs/28 insns vs `i` 16/64)
-    CameraAreaRec* r;
+    int i;
     int size;
 
     if (areaNo != -1) {
@@ -582,6 +581,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
 
     if (m_system_flag & 2) {
         if (!(rec->area->attr & 8)) {
+            CameraAreaRec* r;
             d = data;
             for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
                 if (r->area->attr & 8) {
@@ -597,6 +597,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         if (a->attr & 0x10) {
             a->enable = 0;
         } else if (a->attr & 8) {
+            CameraAreaRec* r;
             d = data;
             for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
                 if (r->area->attr & 8) {
@@ -1082,10 +1083,10 @@ void CameraControl::roomInit()
     m_key_speed = 0.001f;
     m_behind_A_ratio = 0.75f;
     clearAttachCamera();
-    BitOn(m_system_flag, 2);
+    m_system_flag |= 2;
     if (SysFlagChk(pG, SYS_DOORDEMO)) {
         r0 = 0;
-        BitOn(m_system_flag, 8);
+        m_system_flag |= 8;
     }
     m_pExtraCamera = 0;
     extra = NULL;
@@ -1386,7 +1387,7 @@ void CameraControl::r0_Debug()
     case 0:
         this->campos_ofs = campos_ofs;
         this->target_ofs = target_ofs;
-        PSMTXMultVec(pPLS->mat, &this->campos_ofs, &p.pos);
+        PSMTXMultVec(pPL->mat, &this->campos_ofs, &p.pos);
         PSVECAdd(&pPL->pos, &this->target_ofs, &p.at);
         p.roll = 0.0f;
         p.fovy = 55.0f;
@@ -1456,7 +1457,7 @@ void CameraControl::r0_Fix()
 static inline void smoothStart(f32 ratio)
 {
     u32 f = CamSmth.m_flag;
-    FSet(CamSmth.m_ratio, ratio);
+    CamSmth.m_ratio = ratio;
     CamSmth.m_flag = f | 1;
 }
 
@@ -1507,7 +1508,7 @@ void CameraControl::r0_Track()
         searchRail(bs, cut, &Aim, 0);
         BSpline(bs, &cam, 0);
         cur = cam.param;
-        if (pGS->debug_mode == 0xF) {  // struct view: the pG load stays below the copy's stores
+        if (pG->debug_mode == 0xF) {  // struct view: the pG load stays below the copy's stores
             debugDrawRail(cut);
         }
         break;
@@ -1536,7 +1537,7 @@ void CameraControl::r0_RailPan()
         BSpline(bs, &cam, 0);
         cam.param.at = Aim;
         cur = cam.param;
-        if (pGS->debug_mode == 0xF) {  // struct view: the pG load stays below the copy's stores
+        if (pG->debug_mode == 0xF) {  // struct view: the pG load stays below the copy's stores
             debugDrawRail(cut);
         }
         break;
@@ -1826,7 +1827,7 @@ void CameraControl::r0_RailBehind()
             PSVECSubtract(&pos_old, &pPL->pos, &d);
             pos_old = pPL->pos;
             PSMTXMultVecSR(inv, &d, &d);
-            FSet(move_z, move_z + d.z);
+            move_z = move_z + d.z;
             if (move_z > m_back_play || move_z < -m_back_play) {
                 if (edge_camera == 0) {
                     r2 = 0;
@@ -1921,9 +1922,9 @@ void CameraControl::r0_Free()
         ang.x = ang.x < -0.7853982f ? -0.7853982f : (ang.x > PI * 0.35f ? PI * 0.35f : ang.x);
         ang.y = ang.y < -PI ? PI : (ang.y > PI ? -PI : ang.y);
         {
-            cam_mat[0][3] = pPLS->mat[0][3];
-            cam_mat[1][3] = pPLS->mat[1][3];
-            cam_mat[2][3] = pPLS->mat[2][3];
+            cam_mat[0][3] = pPL->mat[0][3];
+            cam_mat[1][3] = pPL->mat[1][3];
+            cam_mat[2][3] = pPL->mat[2][3];
             Vec xaxis = {1.0f, 0.0f, 0.0f};
             Vec yaxis = {0.0f, 1.0f, 0.0f};
             Vec tofs;
@@ -2387,7 +2388,7 @@ void CameraControl::GetBinocularIDAddr(void** eff_addr, void** uwf_addr)
 // `frame` frames; flags the event camera (m_system_flag 0x28, Status_flg[2] 0x10000000).
 void CameraControl::MotionSet(void* motion, int frame, f32 speed)
 {
-    BitOn(m_system_flag, 0x28);
+    m_system_flag |= 0x28;
     StaFlagOn(pG, STA_CUT_CHANGE);
     extra = new (m_Free) CameraMotion(motion, 0, 0, speed);
     ((CameraMotion*) extra)->base_mat = NULL;
@@ -2517,10 +2518,6 @@ AttachCamera* CameraControl::getAttachCamera(cModel* model)
     return NULL;
 }
 
-// struct-member view of pG with a direct symbol address (no `li rX, pG@sda21`): the original
-// reloads pG and `extra` after every one of the four param copies below
-extern GlobalWorkPtr pGW asm("pG");
-
 // Per-frame: when a registered model's motion has an active camera track, switches to the
 // attached-motion camera (r0 0x11, interpolating over the track's frame count) and back to the
 // area cameras when it ends. Not while the scope is up.
@@ -2556,21 +2553,21 @@ void CameraControl::checkAttachCamera()
     if (model) {
         ac = getAttachCamera(model);
         if (m_p_attach_model_old != model) {
-            BitOn(m_system_flag, 8);
+            m_system_flag |= 8;
             interp.set(ac->frame, &pG->Camera.param);
             r0 = 0x11;
             if (extra) {
                 delete extra;
             }
             extra = new (m_Free) CameraAttachedToMotion(model);
-            extra->param.pos = pGW.p->Camera.param.pos;
-            extra->param.at = pGW.p->Camera.param.at;
-            extra->param.roll = pGW.p->Camera.param.roll;
-            extra->param.fovy = pGW.p->Camera.param.fovy;
+            extra->param.pos = pG->Camera.param.pos;
+            extra->param.at = pG->Camera.param.at;
+            extra->param.roll = pG->Camera.param.roll;
+            extra->param.fovy = pG->Camera.param.fovy;
         }
         inter_frame = ac->frame;
     } else if (m_p_attach_model_old) {
-        BitSet(m_system_flag, 0x10);
+        m_system_flag = 0x10;
         interp.set(inter_frame, &pG->Camera.param);
     }
     m_p_attach_model_old = model;

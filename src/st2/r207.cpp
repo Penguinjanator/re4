@@ -64,12 +64,8 @@ struct R207Work {
     cSubChar* sub;     // 0x100 partner hidden during the enemy event
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R207WorkPtr {
-    R207Work* p;
-};
 
-static R207WorkPtr r207_work;
+static R207Work* r207_work;
 
 static Vec r207_gotoTbl[5] = {
     {-7120.0f, 4149.0f, -1240.0f},
@@ -121,7 +117,7 @@ void R207Init()
     obj = SmdGetObjPtr(0x18);
     // The work address is taken before the calloc call (`lis` above the `bl`, as the plain-pointer
     // rooms do): the store goes through a pointer to the member.
-    wp = &r207_work.p;
+    wp = &r207_work;
 #line 67 "D:/Bio4/Prog/r207.cpp"
     *wp = (R207Work*) MEM_CALLOC(sizeof(R207Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -129,15 +125,15 @@ void R207Init()
         RsfSet(G_ROOM_ID, 5);
         RsfSet(G_ROOM_ID, 6);
     }
-    PSVECSubtract(&r207_wallPos, &obj->pos, &r207_work.p->wallOfs);
+    PSVECSubtract(&r207_wallPos, &obj->pos, &r207_work->wallOfs);
     if (RsfCheck(G_ROOM_ID, 1)) {
         SmdGetObjPtr(0x18)->pos.z = -9500.0f;
         SmdGetObjPtr(0x18)->matUpdate();
         SceAtSetEnable(0x80, 0);
         SceAtSetEnable(0x87, 0);
-        r207_work.p->item0 = (cObj*) m;
+        r207_work->item0 = (cObj*) m;
         if (ItemGetBinTplAddr(0x80, &bin, &tpl) == 1) {
-            r207_work.p->item0 = SetObj00(bin, tpl, &r207_swordPos, &r207_swordRot);
+            r207_work->item0 = SetObj00(bin, tpl, &r207_swordPos, &r207_swordRot);
             SceSleep(1);
         }
     } else {
@@ -193,9 +189,9 @@ void R207Init()
             SceExec(0x12, (TaskFunc) r207_EnemySet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    r207_work.p->em[7].em.setEm(0xD8, -1, 0, 1, 1);
-    r207_work.p->em[8].em.setEm(0xD9, -1, 0, 1, 1);
-    r207_work.p->em[9].em.setEm(0xDA, -1, 0, 1, 1);
+    r207_work->em[7].em.setEm(0xD8, -1, 0, 1, 1);
+    r207_work->em[8].em.setEm(0xD9, -1, 0, 1, 1);
+    r207_work->em[9].em.setEm(0xDA, -1, 0, 1, 1);
     SceSetItemEvent(3, 0x83, 2, 5, r207_ShelfOpen, r207_ShelfOpened, 0, 0);
     SceSetItemEvent(4, 0x84, 3, 6, r207_ShelfOpen, r207_ShelfOpened, 1, 0);
     SceExec(0x12, (TaskFunc) r207_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -213,21 +209,21 @@ void R207Main()
     u32 k;
 
     for (i = 0; i < 4; i++) {
-        r207_work.p->area[i].cur = 0;
-        if (SceAtCheckHitModel(at[i], pPLS)) {
-            r207_work.p->area[i].cur |= 1;
+        r207_work->area[i].cur = 0;
+        if (SceAtCheckHitModel(at[i], pPL)) {
+            r207_work->area[i].cur |= 1;
         }
         for (k = 0; k < 10; k++) {
             if (k == 2) {
                 continue;
             }
-            if (r207_work.p->em[k].em.isActive() && SceAtCheckHitModel(at[i], r207_work.p->em[k].em.getPtr())) {
-                r207_work.p->area[i].cur |= 1 << (k + 4);
+            if (r207_work->em[k].em.isActive() && SceAtCheckHitModel(at[i], r207_work->em[k].em.getPtr())) {
+                r207_work->area[i].cur |= 1 << (k + 4);
             }
         }
-        r207_work.p->area[i].on = (r207_work.p->area[i].prev ^ r207_work.p->area[i].cur) & r207_work.p->area[i].cur;
-        r207_work.p->area[i].off = r207_work.p->area[i].prev & (r207_work.p->area[i].prev ^ r207_work.p->area[i].cur);
-        r207_work.p->area[i].prev = r207_work.p->area[i].cur;
+        r207_work->area[i].on = (r207_work->area[i].prev ^ r207_work->area[i].cur) & r207_work->area[i].cur;
+        r207_work->area[i].off = r207_work->area[i].prev & (r207_work->area[i].prev ^ r207_work->area[i].cur);
+        r207_work->area[i].prev = r207_work->area[i].cur;
     }
     r207_EmMoveCk();
     if (Joy[2].trg & 0x10) {
@@ -250,69 +246,69 @@ void r207_EmMoveCk()
     R207Em* e;
     int k;
 
-    if (r207_work.p->timer != 0) {
-        r207_work.p->timer--;
+    if (r207_work->timer != 0) {
+        r207_work->timer--;
         return;
     }
     if ((u32) r207_CountEmAlive() <= 1) {
         return;
     }
-    if (r207_work.p->area[0].on & 1) {
+    if (r207_work->area[0].on & 1) {
         k = r207_CkDist();
         if (k == -1) {
             return;
         }
-        e = &r207_work.p->em[k];
-        if ((r207_work.p->area[1].cur >> (k + 4)) & 1) {
+        e = &r207_work->em[k];
+        if ((r207_work->area[1].cur >> (k + 4)) & 1) {
             e->gotoNo = 1;
-        } else if ((r207_work.p->area[3].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[3].cur >> (k + 4)) & 1) {
             e->gotoNo = 0;
-        } else if ((r207_work.p->area[2].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[2].cur >> (k + 4)) & 1) {
             e->gotoNo = (Rnd() & 1) ? 9 : 12;
         } else {
             e->gotoNo = 14;
         }
-    } else if (r207_work.p->area[1].on & 1) {
+    } else if (r207_work->area[1].on & 1) {
         k = r207_CkDist();
         if (k == -1) {
             return;
         }
-        e = &r207_work.p->em[k];
-        if ((r207_work.p->area[0].cur >> (k + 4)) & 1) {
+        e = &r207_work->em[k];
+        if ((r207_work->area[0].cur >> (k + 4)) & 1) {
             e->gotoNo = 2;
-        } else if ((r207_work.p->area[2].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[2].cur >> (k + 4)) & 1) {
             e->gotoNo = 3;
-        } else if ((r207_work.p->area[3].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[3].cur >> (k + 4)) & 1) {
             e->gotoNo = (Rnd() & 1) ? 11 : 10;
         } else {
             e->gotoNo = 14;
         }
-    } else if (r207_work.p->area[2].on & 1) {
+    } else if (r207_work->area[2].on & 1) {
         k = r207_CkDist();
         if (k == -1) {
             return;
         }
-        e = &r207_work.p->em[k];
-        if ((r207_work.p->area[1].cur >> (k + 4)) & 1) {
+        e = &r207_work->em[k];
+        if ((r207_work->area[1].cur >> (k + 4)) & 1) {
             e->gotoNo = 5;
-        } else if ((r207_work.p->area[3].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[3].cur >> (k + 4)) & 1) {
             e->gotoNo = 4;
-        } else if ((r207_work.p->area[0].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[0].cur >> (k + 4)) & 1) {
             e->gotoNo = (Rnd() & 1) ? 12 : 9;
         } else {
             e->gotoNo = 14;
         }
-    } else if (r207_work.p->area[3].on & 1) {
+    } else if (r207_work->area[3].on & 1) {
         k = r207_CkDist();
         if (k == -1) {
             return;
         }
-        e = &r207_work.p->em[k];
-        if ((r207_work.p->area[0].cur >> (k + 4)) & 1) {
+        e = &r207_work->em[k];
+        if ((r207_work->area[0].cur >> (k + 4)) & 1) {
             e->gotoNo = 6;
-        } else if ((r207_work.p->area[2].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[2].cur >> (k + 4)) & 1) {
             e->gotoNo = 7;
-        } else if ((r207_work.p->area[1].cur >> (k + 4)) & 1) {
+        } else if ((r207_work->area[1].cur >> (k + 4)) & 1) {
             e->gotoNo = (Rnd() & 1) ? 11 : 8;
         } else {
             e->gotoNo = 14;
@@ -321,7 +317,7 @@ void r207_EmMoveCk()
         return;
     }
     SceExec(0x12, (TaskFunc) r207_GotoPos, (int) e, 0, SCE_PRIO_DEF_2, 0);
-    r207_work.p->timer = 150;
+    r207_work->timer = 150;
 }
 
 // The idle enemy farthest from the player (-1: none).
@@ -335,11 +331,11 @@ int r207_CkDist()
         if (k == 2) {
             continue;
         }
-        if (r207_work.p->em[k].em.isActive() && r207_work.p->em[k].moving == 0) {
+        if (r207_work->em[k].em.isActive() && r207_work->em[k].moving == 0) {
             Vec pos;
             f32 d;
 
-            r207_work.p->em[k].em.getPos(&pos);
+            r207_work->em[k].em.getPos(&pos);
             d = PSVECSquareDistance(&pos, &pPL->pos);
             if (dist < d) {
                 dist = d;
@@ -360,7 +356,7 @@ int r207_CountEmAlive()
         if (k == 2) {
             continue;
         }
-        if (r207_work.p->em[k].em.isActive() == 1) {
+        if (r207_work->em[k].em.isActive() == 1) {
             cnt++;
         }
     }
@@ -474,23 +470,23 @@ static void r207_EnemySet()
     SceEventStart(1);
     if (pSUB) {
         AtariOffV(&pSUB->atari, 0xFDFF);
-        r207_work.p->sub = pSUB;
+        r207_work->sub = pSUB;
         pSUB = zero;
     }
-    r207_work.p->em[2].em.setEm(0xD3, -1, 0, 1, 1);
-    r207_work.p->em[3].em.setEm(0xD4, -1, 0, 1, 1);
-    r207_work.p->em[4].em.setEm(0xD5, -1, 0, 1, 1);
-    r207_work.p->em[2].em.setNoSuspend(1);
-    r207_work.p->em[3].em.setNoSuspend(1);
-    r207_work.p->em[4].em.setNoSuspend(1);
+    r207_work->em[2].em.setEm(0xD3, -1, 0, 1, 1);
+    r207_work->em[3].em.setEm(0xD4, -1, 0, 1, 1);
+    r207_work->em[4].em.setEm(0xD5, -1, 0, 1, 1);
+    r207_work->em[2].em.setNoSuspend(1);
+    r207_work->em[3].em.setNoSuspend(1);
+    r207_work->em[4].em.setNoSuspend(1);
     SceSleep(1);
     CamCtrl.CutCall(7);
     SceSetEventCancel(1, (TaskFunc) r207_EnemySetEndProc, 0, 1, 1);
-    r207_work.p->em[2].em.setGoto(&gotoPos, 8);
+    r207_work->em[2].em.setGoto(&gotoPos, 8);
     SceSleep(30);
-    r207_work.p->em[3].em.setGoto(&gotoPos, 0xD);
-    r207_work.p->em[4].em.setGoto(&gotoPos, 0xD);
-    while (r207_work.p->em[2].em.ckGoto() == 8) {
+    r207_work->em[3].em.setGoto(&gotoPos, 0xD);
+    r207_work->em[4].em.setGoto(&gotoPos, 0xD);
+    while (r207_work->em[2].em.ckGoto() == 8) {
         SceSleep(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -508,21 +504,21 @@ static void r207_EnemySetEndProc()
     int loop = 1;
     int wave = 0;
 
-    if (pGS->Room_flg[0] & 0x40000000) {
-        r207_work.p->em[3].em.setGoto(&gotoPos, 0xD);
-        r207_work.p->em[4].em.setGoto(&gotoPos, 0xD);
+    if (pG->Room_flg[0] & 0x40000000) {
+        r207_work->em[3].em.setGoto(&gotoPos, 0xD);
+        r207_work->em[4].em.setGoto(&gotoPos, 0xD);
     }
     CamCtrl.Comeback(0);
-    r207_work.p->em[2].em.setNoSuspend(0);
-    r207_work.p->em[3].em.setNoSuspend(0);
-    r207_work.p->em[4].em.setNoSuspend(0);
-    if (r207_work.p->sub) {
-        pSUBS = r207_work.p->sub;
+    r207_work->em[2].em.setNoSuspend(0);
+    r207_work->em[3].em.setNoSuspend(0);
+    r207_work->em[4].em.setNoSuspend(0);
+    if (r207_work->sub) {
+        pSUB = r207_work->sub;
         AtariOn(&pSUB->atari, 0x200);
     }
     SceEventEnd(0);
     do {
-        if (r207_work.p->em[2].em.isActive() == 0) {
+        if (r207_work->em[2].em.isActive() == 0) {
             break;
         }
         if ((u32) r207_CountEmAlive() <= 2 && pPL->pos.y >= 4100.0f) {
@@ -535,10 +531,10 @@ static void r207_EnemySetEndProc()
             switch (wave) {
             case 0:
                 wave = 1;
-                r207_work.p->em[5].em.setEm(0xD6, -1, 0, 1, 1);
-                r207_work.p->em[6].em.setEm(0xD7, -1, 0, 1, 1);
-                r207_work.p->em[5].em.setGoto(&gotoPos, 0xD);
-                r207_work.p->em[6].em.setGoto(&gotoPos, 0xD);
+                r207_work->em[5].em.setEm(0xD6, -1, 0, 1, 1);
+                r207_work->em[6].em.setEm(0xD7, -1, 0, 1, 1);
+                r207_work->em[5].em.setGoto(&gotoPos, 0xD);
+                r207_work->em[6].em.setGoto(&gotoPos, 0xD);
                 // A code-less insn after the last call of each arm (a tied, non-volatile launder of
                 // a live variable; the two arms must launder DIFFERENT variables): (1) the block's
                 // tail is then not the call, so the second setEm's `li r6..r8` keep setGoto's
@@ -550,11 +546,11 @@ static void r207_EnemySetEndProc()
                 break;
             case 1:
                 wave = 2;
-                r207_work.p->em[0].em.setEm(0xD0, -1, 0, 1, 1);
+                r207_work->em[0].em.setEm(0xD0, -1, 0, 1, 1);
                 loop = 0;
-                r207_work.p->em[1].em.setEm(0xD1, -1, 0, 1, 1);
-                r207_work.p->em[0].em.setGoto(&gotoPos, 0xD);
-                r207_work.p->em[1].em.setGoto(&gotoPos, 0xD);
+                r207_work->em[1].em.setEm(0xD1, -1, 0, 1, 1);
+                r207_work->em[0].em.setGoto(&gotoPos, 0xD);
+                r207_work->em[1].em.setGoto(&gotoPos, 0xD);
                 asm("" : "=r"(wave) : "0"(wave)); // COMPILER-DIFF: #6 (see case 0)
                 break;
             }
@@ -750,16 +746,16 @@ static void r207_WallMove()
     SceAtSetEnable(0x87, 0);
     SceAtSetEnable(0xD, 0);
     SceAtSetEnable(0xE, 0);
-    r207_work.p->item1 = (cObj*) zero;
+    r207_work->item1 = (cObj*) zero;
     if (ItemGetBinTplAddr(0xC4, &bin, &tpl) == 1) {
-        r207_work.p->item1 = SetObj00(bin, tpl, &r207_work.p->wallOfs, &r207_wallRot);
-        OyaSetObj00(r207_work.p->item1, obj, 0);
-        r207_work.p->item1->setNoSuspend(1);
+        r207_work->item1 = SetObj00(bin, tpl, &r207_work->wallOfs, &r207_wallRot);
+        OyaSetObj00(r207_work->item1, obj, 0);
+        r207_work->item1->setNoSuspend(1);
         SceSleep(1);
     }
-    r207_work.p->item0 = (cObj*) zero;
+    r207_work->item0 = (cObj*) zero;
     if (ItemGetBinTplAddr(0x80, &bin, &tpl) == 1) {
-        r207_work.p->item0 = SetObj00(bin, tpl, &r207_swordPos, &r207_swordRot);
+        r207_work->item0 = SetObj00(bin, tpl, &r207_swordPos, &r207_swordRot);
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 1);

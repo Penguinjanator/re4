@@ -33,7 +33,6 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
 #include "em_mod.h"
@@ -828,7 +827,7 @@ void em3bRunDownCkTruck(cEm3b* em)
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pPL->pos) < 6250000.0f) {
-                U16SetI(pG->pl_life, zero);
+                pG->pl_life = zero;
                 pPL->ang.y += Muku(&pPL->pos, &p->world, pPL->ang.y, PI);
                 pPL->ang.y = LIMIT_ANGLE(em->ang.y);
                 PlSetDamage(PL_DM_AUTO, 0, 0);
@@ -843,9 +842,9 @@ void em3bRunDownCkTruck(cEm3b* em)
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pSUB->pos) < 6250000.0f) {
-                U16SetI(pG->ashley_life, zero);
+                pG->ashley_life = zero;
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
-                FSet(pSUB->ang.y, pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
+                (pSUB->ang.y = pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
                 pSUB->ang.y = LIMIT_ANGLE(pSUB->ang.y);
                 SetSubDamage(em, subem3bRunDown);
                 SndCall(1, 0x4B, &pSUB->pos, 0, 0, 0);

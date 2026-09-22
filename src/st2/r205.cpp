@@ -63,12 +63,8 @@ struct R205Work {
 };
 
 static u8 r205_texTbl[0x20];
-// The work pointer is a struct member: every store through the work reloads it.
-struct R205WorkPtr {
-    R205Work* p;
-};
 
-static R205WorkPtr r205_work;
+static R205Work* r205_work;
 
 int r205_rsfTbl[7] = {1, 2, 3, 4, 6, 7, 8};
 static int r205_emNoTbl[7] = {0x68, 0x69, 0x6A, 0x6B, 0x6E, 0x6F, 0x58};
@@ -117,7 +113,7 @@ void R205Init()
     u32 i;
 
     StaFlagOn(pG, STA_ROOM_RAIN);
-    wp = &r205_work.p;
+    wp = &r205_work;
 #line 103 "D:/Bio4/Prog/r205.cpp"
     *wp = (R205Work*) MEM_CALLOC(sizeof(R205Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 12) == 0) {
@@ -140,42 +136,42 @@ void R205Init()
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r205_EnemyAppear, 0, 1);
     }
-    r205_work.p->pend[0].obj = SmdGetObjPtr(5);
-    r205_work.p->pend[1].obj = SmdGetObjPtr(6);
-    r205_work.p->pend[2].obj = SmdGetObjPtr(7);
-    r205_work.p->pend[3].obj = SmdGetObjPtr(8);
-    r205_work.p->pole[0] = SmdGetObjPtr(0x6B);
-    r205_work.p->pole[1] = NULL;
-    r205_work.p->pole[2] = SmdGetObjPtr(0x6C);
-    r205_work.p->pole[3] = SmdGetObjPtr(0x6D);
+    r205_work->pend[0].obj = SmdGetObjPtr(5);
+    r205_work->pend[1].obj = SmdGetObjPtr(6);
+    r205_work->pend[2].obj = SmdGetObjPtr(7);
+    r205_work->pend[3].obj = SmdGetObjPtr(8);
+    r205_work->pole[0] = SmdGetObjPtr(0x6B);
+    r205_work->pole[1] = NULL;
+    r205_work->pole[2] = SmdGetObjPtr(0x6C);
+    r205_work->pole[3] = SmdGetObjPtr(0x6D);
     SceExec(0x12, (TaskFunc) r205_PendulumMove, 0, 0, SCE_PRIO_DEF_2, 0);
-    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[0], 1);
-    SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[1], 1);
-    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[2], 1);
-    SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[3], 1);
-    if (r205_work.p->ems[6].em.setEm(0x6C, -1, 0, 1, 1) == 0) {
-        r205_work.p->ems[6].dead = 1;
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work->pend[0], 1);
+    SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work->pend[1], 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work->pend[2], 1);
+    SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work->pend[3], 1);
+    if (r205_work->ems[6].em.setEm(0x6C, -1, 0, 1, 1) == 0) {
+        r205_work->ems[6].dead = 1;
     }
-    if (r205_work.p->ems[7].em.setEm(0x6D, -1, 0, 1, 1) == 0) {
-        r205_work.p->ems[7].dead = 1;
+    if (r205_work->ems[7].em.setEm(0x6D, -1, 0, 1, 1) == 0) {
+        r205_work->ems[7].dead = 1;
     }
     for (i = 0; i < 6; i++) {
         if (RsfCheck(G_ROOM_ID, r205_rsfTbl[i])) {
-            if (r205_work.p->ems[r205_emIdxTbl[i]].em.setEm(r205_emNoTbl[i], -1, 0, 1, 1) == 0) {
-                r205_work.p->ems[r205_emIdxTbl[i]].dead = 1;
+            if (r205_work->ems[r205_emIdxTbl[i]].em.setEm(r205_emNoTbl[i], -1, 0, 1, 1) == 0) {
+                r205_work->ems[r205_emIdxTbl[i]].dead = 1;
             }
         }
     }
     SceAtSetEnable(0x21, 0);
     SceAtSetEnable(0x22, 0);
-    if (getRoomEtcDoor(0x13, &r205_work.p->door0, 1) != 0) {
+    if (getRoomEtcDoor(0x13, &r205_work->door0, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 7) == 0) {
-            r205_work.p->door0->setCloseLock();
+            r205_work->door0->setCloseLock();
         }
     }
-    if (getRoomEtcDoor(0x14, &r205_work.p->door1, 1) != 0) {
+    if (getRoomEtcDoor(0x14, &r205_work->door1, 1) != 0) {
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            r205_work.p->door1->setCloseLock();
+            r205_work->door1->setCloseLock();
         }
     }
     SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -183,10 +179,10 @@ void R205Init()
         Vec pos = {0.0f, -425.0f, 0.0f};
 
         for (i = 0; i < 4; i++) {
-            r205_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+            r205_work->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                          &pos, 0, 1);
-            r205_work.p->hit[i]->setParent(r205_work.p->pend[i].obj, 0, 0);
-            YarareInitCube(r205_work.p->hit[i], 0.0f, -400.0f, 0.0f, 1700.0f, 1300.0f, 100.0f, 0, YAT_FLAG_ON);
+            r205_work->hit[i]->setParent(r205_work->pend[i].obj, 0, 0);
+            YarareInitCube(r205_work->hit[i], 0.0f, -400.0f, 0.0f, 1700.0f, 1300.0f, 100.0f, 0, YAT_FLAG_ON);
         }
     }
     SceAtSetDoorFunc(0, (TaskFunc) r205_RoomExitFunc, 0);
@@ -202,7 +198,7 @@ void R205Main()
 
     pPL->ot_type = 5;
     for (i = 0; i < 8; i++) {
-        R205Em* e = &r205_work.p->ems[i];
+        R205Em* e = &r205_work->ems[i];
 
         if (e->dead == 0) {
             if (e->em.isAlive() == 1 && e->em.isActive() == 0) {
@@ -225,8 +221,8 @@ void R205Main()
     r205_Em110AppearCheck();
     r205_Em111AppearCheck();
     if (SceAtHitCheck(0x17) != 0) {
-        if (r205_work.p->ems[6].dead == 0) {
-            r205_work.p->ems[6].em.setFlag(1);
+        if (r205_work->ems[6].dead == 0) {
+            r205_work->ems[6].em.setFlag(1);
         }
     }
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
@@ -242,14 +238,14 @@ void r205_Em105AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtSetEnable(0x22, 1);
-        if (r205_work.p->ems[6].dead == 1) {
+        if (r205_work->ems[6].dead == 1) {
             Vec pos;
 
             RsfSet(G_ROOM_ID, 2);
-            r205_work.p->ems[1].em.setEm(0x69, -1, 1, 1, 1);
-            r205_work.p->ems[1].em.setFlag(1);
-            r205_work.p->ems[1].em.getPos(&pos);
-            r205_work.p->door1->setOpen(&pos, 0, 0, 0);
+            r205_work->ems[1].em.setEm(0x69, -1, 1, 1, 1);
+            r205_work->ems[1].em.setFlag(1);
+            r205_work->ems[1].em.getPos(&pos);
+            r205_work->door1->setOpen(&pos, 0, 0, 0);
             SceAtSetEnable(0x22, 0);
         }
     }
@@ -260,9 +256,9 @@ void r205_Em106AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         if (pG->Room_flg[2] & 0x80000000) {
-            if (r205_work.p->ems[0].dead == 1 && r205_work.p->ems[7].dead == 1) {
+            if (r205_work->ems[0].dead == 1 && r205_work->ems[7].dead == 1) {
                 RsfSet(G_ROOM_ID, 3);
-                r205_work.p->ems[2].em.setEm(0x6A, -1, 1, 1, 1);
+                r205_work->ems[2].em.setEm(0x6A, -1, 1, 1, 1);
             }
         }
     }
@@ -276,7 +272,7 @@ void r205_Em107AppearCheck()
             if (RsfCheck(G_ROOM_ID, 2) && RsfCheck(G_ROOM_ID, 7)) {
                 if ((u32) r205_AtHitCheckEmNum(0xD, 0xE) <= 1) {
                     RsfSet(G_ROOM_ID, 4);
-                    r205_work.p->ems[3].em.setEm(0x6B, -1, 1, 1, 1);
+                    r205_work->ems[3].em.setEm(0x6B, -1, 1, 1, 1);
                 }
             }
         }
@@ -291,7 +287,7 @@ void r205_Em110AppearCheck()
             if (RsfCheck(G_ROOM_ID, 0)) {
                 if ((u32) r205_AtHitCheckEmNum(0xC, -1) <= 1) {
                     RsfSet(G_ROOM_ID, 6);
-                    r205_work.p->ems[4].em.setEm(0x6E, -1, 1, 1, 1);
+                    r205_work->ems[4].em.setEm(0x6E, -1, 1, 1, 1);
                 }
             }
         }
@@ -306,14 +302,14 @@ void r205_Em111AppearCheck()
         SceAtSetEnable(0x21, 1);
         if (pG->Room_flg[0] & 0x80000000) {
             if (RsfCheck(G_ROOM_ID, 0)) {
-                if (r205_work.p->ems[6].dead == 1) {
+                if (r205_work->ems[6].dead == 1) {
                     Vec pos;
 
                     RsfSet(G_ROOM_ID, 7);
-                    r205_work.p->ems[5].em.setEm(0x6F, -1, 1, 1, 1);
-                    r205_work.p->ems[5].em.setFlag(1);
-                    r205_work.p->ems[5].em.getPos(&pos);
-                    r205_work.p->door0->setOpen(&pos, 0, 0, 0);
+                    r205_work->ems[5].em.setEm(0x6F, -1, 1, 1, 1);
+                    r205_work->ems[5].em.setFlag(1);
+                    r205_work->ems[5].em.getPos(&pos);
+                    r205_work->door0->setOpen(&pos, 0, 0, 0);
                     SceAtSetEnable(0x21, 0);
                 }
             }
@@ -325,8 +321,8 @@ void r205_Em111AppearCheck()
 static void r205_Em88Appear()
 {
     RsfSet(G_ROOM_ID, 8);
-    r205_work.p->ems[5].em.setEm(0x58, -1, 1, 1, 1);
-    r205_work.p->ems[5].em.setFlag(1);
+    r205_work->ems[5].em.setEm(0x58, -1, 1, 1, 1);
+    r205_work->ems[5].em.setFlag(1);
 }
 
 // Number of live enemies standing in the at areas `atA` / `atB` (-1: none).
@@ -336,7 +332,7 @@ int r205_AtHitCheckEmNum(int atA, int atB)
     u32 i;
 
     for (i = 0; i < 8; i++) {
-        R205Em* e = &r205_work.p->ems[i];
+        R205Em* e = &r205_work->ems[i];
 
         if (e->dead == 0) {
             if (e->em.isAlive() == 1) {
@@ -356,7 +352,7 @@ int r205_AtHitCheckEmNum(int atA, int atB)
 static void r205_PendulumMove()
 {
     int at[4] = {6, 0xA, 0xB, 0x12};
-    f32 x0 = r205_work.p->pole[0]->pos.x;
+    f32 x0 = r205_work->pole[0]->pos.x;
     int se[4] = {0, 0, 0, 0};
     u32 i;
 
@@ -366,12 +362,12 @@ static void r205_PendulumMove()
             R205Pend* pd;
             f32 rot;
 
-            if (r205_work.p->hit[i]->ckStatus() == 1) {
-                switch (r205_work.p->hit[i]->dmg.m_Wep) {
+            if (r205_work->hit[i]->ckStatus() == 1) {
+                switch (r205_work->hit[i]->dmg.m_Wep) {
                 case 7:
                 case 8:
                 case 0x21:
-                    EmDmBloodSet2(r205_work.p->hit[i], 1, 0x13, 0, 0, 0);
+                    EmDmBloodSet2(r205_work->hit[i], 1, 0x13, 0, 0, 0);
                     break;
                 case 1:
                 case 2:
@@ -382,33 +378,33 @@ static void r205_PendulumMove()
                 case 0x11:
                 case 0x26:
                 case 0x2B:
-                    EmDmBloodSet2(r205_work.p->hit[i], 1, 0x12, 0, 0, 0);
+                    EmDmBloodSet2(r205_work->hit[i], 1, 0x12, 0, 0, 0);
                     break;
                 }
             }
-            pd = &r205_work.p->pend[i];
+            pd = &r205_work->pend[i];
             pd->rotPrev = pd->rot;
             rot = pd->obj->ang.z;
             pd->rot = rot;
             if (fabsf(rot) <= 0.8f) {
                 if (se[i] == 0) {
                     se[i] = 1;
-                    RoomSeCall((u16) (12 + i), &r205_work.p->hit[i]->pParts->world, 0, 0, 0);
+                    RoomSeCall((u16) (12 + i), &r205_work->hit[i]->pParts->world, 0, 0, 0);
                 }
             } else {
                 se[i] = 0;
             }
             if (fabsf(rot) <= 0.4f) {
                 SceAtSetEnable(at[i], 1);
-                if (r205_work.p->pole[i]) {
-                    r205_work.p->pole[i]->be_flag |= 2;
-                    r205_work.p->pole[i]->pos.x = rot / 0.1f * 700.0f + x0;
-                    r205_work.p->pole[i]->matUpdate();
+                if (r205_work->pole[i]) {
+                    r205_work->pole[i]->be_flag |= 2;
+                    r205_work->pole[i]->pos.x = rot / 0.1f * 700.0f + x0;
+                    r205_work->pole[i]->matUpdate();
                 }
             } else {
                 SceAtSetEnable(at[i], 0);
-                if (r205_work.p->pole[i]) {
-                    r205_work.p->pole[i]->be_flag &= ~2;
+                if (r205_work->pole[i]) {
+                    r205_work->pole[i]->be_flag &= ~2;
                 }
             }
         }
@@ -432,7 +428,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     if (pG->Room_flg[0] & 0x40000000) {
         SceExit();
     }
-    BitOn(pG->Room_flg[0], 0x40000000);
+    pG->Room_flg[0] |= 0x40000000;
     SysFlagOn(pG, SYS_START_EVT_SKIP);
     pPL->beginEvent(0);
     d = p->rot - p->rotPrev;
@@ -527,7 +523,7 @@ static void r205_DrainEventEnd()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     RsfSet(G_ROOM_ID, 1);
-    r205_work.p->ems[0].em.setEm(0x68, -1, 1, 1, 1);
+    r205_work->ems[0].em.setEm(0x68, -1, 1, 1, 1);
     SceAtSetEnable(0x11, 1);
     SndRoomStrVolReset(0x15E);
     SceAtSetEnable(0x15, 0);
@@ -565,13 +561,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r205_texTbl;
 
-    if (GetTexRenderMgr(&r205_work.p->tex)) {
+    if (GetTexRenderMgr(&r205_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r205_work.p->tex->texId;
-        r205_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 1, r205_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r205_work->tex->texId;
+        r205_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, r205_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R205Init() : Manager alloc failed!!");
     }

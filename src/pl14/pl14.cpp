@@ -128,7 +128,7 @@ cSubLuis::cSubLuis()
 cSubLuis::~cSubLuis()
 {
     ObjMgr.destroy(pItem);
-    (void*&) pSUB = 0;   // the inlined ~cUnit's be_flag load stays below the store
+    pSUB = 0;   // the inlined ~cUnit's be_flag load stays below the store
 }
 
 // The light info origin both models use (one static: the inline is expanded where it is defined).
@@ -163,7 +163,7 @@ void cSubLuis::init()
     hp = hp_max = 0x4B0;
     m_PlAtack = 5;
     be_flag |= 0x2000000;
-    m_LeonHp = pGS->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
+    m_LeonHp = pG->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
     voiceWait = 0;
     cnt = 0;
     set = 0;
@@ -660,7 +660,7 @@ void cRoutine::moveDown()
         }
         break;
     case 2:
-        FSet(rate, rate * (PI / 2));   // reference store: the pPL load stays below it
+        rate = rate * (PI / 2);   // reference store: the pPL load stays below it
         a = Muku(&owner->pos, &pPL->pos, owner->ang.y - rate, 0.31415927f);
         rate = (rate - a) / (PI / 2);
         if (rate > 1.0f) rate = 1.0f;

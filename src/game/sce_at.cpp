@@ -208,11 +208,6 @@ struct SceAtFuncTbl {
 
 static SceAtSysWork* pS;
 static SceAtSysWork SceAtSys;
-// Struct-member view of pS (the pLog trick): keeps its load below preceding stores through a work.
-struct SceAtSysPtr {
-    SceAtSysWork* p;
-};
-#define pSS (((SceAtSysPtr*) &pS)->p)
 static SceAtReleaseModel releaseModelTbl[8];
 static cModel* p_imodel_bak = NULL;
 static void* lbl_80314D6C = NULL;
@@ -292,7 +287,7 @@ void SceAtInit(void* atData, void* itemData)
         SceAtSys.reserve[i].saveNo = 0;
     }
     SceAtWorkLoopInit();
-    U8Set(pS->m_use_tool_data, 0);
+    pS->m_use_tool_data = 0;
     pS->m_use_tool_data_i = 0;
     if (atData != 0) {
         if (strcmp((char*) atData, "AEV") != 0) {
@@ -300,8 +295,8 @@ void SceAtInit(void* atData, void* itemData)
         } else if (((SceAtFileHead*) atData)->version != 0x104) {
             pLog->err(0, 0, "SceAt DATA IS OLD VERSION");
         } else {
-            PSet(pS->pAtData, atData);
-            PSet(pS->pAtWork, (u8*) atData + 0x10);
+            pS->pAtData = atData;
+            pS->pAtWork = (u32) ((u8*) atData + 0x10);
             for (i = ((SceAtFileHead*) pS->pAtData)->num - 1; i >= 0; i--) {
                 SceAtWork* w = (SceAtWork*) (i * sizeof(SceAtWork) + pS->pAtWork);
 
@@ -315,8 +310,8 @@ void SceAtInit(void* atData, void* itemData)
         } else if (((SceAtFileHead*) itemData)->version != 0x105) {
             pLog->err(0, 0, "SceItem DATA IS OLD VERSION");
         } else {
-            PSet(pS->pItemData, itemData);
-            PSet(pS->pItemWork, (u8*) itemData + 0x10);
+            pS->pItemData = itemData;
+            pS->pItemWork = (u32) ((u8*) itemData + 0x10);
             for (i = ((SceAtFileHead*) pS->pItemData)->num - 1; i >= 0; i--) {
                 SceAtWork* w;
 
@@ -379,7 +374,7 @@ void SceAtSetExecFlg(u32 no)
 // Per frame: clears Room_flg[2..3] (per-frame event flags) and the hit / exec bits.
 void SceAtWorkLoopInit()
 {
-    U32Set(pG->Room_flg[2], 0);
+    pG->Room_flg[2] = 0;
     pG->Room_flg[3] = 0;
     SceAtClearHitFlg();
     SceAtClearExecFlg();
@@ -827,7 +822,7 @@ int sceAtFunc_door(SceAtWork* w, cModel* m)
     }
     pS->m_stop_flag_backup = pG->Stop_flg;
     KeyStop(0xEFCF0000);
-    BitSet(pG->Stop_flg, -1);
+    pG->Stop_flg = -1;
     lt = w->lockType;
     if (lt != 0 && !(doorUnlock()[w->lockFlag >> 5] & (0x80000000 >> (w->lockFlag & 31)))) {
         switch (lt) {
@@ -844,11 +839,11 @@ int sceAtFunc_door(SceAtWork* w, cModel* m)
         w->doorFunc = 0;
     }
     SceSys.m_door_fade_eff = w->doorFadeEff;
-    FSet(pG->NextPos.x, w->dstPos.x);
-    FSet(pG->NextPos.y, w->dstPos.y);
-    FSet(pG->NextPos.z, w->dstPos.z);
-    FSet(pG->NextY, w->dstAngle);
-    U16Set(pG->room_id_prev, pG->room_id);
+    pG->NextPos.x = w->dstPos.x;
+    pG->NextPos.y = w->dstPos.y;
+    pG->NextPos.z = w->dstPos.z;
+    pG->NextY = w->dstAngle;
+    pG->room_id_prev = pG->room_id;
     pG->Part_old = pG->Part;
     pG->Stage_next = w->dstStage;
     pG->Room_next = w->dstRoom;
@@ -858,7 +853,7 @@ int sceAtFunc_door(SceAtWork* w, cModel* m)
     pG->Rno1 = 0;
     pG->Rno2 = 0;
     pG->Rno3 = 0;
-    U16Set(pG->r_continue_cnt, 0);
+    pG->r_continue_cnt = 0;
     SysFlagOff(pG, SYS_START_EVT_SKIP);
     return 1;
 }
@@ -1000,7 +995,7 @@ void releaseModel(SceAtWork* w, int keep)
         w->item.flag &= ~2;
     }
     if (w->item.flag & 8) {
-        PSet(w->item.pModel, p_imodel_bak);
+        w->item.pModel = p_imodel_bak;
         p_imodel_bak = 0;
         w->item.flag &= ~8;
         if (keep == 0) {
@@ -1176,7 +1171,7 @@ void sceAtGetItem(SceAtWork* w_)
     cancel = 0;
     StaFlagOn(pG, STA_ITEM_GET);
     disp_flag_bak = pG->Disp_flg;
-    BitSet(pG->Disp_flg, -1);
+    pG->Disp_flg = -1;
     DpfFlagOff(pG, DPF_COCKPIT);
     DpfFlagOff(pG, DPF_ESP);
     DpfFlagOff(pG, DPF_ID_SYSTEM);
@@ -2058,7 +2053,7 @@ int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     // pinned: the angle too, so the y store gets the same call anti-dependent as the z/x stores
     // and the three stores keep the source order.
     register f32 a asm("fr0");
-    register f32 z asm("fr13");
+    f32 z;
 
     pPL->setPos(&w->jumpPos);
     a = w->dstAngle;
@@ -3193,7 +3188,7 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     w->area.u.xz4.p[2].z = pos[2].z;
     w->area.u.xz4.p[3].x = pos[3].x;
     w->area.u.xz4.p[3].z = pos[3].z;
-    AddPrim(&pSS->ot[w->otNo], (u32*) w);
+    AddPrim(&pS->ot[w->otNo], (u32*) w);
     return w->no;
 }
 
@@ -3240,7 +3235,7 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     w->area.u.xz4.p[3].z = pos[3].z;
     w->field.value = val;
     w->field.pModel = m;
-    AddPrim(&pSS->ot[w->otNo], (u32*) w);
+    AddPrim(&pS->ot[w->otNo], (u32*) w);
     *out = &w->field;
     return w->no;
 }

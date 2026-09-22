@@ -22,7 +22,6 @@
 #include "pl_sub.h"
 #include "cam_ctrl.h"
 #include "main_mem.h"
-#include "ref_access.h"
 #include "read.h"
 #include "shape.h"
 
@@ -121,7 +120,7 @@ void PlayerInit()
     case 0:
     case 1:
         pG->weapon_no = 2;
-        U8Set(pG->weapon_type, 0);
+        pG->weapon_type = 0;
         pG->weapon_lv_power = 0;
         pG->weapon_lv_speed = 0;
         pG->weapon_lv_blt = 0;
@@ -129,7 +128,7 @@ void PlayerInit()
         break;
     case 2:
         pG->weapon_no = 1;
-        U8Set(pG->weapon_lv_power, 0);
+        pG->weapon_lv_power = 0;
         pG->weapon_lv_speed = 0;
         pG->weapon_lv_blt = 0;
         pG->weapon_lv_reload = 0;
@@ -137,7 +136,7 @@ void PlayerInit()
         break;
     case 4:
         pG->weapon_no = 0x1C;
-        U8Set(pG->weapon_lv_power, 0);
+        pG->weapon_lv_power = 0;
         pG->weapon_lv_speed = 0;
         pG->weapon_lv_blt = 0;
         pG->weapon_lv_reload = 0;
@@ -145,7 +144,7 @@ void PlayerInit()
         break;
     case 3:
         pG->weapon_no = 0xB;
-        U8Set(pG->weapon_lv_power, 0);
+        pG->weapon_lv_power = 0;
         pG->weapon_lv_speed = 0;
         pG->weapon_lv_blt = 0;
         pG->weapon_lv_reload = 0;
@@ -154,14 +153,14 @@ void PlayerInit()
     case 5:
         pG->weapon_no = 2;
         pG->weapon_type = 1;
-        U8Set(pG->weapon_lv_power, 0);
+        pG->weapon_lv_power = 0;
         pG->weapon_lv_speed = 0;
         pG->weapon_lv_blt = 0;
         pG->weapon_lv_reload = 0;
         break;
     }
     PlayerLifeReset();
-    U16Set(pG->pl_life_max, pG->pl_life);
+    pG->pl_life_max = pG->pl_life;
     DbgFlagOff(pG, DBG_PL_LOCK_FOLLOW);
     ReleaseWepData();
     pG->pl_flag = 1;
@@ -214,7 +213,7 @@ cPlayer::cPlayer()
 {
     stat = 0;
     pPL = this;
-    hp = pGS->pl_life;
+    hp = pG->pl_life;
     subArc = (PlArc*)0x807EC000;
     m_MotTbl = (void**) PL_MEM_ALLOC(0x1B4, 373);
     memclr_asm(m_MotTbl, 0x1B4);
@@ -290,8 +289,8 @@ void cPlayer::init1()
 // Place the player at the room start position and run the first frames of its motion.
 void cPlayer::startUp()
 {
-    BitOn(be_flag, 0x00200000);
-    FSet(ang.y, pG->sub_angle);
+    be_flag |= 0x00200000;
+    ang.y = pG->sub_angle;
     setPos(&pG->sub_pos);
     matUpdate();
     m_Frame = 0;
@@ -788,7 +787,7 @@ void pl_R1_Ladder(cPlayer* pl)
     StaFlagOn(pG, STA_PL_LADDER);
     switch (pl->r_no_2) {
     case 0:
-        FSet(pl->m_Fwork0, pl->pos.y);
+        pl->m_Fwork0 = pl->pos.y;
         pl->motionSet(PL_ARC_PTR(pG->pPlayer, 0x27), 5, 0, 1, 0);
         pl->Neck->motL = 0;
         pl->r_no_2 = 1;
@@ -858,7 +857,7 @@ void pl_R1_Ladder(cPlayer* pl)
         }
         break;
     case 0xA:
-        FSet(pl->m_Fwork0, pl->pos.y);
+        pl->m_Fwork0 = pl->pos.y;
         pl->motionSet(PL_ARC_PTR(pG->pPlayer, 0x2A), 5, 0, 1, 0);
         pl->Neck->motL = 0;
         pl->r_no_2 = 0xB;
@@ -1216,13 +1215,13 @@ void pl_R1_ObjPush(cPlayer* pl)
         break;
     case 0x28:
         CamCtrl.endPushObject();
-        BitOff(pl->stat, 8);
+        pl->stat &= ~8;
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x22), 0, 5, 5, 0);
         EmRoutineSet(pl, 0, 0, 2, 0);
         break;
     case 0x32:
         CamCtrl.endPushObject();
-        BitOff(pl->stat, 8);
+        pl->stat &= ~8;
         MotionSetCore(pl, MOTION(pl), pl->m_MotTbl[0], 0, 0xF, 5, 0);
         EmRoutineSet(pl, 0, 0, 2, 0);
         break;
@@ -1251,7 +1250,7 @@ void pl_R1_Fance(cPlayer* pl)
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x55), PL_ARC_PTR(pG->pPlayer, 0x56), 3, 5, 0);
         }
-        PSet(pl->Neck->motL, 0);
+        pl->Neck->motL = 0;
         if (PlFanceFlag & 1) {
             pos.x = PlFancePos.x;
             pos.y = pl->pos.y;
@@ -1474,7 +1473,7 @@ void pl_R1_Fall(cPlayer* pl)
             if (pl->m_Work0 == 0) {
                 EstSet(pl, -1, 0, 0, EFF_PL00, ChkWaterEffectEnable(&pl->pos) ? 0x12 : 0x11, 0, ESP_CORE_KIND_NONE, pl, 0);
             }
-            FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 0, 600.0f, 100000.0f, 0));
+            pl->pos.y = SatMgr.getFloor(&pl->pos, 0, 600.0f, 100000.0f, 0);
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2F), PL_ARC_PTR(pG->pPlayer, 0x30), 0, 5, 0);
             pl->motionMove();
             pl->r_no_2 = 4;

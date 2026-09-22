@@ -198,7 +198,7 @@ static void r211_GrateOpenEndProc()
 {
     cObj* obj = SmdGetObjPtr(0x1B);
 
-    BitOff(obj->be_flag, 2);
+    obj->be_flag &= ~2;
     if (pG->Room_flg[0] & 0x00200000) {
         RoomSeCall(1, &obj->pos, 0, 0, 0);
         EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);

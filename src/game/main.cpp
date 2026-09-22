@@ -55,7 +55,6 @@ f32 ORTHO_R;
 #include "os_vi.h"
 #include "rnd.h"
 #include "sscrn.h"
-#include "ref_access.h"
 #include <dolphin/vi/vifuncs.h>
 #include <dolphin/os/OSCache.h>
 #include <dolphin/base/PPCArch.h>
@@ -129,7 +128,7 @@ RESTART:
     {
         systemRestartInit();
         if (pRK->reset_flag) {
-            U32Set(pSys->Config_flg, pRK->Config_flg);
+            pSys->Config_flg = pRK->Config_flg;
             pSys->language = pRK->language;
             pSys->eff_country = pRK->eff_country;
             pG->language = pRK->game_country;
@@ -149,7 +148,7 @@ RESTART:
         }
         ret = 0;
         if (SysFlagChk(pG, SYS_PUBLICITY_VER)) {
-            U16Set(pG->room_id, 0x120);
+            pG->room_id = 0x120;
             pG->JumpPoint = 0;
             pSys->language = 1;
             pG->debug_mode = 0;
@@ -406,11 +405,11 @@ static void systemScreenInit()
 void systemWorkInit()
 {
     systemScreenInit();
-    S8Set(pG->debug_mode, 1);
+    pG->debug_mode = 1;
     pG->debug_disp = -1;
-    U16Set(pG->room_id, 0x120);
-    U16Set(pG->RoomNo_next, pG->room_id);
-    U8Set(pG->pl_type, 0);
+    pG->room_id = 0x120;
+    pG->RoomNo_next = pG->room_id;
+    pG->pl_type = 0;
     pG->game_mode = 5;
     pG->game_costume = 0;
     pG->pl_costume = 0;
@@ -506,11 +505,11 @@ void systemResetCommon()
     ReleasePlData();
     ReleaseWepData();
     RoomData.stopRelData();
-    U32Set(pRK->Config_flg, pSys->Config_flg);
+    pRK->Config_flg = pSys->Config_flg;
     pRK->language = pSys->language;
     pRK->eff_country = pSys->eff_country;
     pRK->game_country = pG->language;
-    U32Set(pRK->Extra_flg, pSys->Extra_flg);
+    pRK->Extra_flg = pSys->Extra_flg;
     pRK->System_flg = pG->System_flg;
     for (i = 0; i < 4; i++) {
         U32SetOfs(pRK->MercSysRoom, i * 4, pSys->MercSysRoom[i]);
@@ -518,7 +517,7 @@ void systemResetCommon()
     for (i = 0; i < 2; i++) {
         U32SetOfs(pRK->MercSysRank, i * 4, pSys->MercSysRank[i]);
     }
-    U32Set(pRK->MemcardCheckDone, pG->CardStatus >> 31);
+    pRK->MemcardCheckDone = pG->CardStatus >> 31;
     pRK->reset_flag = 1;
 }
 

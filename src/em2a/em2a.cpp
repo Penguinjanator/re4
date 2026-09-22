@@ -402,7 +402,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
         EmCatchPLSet(em, 0.0f, 0, 34.69f, 0.0f, 250.42f, plem2a_Trap1Bite);
         w->camTimer = 120;
         w->biteTimer = 10;
-        VibSetData((VibDataTbl*) (pGS->pCore->ofs_1C + (u32) pGS->pCore), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
         l->set = 2;
         em->r_no_2++;
     case 1:
@@ -520,7 +520,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     cSubChar* sub = pSUB;
 
     sub->subArc = sub->pEmCatch->subArc;
-    StaFlagOn(pGS, STA_SUB_CATCHED);
+    StaFlagOn(pG, STA_SUB_CATCHED);
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, MOTION(sub), EM_ARC(sub, 0x1A), 0, 5, 5, 0);
@@ -594,7 +594,7 @@ static void plemResuceAshley(cPlayer* pl)
     Vec v;
 
     pl->subArc = em->subArc;
-    pPLS->dmg.m_Timer = 10;
+    pPL->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
         pl->ang.y = em->ang.y + PI / 2.0f;

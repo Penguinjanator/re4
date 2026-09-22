@@ -161,10 +161,10 @@ void cObj05::move()
                     floor = 0.0f;
                 }
                 if (p->world.y - ofs < floor) {
-                    FSet(p->efmSpd.x, p->efmSpd.x * w->bounce.x);
-                    FSet(p->efmSpd.y, p->efmSpd.y * -w->bounce.y);
-                    FSet(p->efmSpd.z, p->efmSpd.z * w->bounce.x);
-                    FSet(p->world.y, floor + ofs);
+                    p->efmSpd.x = p->efmSpd.x * w->bounce.x;
+                    p->efmSpd.y = p->efmSpd.y * -w->bounce.y;
+                    p->efmSpd.z = p->efmSpd.z * w->bounce.x;
+                    p->world.y = floor + ofs;
                     hit = 1;
                     PSVECScale(&p->efmRotSpd, &p->efmRotSpd, 0.8f);
                     if (w->flags & 8) {

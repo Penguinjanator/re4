@@ -310,13 +310,13 @@ void emMine_R1_Shot(cEmMine* em)
                         w->Bomb_eff = (u8) wi->eff6[0];
                         w->Bomb_est = (u8) wi->eff6[1];
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
-                        AddWaterPower(&em->pos, 0.5f);
+                        AddWaterPower(em->pos, 0.5f);
                     } else {
                         EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                         w->Bomb_eff = 0;
                         w->Bomb_est = 0x39;
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
-                        AddWaterPower(&em->pos, 0.5f);
+                        AddWaterPower(em->pos, 0.5f);
                         w->Bomb_eff = 0;
                         w->Bomb_est = 0x39;
                     }
@@ -364,13 +364,13 @@ void emMine_R1_Shot(cEmMine* em)
                 w->Bomb_eff = (u8) wi->eff6[0];
                 w->Bomb_est = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
-                AddWaterPower(&em->pos, 0.5f);
+                AddWaterPower(em->pos, 0.5f);
             } else {
                 EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->Bomb_eff = 0;
                 w->Bomb_est = 0x39;
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
-                AddWaterPower(&em->pos, 0.5f);
+                AddWaterPower(em->pos, 0.5f);
                 w->Bomb_eff = 0;
                 w->Bomb_est = 0x39;
             }
@@ -473,13 +473,13 @@ void emMine_R1_ShotArrow(cEmMine* em)
                     w->Bomb_eff = (u8) wi->eff6[0];
                     w->Bomb_est = (u8) wi->eff6[1];
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    AddWaterPower(&em->pos, 0.5f);
+                    AddWaterPower(em->pos, 0.5f);
                 } else {
                     EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                     w->Bomb_eff = 0;
                     w->Bomb_est = 0x39;
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    AddWaterPower(&em->pos, 0.5f);
+                    AddWaterPower(em->pos, 0.5f);
                     w->Bomb_eff = 0;
                     w->Bomb_est = 0x39;
                 }
@@ -518,13 +518,13 @@ void emMine_R1_ShotArrow(cEmMine* em)
                 w->Bomb_eff = (u8) wi->eff6[0];
                 w->Bomb_est = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
-                AddWaterPower(&em->pos, 0.5f);
+                AddWaterPower(em->pos, 0.5f);
             } else {
                 EstSet(0, -1, &em->pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
                 w->Bomb_eff = 0;
                 w->Bomb_est = 0x39;
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
-                AddWaterPower(&em->pos, 0.5f);
+                AddWaterPower(em->pos, 0.5f);
                 w->Bomb_eff = 0;
                 w->Bomb_est = 0x39;
             }
@@ -1176,14 +1176,14 @@ void cEmMine::setBomb()
     pos.z = mat[2][3];
     EstSet(0, -1, &pos, 0, w->Bomb_eff, w->Bomb_est, 0, ESP_CORE_KIND_NONE, 0, 0);
     SndCall(w->Bomb_seid, w->Bomb_seno, &p, 0, 0, this);
-    AddWaterPower(&pos, 1.0f);
+    AddWaterPower(pos, 1.0f);
     EffectEspDelete(0, w->EffKindId, this, 0);
     EffectEspgenDelete(0, w->EffKindId, this);
     EffectEfmDelete(0, w->EffKindId, this);
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = p;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
     setLost();
     // COMPILER-DIFF: candidate #12 (cse wider-mode zero fold): the original stores the known-zero
     // `hit` register into xFE (ours folds it to the HImode zero pseudo); the launder keeps `hit` as

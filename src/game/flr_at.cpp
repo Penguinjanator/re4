@@ -10,7 +10,6 @@
 #include "global.h"
 #include "db_log.h"
 #include "main_mem.h"
-#include "ref_access.h"
 #include <string.h>
 
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp
@@ -39,7 +38,7 @@ void FlrAtInit()
         pLog->warn(0, 0, "FlrAt DATA IS OLD VERSION");
         return;
     }
-    PSet(pFlrSys->pData, p);
+    pFlrSys->pData = p;
     pFlrSys->pList = (FlrAt*) (p + 1);
 }
 

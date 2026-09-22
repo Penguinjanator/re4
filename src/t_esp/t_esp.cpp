@@ -257,9 +257,6 @@ static TOOL_SEQ* g_pCopyBuf;
 static int g_copyNum;
 static u8 g_seqFlgWk[256];
 static u8* g_pSeqFlg;
-struct SeqFlgPtr { u8* p; }; // struct view of g_pSeqFlg (a load that stays below preceding stores)
-struct PageView { int v; };  // struct view of g_page (an in-struct load conflicts with the loop's stores through `rec`/`head`: not hoisted)
-struct SeqPtrView { TOOL_SEQ* p; };  // struct view of g_pEditSeq/g_pEditSeq2 (the pointer load may alias a record store: reloaded after it)
 static int g_seqFlgNum[4];
 static int g_page;
 static u32 g_editTop;  // unsigned: `g_editTop + 5 <= SEQ_TBL_LAST` is a cmplwi
@@ -406,7 +403,7 @@ void ToolEspMain();
 
 // reference store of a window pointer: keeps the following `->win` load below the store
 static inline void WSet(TOOL_WINDOW*& d, TOOL_WINDOW* v) { d = v; }
-#define BRING(w) ISet((w)->win->bring, 1)
+#define BRING(w) ((w)->win->bring = 1)
 #define DEACTIVATE(w) ISet((w)->win->active, 0)
 #define WIN_SEL(w) ((w)->win->sel)
 
@@ -617,7 +614,7 @@ public:
 void EditActiveNextWindow(DB_WINDOW* w)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
-    ISet(w->active, 0);  // reference store: the g_pEditWin1 load stays below it
+    w->active = 0;  // reference store: the g_pEditWin1 load stays below it
     if (w == g_pEditWin1->win) g_pEditActive = g_pEditWin2;
     if (w == g_pEditWin2->win) g_pEditActive = g_pEditWin3;
     if (w == g_pEditWin3->win) g_pEditActive = g_pEditWin4;
@@ -635,7 +632,7 @@ void EditActiveNextWindow(DB_WINDOW* w)
 void EditActivePrevWindow(DB_WINDOW* w)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
-    ISet(w->active, 0);
+    w->active = 0;
     if (w == g_pEditWin1->win) g_pEditActive = g_pEditWin4;
     if (w == g_pEditWin2->win) g_pEditActive = g_pEditWin1;
     if (w == g_pEditWin3->win) g_pEditActive = g_pEditWin2;
@@ -1650,7 +1647,7 @@ static void ModelTypeUpdateCallback(DB_PRIMITIVE* p)
 // Load Model [LOAD]: requests the model load (g_modelLoad, served by ToolEspMain); back to the menu.
 static void ModelLoadCallback(DB_PRIMITIVE*)
 {
-    ISet(g_modelLoad, 1);
+    g_modelLoad = 1;
     BRING(g_pMenuWin);
     DEACTIVATE(g_pModelWin);
 }
@@ -1717,8 +1714,8 @@ void GetSelectFileMenu(TOOL_WINDOW* w)
 // Load "Enemy": opens the Load Enemy window (<model>_NN.EST).
 static void LoadLoadEmCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pSaveNow, NULL);
-    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadEmWin);
+    g_pSaveNow = NULL;
+    g_pLoadNow = (TOOL_WINDOW*) g_pLoadEmWin;
     BRING(g_pLoadEmWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1727,8 +1724,8 @@ static void LoadLoadEmCallback(DB_PRIMITIVE*)
 // Load "Room": opens the Load Room window (R<room>_NN.EST).
 static void LoadLoadRoomCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pSaveNow, NULL);
-    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadRoomWin);
+    g_pSaveNow = NULL;
+    g_pLoadNow = (TOOL_WINDOW*) g_pLoadRoomWin;
     BRING(g_pLoadRoomWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1737,8 +1734,8 @@ static void LoadLoadRoomCallback(DB_PRIMITIVE*)
 // Load "SST": opens the Load SST window (R<room>_NN.SST).
 static void LoadLoadSstCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pSaveNow, NULL);
-    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadSstWin);
+    g_pSaveNow = NULL;
+    g_pLoadNow = (TOOL_WINDOW*) g_pLoadSstWin;
     BRING(g_pLoadSstWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1747,8 +1744,8 @@ static void LoadLoadSstCallback(DB_PRIMITIVE*)
 // Load "EVENT": opens the Load EVENT window (R<room>sNN_MM.EST).
 static void LoadLoadEventCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pSaveNow, NULL);
-    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadEventWin);
+    g_pSaveNow = NULL;
+    g_pLoadNow = (TOOL_WINDOW*) g_pLoadEventWin;
     BRING(g_pLoadEventWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -2176,7 +2173,7 @@ static void LoadCheckOkCallback(DB_PRIMITIVE*)
 {
     LoadData(g_filePath, g_pSeqHead);
     MakeLoadSeqData(g_pSeqHead, &g_seqTbl[0][0], 4, 64);
-    ISet(g_dataChanged, 1);
+    g_dataChanged = 1;
     BRING(g_pMenuWin);
     DEACTIVATE(g_pLoadCheckWin);
 }
@@ -2233,8 +2230,8 @@ public:
 // Save "Enemy": opens the Save Enemy window.
 static void SaveSaveEmCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pLoadNow, NULL);
-    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveEmWin);
+    g_pLoadNow = NULL;
+    g_pSaveNow = (TOOL_WINDOW*) g_pSaveEmWin;
     BRING(g_pSaveEmWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -2243,8 +2240,8 @@ static void SaveSaveEmCallback(DB_PRIMITIVE*)
 // Save "Room": opens the Save Room window.
 static void SaveSaveRoomCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pLoadNow, NULL);
-    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveRoomWin);
+    g_pLoadNow = NULL;
+    g_pSaveNow = (TOOL_WINDOW*) g_pSaveRoomWin;
     BRING(g_pSaveRoomWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -2253,8 +2250,8 @@ static void SaveSaveRoomCallback(DB_PRIMITIVE*)
 // Save "SST": opens the Save SST window.
 static void SaveSaveSstCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pLoadNow, NULL);
-    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveSstWin);
+    g_pLoadNow = NULL;
+    g_pSaveNow = (TOOL_WINDOW*) g_pSaveSstWin;
     BRING(g_pSaveSstWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -2263,8 +2260,8 @@ static void SaveSaveSstCallback(DB_PRIMITIVE*)
 // Save "EVENT": opens the Save EVENT window.
 static void SaveSaveEventCallback(DB_PRIMITIVE*)
 {
-    WSet(g_pLoadNow, NULL);
-    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveEventWin);
+    g_pLoadNow = NULL;
+    g_pSaveNow = (TOOL_WINDOW*) g_pSaveEventWin;
     BRING(g_pSaveEventWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -3518,16 +3515,13 @@ static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* 
     // local taken AFTER the pos block: the join recomputes `addi r9,w,148` and copies it (`mr r29,r9`)
     w->sel.SetActivePrimitive(p);
     if (k->on[KEY_X] && k->trg[KEY_Y]) {
-        // g_pEditSeq through the struct view: each pos store may alias the pointer, so it is reloaded per store
-#define EDIT_SEQ_V (((SeqPtrView*) &g_pEditSeq)->p)
-        if (IS_SCREEN_PARENT(EDIT_SEQ_V)) {
-            EDIT_SEQ_V->pos.x = 256.0f;
-            EDIT_SEQ_V->pos.y = 224.0f;
-            EDIT_SEQ_V->pos.z = 0.0f;
+        if (IS_SCREEN_PARENT(g_pEditSeq)) {
+            g_pEditSeq->pos.x = 256.0f;
+            g_pEditSeq->pos.y = 224.0f;
+            g_pEditSeq->pos.z = 0.0f;
         } else {
-            DB_GetCamFrontPos(1500.0f, &EDIT_SEQ_V->pos.x, &EDIT_SEQ_V->pos.y, &EDIT_SEQ_V->pos.z);
+            DB_GetCamFrontPos(1500.0f, &g_pEditSeq->pos.x, &g_pEditSeq->pos.y, &g_pEditSeq->pos.z);
         }
-#undef EDIT_SEQ_V
     }
     // the arms call `w->sel.SetActive*()` directly: each is a fresh `&w->sel` occurrence in its own cse ebb, so gcse
     // PREs them into the reaching register R at the end of this block (`addi r9,w,148; lwz 24(r9); mr r29,r9`:
@@ -5466,10 +5460,7 @@ void DeleteSeqData(TOOL_SEQ* tbl, u32 no)
         TOOL_SEQ* s = &tbl[no + 1];
         TOOL_SEQ* d = (TOOL_SEQ*) ((u8*) tbl + no * sizeof(TOOL_SEQ));
         *d = *s;
-        {
-            u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
-            f[no] = f[no + 1];
-        }
+        g_pSeqFlg[no] = g_pSeqFlg[no + 1];
     }
     ClearSeqData(&tbl[SEQ_TBL_LAST]);
     ReCountSeqFlgNum();
@@ -5484,16 +5475,10 @@ void InsertSeqData(TOOL_SEQ* tbl, u32 no, TOOL_SEQ* src)
         TOOL_SEQ* s = &tbl[i - 1];
         TOOL_SEQ* d = (TOOL_SEQ*) ((u8*) tbl + i * sizeof(TOOL_SEQ));
         *d = *s;
-        {
-            u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
-            f[i] = f[i - 1];
-        }
+        g_pSeqFlg[i] = g_pSeqFlg[i - 1];
     }
     tbl[no] = *src;
-    {
-        u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
-        f[i] |= 1;
-    }
+    g_pSeqFlg[i] |= 1;
     ReCountSeqFlgNum();
     g_dataChanged = 1;
 }
@@ -5613,8 +5598,7 @@ void CopySelectData(int clear)
     // target's order), the flag table through the struct view, the count RMW through a reference
     // (both loads stay below the block copy)
     for (i = 0; i <= SEQ_TBL_LAST; i++, e++) {
-        u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
-        if (f[i] & 1) {
+        if (g_pSeqFlg[i] & 1) {
             *c++ = *e;
             { int& n = g_copyNum; n = n + 1; }
         }
@@ -5716,7 +5700,7 @@ void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
         // target reloads them per iteration; a fixed-scalar `g_page` read is hoisted with `&g_seqFlgNum[g_page]`
         // and takes the callee-saved register the target gives to high(g_page)); `(x & 1) == 0` keeps the plain
         // `andi.; beq` (`!(x & 1)` folds to `xori; bne`).
-        if (g_seqFlgNum[((PageView*) &g_page)->v] != 0 && (((SeqFlgPtr*) &g_pSeqFlg)->p[j] & 1) == 0) continue;
+        if (g_seqFlgNum[g_page] != 0 && (g_pSeqFlg[j] & 1) == 0) continue;
         if (tbl->stat & 1) {
             *rec++ = *tbl;
             head->num++;
@@ -6115,7 +6099,7 @@ void EspToolMain()
     }
     g_curSeq = g_editTop + g_editCursor;
     *g_pEditSeq = g_pEditTbl[g_curSeq];
-    memclr_asm(((SeqPtrView*) &g_pEditSeq2)->p, sizeof(TOOL_SEQ));
+    memclr_asm(g_pEditSeq2, sizeof(TOOL_SEQ));
     DB_MOUSE mouse = *g_pMouse;
     DB_KEYBORD key = *g_pKey;
     g_pPrimArray->Update(&mouse, &key);

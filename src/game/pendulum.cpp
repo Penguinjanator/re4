@@ -1198,7 +1198,7 @@ PenAtWork* penClothAtMake(cModel* m, CLOTH_AT_SET* at, int n)
             a->r = at->R;
             // struct view of pG: the fixed-scalar load would otherwise be hoisted between the
             // copy's word stores (and the copy issued 4, 0, 8 through the extra r9 anti-dependence).
-            if (DbgFlagChk(pGS, DBG_CLOTH_AT_DISP)) {
+            if (DbgFlagChk(pG, DBG_CLOTH_AT_DISP)) {
                 Draw_sphere(&c, at->R, 0x80808080, 1, 1);
             }
             break;

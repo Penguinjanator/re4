@@ -262,7 +262,7 @@ int cEmMgr::isBattle()
     void (*func)(cEm*);
 
     // reference store: keeps the pAlive load below it (global.h BitSet)
-    BitSet(battleCheckFlag, 0);
+    (battleCheckFlag = 0);
     func = battleCheck;
     p = pAlive;
     while (p) {

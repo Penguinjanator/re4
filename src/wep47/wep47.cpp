@@ -64,7 +64,7 @@ void cObjHkSniper::init(cModel* parent)
 
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
-    PSet(wep.parent, parent);
+    wep.parent = parent;
     wep.motReset[0] = WEP_ARC_PTR(0x22);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);

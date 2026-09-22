@@ -85,13 +85,9 @@ struct R21dTrapData {
     int wait;
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R21dWorkPtr {
-    R21dWork* p;
-};
 
 static u8 r21d_texTbl[0x20];
-static R21dWorkPtr r21d_work;
+static R21dWork* r21d_work;
 
 R21dTrapData r21d_trapTbl[5] = {
     {0xF, 1, 5, 0},
@@ -162,10 +158,10 @@ static inline void r21d_FadeSetW(int no, u32 time, u32 z, int late)
 // normally rides it down first); the player's room motions; the seal render target.
 void R21dInit()
 {
-    R21dWork*& wp = r21d_work.p;   // the pG load that follows stays below the store
+    R21dWork*& wp = r21d_work;   // the pG load that follows stays below the store
 #line 46 "D:/Bio4/Prog/r21d.cpp"
     wp = (R21dWork*) MEM_CALLOC(sizeof(R21dWork), 1, 0xd);
-    if (pGS->JumpPoint == 1 || pGS->JumpPoint == 2) {
+    if (pG->JumpPoint == 1 || pG->JumpPoint == 2) {
         RsfSet(G_ROOM_ID, 0);
         RsfSet(G_ROOM_ID, 7);
         RsfSet(G_ROOM_ID, 8);
@@ -272,8 +268,8 @@ static void r21d_setEmReset(int no)
     Vec pos;
     u32 i;
 
-    for (i = 0; i < r21d_work.p->resetWait; i++) {
-        if (r21d_work.p->final == 1) {
+    for (i = 0; i < r21d_work->resetWait; i++) {
+        if (r21d_work->final == 1) {
             SceSleep(Rnd() & 0x1F);
             break;
         }
@@ -282,8 +278,8 @@ static void r21d_setEmReset(int no)
     Vec ang = {0.0f, 0.0f, 0.0f};
 
     r21d_checkEmResetPoint(&pos, &ang.y);
-    r21d_work.p->em[no].setReset((int) &pos, (int) &ang);
-    r21d_work.p->resetting[no] = 0;
+    r21d_work->em[no].setReset((int) &pos, (int) &ang);
+    r21d_work->resetting[no] = 0;
 }
 
 // Starts a reset task for the first enemy that may be reset.
@@ -291,19 +287,19 @@ void r21d_searchEmReset()
 {
     u32 i = 0;
 
-    if (i < r21d_work.p->emNum) {
+    if (i < r21d_work->emNum) {
         do {
-            if (r21d_work.p->em[i].ckResetEnable() == 1) {
-                if (r21d_work.p->resetting[i] == 1) {
+            if (r21d_work->em[i].ckResetEnable() == 1) {
+                if (r21d_work->resetting[i] == 1) {
                     break;
                 }
-                r21d_work.p->resetting[i] = 1;
+                r21d_work->resetting[i] = 1;
                 SceExec(0x12, (TaskFunc) r21d_setEmReset, i, 0, SCE_PRIO_DEF_2, 0);
-                r21d_work.p->emSetCount++;
+                r21d_work->emSetCount++;
                 break;
             }
             i++;
-        } while (i < r21d_work.p->emNum);
+        } while (i < r21d_work->emNum);
     }
 }
 
@@ -312,8 +308,8 @@ static void r21d_checkEmReset()
 {
     SceSleep(10);
     for (;;) {
-        if (r21d_work.p->emSetCount < r21d_work.p->emTotal) {
-            if ((u32) SceCountEmAlive(0x2D, -1) < r21d_work.p->emMax) {
+        if (r21d_work->emSetCount < r21d_work->emTotal) {
+            if ((u32) SceCountEmAlive(0x2D, -1) < r21d_work->emMax) {
                 r21d_searchEmReset();
             }
         }
@@ -324,22 +320,22 @@ static void r21d_checkEmReset()
 // Sets list entry `no` into the next free wrap.
 void r21d_addEmSet(int no)
 {
-    r21d_work.p->em[r21d_work.p->emNum].setEm(no, -1, 0, 1, 1);
-    r21d_work.p->emNum++;
-    r21d_work.p->emSetCount++;
+    r21d_work->em[r21d_work->emNum].setEm(no, -1, 0, 1, 1);
+    r21d_work->emNum++;
+    r21d_work->emSetCount++;
 }
 
 // Task: the final wave after both switches.
 static void r21d_setEmFinal()
 {
     RsfSet(G_ROOM_ID, 6);
-    r21d_work.p->emMax = 10;
-    r21d_work.p->emSetCount = 0;
-    r21d_work.p->resetWait = 450;
-    r21d_work.p->emTotal = 10;
-    r21d_work.p->final = 1;
+    r21d_work->emMax = 10;
+    r21d_work->emSetCount = 0;
+    r21d_work->resetWait = 450;
+    r21d_work->emTotal = 10;
+    r21d_work->final = 1;
     SceSleep(300);
-    r21d_work.p->final = 0;
+    r21d_work->final = 0;
 }
 
 // The last three enemies (0x25..0x27), counted into emSetCount.
@@ -348,7 +344,7 @@ void r21d_setEm4()
     setEm(0x25, -1, 0, 1, 1);
     setEm(0x26, -1, 0, 1, 1);
     setEm(0x27, -1, 0, 1, 1);
-    r21d_work.p->emSetCount += 3;
+    r21d_work->emSetCount += 3;
 }
 
 // Two more list entries (0x15/0x18) into the wraps; the alive cap rises by two.
@@ -356,7 +352,7 @@ void r21d_setEm3()
 {
     r21d_addEmSet(0x15);
     r21d_addEmSet(0x18);
-    r21d_work.p->emMax += 2;
+    r21d_work->emMax += 2;
 }
 
 // Areas 0xD/0x10 once (Room_flg bit 5): four more list entries (0x1B..0x1E) join the reset pool.
@@ -377,15 +373,15 @@ void r21d_initEmSet()
 {
     u32 i;
 
-    r21d_work.p->emMax = 4;
-    r21d_work.p->resetWait = 450;
-    r21d_work.p->emTotal = 15;
+    r21d_work->emMax = 4;
+    r21d_work->resetWait = 450;
+    r21d_work->emTotal = 15;
     r21d_addEmSet(0x14);
     r21d_addEmSet(0x16);
     r21d_addEmSet(0x17);
     r21d_addEmSet(0x19);
     for (i = 0; i < 16; i++) {
-        r21d_work.p->resetting[i] = 0;
+        r21d_work->resetting[i] = 0;
     }
     SceExec(0x12, (TaskFunc) r21d_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r21d_setEm2, 0, 1);
@@ -434,7 +430,7 @@ void r21d_onSwitch(int no, int init)
 
     switch (no) {
     case 0:
-        r21d_work.p->pSwitch = &r21d_work.p->sw[0];
+        r21d_work->pSwitch = &r21d_work->sw[0];
         obj = SmdGetObjPtr(0x1A);
         cut1 = 0x13;
         cut2 = 0x15;
@@ -443,7 +439,7 @@ void r21d_onSwitch(int no, int init)
         kind = 1;
         break;
     case 1:
-        r21d_work.p->pSwitch = &r21d_work.p->sw[1];
+        r21d_work->pSwitch = &r21d_work->sw[1];
         obj = SmdGetObjPtr(0x1A);
         cut1 = 0x14;
         cut2 = 0x16;
@@ -463,16 +459,16 @@ void r21d_onSwitch(int no, int init)
                 SceSleep(1);
             }
         } else {
-            r21d_work.p->pSwitch->setEndPos();
+            r21d_work->pSwitch->setEndPos();
         }
-        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) lightA, 1, r21d_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) lightA, 1, r21d_work->eff, 0, 0);
         if (init == 0) {
             while (CamCtrl.IsMotionEnd() == 0) {
                 if (R21D_SKIP) {
                     R21D_SKIP_SET();
                     break;
                 }
-                r21d_work.p->pSwitch->move();
+                r21d_work->pSwitch->move();
                 SceSleep(1);
             }
             CamCtrl.CutCall((s8) cut2);
@@ -484,7 +480,7 @@ void r21d_onSwitch(int no, int init)
                 SceSleep(1);
             }
         }
-        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) lightB, 1, r21d_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, (u8) lightB, 1, r21d_work->eff, 0, 0);
         obj->pModelInfo->flagsDC |= 1;
         obj->pModelInfo->uvScrollU = 0.01677f;
         obj->pModelInfo->uvScrollV = 0.01343f;
@@ -513,7 +509,7 @@ void r21d_onSwitch(int no, int init)
 // The laser beam between the two switches (cuts 0x17 / 0x18).
 void r21d_irradiateLaser()
 {
-    EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, r21d_work.p->eff, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x11, 1, r21d_work->eff, 0, 0);
     CamCtrl.CutCall(0x17);
     while (CamCtrl.IsMotionEnd() == 0) {
         if (R21D_SKIP) {
@@ -539,10 +535,10 @@ void r21d_operateSwitch_end(u32 n)
     if (pG->Room_flg[0] & 0x80000000) {
         FadeSetW(0x80000000, 10, 0, 0);
         SubScreenWait(20);
-        if (r21d_work.p->str != 0) {
-            SndStrReq(r21d_work.p->str, 8, 0, 0);
+        if (r21d_work->str != 0) {
+            SndStrReq(r21d_work->str, 8, 0, 0);
         }
-        r21d_work.p->pSwitch->setEndPos();
+        r21d_work->pSwitch->setEndPos();
     }
     switch (n) {
     case 0:
@@ -553,9 +549,9 @@ void r21d_operateSwitch_end(u32 n)
     case 2:
         SceExec(0x12, (TaskFunc) r21d_setEmFinal, 0, 0, SCE_PRIO_DEF_2, 0);
         r21d_initIronSeal(1);
-        EffectEspDelete(0, r21d_work.p->eff, 0, 0);
-        EffectEspgenDelete(0, r21d_work.p->eff, 0);
-        EffectEfmDelete(0, r21d_work.p->eff, 0);
+        EffectEspDelete(0, r21d_work->eff, 0, 0);
+        EffectEspgenDelete(0, r21d_work->eff, 0);
+        EffectEfmDelete(0, r21d_work->eff, 0);
         break;
     }
 }
@@ -604,18 +600,18 @@ yes:
     if (RsfCheck(G_ROOM_ID, 8)) {
         count++;
     }
-    U32Set(r21d_work.p->str, 0);
+    r21d_work->str = 0;
     pG->Room_flg[0] &= 0x7FFFFFFF;
     SceEventStart(0);
     switch (count) {
     case 0:
         break;
     case 1:
-        r21d_work.p->str = SndStrReq(1, 0x2E, 0x80000003, 0, 0, 0.0f);
+        r21d_work->str = SndStrReq(1, 0x2E, 0x80000003, 0, 0, 0.0f);
         r21d_onSwitch(no, 0);
         break;
     case 2:
-        r21d_work.p->str = SndStrReq(1, 0x2D, 0x80000003, 0, 0, 0.0f);
+        r21d_work->str = SndStrReq(1, 0x2D, 0x80000003, 0, 0, 0.0f);
         r21d_onSwitch(no, 0);
         r21d_irradiateLaser();
         break;
@@ -630,7 +626,7 @@ void r21d_initSwitch()
     cObj* o23;
     cObj* o24;
 
-    r21d_work.p->eff = EspPullCoreKind();
+    r21d_work->eff = EspPullCoreKind();
     Vec a = {0.0f, 0.0f, 0.0f};
     Vec b = {0.0f, 0.0f, 0.0f};
     Vec d;
@@ -644,9 +640,9 @@ void r21d_initSwitch()
     b.y = 5980.0f;
     b.z = 8967.0f;
     PSVECSubtract(&a, &o23->pos, &d);
-    r21d_work.p->sw[0].initMove1_pos(o23, 2, &d, 0.0f, 0.0f);
+    r21d_work->sw[0].initMove1_pos(o23, 2, &d, 0.0f, 0.0f);
     PSVECSubtract(&b, &o24->pos, &d);
-    r21d_work.p->sw[1].initMove1_pos(o24, 2, &d, 0.0f, 0.0f);
+    r21d_work->sw[1].initMove1_pos(o24, 2, &d, 0.0f, 0.0f);
     if (RsfCheck(G_ROOM_ID, 7) == 0 || RsfCheck(G_ROOM_ID, 8) == 0) {
         if (RsfCheck(G_ROOM_ID, 7) == 0) {
             SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r21d_operateSwitch, 0, 1);
@@ -666,9 +662,9 @@ void r21d_initSwitch()
         LightMgr.offKind(2);
         r21d_onSwitch(0, 1);
         r21d_onSwitch(1, 1);
-        EffectEspDelete(0, r21d_work.p->eff, 0, 0);
-        EffectEspgenDelete(0, r21d_work.p->eff, 0);
-        EffectEfmDelete(0, r21d_work.p->eff, 0);
+        EffectEspDelete(0, r21d_work->eff, 0, 0);
+        EffectEspgenDelete(0, r21d_work->eff, 0);
+        EffectEfmDelete(0, r21d_work->eff, 0);
         r21d_initIronSeal(1);
     }
 }
@@ -684,12 +680,12 @@ void r21d_moveFence()
     while (1) {
         if (R21D_SKIP) {
             R21D_SKIP_SET();
-            r21d_work.p->fence[0].setEndPos();
-            r21d_work.p->fence[1].setEndPos();
+            r21d_work->fence[0].setEndPos();
+            r21d_work->fence[1].setEndPos();
             break;
         }
-        r21d_work.p->fence[1].move();
-        if (r21d_work.p->fence[0].move() == 0) {
+        r21d_work->fence[1].move();
+        if (r21d_work->fence[0].move() == 0) {
             break;
         }
         SceSleep(1);
@@ -748,14 +744,14 @@ void r21d_initFence()
     cObj* o21 = SmdGetObjPtr(0x21);
 
     if (o13 && o21) {
-        r21d_work.p->fence[0].initMove1_pos(o13, 60, &d, 20.0f, 0.0f);
-        r21d_work.p->fence[1].initMove1_pos(o21, 60, &d, 20.0f, 0.0f);
+        r21d_work->fence[0].initMove1_pos(o13, 60, &d, 20.0f, 0.0f);
+        r21d_work->fence[1].initMove1_pos(o21, 60, &d, 20.0f, 0.0f);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(0x13, SCE_LEVEL10, 0, (TaskFunc) r21d_checkFence, 0, 1);
     } else {
-        r21d_work.p->fence[0].setReverse(1);
-        r21d_work.p->fence[1].setReverse(1);
+        r21d_work->fence[0].setReverse(1);
+        r21d_work->fence[1].setReverse(1);
         SceAtSetEnable(0x12, 0);
         SceExec(0x12, (TaskFunc) r21d_moveDeathTrap, 0, 6, SCE_PRIO_DEF_2, 0);
         if (RsfCheck(G_ROOM_ID, 9) == 0) {
@@ -772,7 +768,7 @@ static void r21d_moveGrave(int dir)
 
     if (obj) {
         obj->be_flag |= 0x20;
-        pPLS->setNoSuspend(1);
+        pPL->setNoSuspend(1);
         Vec d = {0.0f, 3000.0f, 0.0f};
         cSceObj grave;
         u32 i;
@@ -943,9 +939,9 @@ void TRAP::move()
 // The pistons in front of the second switch stop at the top.
 static void r21d_setDeathTrap2nd()
 {
-    r21d_work.p->trap[0].stop(1);
-    r21d_work.p->trap[1].stop(1);
-    r21d_work.p->trap[3].stop(1);
+    r21d_work->trap[0].stop(1);
+    r21d_work->trap[1].stop(1);
+    r21d_work->trap[3].stop(1);
 }
 
 // Task: runs the pistons until the grave lift has been used.
@@ -956,7 +952,7 @@ static void r21d_moveDeathTrap()
 
     for (i = 0; i < 5; i++) {
         const R21dTrapData* d = &r21d_trapTbl[i];
-        u32 base = i * sizeof(TRAP) + (u32) r21d_work.p;
+        u32 base = i * sizeof(TRAP) + (u32) r21d_work;
         cObj* obj = SmdGetObjPtr(d->objId);
         TRAP* t;
 
@@ -984,7 +980,7 @@ static void r21d_moveDeathTrap()
     while (1) {
         if (RsfCheck(G_ROOM_ID, 4) == 0) {
             for (n = 0; n < 5; n++) {
-                r21d_work.p->trap[n].move();
+                r21d_work->trap[n].move();
             }
             SceSleep(1);
         } else {
@@ -992,7 +988,7 @@ static void r21d_moveDeathTrap()
         }
     }
     for (n = 0; n < 5; n++) {
-        r21d_work.p->trap[n].stop(1);
+        r21d_work->trap[n].stop(1);
     }
 }
 
@@ -1001,7 +997,7 @@ static void r21d_moveDeathTrap()
 static void r21d_checkDeathTrapSwitch_end()
 {
     if (pG->Room_flg[0] & 0x80000000) {
-        r21d_work.p->deathSw.setEndPos();
+        r21d_work->deathSw.setEndPos();
         if (!(pG->Room_flg[0] & 0x40000000)) {
             SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, SCE_PRIO_DEF_2, 0);
         }
@@ -1034,7 +1030,7 @@ yes:
     CamCtrl.CutCall(0x19);
     SceSleep(15);
     SndCall(6, 9, 0, 0, 0, 0);
-    while (r21d_work.p->deathSw.move() != 0) {
+    while (r21d_work->deathSw.move() != 0) {
         SceSleep(1);
     }
     pG->Room_flg[0] |= 0x40000000;
@@ -1054,10 +1050,10 @@ void r21d_initDeathTrapSwitch()
     Vec r = {0.0f, 0.0f, 1.3f};
     cObj* obj = SmdGetObjPtr(0x26);
 
-    r21d_work.p->deathSw.initMove1_ang(obj, 8, &r, 30.0f, 0.0f, 4);
-    r21d_work.p->deathSw.setVibration(2, 2, 3.0f, 0.0f, 3.0f);
+    r21d_work->deathSw.initMove1_ang(obj, 8, &r, 30.0f, 0.0f, 4);
+    r21d_work->deathSw.setVibration(2, 2, 3.0f, 0.0f, 3.0f);
     if (RsfCheck(G_ROOM_ID, 9)) {
-        r21d_work.p->deathSw.setEndPos();
+        r21d_work->deathSw.setEndPos();
     }
 }
 
@@ -1067,13 +1063,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r21d_texTbl;
 
-    if (GetTexRenderMgr(&r21d_work.p->tex)) {
+    if (GetTexRenderMgr(&r21d_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r21d_work.p->tex->texId;
-        r21d_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, r21d_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r21d_work->tex->texId;
+        r21d_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x12, r21d_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

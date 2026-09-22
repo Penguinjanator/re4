@@ -71,7 +71,7 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    FSet(m_Pos.y, getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->Vec0.y);
+    m_Pos.y = getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->Vec0.y;
     if (DbgFlagChk(pG, DBG_IN_ESP_TOOL) && !DbgFlagChk(pG, DBG_ESPTOOL_ONSCR)) {
         m_Pos.y = 0.0f;
     }

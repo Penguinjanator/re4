@@ -575,7 +575,7 @@ void em34RouteCk(cEm34* em)
     w->Go_dir = w->routeAng;
     w->Go_rot = w->Pl_rot;
     w->L_go = em->plDist2;
-    w->pEm = pPLS;
+    w->pEm = pPL;
     w->Be_flg &= ~4;
     if (w->Be_flg & 2) {
         if (!(w->Be_flg & 1) || em->plDist2 > em->l_sub) {
@@ -583,7 +583,7 @@ void em34RouteCk(cEm34* em)
             w->Go_dir = w->Sub_dir;
             w->Go_rot = w->Sub_rot;
             w->L_go = em->l_sub;
-            w->pEm = pSUBS;
+            w->pEm = pSUB;
             w->Be_flg |= 4;
         }
     }

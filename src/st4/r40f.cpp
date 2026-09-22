@@ -33,10 +33,6 @@ struct R40fWork {
 };
 
 static R40fWork* r40f_work;
-// Struct-member view of the work pointer (the pGS idiom): a mem/s load that alias.c orders after
-// the preceding frame stores (BombSet's template copies), a plain pointer load is a fixed scalar.
-struct R40fWorkPtr { R40fWork* p; };
-#define r40f_workS (((R40fWorkPtr*) &r40f_work)->p)
 
 static void R40fBombSet();
 void R40fDoorEventEmMove();
@@ -89,8 +85,8 @@ static void R40fBombSet()
         r40f_work->bomb1.setFlag(1);
         Vec p0 = {-6970.0f, -2000.0f, -1215.0f};
         Vec p1 = {-9220.0f, -2000.0f, -2190.0f};
-        r40f_workS->bomb0.setGoto(&p0, 1);
-        r40f_workS->bomb1.setGoto(&p1, 1);
+        r40f_work->bomb0.setGoto(&p0, 1);
+        r40f_work->bomb1.setGoto(&p1, 1);
     }
 }
 

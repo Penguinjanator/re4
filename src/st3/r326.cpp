@@ -91,7 +91,7 @@ static void r326_setCorpseBag()
     Vec pos = {-3142.0f, 3863.0f, -1793.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
 
-    PSet(r326_work->bag, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1));
+    r326_work->bag = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
     if (RsfCheck(G_ROOM_ID, 3)) {
         SceExit();
     }
@@ -114,8 +114,8 @@ static void r326_setCorpseBag()
         Vec hpos = {300.0f, 0.0f, 0.0f};
         Vec hrot = {0.0f, 0.0f, 1.5707964f};
 
-        PSet(r326_work->hit, SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
-                                      &hpos, &hrot, 0));
+        r326_work->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+                                      &hpos, &hrot, 0);
     }
     r326_work->hit->setParent(r326_work->bag, 0, 0);
     YarareInit(r326_work->hit, 0.0f, 0.0f, 0.0f, 260.0f, 600.0f, 0, YAT_FLAG_ON);

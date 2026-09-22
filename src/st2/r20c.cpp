@@ -51,12 +51,8 @@ struct R20cWork {
     f32 doorY[2];         // 0xAC  door rest heights
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R20cWorkPtr {
-    R20cWork* p;
-};
 
-static R20cWorkPtr r20c_work;
+static R20cWork* r20c_work;
 
 Vec r20c_emGoto0 = {35700.0f, 3500.0f, 17000.0f};
 Vec r20c_emGoto1 = {34000.0f, 3500.0f, 10250.0f};
@@ -102,12 +98,12 @@ void R20cInit()
     cObj* obj;
 
 #line 49 "D:/Bio4/Prog/r20c.cpp"
-    r20c_work.p = (R20cWork*) MEM_CALLOC(sizeof(R20cWork), 1, 0xd);
+    r20c_work = (R20cWork*) MEM_CALLOC(sizeof(R20cWork), 1, 0xd);
     obj = SmdGetObjPtr(8);
     if (obj) {
-        r20c_work.p->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
-        if (r20c_work.p->hit) {
-            YarareInitCube(r20c_work.p->hit, 0.0f, -100.0f, 0.0f, 100.0f, 200.0f, 100.0f, 0, YAT_FLAG_ON);
+        r20c_work->hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
+        if (r20c_work->hit) {
+            YarareInitCube(r20c_work->hit, 0.0f, -100.0f, 0.0f, 100.0f, 200.0f, 100.0f, 0, YAT_FLAG_ON);
         }
     }
     R20cExecShootInit();
@@ -121,11 +117,11 @@ void R20cInit()
         int i;
 
         for (i = 0; i < 1; i++) {
-            r20c_work.p->sat[i] = NULL;
-            r20c_work.p->eat[i] = NULL;
+            r20c_work->sat[i] = NULL;
+            r20c_work->eat[i] = NULL;
         }
-        PSet(r20c_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
-        r20c_work.p->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
+        r20c_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+        r20c_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
         R20cExecCageUp();
         if (RsfCheck(G_ROOM_ID, 3)) {
             R20cExecCageDown(0);
@@ -150,7 +146,7 @@ void R20cMain()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         if (!(pG->Room_flg[0] & 0x00800000)) {
-            if (r20c_work.p->hit && r20c_work.p->hit->ckStatus() == 1) {
+            if (r20c_work->hit && r20c_work->hit->ckStatus() == 1) {
                 SceExec(0x12, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
@@ -164,7 +160,7 @@ static void R20cEmSetMain()
     cEmDoor* door1;
 
     SceSleep(1);
-    r20c_work.p->em[4].setEm(0xD6, -1, 0, 1, 1);
+    r20c_work->em[4].setEm(0xD6, -1, 0, 1, 1);
     R20cExecCageEmResetSub(0);
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
@@ -187,24 +183,24 @@ void R20cExecCageUp()
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
     if (obj) {
-        r20c_work.p->cageY = obj->pos.y;
+        r20c_work->cageY = obj->pos.y;
         obj->setPos(obj->pos.x, obj->pos.y + 4000.0f, obj->pos.z);
     }
     if (door0) {
-        r20c_work.p->doorY[0] = door0->pos.y;
+        r20c_work->doorY[0] = door0->pos.y;
         door0->setPos(door0->pos.x, door0->pos.y + 4000.0f, door0->pos.z);
         door0->Motion.Pos_world = door0->pos;
     }
     if (door1) {
-        r20c_work.p->doorY[1] = door1->pos.y;
+        r20c_work->doorY[1] = door1->pos.y;
         door1->setPos(door1->pos.x, door1->pos.y + 4000.0f, door1->pos.z);
         door1->Motion.Pos_world = door1->pos;
     }
-    if (r20c_work.p->sat[0]) {
-        r20c_work.p->sat[0]->m_Flag &= ~4;
+    if (r20c_work->sat[0]) {
+        r20c_work->sat[0]->m_Flag &= ~4;
     }
-    if (r20c_work.p->eat[0]) {
-        r20c_work.p->eat[0]->m_Flag &= ~4;
+    if (r20c_work->eat[0]) {
+        r20c_work->eat[0]->m_Flag &= ~4;
     }
 }
 
@@ -223,14 +219,14 @@ void R20cExecCageDown(int lock)
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
     if (obj) {
-        obj->setPos(obj->pos.x, r20c_work.p->cageY, obj->pos.z);
+        obj->setPos(obj->pos.x, r20c_work->cageY, obj->pos.z);
     }
     if (door0) {
-        door0->setPos(door0->pos.x, r20c_work.p->doorY[0], door0->pos.z);
+        door0->setPos(door0->pos.x, r20c_work->doorY[0], door0->pos.z);
         door0->Motion.Pos_world = door0->pos;
     }
     if (door1) {
-        door1->setPos(door1->pos.x, r20c_work.p->doorY[1], door1->pos.z);
+        door1->setPos(door1->pos.x, r20c_work->doorY[1], door1->pos.z);
         door1->Motion.Pos_world = door1->pos;
     }
     if (lock == 1) {
@@ -241,11 +237,11 @@ void R20cExecCageDown(int lock)
             door1->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 1);
         }
     }
-    if (r20c_work.p->sat[0]) {
-        r20c_work.p->sat[0]->m_Flag |= 4;
+    if (r20c_work->sat[0]) {
+        r20c_work->sat[0]->m_Flag |= 4;
     }
-    if (r20c_work.p->eat[0]) {
-        r20c_work.p->eat[0]->m_Flag |= 4;
+    if (r20c_work->eat[0]) {
+        r20c_work->eat[0]->m_Flag |= 4;
     }
 }
 
@@ -265,17 +261,17 @@ static void R20cExecCageMain()
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         RsfSet(G_ROOM_ID, 3);
         SceAtSetEnable(3, 0);
-        r20c_work.p->em[0].setEm(0xCB, -1, 0, 1, 1);
-        r20c_work.p->em[1].setEm(0xCC, -1, 0, 1, 1);
-        r20c_work.p->em[2].setEm(0xD2, -1, 0, 1, 1);
-        r20c_work.p->em[3].setEm(0xD5, -1, 0, 1, 1);
-        r20c_work.p->em[4].setEm(0xD6, -1, 0, 1, 1);
-        r20c_work.p->em[5].setEm(0xD7, -1, 0, 1, 1);
-        r20c_work.p->em[6].setEm(0xD8, -1, 0, 1, 1);
-        r20c_work.p->em[7].setEm(0xD9, -1, 0, 1, 1);
-        r20c_work.p->em[8].setEm(0xDA, -1, 0, 1, 1);
-        r20c_work.p->em[9].setEm(0xEE, -1, 0, 1, 1);
-        r20c_work.p->em[10].setEm(0xEF, -1, 0, 1, 1);
+        r20c_work->em[0].setEm(0xCB, -1, 0, 1, 1);
+        r20c_work->em[1].setEm(0xCC, -1, 0, 1, 1);
+        r20c_work->em[2].setEm(0xD2, -1, 0, 1, 1);
+        r20c_work->em[3].setEm(0xD5, -1, 0, 1, 1);
+        r20c_work->em[4].setEm(0xD6, -1, 0, 1, 1);
+        r20c_work->em[5].setEm(0xD7, -1, 0, 1, 1);
+        r20c_work->em[6].setEm(0xD8, -1, 0, 1, 1);
+        r20c_work->em[7].setEm(0xD9, -1, 0, 1, 1);
+        r20c_work->em[8].setEm(0xDA, -1, 0, 1, 1);
+        r20c_work->em[9].setEm(0xEE, -1, 0, 1, 1);
+        r20c_work->em[10].setEm(0xEF, -1, 0, 1, 1);
         SndRoomStrStop(3);
         SndBgmTblSet(0x20C, 1);
         SndRoomStrStart(1, 0, 1);
@@ -292,14 +288,14 @@ static void R20cExecCageMain()
         SndCall(6, 0, &pPL->pos, 0, 0, 0);
         for (i = 0; i < 20; i++) {
             if (obj) {
-                obj->setPos(obj->pos.x, r20c_work.p->cageY + 4000.0f - (f32) i * 4000.0f / 20.0f, obj->pos.z);
+                obj->setPos(obj->pos.x, r20c_work->cageY + 4000.0f - (f32) i * 4000.0f / 20.0f, obj->pos.z);
             }
             if (door0) {
-                door0->setPos(door0->pos.x, r20c_work.p->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f, door0->pos.z);
+                door0->setPos(door0->pos.x, r20c_work->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f, door0->pos.z);
                 door0->Motion.Pos_world = door0->pos;
             }
             if (door1) {
-                door1->setPos(door1->pos.x, r20c_work.p->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f, door1->pos.z);
+                door1->setPos(door1->pos.x, r20c_work->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f, door1->pos.z);
                 door1->Motion.Pos_world = door1->pos;
             }
             SceSleep(1);
@@ -313,19 +309,19 @@ static void R20cExecCageMain()
         MotionSetCore(pPL, &pPL->Motion, PL_ARC_PTR(pG->pPlayer, 0x32), 0, 0, 4, 0);
         R20cExecCageDown(1);
         CamCtrl.CutCall(7);
-        r20c_work.p->em[0].setGoto(&r20c_emGoto0, 1);
-        r20c_work.p->em[1].setGoto(&r20c_emGoto1, 1);
-        r20c_work.p->em[0].setNoSuspend(1);
-        r20c_work.p->em[1].setNoSuspend(1);
+        r20c_work->em[0].setGoto(&r20c_emGoto0, 1);
+        r20c_work->em[1].setGoto(&r20c_emGoto1, 1);
+        r20c_work->em[0].setNoSuspend(1);
+        r20c_work->em[1].setNoSuspend(1);
         SceSleep(50);
         CamCtrl.CutCall(8);
-        r20c_work.p->em[2].setGoto(&r20c_emGoto2, 1);
-        r20c_work.p->em[3].setGoto(&r20c_emGoto3, 1);
-        r20c_work.p->em[2].setNoSuspend(1);
-        r20c_work.p->em[3].setNoSuspend(1);
+        r20c_work->em[2].setGoto(&r20c_emGoto2, 1);
+        r20c_work->em[3].setGoto(&r20c_emGoto3, 1);
+        r20c_work->em[2].setNoSuspend(1);
+        r20c_work->em[3].setNoSuspend(1);
         SceSleep(50);
         CamCtrl.CutCall(9);
-        r20c_work.p->resetCnt = 0;
+        r20c_work->resetCnt = 0;
         for (k = 0; k < 2; k++) {
             R20cExecCageEmResetSub(k)->setNoSuspend(1);
         }
@@ -348,22 +344,22 @@ static void R20cExecCageEnd()
     SndCall(6, 1, &pPL->pos, 0, 0, 0);
     pPL->setPos(&r20c_plPos1);
     pPL->setAng(&r20c_plAng1);
-    r20c_work.p->em[0].setNoSuspend(0);
-    r20c_work.p->em[1].setNoSuspend(0);
-    r20c_work.p->em[2].setNoSuspend(0);
-    r20c_work.p->em[3].setNoSuspend(0);
-    r20c_work.p->em[4].setNoSuspend(0);
-    r20c_work.p->em[5].setNoSuspend(0);
-    r20c_work.p->em[6].setNoSuspend(0);
-    r20c_work.p->em[7].setNoSuspend(0);
-    r20c_work.p->em[8].setNoSuspend(0);
-    r20c_work.p->em[9].setNoSuspend(0);
-    r20c_work.p->em[10].setNoSuspend(0);
-    r20c_work.p->em[0].setGoto(&r20c_emGoto0, 1);
-    r20c_work.p->em[1].setGoto(&r20c_emGoto1, 1);
-    r20c_work.p->em[2].setGoto(&r20c_emGoto2, 1);
-    r20c_work.p->em[3].setGoto(&r20c_emGoto3, 1);
-    r20c_work.p->resetCnt = 0;
+    r20c_work->em[0].setNoSuspend(0);
+    r20c_work->em[1].setNoSuspend(0);
+    r20c_work->em[2].setNoSuspend(0);
+    r20c_work->em[3].setNoSuspend(0);
+    r20c_work->em[4].setNoSuspend(0);
+    r20c_work->em[5].setNoSuspend(0);
+    r20c_work->em[6].setNoSuspend(0);
+    r20c_work->em[7].setNoSuspend(0);
+    r20c_work->em[8].setNoSuspend(0);
+    r20c_work->em[9].setNoSuspend(0);
+    r20c_work->em[10].setNoSuspend(0);
+    r20c_work->em[0].setGoto(&r20c_emGoto0, 1);
+    r20c_work->em[1].setGoto(&r20c_emGoto1, 1);
+    r20c_work->em[2].setGoto(&r20c_emGoto2, 1);
+    r20c_work->em[3].setGoto(&r20c_emGoto3, 1);
+    r20c_work->resetCnt = 0;
     for (i = 0; i < 2; i++) {
         R20cExecCageEmResetSub(i);
     }
@@ -376,18 +372,18 @@ static void R20cExecCageEnd()
 // 11th enemy on the low difficulty ranks) and releases it.
 cEmWrap* R20cExecCageEmResetSub(int slot)
 {
-    int no = r20c_resetTbl[r20c_work.p->resetCnt];
+    int no = r20c_resetTbl[r20c_work->resetCnt];
     cEmWrap* em;
 
     if (no == 4 && pG->Game_level <= 2) {
         no = 10;
     }
-    em = &r20c_work.p->em[no];
+    em = &r20c_work->em[no];
     if (em) {
         em->setFlag(1);
     }
-    r20c_work.p->resetIdx[slot] = no;
-    r20c_work.p->resetCnt++;
+    r20c_work->resetIdx[slot] = no;
+    r20c_work->resetCnt++;
     return em;
 }
 
@@ -404,7 +400,7 @@ static void R20cExecCageEmReset()
         slot = 0;
         do {
             for (i = 0; i < 2; i++) {
-                if (r20c_work.p->em[r20c_work.p->resetIdx[i]].isActive() == 0) {
+                if (r20c_work->em[r20c_work->resetIdx[i]].isActive() == 0) {
                     slot = i;
                     wait = 0;
                     break;
@@ -416,7 +412,7 @@ static void R20cExecCageEmReset()
             SceSleep(1);
         }
         R20cExecCageEmResetSub(slot);
-        if (r20c_work.p->resetCnt > 5) {
+        if (r20c_work->resetCnt > 5) {
             break;
         }
         SceSleep(1);
@@ -436,11 +432,11 @@ void R20cKaigaMoved(int mode)
             obj7->setAng(obj7->ang.x, obj7->ang.y, 0.0f);
             obj9->setAng(obj9->ang.x, obj9->ang.y, 0.0f);
             pG->Room_flg[0] |= 0x01000000;
-            if (r20c_work.p->kaigaHit[0]) {
-                r20c_work.p->kaigaHit[0]->hp = 1;
+            if (r20c_work->kaigaHit[0]) {
+                r20c_work->kaigaHit[0]->hp = 1;
             }
-            if (r20c_work.p->kaigaHit[1]) {
-                r20c_work.p->kaigaHit[1]->hp = 1;
+            if (r20c_work->kaigaHit[1]) {
+                r20c_work->kaigaHit[1]->hp = 1;
             }
             SceAtSetEnable(9, 0);
         } else {
@@ -452,11 +448,11 @@ void R20cKaigaMoved(int mode)
             // COMPILER-DIFF: #5 — the original's `li r8,0` of the two `hp = 0` stores is one constant
             // hoisted above the first null test (interblock motion); a local set here gives the shape.
             hp = 0;
-            if (r20c_work.p->kaigaHit[0]) {
-                r20c_work.p->kaigaHit[0]->hp = hp;
+            if (r20c_work->kaigaHit[0]) {
+                r20c_work->kaigaHit[0]->hp = hp;
             }
-            if (r20c_work.p->kaigaHit[1]) {
-                r20c_work.p->kaigaHit[1]->hp = hp;
+            if (r20c_work->kaigaHit[1]) {
+                r20c_work->kaigaHit[1]->hp = hp;
             }
             SceAtSetEnable(9, 1);
         }
@@ -559,13 +555,13 @@ void R20cExecShootInit()
         SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 1);
         obj = SmdGetObjPtr(7);
         if (obj) {
-            r20c_work.p->kaigaHit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
-            if (r20c_work.p->kaigaHit[0]) {
-                YarareInitCube(r20c_work.p->kaigaHit[0], 0.0f, 0.0f, -300.0f, 150.0f, 450.0f, 200.0f, 0, YAT_FLAG_ON);
+            r20c_work->kaigaHit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
+            if (r20c_work->kaigaHit[0]) {
+                YarareInitCube(r20c_work->kaigaHit[0], 0.0f, 0.0f, -300.0f, 150.0f, 450.0f, 200.0f, 0, YAT_FLAG_ON);
             }
-            r20c_work.p->kaigaHit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
-            if (r20c_work.p->kaigaHit[1]) {
-                YarareInitCube(r20c_work.p->kaigaHit[1], 0.0f, -850.0f, 0.0f, 50.0f, 1700.0f, 1100.0f, 0, YAT_FLAG_ON);
+            r20c_work->kaigaHit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &obj->pos, 0, 1);
+            if (r20c_work->kaigaHit[1]) {
+                YarareInitCube(r20c_work->kaigaHit[1], 0.0f, -850.0f, 0.0f, 50.0f, 1700.0f, 1100.0f, 0, YAT_FLAG_ON);
             }
         }
         obj = SmdGetObjPtr(9);
@@ -581,11 +577,11 @@ void R20cExecShootInit()
 static void R20cExecShootMain()
 {
     for (;;) {
-        if (r20c_work.p->kaigaHit[0] && r20c_work.p->kaigaHit[0]->ckStatus() == 1) {
+        if (r20c_work->kaigaHit[0] && r20c_work->kaigaHit[0]->ckStatus() == 1) {
             SceExec(0x12, (TaskFunc) R20cDoorOpenMain, 0, 0, SCE_PRIO_DEF_2, 0);
             return;
         }
-        if (r20c_work.p->kaigaHit[1] && r20c_work.p->kaigaHit[1]->ckStatus() == 1) {
+        if (r20c_work->kaigaHit[1] && r20c_work->kaigaHit[1]->ckStatus() == 1) {
             goto found;
         }
         SceSleep(1);
@@ -606,11 +602,11 @@ static void R20cDoorOpenMain()
         cObj* obj;
 
         RsfSet(G_ROOM_ID, 0);
-        if (r20c_work.p->kaigaHit[0]) {
-            r20c_work.p->kaigaHit[0]->hp = 0;
+        if (r20c_work->kaigaHit[0]) {
+            r20c_work->kaigaHit[0]->hp = 0;
         }
-        if (r20c_work.p->kaigaHit[1]) {
-            r20c_work.p->kaigaHit[1]->hp = 0;
+        if (r20c_work->kaigaHit[1]) {
+            r20c_work->kaigaHit[1]->hp = 0;
         }
         SceAtSetEnable(9, 0);
         SceEventStart(0);

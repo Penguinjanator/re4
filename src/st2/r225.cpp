@@ -198,9 +198,9 @@ static void r225_operateCrank()
         // the fillers without moving any real insn.
         u32 n;
         asm("" : "=r"(n) : "0"(0x16));
-        PSet(r225_work->crank, SmdGetObjPtr(n));
+        r225_work->crank = SmdGetObjPtr(n);
     }
-    BitOn(r225_work->crank->be_flag, 0x20);
+    r225_work->crank->be_flag |= 0x20;
     pPL->beginEvent(0);
     PlSetHand(1, 0);
     r225_work->crank->beginEvent(0);
@@ -212,10 +212,10 @@ static void r225_operateCrank()
         cPlayer* pl;
         Vec* rot;
 
-        // pPLS: the scalar `pPL` load would not depend on the template stores above it and its chain
+        // pPL: the scalar `pPL` load would not depend on the template stores above it and its chain
         // through the in-struct `stfs pos.y` -> crank loads (unknown base) outranks the `r225_work` load.
-        pos.y = pPLS->pos.y;
-        FSetP(pPL->ang.y, r225_work->crank->ang.y - 1.5707964f);
+        pos.y = pPL->pos.y;
+        pPL->ang.y = r225_work->crank->ang.y - 1.5707964f;
         pl = pPL;
         rot = &pl->ang;
         pl->setPos(&pos);
@@ -369,7 +369,7 @@ void r225_open_door()
     SmdGetObjPtr(0x25)->be_flag |= 0x20;
     while (SmdGetObjPtr(0x25)->pos.y < 4579.0f) {
         spd += (max - spd) * 0.1f;
-        FAdd(SmdGetObjPtr(0x25)->pos.y, spd);
+        SmdGetObjPtr(0x25)->pos.y += spd;
         if (r225_work->door) {
             r225_work->door->pos.y += spd;
         }

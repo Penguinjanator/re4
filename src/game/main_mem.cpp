@@ -152,9 +152,11 @@ void MemSuspendHeap(int no)
     int h = Heap[no].handle;
 
     if (memGetHeapSattus(no) == 0 && h >= 0) {
-        heap_backup[h] = HeapHead[h];
-        HeapHead[h].free = NULL;
-        HeapHead[h].allocated = NULL;
+        OSHeapDescriptor* hh = HeapHead;
+
+        heap_backup[h] = hh[h];
+        hh[h].free = NULL;
+        hh[h].allocated = NULL;
         Heap[no].status = 1;
     }
 }
@@ -558,8 +560,6 @@ struct SysFlagsView {
     u32 Config_flg;  // 0x00
 };
 extern SysFlagsView* pSysView asm("pSys");
-// Reference read: the load stays below the preceding tile stores (see mercenaries.cpp SysRef).
-static inline SysFlagsView* SysRef(SysFlagsView*& p) { return p; }
 
 struct DvdFreeSizeView {
     u32 freeSize;  // 0x00  cDvd::freeSize
@@ -637,7 +637,7 @@ void MemCheckUsedHeap()
     } else {
         n = -2000;
     }
-    ISet(ey_base, n);
+    ey_base = n;
     ey = ey_base;
     size = heapEnd - start;
     mt = (MemTile*) pMemTile;
@@ -685,7 +685,7 @@ void MemCheckUsedHeap()
                 mt->b = 0x20;
             }
             mt->cd = 0xFF;
-            if (CfgFlagChk(SysRef(pSysView), CFG_WIDE_MODE)) {
+            if (CfgFlagChk(pSysView, CFG_WIDE_MODE)) {
                 mt->y0 = (s16) ((f32) mt->y0 / 1.3333334f + 56.0f);
                 mt->h = (s16) ((f32) mt->h / 1.3333334f);
             }
@@ -715,7 +715,7 @@ void MemCheckUsedHeap()
             mt->b = 0x20;
         }
         mt->cd = 0xFF;
-        if (CfgFlagChk(SysRef(pSysView), CFG_WIDE_MODE)) {
+        if (CfgFlagChk(pSysView, CFG_WIDE_MODE)) {
             mt->y0 = (s16) ((f32) mt->y0 / 1.3333334f + 56.0f);
             mt->h = (s16) ((f32) mt->h / 1.3333334f);
         }
@@ -825,7 +825,7 @@ void MemCheckUsedHeap()
         mt->h = 400;
         mt->b = mt->g = mt->r = 0x20;
         mt->cd = 0xFF;
-        if (CfgFlagChk(SysRef(pSysView), CFG_WIDE_MODE)) {
+        if (CfgFlagChk(pSysView, CFG_WIDE_MODE)) {
             mt->y0 = 78;
             mt->h = 300;
         }

@@ -386,8 +386,8 @@ void CamRenderPrev(TexRenderCam* pWk)
     pWk->pCam = new (&pWk->cam) CameraMotion(pWk->data, 0, 0, (f32) frame);
     pWk->pCam->move();
     pWk->save = pG->Camera;
-    pGS->Camera = *pWk->pCam;
-    C_MTXPerspective(pGS->Camera.ProjMat, pGS->Camera.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
+    pG->Camera = *pWk->pCam;
+    C_MTXPerspective(pG->Camera.ProjMat, pG->Camera.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
     C_MTXLookAt(pG->Camera.v_mat, &pG->Camera.param.pos, &pG->Camera.up, &pG->Camera.param.at);
 }
 

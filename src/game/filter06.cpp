@@ -64,9 +64,9 @@ static Vec cam_vec_LR;
 // Places particle `no` randomly around the camera within `spread` * 10 units (plus a per-particle offset).
 void cParticle06::init(u32 no)
 {
-    FSet(m_Pos.x, pG->Camera.param.pos.x);
-    FSet(m_Pos.y, pG->Camera.param.pos.y);
-    FSet(m_Pos.z, pG->Camera.param.pos.z);
+    m_Pos.x = pG->Camera.param.pos.x;
+    m_Pos.y = pG->Camera.param.pos.y;
+    m_Pos.z = pG->Camera.param.pos.z;
     m_Pos.x += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
     m_Pos.y += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
     m_Pos.z += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;

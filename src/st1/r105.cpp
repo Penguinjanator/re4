@@ -193,7 +193,7 @@ void R105Main()
 
     getRoomEtcDoor(1, &door, 1);
     if (ItfFlagChk(pG, ITF_R105_ITEM) && !(pG->Room_flg[0] & 0x40000000)) {
-        BitOn(pG->Room_flg[0], 0x40000000);
+        pG->Room_flg[0] |= 0x40000000;
         if (RsfCheck(G_ROOM_ID, 1) == 0 || RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtSetEnable(8, 1);
             SceAtDataSet_exec(8, SCE_LEVEL10, 0, r105_Event, 0, 1);
@@ -628,18 +628,18 @@ static void r105_StreanChk()
         }
         if (pG->Room_flg[0] & 0x10000000) {
             if (!(pG->Room_flg[0] & 0x08000000)) {
-                BitOn(pG->Room_flg[0], 0x08000000);
+                pG->Room_flg[0] |= 0x08000000;
                 if (pG->Room_flg[0] & 0x20000000) {
                     pG->Room_flg[0] &= ~0x20000000;
                     SndRoomStrStop(0);
                     SceSleep(1);
                 }
-                SndStrReq(0, 2, 0x80000003, 0, 0, FCRef(vol));
+                SndStrReq(0, 2, 0x80000003, 0, 0, *(const f32*) &vol);
                 SceSleep(30);
             }
         } else if (pG->Room_flg[0] & 0x08000000) {
-            BitOff(pG->Room_flg[0], 0x08000000);
-            SndStrReq(0, 2, 4, 600, 0, FCRef(vol));
+            pG->Room_flg[0] &= ~0x08000000;
+            SndStrReq(0, 2, 4, 600, 0, *(const f32*) &vol);
             SceSleep(30);
         }
         SceSleep(1);
@@ -849,8 +849,8 @@ static void r105_checkCloseCover()
 
     cover = SmdGetObjPtr(0x31);
     lid = SmdGetObjPtr(0x30);
-    BitOn(cover->be_flag, 0x20);
-    BitOn(lid->be_flag, 0x20);
+    cover->be_flag |= 0x20;
+    lid->be_flag |= 0x20;
     hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &cover->pos,
                    &cover->ang, 0);
     {
@@ -1005,14 +1005,14 @@ static void r105_initCesspit()
     SceAtWork* at = SceAtPtr(0x8D);
 
     SceAtSetEnable(0x9B, 1);
-    BitOn(SmdGetObjPtr(0x30)->be_flag, 0x20);
+    SmdGetObjPtr(0x30)->be_flag |= 0x20;
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
         SceExec(0x12, r105_checkCloseCover, 0, 0, SCE_PRIO_DEF_2, 0);
         SceExec(0x12, r105_checkCesspit0, 0, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(0x11, 0);
         SceAtSetEnable(0x8D, 1);
     } else {
-        BitOff(SmdGetObjPtr(0x31)->be_flag, 2);
+        SmdGetObjPtr(0x31)->be_flag &= ~2;
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             SmdGetObjPtr(0x30)->pParts->ang.z = 0.69f;
             SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, r105_execOpenCover, 0, 1);

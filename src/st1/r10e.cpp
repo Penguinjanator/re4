@@ -30,7 +30,7 @@ void R10eInit()
     r10e_work = (R10eWork*) MEM_CALLOC(4, 1, 0xd);
 
     if (pG->room_id_prev == 0xFFF) {
-        U16Set(pG->room_id_prev, 0x119);
+        pG->room_id_prev = 0x119;
         ScfFlagOn(pG, SCF_ST1_NIGHT);
     }
     if (!ScfFlagChk(pG, SCF_ST1_NIGHT)) {

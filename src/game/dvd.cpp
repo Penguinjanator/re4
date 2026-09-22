@@ -317,7 +317,6 @@ struct OSLowMem {
 #define OSTicksToMilliseconds(ticks) ((ticks) / (OS_TIMER_CLOCK / 1000))
 
 #include "snd.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 #include <dolphin/os/OSCache.h>
@@ -921,7 +920,7 @@ void cDvdQueue::Initialize()
     sprintf(reqfile, "%s", w->file);
     reqline = w->line;
     pc = 1;
-    if (SysFlagChk(pGS, SYS_SN_PC_READ) == 0) {
+    if (SysFlagChk(pG, SYS_SN_PC_READ) == 0) {
         pc = 0;
     }
     pcMode = pc;
@@ -1672,7 +1671,7 @@ int cDvd::ErrCheck(int disc, int flag)
             Render_swap();
             while (vsync_cnt < (int) GetSystemVcnt()) {}
             vsync_cnt = 0;
-            if (S32Ref(m_ErrCode) != -1) {
+            if (m_ErrCode != -1) {
                 systemResetCheck();
             }
         }
@@ -1960,7 +1959,7 @@ int cDvd::DiscChange(int disc)
     char company[] = "08";
     const char* game[] = {"G4BJ", "G4BE", "G4BJ", "G4BJ"};
 
-    if (SysRef(pSys)->eff_country == 1) {
+    if (pSys->eff_country == 1) {
         region = 1;
     } else if (SysIsEurope() == 1) {
         region = 2;

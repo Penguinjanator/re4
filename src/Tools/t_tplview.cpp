@@ -12,7 +12,6 @@
 #include "tpl.h"
 #include "t_util.h"
 #include "tools.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -58,8 +57,8 @@ void TplViewer();
 // TPL viewer entry (debug menu 18): saves the stop flags / debug mode, runs TplViewer, ends.
 void ToolTplView()
 {
-    tplStopFlagBak = U32Ref(pG->Stop_flg);
-    BitOn(pG->Stop_flg, 0x10000000);
+    tplStopFlagBak = pG->Stop_flg;
+    pG->Stop_flg |= 0x10000000;
     ToolArrayPush(0);
     for (;;) {
         TplViewer();

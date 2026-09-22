@@ -121,10 +121,10 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->Etc_no = etcNo;
+    w->Be_flg = zero;
     w->Seid = 0;
     w->Bomb_wait = 0;
-    w->Be_flg = zero;
+    w->Etc_no = etcNo;
     flg = GetEtcFlgPtr(etcNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
@@ -154,7 +154,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     EmBarrelWork* w;
     int zero;
 
-    if (pGS->stage_no != 2 || pGS->room_no != 0x27) {
+    if (pG->stage_no != 2 || pG->room_no != 0x27) {
         return 0;
     }
     em = (cEmBarrel*) EmMgr.create(0x48);
@@ -696,7 +696,7 @@ int emBarrelSetRollRoute(cEmBarrel* em)
     {
         u32 o = idx * 0x40 + 8;
 
-        w->pRoute = (EmiEntry*) ((u8*) pGS->pEmi + o);
+        w->pRoute = (EmiEntry*) ((u8*) pG->pEmi + o);
     }
     return 1;
 }
@@ -736,7 +736,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
         {
             u32 o = idx * 0x40 + 8;
 
-            e = (EmiEntry*) ((u8*) pGS->pEmi + o);
+            e = (EmiEntry*) ((u8*) pG->pEmi + o);
         }
         w->pRoute = e;
     }
@@ -801,7 +801,7 @@ void emBarrelSetBomb(cEmBarrel* em)
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 6000.0f;
-    cam = &pGS->Camera;
+    cam = &pG->Camera;
     p = em->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
@@ -851,7 +851,7 @@ void emBarrelSetBomb2(cEmBarrel* em)
     w->Bomb_wait = 2;
     w->Bomb_pos = v;
     w->Bomb_r = 4000.0f;
-    cam = &pGS->Camera;
+    cam = &pG->Camera;
     p = em->getPartsPtr(1);
     d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
          (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +

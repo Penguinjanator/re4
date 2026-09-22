@@ -11,7 +11,6 @@
 #include "pl_mod.h"
 #include "db_log.h"
 #include "esp.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 
 
@@ -157,7 +156,7 @@ void cPlHunk::setLeftHand(u32 no)
     }
     Body->oldLhandNo = Body->nowLhandNo;
     Body->nowLhandNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pG->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlHunk::setLeftHand() ModInfoMgr.create() failed");
     } else {
@@ -185,7 +184,7 @@ void cPlHunk::setHead(int no)
     }
     deleteModelInfo(Body->pHair);
     Body->pHair = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xB), PL_ARC_PTR(pG->pPlayer, 7));
     if (info) {
         addModel(info);
     }

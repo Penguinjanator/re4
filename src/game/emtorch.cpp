@@ -143,7 +143,7 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     w->EffKindId = 50;
     w->Be_flg = 0;
     w->Etc_no = etcNo;
-    flg = GetEtcFlgPtr(etcNo, pGS->room_id);
+    flg = GetEtcFlgPtr(etcNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
     }

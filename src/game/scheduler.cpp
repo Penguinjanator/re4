@@ -134,7 +134,7 @@ void TaskSchedulerMain(TASK* t)
     default:
         return;
     }
-    if (CTASK->Priority > 0xF) {
+    if (pCTask->Priority > 0xF) {
         OSWaitSemaphore(&Sema);
         GXSetCurrentGXThread();
     }
@@ -176,8 +176,8 @@ void StackOverflowCheck(TASK* t)
 // paired-single loads, and calls the task function with its argument.
 void* TaskExec_hook(void* value)
 {
-    if (ParentThread() != NULL) {
-        OSSuspendThread(ParentThread());
+    if (pParentThread != NULL) {
+        OSSuspendThread(pParentThread);
     }
     asm("li 3, 4\n"
         "oris 3, 3, 4\n"
@@ -195,7 +195,7 @@ void* TaskExec_hook(void* value)
         :
         : "r3");
     GXSetCurrentGXThread();
-    CTASK->pFunc((int) value);
+    pCTask->pFunc((int) value);
     return NULL;
 }
 
@@ -226,17 +226,17 @@ void TaskSleep(int frames)
     if (frames == 0) {
         return;
     }
-    CTASK->SleepCtr = frames;
-    CTASK->Status = (CTASK->Status & TASK_SUSPEND) | TASK_SLEEP;
-    if (ParentThread() != NULL) {
-        OSResumeThread(ParentThread());
+    pCTask->SleepCtr = frames;
+    pCTask->Status = (pCTask->Status & TASK_SUSPEND) | TASK_SLEEP;
+    if (pParentThread != NULL) {
+        OSResumeThread(pParentThread);
     }
-    if (CTASK->Priority > 0xF) {
+    if (pCTask->Priority > 0xF) {
         OSSignalSemaphore(&Sema);
     }
     OSSleepThread(&pCTask->Queue);
-    if (ParentThread() != NULL) {
-        OSSuspendThread(ParentThread());
+    if (pParentThread != NULL) {
+        OSSuspendThread(pParentThread);
     }
     GXSetCurrentGXThread();
 }
@@ -245,14 +245,14 @@ void TaskSleep(int frames)
 // ends the current thread.
 void TaskChain(TaskFunc func, int arg)
 {
-    CTASK->hook = TaskExec_hook;
-    CTASK->pFunc = (void (*)(int)) func;
-    CTASK->Status = TASK_EXEC;
-    CTASK->arg = arg;
-    if (ParentThread() != NULL) {
-        OSResumeThread(ParentThread());
+    pCTask->hook = TaskExec_hook;
+    pCTask->pFunc = (void (*)(int)) func;
+    pCTask->Status = TASK_EXEC;
+    pCTask->arg = arg;
+    if (pParentThread != NULL) {
+        OSResumeThread(pParentThread);
     }
-    if (CTASK->Priority > 0xF) {
+    if (pCTask->Priority > 0xF) {
         OSSignalSemaphore(&Sema);
     }
     OSExitThread(&pCTask->Thread);
@@ -265,10 +265,10 @@ void TaskExit()
 
     t->Status = TASK_NONE;
     t->suspend_cnt = 0;
-    if (ParentThread() != NULL) {
-        OSResumeThread(ParentThread());
+    if (pParentThread != NULL) {
+        OSResumeThread(pParentThread);
     }
-    if (CTASK->Priority > 0xF) {
+    if (pCTask->Priority > 0xF) {
         OSSignalSemaphore(&Sema);
     }
     OSExitThread(&pCTask->Thread);
@@ -340,7 +340,7 @@ u8 TaskStatus(int prio)
 void SetTaskModelPtr(void* model, TASK* t)
 {
     if (t == NULL) {
-        CTASK->pModel = model;
+        pCTask->pModel = model;
     } else {
         t->pModel = model;
     }

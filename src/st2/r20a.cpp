@@ -33,13 +33,9 @@ struct R20aWork {
     TexRenderMng* tex;   // 0x08
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R20aWorkPtr {
-    R20aWork* p;
-};
 
 static u8 r20a_texTbl[0x20];
-static R20aWorkPtr r20a_work;
+static R20aWork* r20a_work;
 
 
 static void r20a_CarryOnShoulder();
@@ -58,12 +54,12 @@ static void r20a_DoorLock();
 void R20aInit()
 {
 #line 42 "D:/Bio4/Prog/r20a.cpp"
-    r20a_work.p = (R20aWork*) MEM_CALLOC(sizeof(R20aWork), 1, 0xd);
+    r20a_work = (R20aWork*) MEM_CALLOC(sizeof(R20aWork), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        if (getRoomEtcDoor(0x11, &r20a_work.p->door, 1) == 0) {
-            r20a_work.p->door = NULL;
+        if (getRoomEtcDoor(0x11, &r20a_work->door, 1) == 0) {
+            r20a_work->door = NULL;
         } else {
-            r20a_work.p->door->setCloseLock();
+            r20a_work->door->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r20a_DoorLockMessage, 0, 1);
         }
     } else {
@@ -169,8 +165,8 @@ static void r20a_CarryOnShoulderEndProc()
     }
     SubCharCtrl(0, 0);
     SceEventEnd(0);
-    if (r20a_work.p->door) {
-        r20a_work.p->door->setNormal();
+    if (r20a_work->door) {
+        r20a_work->door->setNormal();
     }
     ScfFlagOn(pG, SCF_8d);
     SceAtSetEnable(2, 0);
@@ -202,13 +198,13 @@ void setTexRender()
     cObj* obj;
     u8* tbl = r20a_texTbl;
 
-    if (GetTexRenderMgr(&r20a_work.p->tex)) {
+    if (GetTexRenderMgr(&r20a_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r20a_work.p->tex->texId;
-        r20a_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r20a_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r20a_work->tex->texId;
+        r20a_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r20a_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

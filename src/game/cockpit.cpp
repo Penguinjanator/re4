@@ -129,8 +129,8 @@ void LifeMeter::roomInit()
         break;
     }
     disp(1);
-    FSet(life, (f32) (s16) pG->pl_life);
-    FSet(m_life_sub, (f32) (s16) pG->ashley_life);
+    life = (f32) (s16) pG->pl_life;
+    m_life_sub = (f32) (s16) pG->ashley_life;
     u = IdSys.unitPtr(0x11, IDC_LIFE_METER);
     m_state_color0[0][0] = u->col0[0];
     m_state_color0[0][1] = u->col0[1];
@@ -200,12 +200,12 @@ void LifeMeter::move()
     m_life_level = lifeLevel(20, pG->pl_life_max, 1200);
     m_life_level_sub = lifeLevel(5, pG->ashley_life_max, 600);
     ang = METER_ANGLE(m_life_level, 20.0f, -135.0f, -45.0f);
-    FSet(IdSys.unitPtr(0xFE, IDC_LIFE_METER)->rot0.z, ang);
+    IdSys.unitPtr(0xFE, IDC_LIFE_METER)->rot0.z = ang;
     ang = METER_ANGLE(m_life_level_sub, 5.0f, 90.0f, 0.0f);
-    FSet(IdSys.unitPtr(2, IDC_LIFE_METER)->rot0.z, ang);
+    IdSys.unitPtr(2, IDC_LIFE_METER)->rot0.z = ang;
 
-    FSet(life, a_ratio * life + (1.0f - a_ratio) * (f32) (s16) pG->pl_life);
-    FSet(m_life_sub, a_ratio * m_life_sub + (1.0f - a_ratio) * (f32) (s16) pG->ashley_life);
+    life = a_ratio * life + (1.0f - a_ratio) * (f32) (s16) pG->pl_life;
+    m_life_sub = a_ratio * m_life_sub + (1.0f - a_ratio) * (f32) (s16) pG->ashley_life;
 
     u = IdSys.unitPtr(7, IDC_LIFE_METER);
     u2 = IdSys.unitPtr(8, IDC_LIFE_METER);
@@ -769,7 +769,7 @@ void CountDown::move()
         m_state &= ~TIMER_STA_PAUSE;
     }
     if (pG->cdown_add_sec != 0) {
-        U32Add(m_frame, pG->cdown_add_sec * 30);
+        m_frame += pG->cdown_add_sec * 30;
         pG->cdown_add_sec = 0;
     }
     if (!DbgFlagChk(pG, DBG_TIMER_STOP) && !StaFlagChk(pG, STA_SUB_SCRN) && !(m_state & TIMER_STA_PAUSE)) {

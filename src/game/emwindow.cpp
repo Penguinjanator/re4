@@ -495,37 +495,37 @@ int cEmWindow::ExeWindowEvent(cEmWindow* pEm)
     w->breakDir = pEm->ChkBreakDir(&pPL->pos);
     switch (w->breakDir) {
     case 0:
-        FSet(pPL->pos.x, 90.0f);
-        FSet(pPL->pos.y, -1000.0f);
-        FSet(pPL->pos.z, -1610.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        pPL->pos.x = 90.0f;
+        pPL->pos.y = -1000.0f;
+        pPL->pos.z = -1610.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         mot = fcv[0];
         break;
     case 1:
-        FSet(pPL->pos.x, -210.0f);
-        FSet(pPL->pos.y, -1000.0f);
-        FSet(pPL->pos.z, 1990.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, PI);
-        FSet(pPL->ang.z, 0.0f);
+        pPL->pos.x = -210.0f;
+        pPL->pos.y = -1000.0f;
+        pPL->pos.z = 1990.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = PI;
+        pPL->ang.z = 0.0f;
         mot = fcv[1];
         break;
     case 2:
-        FSet(pPL->pos.x, 0.0f);
-        FSet(pPL->pos.y, -1000.0f);
-        FSet(pPL->pos.z, -980.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        pPL->pos.x = 0.0f;
+        pPL->pos.y = -1000.0f;
+        pPL->pos.z = -980.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         mot = fcv[2];
         break;
     }
     PSMTXMultVec(pEm->mat, &pPL->pos, &pPL->pos);
-    FSet(pPL->ang.x, pPL->ang.x + pEm->ang.x);
-    FSet(pPL->ang.y, pPL->ang.y + pEm->ang.y);
-    FSet(pPL->ang.z, pPL->ang.z + pEm->ang.z);
+    pPL->ang.x = pPL->ang.x + pEm->ang.x;
+    pPL->ang.y = pPL->ang.y + pEm->ang.y;
+    pPL->ang.z = pPL->ang.z + pEm->ang.z;
     if (mot) {
         MotionSetCore(pPL, &pPL->Motion, mot, 0, 0, 0x201, 0);
     }

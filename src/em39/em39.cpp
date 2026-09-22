@@ -52,7 +52,6 @@
 #include "item.h"
 #include "sce_at.h"
 #include "game.h"
-#include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
 #include "wep_mod.h"
@@ -1345,7 +1344,7 @@ static void em39_R1_Sit(cEm39* em)
                     w->TmpU32 = 0;
                 }
                 em->pos = w->pGotoPoint->pos;
-                em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.09817477f);
+                em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.09817477f);
                 em->ang.y = LIMIT_ANGLE(em->ang.y);
             } else {
                 em->ang.y += Muku(&em->pos, &w->pGotoPoint->pos, em->ang.y, 0.7853982f);
@@ -1969,7 +1968,7 @@ static void em39_R1_Escape(cEm39* em)
     case 1:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         end = MotionMove(em, 0);
@@ -2060,7 +2059,7 @@ static void em39_R1_Backjump(cEm39* em)
     case 1:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2198,7 +2197,7 @@ static void em39_R1_Step(cEm39* em)
     case 1:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2270,7 +2269,7 @@ static void em39_R1_Slant(cEm39* em)
         w->LongAtk_wait = 30;
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2343,7 +2342,7 @@ static void em39_R1_Slant2(cEm39* em)
         w->LongAtk_wait = 30;
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.39269908f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.39269908f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2386,10 +2385,10 @@ static void em39_R1_SuperDash(cEm39* em)
         MotionSetCore(em, MOTION(em), ARC(0xD9), ARC(0xDA), 3, 1, 0);
         EstSet(em, -1, 0, 0, EFF_EM39, 0xC, 0, ESP_CORE_KIND_NONE, em, 0);
         w->TmpU32 = 0;
-        d = GetDistance3(&em->pos, &pPLS->pos) - 7100.0f;
+        d = GetDistance3(&em->pos, &pPL->pos) - 7100.0f;
         w->TmpF = d * 0.25f;
         w->SuperDashWait = 600;
-        if (pGS->Game_level <= 3) {
+        if (pG->Game_level <= 3) {
             w->SuperDashWait = 900;
         }
         if (pG->Game_level > 6) {
@@ -2408,7 +2407,7 @@ static void em39_R1_SuperDash(cEm39* em)
         if (em->Motion.Seq_old.Free & 1) {
             if (w->TmpU32 == 0) {
                 w->TmpU32 = 1;
-                d = GetDistance3(&em->pos, &pPLS->pos) - 7100.0f;
+                d = GetDistance3(&em->pos, &pPL->pos) - 7100.0f;
         w->TmpF = d * 0.25f;
             }
             spd.x = 0.0f;
@@ -2579,10 +2578,10 @@ static void em39_R1_JumpUp2(cEm39* em)
         // register (its sum was not a tieable operand); value-carrying pins reproduce the tie and
         // the FPR names around it.
         register f32 posy asm("fr11");
-        register f32 dy asm("fr0");
+        f32 dy;
         register f32 k asm("fr12");
         register f32 t asm("fr12");
-        register f32 k19 asm("fr13");
+        f32 k19;
         register f32 py asm("fr13");
 
         MotionSetCore(em, MOTION(em), ARC(0x6A), ARC(0x6B), 0xA, 1, 0);
@@ -2646,6 +2645,7 @@ static void em39_R1_JumpUp3(cEm39* em)
     Em39Work* w = EM39_WK(em);
     Mtx m;
     Vec v;
+    f32 zf;
 
     w->Be_flg |= 0x100;
     em->setStatus(EM_STATUS_IK_OFF);
@@ -2658,12 +2658,11 @@ static void em39_R1_JumpUp3(cEm39* em)
             // value-carrying pins per arm (the JumpUp2 recipe). Store order x, y, z, x18: the zero's
             // first use sinks last, the dying stores keep source order.
             register f32 posy asm("fr0");
-            register f32 dy asm("fr13");
+            f32 dy;
             register f32 k asm("fr12");
             register f32 t asm("fr12");
-            register f32 k19 asm("fr0");
+            f32 k19;
             register f32 py asm("fr0");
-            register f32 zf asm("fr11");
 
             posy = em->pos.y;
             dy = w->jumpPos.y - posy + 1000.0f;
@@ -2680,12 +2679,11 @@ static void em39_R1_JumpUp3(cEm39* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x68), ARC(0x69), 0xA, 1, 0);
             register f32 posy asm("fr13"); // COMPILER-DIFF: #2 (see the other arm)
-            register f32 dy asm("fr0");
+            f32 dy;
             register f32 k asm("fr12");
             register f32 t asm("fr12");
-            register f32 k19 asm("fr13");
+            f32 k19;
             register f32 py asm("fr13");
-            register f32 zf asm("fr11");
 
             posy = em->pos.y;
             dy = w->jumpPos.y - posy + 1000.0f;
@@ -2822,7 +2820,7 @@ static void em39_R1_AtkKnife(cEm39* em)
     case 1:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.2617994f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.2617994f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (em->Motion.Seq_old.Free & 1) {
@@ -3037,7 +3035,7 @@ static void em39_R1_KnifeCatch(cEm39* em)
             f32 d;
 
             w->Timer--;
-            d = Muku(&em->pos, &pPLS->pos, w->TmpF, 0.09817477f);
+            d = Muku(&em->pos, &pPL->pos, w->TmpF, 0.09817477f);
             w->TmpF += d;
             w->TmpF = LIMIT_ANGLE(w->TmpF);
             em->ang.y += d;
@@ -3499,7 +3497,7 @@ static void em39_R1_Knife4Atk(cEm39* em)
     case 0xD:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -3633,9 +3631,9 @@ static void em39_R1_Atk_MG(cEm39* em)
 
     w->Be_flg |= 0xC0;
     w->Be_flg &= ~0x20;
-    // pPLS: the pPL load waits for the flags store (struct view), which frees the sched1 slots
+    // pPL: the pPL load waits for the flags store (struct view), which frees the sched1 slots
     // that put `&b` and its PRE copy before the first call.
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(GetXZAngle(&em->pos, &pPLS->pos) + 0.08726646f));
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(GetXZAngle(&em->pos, &pPL->pos) + 0.08726646f));
     TransMatrix(m, &pPL->pos);
     b.x = 0.0f;
     b.y = 1500.0f;
@@ -4213,7 +4211,7 @@ static void em39_R1_AppearGR2(cEm39* em)
 
     w->Be_flg |= 0x80;
     w->Be_flg &= ~0x20;
-    target = pPLS->getPartsPtr(4)->world;
+    target = pPL->getPartsPtr(4)->world;
     switch (em->r_no_2) {
     case 0:
         if (Muku(&em->pos, &pPL->pos, em->ang.y, PI) < 0.0f) {
@@ -4276,7 +4274,7 @@ static void em39_R1_ThrowGR(cEm39* em)
     Vec p3 = { 31546.0f, 5250.0f, -11491.0f };
     w->Be_flg |= 0x80;
     w->Be_flg &= ~0x20;
-    hand = pPLS->getPartsPtr(4)->world;
+    hand = pPL->getPartsPtr(4)->world;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x9B), ARC(0x9C), 3, 1, 0);
@@ -4285,7 +4283,7 @@ static void em39_R1_ThrowGR(cEm39* em)
         w->Act_ck = 0;
         w->Atk_ck = 0;
         w->TmpU32 = 0;
-        if (pPLS->pos.x < 30580.0f && em->r_no_3) { // struct view: the load then depends on the word stores too and the block issues in source order
+        if (pPL->pos.x < 30580.0f && em->r_no_3) { // struct view: the load then depends on the word stores too and the block issues in source order
             w->TmpU32 = 2;
             if (em->pos.z > -5360.0f) {
                 w->TmpU32 = 1;
@@ -4776,7 +4774,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
         w->Timer2 = 9;                                                                                 \
     }                                                                                              \
     w->TmpU32 = Rnd() & 1;                                                                            \
-    if (pGS->Game_level <= 3) {                                                                         \
+    if (pG->Game_level <= 3) {                                                                         \
         w->TmpU32 = 0;                                                                                \
     }                                                                                              \
     w->Act_ck = 0;                                                                                   \
@@ -4921,7 +4919,7 @@ static void em39_R1_T_LongAtk(cEm39* em)
         w->Timer2 = 15;
         w->Atk_ck = 0;
         w->Act_ck = 0;
-        if (pGS->Game_level <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer2 = 5;
         }
         if (pG->Game_level <= 3) {
@@ -4934,7 +4932,7 @@ static void em39_R1_T_LongAtk(cEm39* em)
             w->Timer2 = 18;
         }
         w->TmpU32 = Rnd() & 1;
-        if (pGS->Game_level <= 3) {
+        if (pG->Game_level <= 3) {
             w->TmpU32 = 0;
         }
         em->r_no_2++;
@@ -4994,7 +4992,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
         w->Timer = 15;
         w->Atk_ck = 0;
         w->Act_ck = 0;
-        if (pGS->Game_level <= 1) {
+        if (pG->Game_level <= 1) {
             w->Timer = 5;
         }
         if (pG->Game_level <= 3) {
@@ -5007,7 +5005,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
             w->Timer = 18;
         }
         w->TmpU32 = Rnd() & 1;
-        if (pGS->Game_level <= 3) {
+        if (pG->Game_level <= 3) {
             w->TmpU32 = 0;
         }
         w->Timer3 = 1;
@@ -5291,7 +5289,7 @@ static void em39_R1_T_Kick(cEm39* em)
         }
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (em->Motion.Seq_old.Free & 1) {
@@ -5472,7 +5470,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         }
         w->TmpU32B = 0;
         w->TmpU32 = Rnd() & 1;
-        if (pGS->Game_level <= 9) {
+        if (pG->Game_level <= 9) {
             w->TmpU32 = 0;
         }
         EM39_K4_EFF_DELETE(em, w);
@@ -5669,7 +5667,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         SetPlDamage(em, plem39_CliffAtk);
         w->Arm_rno = st;
         w->TmpU32 = 10;
-        if (pGS->Game_level <= 1) {
+        if (pG->Game_level <= 1) {
             w->TmpU32 = 5;
         }
         if (pG->Game_level <= 3) {
@@ -5786,7 +5784,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         em39CliffObj.p = ObjMgr.create(cObjMgr::ID_PL_WEAPON);
         if (em39CliffObj.p) {
             em39CliffObj.p->modelInit(PL_ARC_PTR(pl->subArc, 0x129), PL_ARC_PTR(pl->subArc, 0x128));
-            U16And(em39CliffObj.p->atari.m_flag, 0xFCFF);
+            em39CliffObj.p->atari.m_flag &= 0xFCFF;
             em39CliffObj.p->pParts->pParent = pPL->getPartsPtr(0xA);
             em39CliffObj.p->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
             em39CliffObj.p->wep.parent = pPL;
@@ -6467,7 +6465,7 @@ void em39RouteCk(cEm39* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->Be_flg &= ~4;
     if (w->Goto_mode) {
         up = 0;
@@ -6833,10 +6831,10 @@ int em39AtkCk(cEm39* em, int no, int parts)
     v = Muku(&pPL->pos, &(em)->pos, pPL->ang.y, PI);                                               \
     v = fabsf(v);                                                                                  \
     if (v < 1.5707964f) {                                                                          \
-        FSet(pPL->ang.y, pPL->ang.y + Muku(&pPL->pos, &(em)->pos, pPL->ang.y, PI));                \
+        (pPL->ang.y = pPL->ang.y + Muku(&pPL->pos, &(em)->pos, pPL->ang.y, PI));                \
         pPL->r_no_3 = 0;                                                                              \
     } else {                                                                                       \
-        FSet(pPL->ang.y, pPL->ang.y + Muku(&(em)->pos, &pPL->pos, pPL->ang.y, PI));                \
+        (pPL->ang.y = pPL->ang.y + Muku(&(em)->pos, &pPL->pos, pPL->ang.y, PI));                \
         pPL->r_no_3 = 1;                                                                              \
     }
 
@@ -6938,7 +6936,7 @@ void em39PLNearTowerCk(cEm39* em)
 
     {
         f32 d;
-        d = (pPLS->pos.x - a.x) * (pPL->pos.x - a.x) + (pPL->pos.y - a.y) * (pPL->pos.y - a.y) + (pPL->pos.z - a.z) * (pPL->pos.z - a.z);
+        d = (pPL->pos.x - a.x) * (pPL->pos.x - a.x) + (pPL->pos.y - a.y) * (pPL->pos.y - a.y) + (pPL->pos.z - a.z) * (pPL->pos.z - a.z);
         if (d < 4000000.0f) {
             w->Be_flg |= 0x20000;
         }
@@ -7375,7 +7373,7 @@ int em39AppearCk(cEm39* em)
             }
             w->Total_damage = st;
             EM39_APPEAR_POS(em, w, e);
-            em->ang.y = GetXZAngle(&em->pos, &pPLS->pos);
+            em->ang.y = GetXZAngle(&em->pos, &pPL->pos);
             w->Atk_wait = st;
             em->r_no_0 = 1;
             em->r_no_1 = 5;
@@ -8337,7 +8335,7 @@ int em39AtkRtnCk(cEm39* em)
     }
     if (em->plDist2 < 2890000.0f && w->routeAngAbs < 1.5707964f && (w->Be_flg & 1)) {
         a = em->pos;
-        c = pPLS->pos;
+        c = pPL->pos;
         a.y += 500.0f;
         c.y += 500.0f;
         hit = SatMgr.hitCheck(&a, &c, 0, 0, 0, 0);

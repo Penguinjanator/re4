@@ -631,8 +631,8 @@ void cObj09::move()
     w->spd.y -= grav;
     if (GetWaterHeight(&w->basePos, &h) && w->basePos.y < h) {
         w->spd.y += grav * 1.2f;
-        AddWaterPower(&w->basePos, -w->spd.y * 2.0e-6f);
-        AddWaterPower(&w->basePos, PSVECMag(&w->spd) * 1.0e-5f);
+        AddWaterPower(w->basePos, -w->spd.y * 2.0e-6f);
+        AddWaterPower(w->basePos, PSVECMag(&w->spd) * 1.0e-5f);
         w->spd.y *= 0.5f;
         PSVECScale(&w->rotSpd, &w->rotSpd, 0.92f);
         d = w->basePos;
@@ -662,18 +662,18 @@ void cObj09::move()
     if (GetSandHeight(&w->basePos, &h) && w->basePos.y < h) {
         v = w->basePos;
         v.x += 150.0f;
-        AddSandPower(&v, -2.0f);
+        AddSandPower(v, -2.0f);
         v = w->basePos;
         v.x -= 150.0f;
-        AddSandPower(&v, -2.0f);
+        AddSandPower(v, -2.0f);
         v = w->basePos;
         v.z += 150.0f;
-        AddSandPower(&v, -2.0f);
+        AddSandPower(v, -2.0f);
         v = w->basePos;
         v.z -= 150.0f;
-        AddSandPower(&v, -2.0f);
+        AddSandPower(v, -2.0f);
         v = w->basePos;
-        AddSandPower(&v, -2.0f);
+        AddSandPower(v, -2.0f);
     }
     Calc(this, dt);
     PSVECScale(&w->spd, &w->spd, spd_reg);

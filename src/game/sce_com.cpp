@@ -223,8 +223,8 @@ void SceUpCutStart()
     DpfFlagOn(pG, DPF_PL);
     DpfFlagOn(pG, DPF_SUBCHAR);
     pPL->atari.clrFlag100();
-    StaFlagOn(pGS, STA_SUSPEND);  // the pG load waits for the clrFlag100 store
-    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    StaFlagOn(pG, STA_SUSPEND);  // the pG load waits for the clrFlag100 store
+    (pG->Stop_flg = 0xFFFFFFFF);
     SpfFlagOff(pG, SPF_CAMERA);
     SpfFlagOff(pG, SPF_EARTHQUAKE);
     SpfFlagOff(pG, SPF_EM);
@@ -248,7 +248,7 @@ void SceUpCutEnd()
     DpfFlagOff(pG, DPF_PL);
     DpfFlagOff(pG, DPF_SUBCHAR);
     pPL->atari.setFlag100();
-    StaFlagOff(pGS, STA_SUSPEND);  // the pG load waits for the setFlag100 store
+    StaFlagOff(pG, STA_SUSPEND);  // the pG load waits for the setFlag100 store
     if (s->stop_bak_flg == 1) {
         pG->Stop_flg = s->stop_bak;
         s->stop_bak_flg = 0;
@@ -486,7 +486,6 @@ void SceInitItemEvent()
 }
 
 #include "flag_rsf.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -759,12 +758,12 @@ void SceChapterEnd()
     }
     sel = 0;
     disp_bak = pG->Disp_flg;
-    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    pG->Disp_flg = 0xFFFFFFFF;
     DpfFlagOff(pG, DPF_ID_SYSTEM);
     DpfFlagOff(pG, DPF_MESSAGE);
     DpfFlagOff(pG, DPF_COCKPIT);
     stop_bak = pG->Stop_flg;
-    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     SpfFlagOff(pG, SPF_SCE);
     SpfFlagOff(pG, SPF_ID_SYSTEM);
     SceSleep(2);
@@ -809,8 +808,8 @@ void SceChapterEnd()
             pPL->pos.x = SceAtPtr(SceSys.m_chapter_door)->dstPos.x;
             pPL->pos.y = SceAtPtr(SceSys.m_chapter_door)->dstPos.y;
             pPL->pos.z = SceAtPtr(SceSys.m_chapter_door)->dstPos.z;
-            FSet(pPL->ang.y, SceAtPtr(SceSys.m_chapter_door)->dstAngle);  // the pG load of room_id_prev waits for the store
-            U16Set(pG->room_id_prev, pG->room_id);
+            pPL->ang.y = SceAtPtr(SceSys.m_chapter_door)->dstAngle;  // the pG load of room_id_prev waits for the store
+            (pG->room_id_prev = pG->room_id);
             pG->Part_old = pG->Part;
             pG->stage_no = SceAtPtr(SceSys.m_chapter_door)->dstStage;
             pG->room_no = SceAtPtr(SceSys.m_chapter_door)->dstRoom;
@@ -822,9 +821,9 @@ void SceChapterEnd()
         }
     }
     U16Zero(pG->c_continue_cnt);
-    U32Set(pG->c_kill_cnt, 0);
-    U32Set(pG->c_hit_cnt, 0);
-    U32Set(pG->c_shot_cnt, 0);
+    pG->c_kill_cnt = 0;
+    pG->c_hit_cnt = 0;
+    pG->c_shot_cnt = 0;
     GameSave.save(pSaveData, 2);
     sel = SceMesGetSelection();
     if (sel == 1) {
@@ -841,15 +840,15 @@ void SceChapterEnd()
         CardSave(0, 10);
         SceSleep(1);
     }
-    BitSet(pG->Disp_flg, disp_bak);
-    BitSet(pG->Stop_flg, stop_bak);
+    pG->Disp_flg = disp_bak;
+    pG->Stop_flg = stop_bak;
     FadeSetW(0, 0, 0, 0);
     FadeKill(FADE_NO_ROOM);
     if (SceSys.m_chapter_door >= 0) {
         // pos / ang through byte pointers: `&pPL->pos` changes the schedule of this block (27 words)
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
-        U16Set(pG->room_id, room);
+        pG->room_id = room;
         pG->Part = x4F9E;
         if (SceAtPtr(SceSys.m_chapter_door)) {
             SceAtPtr(SceSys.m_chapter_door)->doorFadeEff = 2;

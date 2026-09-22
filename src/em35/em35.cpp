@@ -36,7 +36,6 @@
 #include "math_sub.h"
 #include "eprintf.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
 #include "em10.h"
@@ -1705,11 +1704,11 @@ static void plem35_BearHug(cPlayer* pl)
             pl->dmg.set(0, 30);
         } else {
             if (pl->Motion.Seq_frame > 72.7f && pl->Motion.Seq_frame < 73.3f) {
-                U32Set(pl->m_Work0, SndCall(8, 0x4B, &pl->pos, pl->pEmCatch->id, 0, pl));
+                pl->m_Work0 = SndCall(8, 0x4B, &pl->pos, pl->pEmCatch->id, 0, pl);
                 VibSetData(VIB_TBL, 0xB, 1);
             }
             if (pl->Motion.Seq_frame > 157.7f && pl->Motion.Seq_frame < 158.3f) {
-                U32Set(pl->m_Work0, SndCall(8, 0x4D, &pl->pos, pl->pEmCatch->id, 0, pl));
+                pl->m_Work0 = SndCall(8, 0x4D, &pl->pos, pl->pEmCatch->id, 0, pl);
                 VibSetData(VIB_TBL, 0xB, 1);
             }
         }
@@ -1892,7 +1891,7 @@ static void plem35DmFall2F(cPlayer* pl)
     case 0:
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x92), 0, 3, 1, 0);
         pl->atari.throughOn();
-        if ((s16) pGS->pl_life > 0) {
+        if ((s16) pG->pl_life > 0) {
             PlSetDamageSe(0);
         } else {
             PlSetDamageSe(0xD);
@@ -1902,7 +1901,7 @@ static void plem35DmFall2F(cPlayer* pl)
     case 1:
         if (MotionMove(pl, 0) && (s16) pG->pl_life > 0) {
             pl->atari.throughOff();
-            EmRoutineSet(pPLS, 1, 0, 0xA, 0);
+            EmRoutineSet(pPL, 1, 0, 0xA, 0);
         } else if (pl->Motion.Seq_frame > 39.7f && pl->Motion.Seq_frame < 40.3f) {
             SndCall(5, 5, &pPL->pos, pPL->id, 0, pPL);
             SndCall(1, 0x12, &pPL->pos, pPL->id, 0, pPL);
@@ -2096,7 +2095,7 @@ static void em35_R1_br_Critical(cEm35* em)
 // whether the `fmr f2,f1` argument copy sits before or after the `lis` of Muku2's limit.
 #define EM35_CRITICAL_TURN(em, v)                                                                   \
     {                                                                                               \
-        v = LIMIT_ANGLE((em)->ang.y + Muku(&(em)->pos, &pPLS->pos, (em)->ang.y, PI) + 0.05235988f);   \
+        v = LIMIT_ANGLE((em)->ang.y + Muku(&(em)->pos, &pPL->pos, (em)->ang.y, PI) + 0.05235988f);   \
         (em)->ang.y += Muku2((em)->ang.y, v, 0.09817477f);                                          \
         (em)->ang.y = LIMIT_ANGLE((em)->ang.y);                                                     \
     }
@@ -2288,7 +2287,7 @@ void em35EscapeCamMove(cEm35* em)
     b.x = -244.0f;
     b.y = 809.0f;
     b.z = 52.6f;
-    PSMTXMultVec(pPLS->mat, &a, &a);
+    PSMTXMultVec(pPL->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
     PosToPos(&g->Camera.param.at, &b, &w->cam.param.at, 1.0f);
     PosToPos(&g->Camera.param.pos, &a, &w->cam.param.pos, 1.0f);
@@ -2322,7 +2321,7 @@ static void plem35DmStamp(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x97), 0, 3, 1, 0);
         PlSetFace(1);
         pl->atari.m_flag &= ~0x200;
-        if ((s16) pGS->pl_life > 0) {
+        if ((s16) pG->pl_life > 0) {
             PlSetDamageSe(0);
         } else {
             PlSetDamageSe(0xD);
@@ -2355,7 +2354,7 @@ void em35StampCamMove(cEm35* em)
     a.x = 0.0f;
     a.y = 3000.0f;
     a.z = -3000.0f;
-    PSMTXMultVec(pPLS->mat, &a, &a);
+    PSMTXMultVec(pPL->mat, &a, &a);
     PosToPos(&g->Camera.param.pos, &a, &w->cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &p->world, &w->cam.param.at, 0.3f);
@@ -3819,7 +3818,7 @@ void em35RouteCk(cEm35* em)
         w->targetAng = w->routeAng;
         w->targetAngAbs = w->routeAngAbs;
         w->targetDist = em->plDist2;
-        w->pTarget = pPLS;
+        w->pTarget = pPL;
         w->flags &= ~4;
         return;
     }
@@ -3834,8 +3833,8 @@ void em35RouteCk(cEm35* em)
         w->targetAng = w->routeAng;
         w->targetAngAbs = w->routeAngAbs;
         w->targetDist = em->plDist2;
-        w->pTarget = pPLS;
-        if (pPLS->pos.x < 33000.0f && pPLS->pos.z > -61300.0f) {
+        w->pTarget = pPL;
+        if (pPL->pos.x < 33000.0f && pPL->pos.z > -61300.0f) {
             if (em->pos.z < -60000.0f) {
                 v.x = 35686.0f;
                 v.y = -8100.0f;
@@ -3844,7 +3843,7 @@ void em35RouteCk(cEm35* em)
                 w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, PI);
                 w->targetAngAbs = fabsf(w->targetAng);
             }
-        } else if (pPLS->pos.x > 38000.0f && pPLS->pos.z > -63000.0f) {
+        } else if (pPL->pos.x > 38000.0f && pPL->pos.z > -63000.0f) {
             if (em->pos.x > 36500.0f) {
                 v.x = 37419.0f;
                 v.y = -8100.0f;
@@ -3879,7 +3878,7 @@ void em35RouteCk(cEm35* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
 }
 
 // Head tracking: while a routine runs (flags 0x10) neckAng eases towards the player's yaw (up to
@@ -3937,7 +3936,7 @@ void em35NeckMove(cEm35* em)
 // Turn the player towards the enemy and knock him down (em35AtkCk).
 static inline void em35PlKnock(cEm35* em)
 {
-    FSet(pPL->ang.y, pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
+    pPL->ang.y = pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, PI);
     pPL->ang.y = LIMIT_ANGLE(pPL->ang.y);
     PlSetDamage(PL_DM_AUTO, 0, 0);
 }
@@ -4081,7 +4080,7 @@ int em35PlFallCk(cEm35* em)
     if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0) & 0x00100000) {
         PSVECScale(&nrm, &d, 300.0f);
         PSVECAdd(&hit, &d, &d);
-        FSet(pPL->pos.x, d.x);
+        pPL->pos.x = d.x;
         pPL->pos.z = d.z;
         pPL->ang.y = atan2f(-nrm.x, -nrm.z);
         SetPlDamage(em, plem35DmFall2F);
@@ -5165,7 +5164,7 @@ void em35WeakMove(cEm35* em)
     }
     for (i = 0; i < 4; i++) {
         if (w->pWeak[i]) {
-            if (StaFlagChk(pGS, STA_THERMO_GRAPH) && em->hp > 0) {
+            if (StaFlagChk(pG, STA_THERMO_GRAPH) && em->hp > 0) {
                 w->pWeak[i]->be_flag |= 2;
             } else {
                 w->pWeak[i]->be_flag &= ~2;

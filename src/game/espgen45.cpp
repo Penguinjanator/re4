@@ -16,7 +16,6 @@
 #include "db_log.h"
 #include "main_sub.h"
 #include "joy.h"
-#include "ref_access.h"
 #include <dolphin/base/PPCArch.h>
 #include "trans_lit.h"
 
@@ -169,12 +168,12 @@ void Espgen45_Move00(EspgenWork* w)
     frame = pG->Frame_cnt % 60;
     StaFlagOn(pG, STA_WATER_ALIVE);
     if (g_bTargetCamera == 1) {
-        FSet(g_Target_x, pG->Camera.param.at.x);
-        FSet(g_Target_z, pG->Camera.param.at.z);
+        g_Target_x = pG->Camera.param.at.x;
+        g_Target_z = pG->Camera.param.at.z;
     }
-    FSet(p->pos0.x, g_Target_x);
+    p->pos0.x = g_Target_x;
     p->pos0.z = g_Target_z;
-    if (IGet(g_bTargetHeight) == 1) {
+    if (g_bTargetHeight == 1) {
         p->pos0.y = g_Target_y;
     } else {
         p->pos0.y = p->Base_y;
@@ -286,7 +285,7 @@ void Espgen45_Move00(EspgenWork* w)
                 // `stfsx next[k]` store (next's alias base is 0) and issues right after it like the target's
                 // `lfs g45_wave_mul`; the plain static read is a fixed scalar that never aliases the in-struct store
                 // and floated 6 insns up. The pos address is computed before the store (target `lwz pos` early).
-                pv->y = next[k] = (n * FGet(g45_wave_mul) + next[k]) * spread;
+                pv->y = next[k] = (n * g45_wave_mul + next[k]) * spread;
                 Vec* nrm = p->nrm;   // before the v.x/v.z reads: kept across the call (`lfsx nrm[k].x`, `4(nrm+k*12)`)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
@@ -638,7 +637,7 @@ void Espgen45_TransSub(EspgenWork* w)
         st->tevStage++;
         st->texMap++;
         st->texCoord++;
-        if ((IGet(g_bSetParam) == 1 && (g_Free.flag & 2)) || (g_bSetParam == 0 && (p->flag & 2))) {
+        if ((g_bSetParam == 1 && (g_Free.flag & 2)) || (g_bSetParam == 0 && (p->flag & 2))) {
             u8 texId;
             EspTexWk* tw;
             if (g_bSetParam == 1) {
@@ -800,7 +799,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     p->damp = 0.05f;
     p->spread = 0.95f;
     p->pos0 = *pos;
-    if (IGet(g_bSetParam) == 0) {
+    if (g_bSetParam == 0) {
         PSMTXScale(p->mat, p->size, p->size * 0.05f + 100.0f, p->size);
     } else {
         RotMatrix(p->mat, &g_Free.ang);
@@ -943,23 +942,23 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
         static f32 g45_init_y = 0.0f;
         static f32 g45_init_y2 = 0.0f;
         for (jj = 0; jj < p->nx + 1; jj++) {
-            p->pos[jj].y = FGet(g45_init_y);
+            p->pos[jj].y = g45_init_y;
         }
         i2 = p->ny;
         idx = i2 * (p->nx + 1);
         for (jj = 0; jj < p->nx + 1; jj++) {
-            p->pos[idx + jj].y = FGet(g45_init_y);
+            p->pos[idx + jj].y = g45_init_y;
         }
         // The y edges also go through `idx` (one pseudo across all four loops = the target's r8 in every
         // loop), and the far edge is `idx = row; idx += nx` (the product lands in idx's register, not a temp).
         for (i2 = 0; i2 < p->ny + 1; i2++) {
             idx = i2 * (p->nx + 1);
-            p->pos[idx].y = FGet(g45_init_y2);
+            p->pos[idx].y = g45_init_y2;
         }
         for (i2 = 0; i2 < p->ny + 1; i2++) {
             idx = i2 * (p->nx + 1);
             idx += p->nx;
-            p->pos[idx].y = FGet(g45_init_y2);
+            p->pos[idx].y = g45_init_y2;
         }
     }
     // Block-local sizes at the tail: local-alloc ties the `nx + 1` temp into them (`addi r30; mullw r30`);
@@ -1135,22 +1134,22 @@ void Estgen45SetParamOverWrite(int on)
 // Sets the override centre of the surface and flags Status_flg[1] bit 0x20.
 void Estgen45SetTargetPos(f32 x, f32 z)
 {
-    FSet(g_Target_x, x);
-    FSet(g_Target_z, z);
+    g_Target_x = x;
+    g_Target_z = z;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 
 // Sets the override water height.
 void Estgen45SetHeight(f32 h)
 {
-    FSet(g_Target_y, h);
+    g_Target_y = h;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 
 // Sets the override cell size.
 void Estgen45SetSize(f32 size)
 {
-    FSet(g_Size, size);
+    g_Size = size;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 
@@ -1161,10 +1160,10 @@ void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
     g_g = g;
     g_b = b;
     g_a = a;
-    FSet(g_sr, rs);
-    FSet(g_sg, gs);
-    FSet(g_sb, bs);
-    FSet(g_sa, as);
+    g_sr = rs;
+    g_sg = gs;
+    g_sb = bs;
+    g_sa = as;
     StaFlagOn(pG, STA_ESPGEN45_SET);
 }
 

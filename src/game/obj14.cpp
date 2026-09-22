@@ -124,7 +124,7 @@ void obj14_R1_Set(cObjBell* obj)
         p.y = SatMgr.getFloor(&p, 0, 600.0f, 100000.0f, 0);
         StaFlagOn(pG, STA_SE_BURST);
         pG->SeInfo.pos = p;
-        pGS->SeInfo.type = 2;
+        pG->SeInfo.type = 2;
     }
 }
 

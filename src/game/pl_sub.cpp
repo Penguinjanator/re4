@@ -19,7 +19,6 @@
 #include "act_btn.h"
 #include "rnd.h"
 #include "math_sub.h"
-#include "ref_access.h"
 #include <string.h>
 #include "read.h"
 
@@ -48,17 +47,17 @@ void PlSelect(int no)
         s16 life = pG->pl_life_max;
         u32 tmp;
 
-        U16Set(pG->pl_life_max, pG->ashley_life_max);
-        U16Set(pG->ashley_life_max, life);
+        pG->pl_life_max = pG->ashley_life_max;
+        pG->ashley_life_max = life;
         pG->pl_life = pG->pl_life_max;
         ReleaseWepData();
         tmp = pG->peseta;
-        U32Set(pG->peseta, pG->peseta_bak);
+        pG->peseta = pG->peseta_bak;
         pG->peseta_bak = tmp;
     }
     pG->pl_type = no;
     PlSetCostume();
-    BitOn16(pG->pl_flag, 1);
+    pG->pl_flag |= 1;
 }
 
 // Chooses pl_costume: Leon = 2 with the armor item (0xFE), 1 after finding item 0x200000 (the
@@ -84,7 +83,7 @@ int PlSetCostume()
     } else {
         pG->pl_costume = pG->game_costume;
     }
-    BitOn16(pG->pl_flag, 1);
+    pG->pl_flag |= 1;
     return pG->pl_costume;
 }
 
@@ -99,7 +98,7 @@ void PlChangeData()
     PlDataRelease();
     EspDataRelease(EFF_PL00, 1, 1);
     pPL->push();
-    BitOn16(pG->pl_flag, 1);
+    pG->pl_flag |= 1;
     ReadPlayerData(pG->pl_type, pG->pl_costume);
     pl = pPL;
     pl->setModel();
@@ -912,7 +911,7 @@ void PlWaterProc(cPlayer* pl)
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {
-        AddWaterPower(&pPL->pos, wavePower);
+        AddWaterPower(pPL->pos, wavePower);
     }
     m_PosOldWater = pl->pos;
 }
@@ -1011,8 +1010,10 @@ f32 PlGetDirY()
 // Room registers the boss enemy and its room flag (the special rocket launcher's insta-kill).
 void PlRegistBoss(void* a, void* b)
 {
-    pPL->m_pBoss = a;
-    pPL->m_pBossRmf = b;
+    cPlayer* pl = pPL;
+
+    pl->m_pBoss = a;
+    pl->m_pBossRmf = b;
 }
 
 // Leon wears the armor (costume 2 / 3) — no damage; off with System_flg 0x20.

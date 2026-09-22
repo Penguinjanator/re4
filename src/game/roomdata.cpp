@@ -11,7 +11,6 @@
 #include "scheduler.h"
 #include "dvd.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include <string.h>
 
 #line 40 "D:/Bio4/Prog/roomdata.cpp"
@@ -107,7 +106,10 @@ void cRoomData::init()
 #line 306
     pSaveBuf = (RoomSaveHdr*) MEM_CALLOC(num * sizeof(RoomSave) + sizeof(RoomSaveHdr), 1, 13);
     pSaveBuf->size = num * sizeof(RoomSave) + sizeof(RoomSaveHdr);
-    U32Set(pSaveBuf->num, num);
+    // A local widens `num` (u16) to u32 before the store: written directly, the load of `num` and
+    // the reload of `pSaveBuf` (after the `size` store above) swap order against the target.
+    u32 n = num;
+    pSaveBuf->num = n;
     pSave = (u8*) pSaveBuf + sizeof(RoomSaveHdr);
     stage = 0;
     ofs = 0;

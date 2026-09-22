@@ -104,12 +104,8 @@ struct R202Work {
     cSat* sat;             // 0x1E0
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R202WorkPtr {
-    R202Work* p;
-};
 
-static R202WorkPtr r202_work;
+static R202Work* r202_work;
 
 // File-scope static const aggregates are deferred to the end of .rodata (after the cManager template
 // strings) in declaration order.
@@ -154,10 +150,10 @@ void r202_getTargetPos(Vec* out);
 void R202Init()
 {
 #line 58 "D:/Bio4/Prog/r202.cpp"
-    r202_work.p = (R202Work*) MEM_CALLOC(sizeof(R202Work), 1, 0xd);
+    r202_work = (R202Work*) MEM_CALLOC(sizeof(R202Work), 1, 0xd);
     // COMPILER-DIFF: candidate #17 (value-carrying pin): the pG temp of the first RsfCheck is r10
     // in the original (local-alloc adjacency with the work high's r9 under its sched1 order), r9 in ours.
-    register GlobalWork* g asm("r10");
+    GlobalWork *g;
     g = pG;
     if (RsfCheck(*(u16*) &g->stage_no, 1) == 0) {
         r202_initCatapult();
@@ -168,35 +164,35 @@ void R202Init()
             r202_changeIdoSmd(1);
             SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
             pG->Room_flg[0] |= 0x80000000;
-            r202_work.p->em180.setPtr(0x2A, 2, 0);
-            r202_work.p->em180.setFlag(1);
+            r202_work->em180.setPtr(0x2A, 2, 0);
+            r202_work->em180.setFlag(1);
         }
     } else {
         r202_changeIdoSmd(1);
     }
     Vec zero = {0.0f, 0.0f, 0.0f};
-    r202_work.p->crank = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), (Vec*) &r202_crankPos,
+    r202_work->crank = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), (Vec*) &r202_crankPos,
                                    &zero, 0x10, 1);
-    r202_work.p->ido0 = SmdGetObjPtr(0x33);
-    r202_work.p->ido1 = SmdGetObjPtr(0x34);
-    r202_work.p->ido2 = SmdGetObjPtr(0x68);
-    r202_work.p->ido0->be_flag |= 0x20;
-    r202_work.p->ido1->be_flag |= 0x20;
-    r202_work.p->ido2->be_flag |= 0x20;
+    r202_work->ido0 = SmdGetObjPtr(0x33);
+    r202_work->ido1 = SmdGetObjPtr(0x34);
+    r202_work->ido2 = SmdGetObjPtr(0x68);
+    r202_work->ido0->be_flag |= 0x20;
+    r202_work->ido1->be_flag |= 0x20;
+    r202_work->ido2->be_flag |= 0x20;
     {
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        PSet(r202_work.p->sat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
+        r202_work->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            r202_work.p->idoY1 = r202_work.p->ido1->pos.y;
-            r202_work.p->idoY0 = r202_work.p->ido0->pos.y;
-            r202_work.p->idoY2 = r202_work.p->ido2->pos.y;
-            r202_work.p->ido1->pos.y -= 7539.0f;
-            r202_work.p->ido0->pos.y -= 7539.0f;
-            r202_work.p->ido2->pos.y -= 7539.0f;
+            r202_work->idoY1 = r202_work->ido1->pos.y;
+            r202_work->idoY0 = r202_work->ido0->pos.y;
+            r202_work->idoY2 = r202_work->ido2->pos.y;
+            r202_work->ido1->pos.y -= 7539.0f;
+            r202_work->ido0->pos.y -= 7539.0f;
+            r202_work->ido2->pos.y -= 7539.0f;
             pos.y = -7539.0f;
-            r202_work.p->sat->setCoord(&pos, &rot);
+            r202_work->sat->setCoord(&pos, &rot);
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r202_operateCrank, 0, 1);
             SceAtSetEnable(0x15, 1);
             SceAtSetEnable(0x16, 0);
@@ -230,11 +226,11 @@ void R202Init()
             }
         }
     }
-    r202_work.p->box = ObjMgr.create(cObjMgr::ID_SCROLL);
-    r202_work.p->box->pos.x = 20221.0f;
-    r202_work.p->box->pos.y = 0.0f;
-    r202_work.p->box->pos.z = -26500.0f;
-    r202_work.p->box->atari.init(0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
+    r202_work->box = ObjMgr.create(cObjMgr::ID_SCROLL);
+    r202_work->box->pos.x = 20221.0f;
+    r202_work->box->pos.y = 0.0f;
+    r202_work->box->pos.z = -26500.0f;
+    r202_work->box->atari.init(0.0f, 0.0f, 0.0f, 0.0f, 3000.0f, 3000.0f, 50000.0f, 0, 0x18, 0);
     SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, r202_openedBox, 0, 0);
     SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, r202_openedBox, 1, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -253,7 +249,7 @@ void R202Main()
 // End of the show view: stream faded (200 frames), camera back, SceEventEnd.
 static void r202_execShowView_end()
 {
-    SndStrReq(r202_work.p->strId, 4, 200, 0);
+    SndStrReq(r202_work->strId, 4, 200, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -263,7 +259,7 @@ static void r202_execShowView()
 {
     RsfSet(G_ROOM_ID, 7);
     SceSetEventCancel(1, (TaskFunc) r202_execShowView_end, 0, -1, 1);
-    r202_work.p->strId = SndStrReq(0, 0x18, 0x80000003, 0, 0, 0.0f);
+    r202_work->strId = SndStrReq(0, 0x18, 0x80000003, 0, 0, 0.0f);
     SceEventStart(0);
     CamCtrl.CutCall(8);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -398,19 +394,19 @@ void r202_initEmPatrol()
     Vec p2 = {13910.0f, 3073.0f, -23208.0f};
     Vec p3 = {6564.0f, 3073.0f, -23599.0f};
 
-    r202_work.p->pat[0].em.setEm(0x2C, 2, 0, 1, 1);
-    r202_work.p->pat[0].cur = 1;
-    r202_work.p->pat[0].pos[0] = p0;
-    r202_work.p->pat[0].pos[1] = p1;
-    r202_work.p->pat[1].em.setEm(0x32, 2, 0, 1, 1);
-    r202_work.p->pat[1].cur = 0;
-    r202_work.p->pat[1].pos[0] = p2;
-    r202_work.p->pat[1].pos[1] = p3;
-    if (r202_work.p->pat[0].em.isAlive() == 1) {
-        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[0], 0, SCE_PRIO_DEF_2, 0);
+    r202_work->pat[0].em.setEm(0x2C, 2, 0, 1, 1);
+    r202_work->pat[0].cur = 1;
+    r202_work->pat[0].pos[0] = p0;
+    r202_work->pat[0].pos[1] = p1;
+    r202_work->pat[1].em.setEm(0x32, 2, 0, 1, 1);
+    r202_work->pat[1].cur = 0;
+    r202_work->pat[1].pos[0] = p2;
+    r202_work->pat[1].pos[1] = p3;
+    if (r202_work->pat[0].em.isAlive() == 1) {
+        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work->pat[0], 0, SCE_PRIO_DEF_2, 0);
     }
-    if (r202_work.p->pat[1].em.isAlive() == 1) {
-        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[1], 0, SCE_PRIO_DEF_2, 0);
+    if (r202_work->pat[1].em.isAlive() == 1) {
+        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work->pat[1], 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -431,7 +427,7 @@ static void r202_operateCannon()
             pSUB->setNoSuspend(1);
             pSUB->endEvent(0);
         } else {
-            BitOn(pG->Room_flg[0], 0x01000000);
+            pG->Room_flg[0] |= 0x01000000;
             if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 10000.0f) {
                 pG->Room_flg[0] |= 0x00800000;
             } else if (SceAtHitCheck(0x19) == 1) {
@@ -542,18 +538,18 @@ static void r202_operateCrank()
     SceAtSetEnable(2, 0);
     pPL->beginEvent(0);
     PlSetHand(1, 0);
-    r202_work.p->crank->beginEvent(0);
+    r202_work->crank->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x22));
-    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2D));
+    r202_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, ROOM_ARC_PTR(pG->pRoom, 0x2D));
     CamCtrl.CutCall(3);
     {
         Vec v = {516.5f, 0.0f, -500.0f};
         cPlayer* pl;
         Vec* pr;
 
-        PSMTXMultVec(r202_work.p->crank->mat, &v, &v);
+        PSMTXMultVec(r202_work->crank->mat, &v, &v);
         v.y = pPL->pos.y;
-        FSet(pPL->ang.y, r202_work.p->crank->ang.y - 1.5707964f);
+        pPL->ang.y = r202_work->crank->ang.y - 1.5707964f;
         pl = pPL;
         pr = &pl->ang;
         pl->setPos(&v);
@@ -625,7 +621,7 @@ static void r202_operateCrank()
                 frame = 0;
             }
             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, frame, 5, m0);
-            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, frame, 5, m1);
+            r202_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, frame, 5, m1);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
@@ -642,19 +638,19 @@ static void r202_operateCrank()
         {
             f32 dy = (f32) (mot + 1) * 3.0f;
 
-            r202_work.p->ido1->pos.y += dy;
-            r202_work.p->ido0->pos.y += dy;
-            r202_work.p->ido2->pos.y += dy;
+            r202_work->ido1->pos.y += dy;
+            r202_work->ido0->pos.y += dy;
+            r202_work->ido2->pos.y += dy;
             Vec pos = {0.0f, 0.0f, 0.0f};
             Vec rot = {0.0f, 0.0f, 0.0f};
-            pos.y = r202_work.p->ido1->pos.y - r202_work.p->idoY1;
-            r202_work.p->sat->setCoord(&pos, &rot);
-            if (r202_work.p->ido1->pos.y > r202_work.p->idoY1) {
-                r202_work.p->ido1->pos.y = r202_work.p->idoY1;
-                r202_work.p->ido0->pos.y = r202_work.p->idoY0;
-                r202_work.p->ido2->pos.y = r202_work.p->idoY2;
+            pos.y = r202_work->ido1->pos.y - r202_work->idoY1;
+            r202_work->sat->setCoord(&pos, &rot);
+            if (r202_work->ido1->pos.y > r202_work->idoY1) {
+                r202_work->ido1->pos.y = r202_work->idoY1;
+                r202_work->ido0->pos.y = r202_work->idoY0;
+                r202_work->ido2->pos.y = r202_work->idoY2;
                 pos.y = 0.0f;
-                r202_work.p->sat->setCoord(&pos, &rot);
+                r202_work->sat->setCoord(&pos, &rot);
                 break;
             }
         }
@@ -668,12 +664,12 @@ static void r202_operateCrank()
         ActBtn.set(ACT_ROTATE, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         SceSleep(1);
     }
-    r202_work.p->crank->motionPause();
+    r202_work->crank->motionPause();
     PlSetHand(0, 0);
     pPL->endEvent(2);
-    r202_work.p->crank->endEvent(0);
+    r202_work->crank->endEvent(0);
     SceAtSetEnable(0x15, 0);
-    if (r202_work.p->ido1->pos.y == r202_work.p->idoY1) {
+    if (r202_work->ido1->pos.y == r202_work->idoY1) {
         EstSet(0, -1, 0, 0, EFF_ROOM, 3, 0, ESP_CORE_KIND_NONE, 0, 0);
         RsfSet(G_ROOM_ID, 0);
         SndCall(6, 8, 0, 0, 0, 0);
@@ -719,20 +715,20 @@ static void r202_waitRockImpact(cEm* rock)
 static void r202_CatapultGo_end()
 {
     if (!(pG->Room_flg[0] & 0x02000000)) {
-        cEmRock* rock = r202_work.p->cat[2].rock;
+        cEmRock* rock = r202_work->cat[2].rock;
 
-        r202_work.p->em180.setFlag(1);
-        r202_work.p->cat[2].state = 5;
+        r202_work->em180.setFlag(1);
+        r202_work->cat[2].state = 5;
         SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 4, SCE_PRIO_DEF_2, 0);
     }
-    r202_work.p->em180.setNoSuspend(0);
-    r202_work.p->cat[2].em.setNoSuspend(0);
-    r202_work.p->cat[2].rock->setNoSuspend(0);
-    r202_work.p->checkTask->task->flag &= ~2;
+    r202_work->em180.setNoSuspend(0);
+    r202_work->cat[2].em.setNoSuspend(0);
+    r202_work->cat[2].rock->setNoSuspend(0);
+    r202_work->checkTask->task->flag &= ~2;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceSleep(60);
-    r202_work.p->cat[2].targetOn = 0;
+    r202_work->cat[2].targetOn = 0;
 }
 
 // The gate event: catapult 2 fires at the wall.
@@ -743,26 +739,26 @@ static void r202_CatapultGo()
 
     RsfSet(G_ROOM_ID, 2);
     SceSetEventCancel(1, (TaskFunc) r202_CatapultGo_end, 0, -1, 1);
-    r202_work.p->em180.setPtr(0x2A, 2, 0);
+    r202_work->em180.setPtr(0x2A, 2, 0);
     SceEventStart(1);
     CamCtrl.CutCall(4);
     SndRoomStrStart(1, 0, 1);
-    r202_work.p->em180.setNoSuspend(1);
-    r202_work.p->cat[2].em.setNoSuspend(1);
-    r202_work.p->cat[2].rock->setNoSuspend(1);
-    r202_work.p->checkTask->task->flag |= 2;
-    r202_work.p->cat[2].targetPos.x = 21929.0f;
-    r202_work.p->cat[2].targetPos.y = 5598.0f;
-    r202_work.p->cat[2].targetPos.z = -37644.0f;
-    r202_work.p->cat[2].targetOn = 1;
-    r202_work.p->cat[2].fire = 1;
+    r202_work->em180.setNoSuspend(1);
+    r202_work->cat[2].em.setNoSuspend(1);
+    r202_work->cat[2].rock->setNoSuspend(1);
+    r202_work->checkTask->task->flag |= 2;
+    r202_work->cat[2].targetPos.x = 21929.0f;
+    r202_work->cat[2].targetPos.y = 5598.0f;
+    r202_work->cat[2].targetPos.z = -37644.0f;
+    r202_work->cat[2].targetOn = 1;
+    r202_work->cat[2].fire = 1;
     pG->Room_flg[0] |= 0x80000000;
-    rock = r202_work.p->cat[2].rock;
+    rock = r202_work->cat[2].rock;
     EstSet(rock, -1, 0, 0, EFF_ROOM, 0, 1, EMROCK_WK(rock)->espKind, rock, zero);
     SceSleep(60);
     pG->Room_flg[0] |= 0x02000000;
-    r202_work.p->em180.setFlag(1);
-    r202_work.p->cat[2].state = 5;
+    r202_work->em180.setFlag(1);
+    r202_work->cat[2].state = 5;
     SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(60);
     SceSetEventCancel(0, 0, 0, -1, 1);
@@ -785,41 +781,41 @@ void r202_initCatapult()
     int zero;
 
     for (i = 0; i < 4; i++) {
-        r202_work.p->cat[i].enable = 1;
-        r202_work.p->cat[i].x31 = 1;
-        r202_work.p->cat[i].obj = SmdGetObjPtr(tbl[i].objNo);
-        r202_work.p->cat[i].obj->be_flag |= 0x20;
-        r202_work.p->cat[i].obj->ang.y = LIMIT_ANGLE(tbl[i].ang);
+        r202_work->cat[i].enable = 1;
+        r202_work->cat[i].x31 = 1;
+        r202_work->cat[i].obj = SmdGetObjPtr(tbl[i].objNo);
+        r202_work->cat[i].obj->be_flag |= 0x20;
+        r202_work->cat[i].obj->ang.y = LIMIT_ANGLE(tbl[i].ang);
         zero = 0;
-        r202_work.p->cat[i].state = zero;
-        r202_work.p->cat[i].timer = zero;
-        r202_work.p->cat[i].thrown = zero;
-        r202_work.p->cat[i].nArea = zero;
-        r202_work.p->cat[i].speed = 3500.0f;
-        r202_work.p->cat[i].emNo = tbl[i].emNo;
-        r202_work.p->cat[i].setRockTask = 0;
-        r202_work.p->cat[i].throwRockTask = 0;
+        r202_work->cat[i].state = zero;
+        r202_work->cat[i].timer = zero;
+        r202_work->cat[i].thrown = zero;
+        r202_work->cat[i].nArea = zero;
+        r202_work->cat[i].speed = 3500.0f;
+        r202_work->cat[i].emNo = tbl[i].emNo;
+        r202_work->cat[i].setRockTask = 0;
+        r202_work->cat[i].throwRockTask = 0;
     }
     // COMPILER-DIFF: #3 (dead test as a gcse block boundary). The after-loop `lwz work` x9 read the PRE
     // reaching register (`lis r27` in bb 0) directly in the original; ours re-materialises the copy (cse2,
-    // `high` cost 0). With `&r202_work.p` computed here and the dead `if` ending the block, cse1 rewrites
+    // `high` cost 0). With `&r202_work` computed here and the dead `if` ending the block, cse1 rewrites
     // the following highs to this block's pseudo, PRE turns it into `P = R`, cprop pass 2 propagates R into
     // the later block, and cse2 folds `i <= 3` from the loop exit's `ble` (the block, the pointer and the
     // rematerialised `lis` all die before scheduling).
-    R202Work** wp = &r202_work.p;
+    R202Work** wp = &r202_work;
     if (i <= 3) {
         *wp = 0;
     }
-    r202_work.p->cat[1].setNewArea(6, 7);
-    r202_work.p->cat[2].setNewArea(6, 0xE);
-    r202_work.p->cat[3].setNewArea(6, 0xF);
-    r202_work.p->cat[3].setNewArea(8, 9);
-    r202_work.p->cat[1].setNewArea(0xA, 0xB);
-    r202_work.p->cat[0].setNewArea(0xA, 0x12);
-    r202_work.p->cat[0].setNewArea(0xC, -1);
-    r202_work.p->cat[0].speed = 7000.0f;
-    r202_work.p->cat[2].timer = zero;
-    r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
+    r202_work->cat[1].setNewArea(6, 7);
+    r202_work->cat[2].setNewArea(6, 0xE);
+    r202_work->cat[3].setNewArea(6, 0xF);
+    r202_work->cat[3].setNewArea(8, 9);
+    r202_work->cat[1].setNewArea(0xA, 0xB);
+    r202_work->cat[0].setNewArea(0xA, 0x12);
+    r202_work->cat[0].setNewArea(0xC, -1);
+    r202_work->cat[0].speed = 7000.0f;
+    r202_work->cat[2].timer = zero;
+    r202_work->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Add a (player area -> target area) pair to the catapult's fire table (max 4).
@@ -839,7 +835,7 @@ static void r202_checkCatapult()
 
     SceSleep(1);
     for (i = 0; i < 4; i++) {
-        r202_work.p->cat[i].em.setPtr(r202_work.p->cat[i].emNo, 2, 0);
+        r202_work->cat[i].em.setPtr(r202_work->cat[i].emNo, 2, 0);
     }
     for (;;) {
         int cur = 0;
@@ -858,13 +854,13 @@ static void r202_checkCatapult()
         }
         for (i = 0; i < 4; i++) {
             if (cur == i) {
-                r202_work.p->cat[i].fire = 1;
+                r202_work->cat[i].fire = 1;
             } else {
-                r202_work.p->cat[i].fire = 0;
+                r202_work->cat[i].fire = 0;
             }
-            r202_work.p->cat[i].move();
+            r202_work->cat[i].move();
         }
-        IntSet(r202_work.p->throwWait, r202_work.p->throwWait - 1);
+        r202_work->throwWait = r202_work->throwWait - 1;
         if (RsfCheck(G_ROOM_ID, 1)) {
             break;
         }
@@ -878,12 +874,12 @@ void r202_destroyCatapult()
     u32 i;
 
     for (i = 0; i < 4; i++) {
-        EmMgr.destroy(r202_work.p->cat[i].rock);
-        if (r202_work.p->cat[i].setRockTask) {
-            SceKill(r202_work.p->cat[i].setRockTask);
+        EmMgr.destroy(r202_work->cat[i].rock);
+        if (r202_work->cat[i].setRockTask) {
+            SceKill(r202_work->cat[i].setRockTask);
         }
-        if (r202_work.p->cat[i].throwRockTask) {
-            SceKill(r202_work.p->cat[i].throwRockTask);
+        if (r202_work->cat[i].throwRockTask) {
+            SceKill(r202_work->cat[i].throwRockTask);
         }
     }
 }
@@ -894,7 +890,7 @@ void r202_setFireAll()
     u32 i;
 
     for (i = 0; i < 4; i++) {
-        r202_work.p->cat[i].fireAll = 1;
+        r202_work->cat[i].fireAll = 1;
     }
 }
 
@@ -936,7 +932,7 @@ void cCatapult::move()
         break;
     case 3:
         if (fire == 1) {
-            if (r202_work.p->em180.isActive() != 0) {
+            if (r202_work->em180.isActive() != 0) {
                 Vec p;
 
                 em.getPos(&p);
@@ -949,11 +945,11 @@ void cCatapult::move()
         break;
     case 4:
         if (timer <= 0) {
-            if (r202_work.p->throwWait <= 0) {
+            if (r202_work->throwWait <= 0) {
                 if (checkHitArea() == 1) {
                     if (fire == 1 || fireAll == 1) {
                         fireAll = 0;
-                        r202_work.p->throwWait = 15;
+                        r202_work->throwWait = 15;
                         state = 5;
                     }
                 }
@@ -963,7 +959,7 @@ void cCatapult::move()
         break;
     case 5:
         if (fire == 1) {
-            if (r202_work.p->em180.isActive() != 0) {
+            if (r202_work->em180.isActive() != 0) {
                 Vec p;
 
                 em.getPos(&p);
@@ -971,7 +967,7 @@ void cCatapult::move()
             }
             r202_setFireAll();
         }
-        r202_work.p->throwWait = 15;
+        r202_work->throwWait = 15;
         timer = 30;
         state = 6;
         break;

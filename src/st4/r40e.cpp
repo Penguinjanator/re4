@@ -117,7 +117,7 @@ static void r40e_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 3);
-    r40e_work->str = SndStrReq(0, 0x33, 0x80000003, 0, 0, FCRef(vol));
+    r40e_work->str = SndStrReq(0, 0x33, 0x80000003, 0, 0, *(const f32*) &vol);
     SceSetEventCancel(1, (TaskFunc) r40e_execShowView_end, 0, -1, 1);
     SceEventStart(0);
     CamCtrl.CutCall(0xB);
@@ -371,12 +371,12 @@ static void gameResult()
     AdaResult* res;
 
     disp_bak = pG->Disp_flg;
-    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    pG->Disp_flg = 0xFFFFFFFF;
     DpfFlagOff(pG, DPF_ID_SYSTEM);
     DpfFlagOff(pG, DPF_MESSAGE);
     DpfFlagOff(pG, DPF_COCKPIT);
     stop_bak = pG->Stop_flg;
-    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     SpfFlagOff(pG, SPF_SCE);
     SpfFlagOff(pG, SPF_KEY);
     SpfFlagOff(pG, SPF_ID_SYSTEM);

@@ -64,10 +64,6 @@ struct R226Work {
     int timer;              // 0x16C
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R226WorkPtr {
-    R226Work* p;
-};
 
 // sce_com.cpp SceElevatorData
 struct SceElevatorData {
@@ -87,7 +83,7 @@ struct SceElevatorData {
 };
 
 
-static R226WorkPtr r226_work;
+static R226Work* r226_work;
 static Camera r226_cam;
 
 static SceElevatorData r226_elvArrive = {0, 0, {0.0f, 0.0f, 0.0f}, {-3300.0f, 5000.0f, 22200.0f}, {0.0f, 3.14f, 0.0f}, -1, 0, 0xE, 0, 0xF, {80130.0f, 1500.0f, -22530.0f}, {0.0f, -1.6f, 0.0f}, 0x225};
@@ -156,10 +152,10 @@ static inline void r226_setEmAll(int noSuspend)
     u32 i;
 
     for (i = 0; i < 13; i++) {
-        if (r226_work.p->em[R226EmIdx[i]].isActive() == 0) {
-            r226_work.p->em[R226EmIdx[i]].setEm(R226EmNo[i], -1, 0, 1, 1);
+        if (r226_work->em[R226EmIdx[i]].isActive() == 0) {
+            r226_work->em[R226EmIdx[i]].setEm(R226EmNo[i], -1, 0, 1, 1);
         }
-        r226_work.p->em[R226EmIdx[i]].setNoSuspend(noSuspend);
+        r226_work->em[R226EmIdx[i]].setNoSuspend(noSuspend);
     }
 }
 
@@ -175,10 +171,10 @@ void R226Init()
     u32 i;
     cObj* o;
 
-    R226Work*& wp = r226_work.p;
+    R226Work*& wp = r226_work;
 #line 99 "D:/Bio4/Prog/r226.cpp"
     wp = (R226Work*) MEM_CALLOC(sizeof(R226Work), 1, 0xd);
-    PSetRobo(wp->robo, NULL);
+    wp->robo = NULL;
     if (pG->JumpPoint == 1) {
         int n;
 
@@ -211,14 +207,14 @@ void R226Init()
     Vec zeroRot = {0.0f, 0.0f, 0.0f};
     {
         for (i = 0; i < 4; i++) {
-            r226_work.p->sat[i] = NULL;
-            r226_work.p->eat[i] = NULL;
+            r226_work->sat[i] = NULL;
+            r226_work->eat[i] = NULL;
         }
-        PSet(r226_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroPos, &zeroRot, 1));
-        PSet(r226_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 1));
-        PSet(r226_work.p->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 4));
-        PSet(r226_work.p->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 5));
-        r226_work.p->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 3);
+        r226_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroPos, &zeroRot, 1);
+        r226_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 1);
+        r226_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 4);
+        r226_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 5);
+        r226_work->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zeroPos, &zeroRot, 3);
         SmdSetTrans(0x47, 0);
         if (RsfCheck(G_ROOM_ID, 13) == 0) {
             SceAtDataSet_exec(SCEAT_EXEC_ROBO_WALK_PASSAGE_START, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWalkPassageStart, 0, 1);
@@ -228,30 +224,30 @@ void R226Init()
             SceAtSetEnable(SCEAT_SCRAT_BRIDGE_BREAK, 0);
             Vec pos = {1180.0f, 1000.0f, -16560.0f};
             Vec rot = {0.0f, -1.5707964f, 0.0f};
-            r226_work.p->robo = SetObjRobo(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
-            if (r226_work.p->robo == NULL) {
+            r226_work->robo = SetObjRobo(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
+            if (r226_work->robo == NULL) {
                 pLog->err(0, 0, "R226Init : obm5000 set failed");
                 return;
             }
-            if (r226_work.p->eat[3]) {
-                r226_work.p->eat[3]->m_Flag |= 4;
+            if (r226_work->eat[3]) {
+                r226_work->eat[3]->m_Flag |= 4;
             }
         } else {
             SmdSetTrans(0x35, 0);
-            if (r226_work.p->sat[0]) {
-                r226_work.p->sat[0]->m_Flag &= ~4;
+            if (r226_work->sat[0]) {
+                r226_work->sat[0]->m_Flag &= ~4;
             }
-            if (r226_work.p->eat[0]) {
-                r226_work.p->eat[0]->m_Flag &= ~4;
+            if (r226_work->eat[0]) {
+                r226_work->eat[0]->m_Flag &= ~4;
             }
-            if (r226_work.p->eat[1]) {
-                r226_work.p->eat[1]->m_Flag |= 4;
+            if (r226_work->eat[1]) {
+                r226_work->eat[1]->m_Flag |= 4;
             }
-            if (r226_work.p->eat[2]) {
-                r226_work.p->eat[2]->m_Flag |= 4;
+            if (r226_work->eat[2]) {
+                r226_work->eat[2]->m_Flag |= 4;
             }
-            if (r226_work.p->eat[3]) {
-                r226_work.p->eat[3]->m_Flag &= ~4;
+            if (r226_work->eat[3]) {
+                r226_work->eat[3]->m_Flag &= ~4;
             }
             SmdSetTrans(0x1B, 0);
             SmdSetTrans(0x1C, 0);
@@ -263,8 +259,8 @@ void R226Init()
             SmdSetTrans(0x52, 0);
             EstSet(0, -1, 0, 0, EFF_ROOM, 0x10, 1, ESP_CORE_KIND_NONE, 0, 0);
             EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 1, ESP_CORE_KIND_NONE, 0, 0);
-            if (r226_work.p->eat[3]) {
-                r226_work.p->eat[3]->m_Flag &= ~4;
+            if (r226_work->eat[3]) {
+                r226_work->eat[3]->m_Flag &= ~4;
             }
         }
     }
@@ -275,8 +271,8 @@ void R226Init()
             o->setPos(o->pos.x, -1000.0f, o->pos.z);
         }
         SceAtSetEnable(SCEAT_SCRAT_PASSAGE00, 1);
-        if (r226_work.p->eat[1]) {
-            r226_work.p->eat[1]->m_Flag &= ~4;
+        if (r226_work->eat[1]) {
+            r226_work->eat[1]->m_Flag &= ~4;
         }
     } else {
         o = SmdGetObjPtr(0x3B);
@@ -284,8 +280,8 @@ void R226Init()
             o->setAng(o->ang.x, o->ang.y, 1.5707964f);
         }
         SceAtSetEnable(SCEAT_SCRAT_PASSAGE00, 0);
-        if (r226_work.p->eat[1]) {
-            r226_work.p->eat[1]->m_Flag |= 4;
+        if (r226_work->eat[1]) {
+            r226_work->eat[1]->m_Flag |= 4;
         }
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
@@ -295,8 +291,8 @@ void R226Init()
             o->setPos(o->pos.x, -1000.0f, o->pos.z);
         }
         SceAtSetEnable(SCEAT_SCRAT_PASSAGE01, 1);
-        if (r226_work.p->eat[2]) {
-            r226_work.p->eat[2]->m_Flag &= ~4;
+        if (r226_work->eat[2]) {
+            r226_work->eat[2]->m_Flag &= ~4;
         }
     } else {
         o = SmdGetObjPtr(0x3C);
@@ -304,8 +300,8 @@ void R226Init()
             o->setAng(o->ang.x, o->ang.y, -1.5707964f);
         }
         SceAtSetEnable(SCEAT_SCRAT_PASSAGE01, 0);
-        if (r226_work.p->eat[2]) {
-            r226_work.p->eat[2]->m_Flag |= 4;
+        if (r226_work->eat[2]) {
+            r226_work->eat[2]->m_Flag |= 4;
         }
         o = SmdGetObjPtr(0x4C);
         if (o) {
@@ -342,9 +338,9 @@ void R226Init()
         SceAtDataSet_exec(SCEAT_EXEC_ROBO_WATCH, SCE_LEVEL10, 0, (TaskFunc) R226EventRoboWatchMain, 0, 1);
     }
     SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
-    r226_work.p->moveTimer = 0;
+    r226_work->moveTimer = 0;
     playerRunCamInitBridge();
-    U32Set(r226_work.p->str, 0);
+    r226_work->str = 0;
     ScfFlagOn(pG, SCF_R226_IN);
 }
 
@@ -354,10 +350,10 @@ void R226Init()
 void R226Main()
 {
     if (RmfFlagChk(pG, RMF_ROBO_DOOR_BREAK) && RsfCheck(G_ROOM_ID, 14) == 0) {
-        r226_work.p->moveTimer++;
-        eprintf(0x40, 0x10, 0, 0, "MoveTimer:[%d]", r226_work.p->moveTimer / 30);
-        if (r226_work.p->moveTimer > 599) {
-            r226_work.p->moveTimer = 0;
+        r226_work->moveTimer++;
+        eprintf(0x40, 0x10, 0, 0, "MoveTimer:[%d]", r226_work->moveTimer / 30);
+        if (r226_work->moveTimer > 599) {
+            r226_work->moveTimer = 0;
             SceExec(0x12, (TaskFunc) R226EventRoboWalkDoorDie, 0, 4, SCE_PRIO_DEF_2, 0);
         }
     }
@@ -392,7 +388,7 @@ static void R226EmSetMain()
 // Task: the statue turns to watch the player (event cut 12).
 static void R226EventRoboWatchMain()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
 
     if (pPL->stat & 0x100) {
         return;
@@ -404,7 +400,7 @@ static void R226EventRoboWatchMain()
     SceAtSetEnable(SCEAT_EXEC_ROBO_WATCH, 0);
     SceEventStart(1);
     robo->SetBeginEvent(0);
-    r226_work.p->str = SndStrReq(0, 0x16, 0x80000003, 0, 0, 0.0f);
+    r226_work->str = SndStrReq(0, 0x16, 0x80000003, 0, 0, 0.0f);
     SceSetEventCancel(1, (TaskFunc) R226EventRoboWatchCancel, 0, -1, 1);
     CamCtrl.CutCall(0xC);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -417,9 +413,9 @@ static void R226EventRoboWatchMain()
 // Cancel path of the statue-watch cut: stop its stream, then the common end.
 static void R226EventRoboWatchCancel()
 {
-    if (r226_work.p->str) {
-        SndStrReq(r226_work.p->str, 8, 0, 0);
-        r226_work.p->str = 0;
+    if (r226_work->str) {
+        SndStrReq(r226_work->str, 8, 0, 0);
+        r226_work->str = 0;
     }
     R226EventRoboWatchEnd();
 }
@@ -427,7 +423,7 @@ static void R226EventRoboWatchCancel()
 // End of the statue-watch cut: the statue leaves event mode, camera back, SceEventEnd, task exit.
 void R226EventRoboWatchEnd()
 {
-    r226_work.p->robo->SetEndEvent(0);
+    r226_work->robo->SetEndEvent(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -436,7 +432,7 @@ void R226EventRoboWatchEnd()
 // Task: the statue comes alive (event cuts 9, 8, 10).
 static void R226EventRoboStartMain()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
     cObj* o;
     int i;
 
@@ -457,14 +453,14 @@ static void R226EventRoboStartMain()
     robo->SetBeginEvent(0);
     SceSetEventCancel(1, (TaskFunc) R226EventRoboStartEnd, 0, -1, 1);
     CamCtrl.CutCall(9);
-    if (r226_work.p->em[9].isActive() == 0) {
-        r226_work.p->em[9].setEm(0xB9, -1, 1, 1, 1);
+    if (r226_work->em[9].isActive() == 0) {
+        r226_work->em[9].setEm(0xB9, -1, 1, 1, 1);
     }
     Vec v = {-3300.0f, 5000.0f, -31650.0f};
-    r226_work.p->em[9].setGoto(&v, 1);
-    r226_work.p->em[9].setNoSuspend(1);
+    r226_work->em[9].setGoto(&v, 1);
+    r226_work->em[9].setNoSuspend(1);
     for (i = 0; i < 90; i++) {
-        if (r226_work.p->em[9].ckGoto() != 1) {
+        if (r226_work->em[9].ckGoto() != 1) {
             break;
         }
         SceSleep(1);
@@ -491,7 +487,7 @@ static void R226EventRoboStartMain()
     }
     CamCtrl.CutCall(8);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-    r226_work.p->str = SndStrPlayBlock(1, 0x2B, 0.0f);
+    r226_work->str = SndStrPlayBlock(1, 0x2B, 0.0f);
     SceExec(0x12, (TaskFunc) R226EventRoboStartMainSub, 0x3D, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(30);
     SceExec(0x12, (TaskFunc) R226EventRoboStartMainSub, 0x3E, 0, SCE_PRIO_DEF_2, 0);
@@ -532,13 +528,13 @@ static void R226EventRoboStartMainSub(int id)
 // passage areas armed.
 static void R226EventRoboStartEnd()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
     RoboWork* rw = &robo->robo;
     cObj* o;
 
-    if (r226_work.p->str) {
-        SndStrReq(r226_work.p->str, 8, 0, 0);
-        r226_work.p->str = 0;
+    if (r226_work->str) {
+        SndStrReq(r226_work->str, 8, 0, 0);
+        r226_work->str = 0;
     }
     if (!RmfFlagChk(pG, RMF_BGM_ON)) {
         SndRoomStrStart(1, 0, 1);
@@ -714,8 +710,8 @@ static void R226EventPassageSwitchEnd(int side)
         }
     }
     SceAtSetEnable(atNo, 0);
-    if (r226_work.p->eat[eatNo]) {
-        r226_work.p->eat[eatNo]->m_Flag |= 4;
+    if (r226_work->eat[eatNo]) {
+        r226_work->eat[eatNo]->m_Flag |= 4;
     }
     if (side == 1) {
         o = SmdGetObjPtr(0x4C);
@@ -728,33 +724,33 @@ static void R226EventPassageSwitchEnd(int side)
         if (RsfCheck(G_ROOM_ID, 15) == 0) {
             if (R226CalcActiveEmWarp() <= 4) {
                 RsfSet(G_ROOM_ID, 15);
-                r226_work.p->em[16].setEm(0xC3, -1, 0, 1, 1);
-                r226_work.p->em[17].setEm(0xC4, -1, 0, 1, 1);
-                r226_work.p->em[18].setEm(0xC5, -1, 0, 1, 1);
-                r226_work.p->em[16].setFlag(1);
-                r226_work.p->em[17].setFlag(1);
-                r226_work.p->em[18].setFlag(1);
+                r226_work->em[16].setEm(0xC3, -1, 0, 1, 1);
+                r226_work->em[17].setEm(0xC4, -1, 0, 1, 1);
+                r226_work->em[18].setEm(0xC5, -1, 0, 1, 1);
+                r226_work->em[16].setFlag(1);
+                r226_work->em[17].setFlag(1);
+                r226_work->em[18].setFlag(1);
             }
         }
     } else {
         if (RsfCheck(G_ROOM_ID, 11) == 0) {
             RsfSet(G_ROOM_ID, 11);
-            r226_work.p->em[0].setEm(0xAE, -1, 0, 1, 1);
-            r226_work.p->em[1].setEm(0xAF, -1, 0, 1, 1);
-            r226_work.p->em[2].setEm(0xB0, -1, 0, 1, 1);
-            r226_work.p->em[0].setFlag(1);
-            r226_work.p->em[1].setFlag(1);
-            r226_work.p->em[2].setFlag(1);
+            r226_work->em[0].setEm(0xAE, -1, 0, 1, 1);
+            r226_work->em[1].setEm(0xAF, -1, 0, 1, 1);
+            r226_work->em[2].setEm(0xB0, -1, 0, 1, 1);
+            r226_work->em[0].setFlag(1);
+            r226_work->em[1].setFlag(1);
+            r226_work->em[2].setFlag(1);
         }
         if (RsfCheck(G_ROOM_ID, 16) == 0) {
             if (R226CalcActiveEmWarp() <= 4) {
                 RsfSet(G_ROOM_ID, 16);
-                r226_work.p->em[19].setEm(0xAA, -1, 0, 1, 1);
-                r226_work.p->em[20].setEm(0xAB, -1, 0, 1, 1);
-                r226_work.p->em[21].setEm(0xAC, -1, 0, 1, 1);
-                r226_work.p->em[19].setFlag(1);
-                r226_work.p->em[20].setFlag(1);
-                r226_work.p->em[21].setFlag(1);
+                r226_work->em[19].setEm(0xAA, -1, 0, 1, 1);
+                r226_work->em[20].setEm(0xAB, -1, 0, 1, 1);
+                r226_work->em[21].setEm(0xAC, -1, 0, 1, 1);
+                r226_work->em[19].setFlag(1);
+                r226_work->em[20].setFlag(1);
+                r226_work->em[21].setFlag(1);
             }
         }
     }
@@ -766,7 +762,7 @@ static void R226EventPassageSwitchEnd(int side)
 // Task: both switches thrown - the statue starts walking through the passage.
 static void R226EventRoboWalkPassageStart()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
     RoboWork* rw = &robo->robo;
     int i;
 
@@ -790,11 +786,11 @@ static void R226EventRoboWalkPassageStart()
     SmdSetTrans(0x35, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, ESP_CORE_KIND_ROOM00, 0, 0);
     EstSet(robo, -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-    if (r226_work.p->sat[0]) {
-        r226_work.p->sat[0]->m_Flag &= ~4;
+    if (r226_work->sat[0]) {
+        r226_work->sat[0]->m_Flag &= ~4;
     }
-    if (r226_work.p->eat[0]) {
-        r226_work.p->eat[0]->m_Flag &= ~4;
+    if (r226_work->eat[0]) {
+        r226_work->eat[0]->m_Flag &= ~4;
     }
     robo->SetBeginEvent(0);
     i = 0;
@@ -816,7 +812,7 @@ static void R226EventRoboWalkPassageStart()
 // Task: the statue reached the end of the passage: the player jumps, the statue waits at the door.
 static void R226EventRoboWalkPassageGoal()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
     RoboWork* rw = &robo->robo;
 
     if (RsfCheck(G_ROOM_ID, 3)) {
@@ -883,7 +879,7 @@ static void R226EventTowerLookEnd()
 // Task: the statue breaks through the door and crushes the player (the MoveTimer death).
 static void R226EventRoboWalkDoorDie()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
     Vec pos;
 
     SceEventStart(0);
@@ -912,7 +908,7 @@ static void R226EventRoboWalkDoorDie()
 // Task: the statue starts across the bridge after the player.
 static void R226EventRoboWalkBridgeStart()
 {
-    cObjRobo* robo = r226_work.p->robo;
+    cObjRobo* robo = r226_work->robo;
     RoboWork* rw = &robo->robo;
     int i;
 
@@ -1049,7 +1045,7 @@ int R226CalcActiveEmWarp()
     int i;
 
     for (i = 0; i < 22; i++) {
-        if (r226_work.p->em[i].isActive() == 1) {
+        if (r226_work->em[i].isActive() == 1) {
             n++;
         }
     }
@@ -1093,28 +1089,28 @@ static void playerRunMovePassage(cPlayer* pl)
     case 0:
         pl->m_Work0 = 0x55;
         Cckpt.lifeMeterDisp(0);
-        FSetP(pPL->pos.x, -8540.0f);
-        FSetP(pPL->pos.y, 1000.0f);
+        pPL->pos.x = -8540.0f;
+        pPL->pos.y = 1000.0f;
         pPL->pos.z = -16430.0f;
         pl->ang.y = -1.5707964f;
-        r226_work.p->hitPoint = 0;
-        r226_work.p->spdOld = 0;
-        r226_work.p->spdNew = 0;
-        r226_work.p->sub = 0;
+        r226_work->hitPoint = 0;
+        r226_work->spdOld = 0;
+        r226_work->spdNew = 0;
+        r226_work->sub = 0;
         pl->r_no_2 = 1;
     case 1:
-        MotionSetCore(pl, &pl->Motion, data, mot[r226_work.p->spdNew], 10, 5, 0);
+        MotionSetCore(pl, &pl->Motion, data, mot[r226_work->spdNew], 10, 5, 0);
         pl->r_no_2 = 2;
         pl->m_Fwork0 = 1.0f;
     case 2:
-        eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
+        eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work->hitPoint, r226_work->spdOld, r226_work->spdNew, r226_work->sub);
         playerRunCamMovePassage(pl, 1.0f);
         playerPillarDownCk(robo, 8, 5, 1, -3000.0f);
         playerPillarDownCk(robo, 0xD, 0xA, 2, -3000.0f);
         playerPillarDownCk(robo, 0xA, 7, 0, -3000.0f);
         playerPillarDownCk(robo, 0xE, 0xB, 0, -4500.0f);
         if (!RmfFlagChk(pG, RMF_PILLAR_ESCAPE_ON)) {
-            ButtonCount(&r226_work.p->hitPoint, &r226_work.p->spdOld, &r226_work.p->spdNew, &r226_work.p->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
+            ButtonCount(&r226_work->hitPoint, &r226_work->spdOld, &r226_work->spdNew, &r226_work->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
             ActBtn.set(ACT_SPRINT, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         } else {
             int hit = 0;
@@ -1186,22 +1182,22 @@ static void playerRunMoveBridge(cPlayer* pl)
         pl->m_Work0 = 0x55;
         Cckpt.lifeMeterDisp(0);
         AtariOffV(&pPL->atari, 0xFEFF);
-        FSetP(pPL->pos.x, -70500.0f);
-        FSetP(pPL->pos.y, 1000.0f);
-        FSetP(pPL->pos.z, -16430.0f);
+        pPL->pos.x = -70500.0f;
+        pPL->pos.y = 1000.0f;
+        pPL->pos.z = -16430.0f;
         pl->ang.y = -1.5707964f;
         pPL->matUpdate();
-        r226_work.p->hitPoint = 0;
-        r226_work.p->spdOld = 0;
-        r226_work.p->spdNew = 0;
-        r226_work.p->sub = 0;
+        r226_work->hitPoint = 0;
+        r226_work->spdOld = 0;
+        r226_work->spdNew = 0;
+        r226_work->sub = 0;
         pl->r_no_2 = 1;
     case 1:
-        MotionSetCore(pl, &pl->Motion, data, mot[r226_work.p->spdNew], 10, 5, 0);
+        MotionSetCore(pl, &pl->Motion, data, mot[r226_work->spdNew], 10, 5, 0);
         pl->r_no_2 = 2;
         pl->m_Fwork0 = 1.0f;
     case 2:
-        eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
+        eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work->hitPoint, r226_work->spdOld, r226_work->spdNew, r226_work->sub);
         playerRunCamMoveBridge(pl, 1.0f);
         if (RmfFlagChk(pG, RMF_BRIDGE_ON_SAFE)) {
             RmfFlagOn(pG, RMF_PLAYER_DIE_BRIDGE_SET);
@@ -1215,7 +1211,7 @@ static void playerRunMoveBridge(cPlayer* pl)
                 break;
             }
         } else {
-            ButtonCount(&r226_work.p->hitPoint, &r226_work.p->spdOld, &r226_work.p->spdNew, &r226_work.p->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
+            ButtonCount(&r226_work->hitPoint, &r226_work->spdOld, &r226_work->spdNew, &r226_work->sub, 10, 5, 3, 5, ROOM_ARC_PTR(pG->pRoom, 0x2C), mot);
             ActBtn.set(ACT_SPRINT, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         }
         for (i = 0; i < 6; i++) {
@@ -1226,13 +1222,13 @@ static void playerRunMoveBridge(cPlayer* pl)
         MotionMove(pl, 0);
         break;
     case 3:
-        FSetP(pPL->pos.x, -92879.0f);
-        FSetP(pPL->pos.y, 1000.0f);
-        FSetP(pPL->pos.z, -16405.8f);
-        FSetP(pPL->ang.x, 0.0f);
-        FSetP(pPL->ang.y, -1.5707964f);
-        FSetP(pPL->ang.z, 0.0f);
-        BitOff(pPL->be_flag, 0x10);
+        pPL->pos.x = -92879.0f;
+        pPL->pos.y = 1000.0f;
+        pPL->pos.z = -16405.8f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = -1.5707964f;
+        pPL->ang.z = 0.0f;
+        pPL->be_flag &= ~0x10;
         MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x69), 0, 3, 0x201, 0);
         MotionMove(pl, 0);
         pl->r_no_2 = 4;
@@ -1240,10 +1236,10 @@ static void playerRunMoveBridge(cPlayer* pl)
         pl->dmg.m_Timer = 0x78;
         if (pl->Motion.Seq_frame >= (f32) r226_pushFrame) {
             if (Key.trg & 0x80000) {
-                r226_work.p->btnCnt++;
+                r226_work->btnCnt++;
             }
             ActBtn.set(ACT_CLIMB, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
-            SceDebugDisp("Button:[%d/%d]", r226_work.p->btnCnt, 10);
+            SceDebugDisp("Button:[%d/%d]", r226_work->btnCnt, 10);
         }
         if (pl->Motion.Seq_frame > 9.7f && pl->Motion.Seq_frame < 10.3f) {
             SndCall(1, 0x10, &pPL->pos, 0, 0, 0);
@@ -1255,8 +1251,8 @@ static void playerRunMoveBridge(cPlayer* pl)
             SndCall(1, 0x4F, &pPL->pos, 0, 0, 0);
         }
         if (MotionMove(pl, 0)) {
-            r226_work.p->btnCnt = 0;
-            IntSet(r226_work.p->timer, 0);
+            r226_work->btnCnt = 0;
+            r226_work->timer = 0;
             MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6A), 0, 10, 0x204, 0);
             MotionMove(pl, 0);
             pl->r_no_2 = 5;
@@ -1265,18 +1261,18 @@ static void playerRunMoveBridge(cPlayer* pl)
     case 5:
         pl->dmg.m_Timer = 0x78;
         if (Key.trg & 0x80000) {
-            r226_work.p->btnCnt++;
+            r226_work->btnCnt++;
         }
         ActBtn.set(ACT_CLIMB, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_A_RAPID, ACT_FUNC_NORMAL, 0);
         MotionMove(pl, 0);
-        r226_work.p->timer++;
-        SceDebugDisp("Button:[%d/%d]", r226_work.p->btnCnt, 10);
-        SceDebugDisp("Timer: [%d/%d]", r226_work.p->timer, 90);
-        if (r226_work.p->timer > 90) {
-            if (r226_work.p->btnCnt > 10) {
+        r226_work->timer++;
+        SceDebugDisp("Button:[%d/%d]", r226_work->btnCnt, 10);
+        SceDebugDisp("Timer: [%d/%d]", r226_work->timer, 90);
+        if (r226_work->timer > 90) {
+            if (r226_work->btnCnt > 10) {
                 MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x6B), 0, 3, 0x201, 0);
                 MotionMove(pl, 0);
-                r226_work.p->str = SndStrPlayBlock(1, 0x2F, 0.0f);
+                r226_work->str = SndStrPlayBlock(1, 0x2F, 0.0f);
                 pl->r_no_2 = 6;
             } else {
                 pG->pl_life = 0;
@@ -1296,8 +1292,8 @@ static void playerRunMoveBridge(cPlayer* pl)
             pPL->be_flag |= 0x10;
             pl->r_no_2 = 8;
             SceAtSetEnable(SCEAT_SCRAT_BRIDGE_BREAK, 1);
-            if (r226_work.p->eat[3]) {
-                r226_work.p->eat[3]->m_Flag &= ~4;
+            if (r226_work->eat[3]) {
+                r226_work->eat[3]->m_Flag &= ~4;
             }
             pPL->atari.setFlag100();
             SceEventStart(0);
@@ -1357,11 +1353,11 @@ static void playerRunDieBridge(cPlayer* pl)
         pG->pl_life = 0;
         pl->atari.throughOn();
         PlSetDamageSe(0xA);
-        r226_work.p->dieY = start;
+        r226_work->dieY = start;
         pl->r_no_2++;
     case 1:
-        r226_work.p->dieY += step;
-        pl->setPos(pl->pos.x, pl->pos.y - r226_work.p->dieY, pl->pos.z);
+        r226_work->dieY += step;
+        pl->setPos(pl->pos.x, pl->pos.y - r226_work->dieY, pl->pos.z);
         if (pl->Motion.Seq_frame > 22.7f && pl->Motion.Seq_frame < 23.3f) {
             PlSetDamageSe(0xD);
         }
@@ -1373,8 +1369,8 @@ static void playerRunDieBridge(cPlayer* pl)
 // Reset the bridge chase camera offsets to their initial values.
 void playerRunCamInitBridge()
 {
-    r226_work.p->camPos = r226_camPosInit;
-    r226_work.p->camAt = r226_camAtInit;
+    r226_work->camPos = r226_camPosInit;
+    r226_work->camAt = r226_camAtInit;
 }
 
 // The chase camera: the player's frame offsets blended towards the current camera.
@@ -1408,15 +1404,15 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
 
     cam->param.fovy = r226_fovyBridge;
     if (RmfFlagChk(g, RMF_BRIDGE_ST_00)) {
-        r226_work.p->camPos.x += r226_camSpdPos.x;
-        r226_work.p->camPos.y += r226_camSpdPos.y;
-        r226_work.p->camPos.z += r226_camSpdPos.z;
-        r226_work.p->camAt.x += r226_camSpdAt.x;
-        r226_work.p->camAt.y += r226_camSpdAt.y;
-        r226_work.p->camAt.z += r226_camSpdAt.z;
+        r226_work->camPos.x += r226_camSpdPos.x;
+        r226_work->camPos.y += r226_camSpdPos.y;
+        r226_work->camPos.z += r226_camSpdPos.z;
+        r226_work->camAt.x += r226_camSpdAt.x;
+        r226_work->camAt.y += r226_camSpdAt.y;
+        r226_work->camAt.z += r226_camSpdAt.z;
     }
-    PSMTXMultVec(pl->mat, &r226_work.p->camPos, &pos);
-    PSMTXMultVec(pl->mat, &r226_work.p->camAt, &at);
+    PSMTXMultVec(pl->mat, &r226_work->camPos, &pos);
+    PSMTXMultVec(pl->mat, &r226_work->camAt, &at);
     PosToPos(&g->Camera.param.at, &at, &r226_cam.param.at, t);
     PosToPos(&g->Camera.param.pos, &pos, &r226_cam.param.pos, t);
     cam->up.x = 0.0f;

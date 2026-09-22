@@ -167,7 +167,7 @@ static void wep14_r3_ready00(cPlayer* pl)
     m3r[1] = pitch;
     m3r[0] = pitch;
     pl->m_Fwork0 = zero;
-    FSet(pl->Wep->m_CamAdjY, CamCtrl.getCameraDirection());
+    pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     wep14changeRightHand(pl, WEP_ARC_PTR(0xA));
     pl->Neck->init(0, 0, 0);
     pl->Wep->lockInit();
@@ -488,7 +488,7 @@ static void wep14_r2_down(cPlayer* pl)
     }
     AtariFlagsAndV(WEP_ATARI(pl), 0xFDFF);
     wep14changeRightHand(pl, WEP_ARC_PTR(0x9));
-    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
+    pl->ang.y = pl->ang.y - pl->Waist->set(0.0f, 0.4f);
 }
 
 // r_no_2 == 4: the reload state. Step 0 ends the scope camera (scope type), starts the reload
@@ -546,8 +546,8 @@ static void wep14_r2_next(cPlayer* pl)
 
     switch (step) {
     case 0:
-        U32Set(pl->m_Work0, 0);
-        IntSet(pl->m_Work1, 0);
+        pl->m_Work0 = 0;
+        pl->m_Work1 = 0;
         MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x12), 0, 0xA, 1, 0);
         pl->r_no_3 = 1;
     case 1:

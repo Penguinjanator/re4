@@ -23,12 +23,6 @@
 #include "player.h"
 #include "esp_efm.h"
 
-// Struct-member view of pPL (the pGS trick): the load stays below the preceding stack stores.
-struct EmPtr {
-    cEm* p;
-};
-
-
 typedef void (*EmBoxFunc)(cEmBox*);
 
 static EmBoxFunc EmBox_R0_move_tbl[4] = {
@@ -211,7 +205,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     w->Break_tpl = 0;
     w->Item_num = 0;
     w->itemNo = -1;
-    flg = GetEtcFlgPtr(etcNo, pGS->room_id);
+    flg = GetEtcFlgPtr(etcNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
     }
@@ -658,7 +652,7 @@ void emBoxActEvtCk(cEmBox* em)
         return;
     }
     a = em->pos;
-    b = (((EmPtr*) &pPL)->p)->pos;
+    b = pPL->pos;
     a.y += 200.0f;
     b.y = a.y;
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {

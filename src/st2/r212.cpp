@@ -93,12 +93,8 @@ struct R212Work {
     u32 se;              // 0x10C
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R212WorkPtr {
-    R212Work* p;
-};
 
-static R212WorkPtr r212_work;
+static R212Work* r212_work;
 
 static void (cR212Door::*r212_doorTbl[3])() = {
     &cR212Door::wait,
@@ -139,12 +135,12 @@ static void r212_TreasureBoxOpened(int id);
 void R212Init()
 {
 #line 58 "D:/Bio4/Prog/r212.cpp"
-    r212_work.p = (R212Work*) MEM_CALLOC(sizeof(R212Work), 1, 0xd);
-    r212_work.p->door[0].init(0x1B);
-    r212_work.p->door[1].init(0x16);
-    r212_work.p->door[2].init(0x22);
-    r212_work.p->door[1].setOpened();
-    r212_work.p->door[2].setOpened();
+    r212_work = (R212Work*) MEM_CALLOC(sizeof(R212Work), 1, 0xd);
+    r212_work->door[0].init(0x1B);
+    r212_work->door[1].init(0x16);
+    r212_work->door[2].init(0x22);
+    r212_work->door[1].setOpened();
+    r212_work->door[2].setOpened();
     r212_TrapInit();
     SceExec(0x12, (TaskFunc) r212_DoorLock, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSetItemEvent(0xB, 0x81, 3, 0xA, r212_TreasureBoxOpen, r212_TreasureBoxOpened, 6, 0);
@@ -158,13 +154,13 @@ void r212_TrapInit()
 {
     cObj* o = SmdGetObjPtr(0x1A);
 
-    BitOff(o->be_flag, 2);
+    o->be_flag &= ~2;
     cSat* e0 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &o->pos, &o->ang, 2);
-    PSet(r212_work.p->eat0, e0);
+    r212_work->eat0 = e0;
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r212_EventTrap, 0, 1);
-        r212_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r212s00.evd"));
-        r212_work.p->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
+        r212_work->evd = DC.setData(EvtMgr.NameChange("evd/r212s00.evd"));
+        r212_work->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EvtMgr.SetFunc("evt_r212s00_func", (void*) Evt_R212S00_Func);
         SceExec(0x12, (TaskFunc) r212_RoofTrapWatcher, 0, 0, SCE_PRIO_DEF_2, 0);
     }
@@ -172,43 +168,43 @@ void r212_TrapInit()
     if (RsfCheck(G_ROOM_ID, 1)) {
         SceAtSetEnable(6, 0);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            r212_work.p->door[0].setOpened();
+            r212_work->door[0].setOpened();
         }
     } else {
         SceExec(0x12, (TaskFunc) r212_Puzzle, 0, 0, SCE_PRIO_DEF_2, 0);
         if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
             StaFlagOn(pG, STA_SUB_ASHLEY);
-            SubCharInit(1, &pPLS->pos, pPLS->ang.y);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }
     }
-    if (getRoomEtcRack(5, &r212_work.p->rack[0], 1)) {
-        ((cEmRack*) r212_work.p->rack[0])->setRange(5100.0f, 3000.0f, 7156.0f, 3000.0f);
+    if (getRoomEtcRack(5, &r212_work->rack[0], 1)) {
+        ((cEmRack*) r212_work->rack[0])->setRange(5100.0f, 3000.0f, 7156.0f, 3000.0f);
     }
-    if (getRoomEtcRack(6, &r212_work.p->rack[1], 1)) {
-        ((cEmRack*) r212_work.p->rack[1])->setRange(5500.0f, 3000.0f, 6756.0f, 3000.0f);
+    if (getRoomEtcRack(6, &r212_work->rack[1], 1)) {
+        ((cEmRack*) r212_work->rack[1])->setRange(5500.0f, 3000.0f, 6756.0f, 3000.0f);
     }
     Vec zero = {0.0f, 0.0f, 0.0f};
 
-    PSet(r212_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 8));
-    PSet(r212_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7));
-    PSet(r212_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6));
-    r212_work.p->sat[3] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 9);
-    r212_work.p->y0[0] = SmdGetObjPtr(0xD)->pos.y;
-    r212_work.p->y0[1] = SmdGetObjPtr(0xF)->pos.y;
-    r212_work.p->y0[2] = SmdGetObjPtr(0x12)->pos.y;
-    r212_work.p->y0[3] = SmdGetObjPtr(0x10)->pos.y;
-    r212_work.p->door[2].setOpened();
+    r212_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 8);
+    r212_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);
+    r212_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6);
+    r212_work->sat[3] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 9);
+    r212_work->y0[0] = SmdGetObjPtr(0xD)->pos.y;
+    r212_work->y0[1] = SmdGetObjPtr(0xF)->pos.y;
+    r212_work->y0[2] = SmdGetObjPtr(0x12)->pos.y;
+    r212_work->y0[3] = SmdGetObjPtr(0x10)->pos.y;
+    r212_work->door[2].setOpened();
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         cObj* drill = SmdGetObjPtr(0x2A);
         cEmGanado* g;
 
-        if (r212_work.p->em[0].setEm(0xD7, 4, 1, 1, 0)) {
-            g = (cEmGanado*) r212_work.p->em[0].getPtr();
+        if (r212_work->em[0].setEm(0xD7, 4, 1, 1, 0)) {
+            g = (cEmGanado*) r212_work->em[0].getPtr();
             g->setDrill(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), drill, (void*) 0);
         }
-        if (r212_work.p->em[1].setEm(0xD8, 4, 1, 1, 0)) {
-            g = (cEmGanado*) r212_work.p->em[1].getPtr();
+        if (r212_work->em[1].setEm(0xD8, 4, 1, 1, 0)) {
+            g = (cEmGanado*) r212_work->em[1].getPtr();
             g->setDrill(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), drill, (void*) 1);
         }
         SceExec(0x12, (TaskFunc) r212_DrillAppearCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -231,9 +227,9 @@ void r212_TrapInit()
         cObj* d = SmdGetObjPtr(0x2C);
         Vec zero2 = {0.0f, 0.0f, 0.0f};
 
-        PSet(r212_work.p->sat2, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &d->pos, &d->ang, 1));
-        PSet(r212_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &d->pos, &d->ang, 3));
-        r212_work.p->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero2, &zero2, 1);
+        r212_work->sat2 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &d->pos, &d->ang, 1);
+        r212_work->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &d->pos, &d->ang, 3);
+        r212_work->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero2, &zero2, 1);
     }
 }
 
@@ -243,10 +239,10 @@ void R212Main()
     cObj* o = SmdGetObjPtr(0xC);
 
     r212_SetSwitchInfo();
-    r212_work.p->door[0].move();
-    r212_work.p->door[1].move();
-    r212_work.p->door[2].move();
-    r212_work.p->eat0->setCoord(&o->pos, &o->ang);
+    r212_work->door[0].move();
+    r212_work->door[1].move();
+    r212_work->door[2].move();
+    r212_work->eat0->setCoord(&o->pos, &o->ang);
 }
 
 // Reads the four floor switches (player, Ashley, the two racks) and moves them.
@@ -255,50 +251,50 @@ void r212_SetSwitchInfo()
     u32 id[4] = {0xD, 0xF, 0x12, 0x10};
     u32 i;
 
-    r212_work.p->hitNow = 0;
+    r212_work->hitNow = 0;
     for (i = 0; i < 4; i++) {
         if (SceAtCheckHitModel(i + 2, pPL)) {
-            r212_work.p->hitNow |= 1 << i;
+            r212_work->hitNow |= 1 << i;
         }
         if (pSUB && SceAtCheckHitModel(i + 2, pSUB)) {
-            r212_work.p->hitNow |= 1 << i;
+            r212_work->hitNow |= 1 << i;
         }
-        if (r212_work.p->rack[0] && SceAtCheckHitModel(i + 2, r212_work.p->rack[0])) {
-            r212_work.p->hitNow |= 1 << i;
-            r212_work.p->hitNow |= 1 << (i + 8);
+        if (r212_work->rack[0] && SceAtCheckHitModel(i + 2, r212_work->rack[0])) {
+            r212_work->hitNow |= 1 << i;
+            r212_work->hitNow |= 1 << (i + 8);
         }
-        if (r212_work.p->rack[1] && SceAtCheckHitModel(i + 2, r212_work.p->rack[1])) {
-            r212_work.p->hitNow |= 1 << i;
-            r212_work.p->hitNow |= 1 << (i + 12);
+        if (r212_work->rack[1] && SceAtCheckHitModel(i + 2, r212_work->rack[1])) {
+            r212_work->hitNow |= 1 << i;
+            r212_work->hitNow |= 1 << (i + 12);
         }
     }
-    r212_work.p->trg = (r212_work.p->hitOld ^ r212_work.p->hitNow) & r212_work.p->hitNow;
-    r212_work.p->rel = (r212_work.p->hitOld ^ r212_work.p->hitNow) & r212_work.p->hitOld;
-    r212_work.p->hitOld = r212_work.p->hitNow;
+    r212_work->trg = (r212_work->hitOld ^ r212_work->hitNow) & r212_work->hitNow;
+    r212_work->rel = (r212_work->hitOld ^ r212_work->hitNow) & r212_work->hitOld;
+    r212_work->hitOld = r212_work->hitNow;
     for (i = 0; i < 4; i++) {
         cObj* o = SmdGetObjPtr(id[i]);
 
-        if ((r212_work.p->trg >> i) & 1) {
-            o->pos.y = r212_work.p->y0[i] - 60.0f;
+        if ((r212_work->trg >> i) & 1) {
+            o->pos.y = r212_work->y0[i] - 60.0f;
             o->matUpdate();
             RoomSeCall(8, &o->pos, 0, 0, o);
         }
-        if ((r212_work.p->rel >> i) & 1) {
-            o->pos.y = r212_work.p->y0[i];
+        if ((r212_work->rel >> i) & 1) {
+            o->pos.y = r212_work->y0[i];
             o->matUpdate();
             RoomSeCall(9, &o->pos, 0, 0, o);
         }
-        if ((r212_work.p->trg >> (i + 8)) & 1) {
-            r212_work.p->rack[0]->pos.y -= 60.0f;
+        if ((r212_work->trg >> (i + 8)) & 1) {
+            r212_work->rack[0]->pos.y -= 60.0f;
         }
-        if ((r212_work.p->trg >> (i + 12)) & 1) {
-            r212_work.p->rack[1]->pos.y -= 60.0f;
+        if ((r212_work->trg >> (i + 12)) & 1) {
+            r212_work->rack[1]->pos.y -= 60.0f;
         }
-        if ((r212_work.p->rel >> (i + 8)) & 1) {
-            r212_work.p->rack[0]->pos.y += 60.0f;
+        if ((r212_work->rel >> (i + 8)) & 1) {
+            r212_work->rack[0]->pos.y += 60.0f;
         }
-        if ((r212_work.p->rel >> (i + 12)) & 1) {
-            r212_work.p->rack[1]->pos.y += 60.0f;
+        if ((r212_work->rel >> (i + 12)) & 1) {
+            r212_work->rack[1]->pos.y += 60.0f;
         }
     }
 }
@@ -307,7 +303,7 @@ void r212_SetSwitchInfo()
 static void r212_Puzzle()
 {
     while (RsfCheck(G_ROOM_ID, 1) == 0) {
-        if ((r212_work.p->hitNow & 0xF) == 0xF) {
+        if ((r212_work->hitNow & 0xF) == 0xF) {
             RsfSet(G_ROOM_ID, 1);
         }
         if (DebugTrg(0) == 1) {
@@ -317,11 +313,11 @@ static void r212_Puzzle()
     }
     SceEventStart(0);
     CamCtrl.CutCall(3);
-    r212_work.p->rack[0]->be_flag &= ~2;
-    r212_work.p->rack[1]->be_flag &= ~2;
-    r212_work.p->door[0].setOpen();
+    r212_work->rack[0]->be_flag &= ~2;
+    r212_work->rack[1]->be_flag &= ~2;
+    r212_work->door[0].setOpen();
     SceSetEventCancel(1, (TaskFunc) r212_PuzzleEndProc, 0, 1, 1);
-    while (r212_work.p->door[0].getStatus() != 1) {
+    while (r212_work->door[0].getStatus() != 1) {
         SceSleep(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -336,11 +332,11 @@ static void r212_Puzzle()
 static void r212_PuzzleEndProc()
 {
     if (pG->Room_flg[0] & 0x40000000) {
-        r212_work.p->door[0].setOpened();
+        r212_work->door[0].setOpened();
     }
     CamCtrl.Comeback(0);
-    r212_work.p->rack[0]->be_flag |= 2;
-    r212_work.p->rack[1]->be_flag |= 2;
+    r212_work->rack[0]->be_flag |= 2;
+    r212_work->rack[1]->be_flag |= 2;
     SceEventEnd(0);
     GameSave.save(pSaveData, -1);
 }
@@ -354,14 +350,14 @@ static void r212_EventTrap()
 
     RsfSet(G_ROOM_ID, 0);
     SceEventStart(0);
-    if (r212_work.p->evd->waitLoadOk() == 1 && m != 0) {
-        MemorySwap(m->pArc, (u32) r212_work.p->evd->m_addr, r212_work.p->evd->m_size);
+    if (r212_work->evd->waitLoadOk() == 1 && m != 0) {
+        MemorySwap(m->pArc, (u32) r212_work->evd->m_addr, r212_work->evd->m_size);
         EvtMgr.SetEvt(m->pArc, 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
-        MemorySwap(m->pArc, (u32) r212_work.p->evd->m_addr, r212_work.p->evd->m_size);
-        r212_work.p->evd->setCommand(CMND_DEL_DATA, 0, 0);
+        MemorySwap(m->pArc, (u32) r212_work->evd->m_addr, r212_work->evd->m_size);
+        r212_work->evd->setCommand(CMND_DEL_DATA, 0, 0);
     }
     Vec* pa = &ang;
     f32 ry = -2.68f;
@@ -388,7 +384,7 @@ static void r212_EventTrap()
             SubCharCtrl(SCC_CHASE, 0);
         }
     }
-    r212_work.p->door[0].setClosed();
+    r212_work->door[0].setClosed();
     SceExec(0x12, (TaskFunc) r212_RoofMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r212_DoorMessage, 0, 1);
     SceEventEnd(0);
@@ -503,14 +499,14 @@ static void r212_RoofTrapWatcher()
 
     for (i = 0; i < 4; i++) {
         PSVECSubtract(&ofs[i], &o->pos, &d);
-        r212_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &d, 0, 0);
-        r212_work.p->hit[i]->setParent(o, 0, 0);
-        YarareInit(r212_work.p->hit[i], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
+        r212_work->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &d, 0, 0);
+        r212_work->hit[i]->setParent(o, 0, 0);
+        YarareInit(r212_work->hit[i], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
         EstSet(0, -1, 0, 0, EFF_ROOM, (u8) prm[i][0], 0x800, (u8) prm[i][1], 0, 0);
     }
     for (;;) {
         for (i = 0; i < 4; i++) {
-            if (FlagChkVar(&pG->Room_flg, i + 3) == 0 && r212_work.p->hit[i]->ckStatus() == 1) {
+            if (FlagChkVar(&pG->Room_flg, i + 3) == 0 && r212_work->hit[i]->ckStatus() == 1) {
                 FlagOnVar(&pG->Room_flg, i + 3);
                 EffectEspDelete(0x800, (u8) prm[i][1], 0, 0);
                 EffectEspgenDelete(0x800, (u8) prm[i][1], 0);
@@ -523,12 +519,12 @@ static void r212_RoofTrapWatcher()
             break;
         }
         if (SceAtHitCheck(7) || SceAtHitCheck(8)) {
-            r212_work.p->door[1].setClose();
+            r212_work->door[1].setClose();
         }
         SceSleep(1);
     }
     pG->Room_flg[0] |= 0x20000000;
-    r212_work.p->door[1].setOpen();
+    r212_work->door[1].setOpen();
 }
 
 // Area 0xA, the shut roof-room door: message 2; the first time Ashley's pointing task starts.
@@ -547,14 +543,14 @@ static void r212_AdhleyToPointWait()
     SceSleep(750);
     if (!(pG->Room_flg[0] & 0x01000000)) {
         pG->Room_flg[0] |= 0x01000000;
-        IntSet(r212_work.p->mesNo, 5);
+        r212_work->mesNo = 5;
         if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
             SetSubAux(r212_AshleyPointTo, 0);
         }
     }
     SceSleep(300);
     if (!(pG->Room_flg[0] & 0x20000000)) {
-        r212_work.p->mesNo = 4;
+        r212_work->mesNo = 4;
         SetSubAux(r212_AshleyPointTo, 0);
     }
 }
@@ -572,7 +568,7 @@ static void r212_AshleyPointTo(cEm* sub)
         if (sub->motionMove()) {
             sub->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 10, 0, 1, 0);
             sub->r_no_2++;
-            cMes.MesSet(r212_work.p->mesNo, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x01000052, 0, 0, 4);
+            cMes.MesSet(r212_work->mesNo, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x01000052, 0, 0, 4);
             RoomSeCall(0x13, &sub->pos, 0, 0, sub);
         }
         break;
@@ -604,7 +600,7 @@ static void r212_AshleyPointTo(cEm* sub)
 static void r212_AshleyPointToCheck()
 {
     SceSleep(150);
-    IntSet(r212_work.p->mesNo, 3);
+    r212_work->mesNo = 3;
     if (R212_TRAP_FLAGS_NONE(pG->Room_flg[0])) {
         SetSubAux(r212_AshleyPointTo, 0);
     }
@@ -622,8 +618,8 @@ static void r212_DrillAppearCheck()
     SndRoomStrStart(1, 0, 1);
     int zero = 0;
     SceEventStart(0);
-    r212_work.p->em[0].setNoSuspend(1);
-    r212_work.p->em[1].setNoSuspend(1);
+    r212_work->em[0].setNoSuspend(1);
+    r212_work->em[1].setNoSuspend(1);
     pSUB->setNoSuspend(1);
     {
         cEm* sub = pSUB;
@@ -642,27 +638,27 @@ static void r212_DrillAppearCheck()
     pG->Room_flg[0] &= ~0x40000000;
     SceSetEventCancel(1, (TaskFunc) r212_DrillAppearCheckEndProc, 0, 1, 1);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 0, ESP_CORE_KIND_NONE, (void*) zero, (void*) zero);
-    r212_work.p->door[2].setClose();
-    while ((st = r212_work.p->door[2].getStatus()) != 0) {
+    r212_work->door[2].setClose();
+    while ((st = r212_work->door[2].getStatus()) != 0) {
         SceSleep(1);
     }
     SceSleep(30);
-    r212_work.p->se = RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);
+    r212_work->se = RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, ESP_CORE_KIND_ROOM00, (void*) st, (void*) st);
     SmdGetObjPtr(0x32)->be_flag &= ~2;
     CamCtrl.CutCall(4);
     SceSleep(10);
-    r212_work.p->se = RoomSeCall(2, 0, 0, 0, 0);
+    r212_work->se = RoomSeCall(2, 0, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(5);
-    r212_work.p->se = EmSeCall(0x1A, 0, 0x11, 0, 0, 0);
+    r212_work->se = EmSeCall(0x1A, 0, 0x11, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(6);
-    r212_work.p->se = EmSeCall(0x4E, 0, 0x11, 0, 0, 0);
+    r212_work->se = EmSeCall(0x4E, 0, 0x11, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -678,10 +674,10 @@ static void r212_DrillAppearCheckEndProc()
     Vec v;
 
     if (pG->Room_flg[0] & 0x40000000) {
-        r212_work.p->door[2].setClosed();
+        r212_work->door[2].setClosed();
         SmdGetObjPtr(0x32)->be_flag &= ~2;
         RoomSeCall(0, &SmdGetObjPtr(0x2C)->pos, 0, 0x80000000, 0);
-        SndStop(r212_work.p->se, 0);
+        SndStop(r212_work->se, 0);
     }
     {
         cPlayer* pl = pPL;
@@ -710,12 +706,12 @@ static void r212_DrillAppearCheckEndProc()
         sub->setAng(&v);
     }
     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 5, 0);
-    r212_work.p->em[0].setNoSuspend(0);
-    r212_work.p->em[1].setNoSuspend(0);
+    r212_work->em[0].setNoSuspend(0);
+    r212_work->em[1].setNoSuspend(0);
     pSUB->setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    r212_work.p->eat2->m_Flag &= ~4;
+    r212_work->eat2->m_Flag &= ~4;
     SceExec(0x12, (TaskFunc) r212_DrillMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r212_DrillEndCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
@@ -724,14 +720,14 @@ static void r212_DrillAppearCheckEndProc()
 static void r212_DrillEndCheck()
 {
     while (1) {
-        if (r212_work.p->em[0].isActive() == 0 && r212_work.p->em[1].isActive() == 0) {
+        if (r212_work->em[0].isActive() == 0 && r212_work->em[1].isActive() == 0) {
             RsfSet(G_ROOM_ID, 2);
             break;
         }
         SceSleep(1);
     }
-    r212_work.p->door[2].setOpen();
-    while (r212_work.p->door[2].getStatus() != 1) {
+    r212_work->door[2].setOpen();
+    while (r212_work->door[2].getStatus() != 1) {
         SceSleep(1);
     }
     SceSleep(5);
@@ -764,8 +760,8 @@ static void r212_DrillMove()
         d0->pos.z += 40.0f;
         d1->pos.z += 40.0f;
         d2->pos.z += 40.0f;
-        r212_work.p->sat2->setCoord(&d2->pos, &d2->ang);
-        r212_work.p->eat->setCoord(&d2->pos, &d2->ang);
+        r212_work->sat2->setCoord(&d2->pos, &d2->ang);
+        r212_work->eat->setCoord(&d2->pos, &d2->ang);
         if (SceAtHitCheck(0xD)) {
             f32 dist1;
             f32 dist2;
@@ -777,12 +773,12 @@ static void r212_DrillMove()
             SceDebugDisp("Dist1[%f]", dist1);
             SceDebugDisp("Dist2[%f]", dist2);
             if (dist1 < 2890000.0f) {
-                U16Set(pG->pl_life, 1);
+                pG->pl_life = 1;
                 pPL->dmg.m_Timer = 0;
                 PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x12, 3, 3000.0f);
                 break;
             } else if (dist2 < 2890000.0f) {
-                U16Set(pG->ashley_life, 1);
+                pG->ashley_life = 1;
                 pSUB->dmg.m_Timer = 0;
                 PlWepHitCheck2(0, &pSUB->pos, &pSUB->pos, 0x12, 3, 3000.0f);
                 break;

@@ -100,7 +100,7 @@ void cObjXd9::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
+    wep.motReset[0] = WEP_ARC_PTR(0x34);
     wep.motReset[1] = WEP_ARC_PTR(0x39);
     resetMotion();
     wep.shotFrame[0] = xd9_tbl[0];

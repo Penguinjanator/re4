@@ -63,13 +63,9 @@ struct R100Work {
     u32 se;               // 0x84  SndCall handle of the officers' line
 };
 
-// One-member struct: every store into the work reloads the pointer afterwards.
-struct R100WorkPtr {
-    R100Work* p;
-};
 static u8 r100_texTbl[0x20];
-static R100WorkPtr r100_work;
-#define W r100_work.p
+static R100Work* r100_work;
+#define W r100_work
 
 // Hit effects of attribute types 2, 4 and 5
 static const AtEffInfo r100_eff_info2 = {
@@ -153,7 +149,7 @@ void R100Init()
 
             em.subArc = (PlArc*) m->pArc;
             W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x31), ROOM_ARC_PTR(pG->pRoom, 0x32), &pos, &rot, 0x10, 1);
-            BitOn(W->smd->be_flag, 0x1000);
+            W->smd->be_flag |= 0x1000;
             SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x33), PL_ARC_PTR(pe->subArc, 0x255), &pos, &rot, 0x10, 1)->be_flag |= 0x1000;
             SetSstDispFlag(0x12, 1);
         }
@@ -382,9 +378,11 @@ void R100Main()
     if (RsfCheck(G_ROOM_ID, 12) == 0 && RsfCheck(G_ROOM_ID, 3) && !SceAtHitCheck(0xD) &&
         !StaFlagChk(pG, STA_EVENT)) {
         RsfSet(G_ROOM_ID, 12);
-        SndStrReq(1, 4, 4, 400, 0, FCRef(vol));
-        SndStrReq(1, 5, 4, 400, 0, FCRef(vol));
-        SndStrReq(1, 6, 4, 400, 0, FCRef(vol));
+        // COMPILER-DIFF: the plain `vol` argument schedules differently across the three calls;
+        // no source-level rewrite found that keeps the match without this cast.
+        SndStrReq(1, 4, 4, 400, 0, *(const f32*) &vol);
+        SndStrReq(1, 5, 4, 400, 0, *(const f32*) &vol);
+        SndStrReq(1, 6, 4, 400, 0, *(const f32*) &vol);
     }
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
         if (W->cnt != 0) {
@@ -563,7 +561,7 @@ static void r100_StartEvent()
     SceEventStart(0);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     SceSleep(1);
-    BitOff(SmdGetObjPtr(0x44)->be_flag, 2);
+    SmdGetObjPtr(0x44)->be_flag &= ~2;
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
     DpfFlagOn(pG, DPF_CLOTH);
     flag = pG->System_flg;
@@ -584,17 +582,9 @@ static void r100_StartEvent()
         SysFlagOff(pG, SYS_SCREEN_STOP);
         freeEvent(9, 0);
     }
-    BitOn(SmdGetObjPtr(0x44)->be_flag, 2);
+    SmdGetObjPtr(0x44)->be_flag |= 2;
     StaFlagOff(pG, STA_CAMERA_SET_ROOM);
-    {
-        Vec pos;
-        Vec* pp = &pos;
-
-        pos.x = -99685.0f;
-        pp->y = -484.0f;
-        pp->z = -1343.0f;
-        pPL->setPos(pp);
-    }
+    pPL->setPos(-99685.0f, -484.0f, -1343.0f);
     {
         Vec ang;
         cPlayer* p = pPL;
@@ -938,8 +928,8 @@ static void r100_Sce_zombi_dead(cEm* em)
     W->ems[0]->setNoSuspend(0);
     W->ems[1]->setNoSuspend(0);
     W->ems[2]->setNoSuspend(0);
-    BitOn(W->ems[1]->flag, 1);
-    BitOn(W->ems[2]->flag, 1);
+    W->ems[1]->flag |= 1;
+    W->ems[2]->flag |= 1;
     l = &pG->Em_list[4];
     l->set = zero;
     l = &pG->Em_list[5];

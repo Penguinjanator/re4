@@ -139,7 +139,7 @@ static void wep02_r3_ready00(cPlayer* pl)
     if (pG->weapon_no == 2) {
         WEP_ATARI(pl)->setFlag200();
     }
-    FSet(pl->Wep->m_CamAdjY, CamCtrl.getCameraDirection());
+    pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     mot0 = WEP_ARC_PTR(0x22);
     mot1 = WEP_ARC_PTR(0x23);
     mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0);
@@ -468,7 +468,7 @@ void wepDown(cPlayer* pl)
     obj->wep.mode = 3;
     obj->wep.step = 0;
     WEP_ATARI(pl)->clrFlag200();
-    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
+    pl->ang.y = pl->ang.y - pl->Waist->set(0.0f, 0.4f);
 }
 
 // r_no_2 == 4: the reload state. Step 0 starts the reload motion of the reload-speed level

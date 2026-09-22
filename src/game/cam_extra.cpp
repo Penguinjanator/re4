@@ -23,7 +23,6 @@
 #include "rnd.h"
 #include "mes.h"
 #include "cockpit.h"
-#include "ref_access.h"
 #include <string.h>
 #include "filter.h"
 
@@ -222,7 +221,7 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
     Mtx inv;
     const f32 len = 300000.0f;
 
-    PSMTXInverse(pPLS->mat, inv);
+    PSMTXInverse(pPL->mat, inv);
     if (pos && at) {
         pos_ofs = *pos;
         PSVECSubtract(at, pos, &dir);
@@ -234,10 +233,12 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
         p[1] = pPL->getPartsPtr(0x21);
         PSVECAdd(&p[0]->world, &p[1]->world, &pos_ofs);
         PSVECScale(&pos_ofs, &pos_ofs, 0.5f);
+        cPlayer* pl = pPL;
+
         d = &dir;
-        d->x = pPL->mat[0][2];
-        d->y = pPL->mat[1][2];
-        d->z = pPL->mat[2][2];
+        d->x = pl->mat[0][2];
+        d->y = pl->mat[1][2];
+        d->z = pl->mat[2][2];
     }
     PSMTXMultVec(inv, &pos_ofs, &pos_ofs);
 #line 306 "D:/Bio4/Prog/cam_extra.cpp"
@@ -293,10 +294,6 @@ void CameraScope::getParam(f32* zoom_ratio, f32* x_radian)
     *x_radian = angle_x;
 }
 
-// Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
-// flag: the range loads stay below the reticle stores through the call-result pointers.
-// Same for a global pointer: the `lwz pPL` then waits for a preceding member store in sched1.
-static inline cPlayer* PlRef(cPlayer*& p) { return p; }
 
 
 // Scope zoom clamp as an inline returning the value: one store after the join, the 0.0 register
@@ -412,8 +409,8 @@ void CameraScope::move()
     }
     rdir = rdir * 0.95f + rdir0 * 0.05f;
     m_rnd.x = COSF(xtime) * rdir;
-    m_rnd.y = COSF(FRef(ytime)) * (rnd_gain2 - rdir); // FRef: the static loads wait for the yure stores
-    xtime = LIMIT_ANGLE(FRef(xtime) + FRef(x_yure_spd));
+    m_rnd.y = COSF(ytime) * (rnd_gain2 - rdir);
+    xtime = LIMIT_ANGLE(xtime + x_yure_spd);
     ytime = LIMIT_ANGLE(ytime + y_yure_spd);
     if (pastkey != 1 || Joy[0].stickX || Joy[0].stickY) {
         Vec* a = (Vec*) &angle_x;
@@ -493,10 +490,10 @@ void IdScope::move(void* p)
     b->curve[3] = 0;
     a->rot0.y = 0.0f;
     a->rot0.x = 0.0f;
-    a->rot0.z = (FRef(maxA) - minA) * ra + minA;
+    a->rot0.z = (maxA - minA) * ra + minA;
     b->rot0.y = 0.0f;
     b->rot0.x = 0.0f;
-    b->rot0.z = (FRef(maxB) - minB) * rb + FRef(minB);
+    b->rot0.z = (maxB - minB) * rb + minB;
 }
 
 // Never called: its body is stripped at link (STRIP_UNUSED) but its pool words (0.5f, 100000.0f)
@@ -556,7 +553,7 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
     } else {
         mode = 1;
         cModel* p[2];
-        p[0] = PlRef(pPL)->getPartsPtr(0x20); // the load waits for the `mode` store: the two
+        p[0] = pPL->getPartsPtr(0x20); // the load waits for the `mode` store: the two
                                               // param addresses go above the call
         p[1] = pPL->getPartsPtr(0x21);
         PSVECAdd(&p[0]->world, &p[1]->world, &c);
@@ -567,10 +564,12 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
         param.pos = c;
         PSVECAdd(&c, &up, &param.at);
         {
+            cPlayer* pl = pPL;
             Vec* u = &this->up;
-            u->x = pPL->mat[0][1];
-            u->y = pPL->mat[1][1];
-            u->z = pPL->mat[2][1];
+
+            u->x = pl->mat[0][1];
+            u->y = pl->mat[1][1];
+            u->z = pl->mat[2][1];
         }
     }
     param.fovy = 45.0f;
@@ -687,7 +686,7 @@ void CameraBinocular::move()
         m_campos = param.pos;
         m_target = param.at;
         m_up_vec = up;
-        PSMTXMultVec(PlRef(pPL)->mat, &m_campos, &param.pos); // `lwz pPL` after the three copies
+        PSMTXMultVec(pPL->mat, &m_campos, &param.pos);
         PSMTXMultVec(pPL->mat, &m_target, &param.at);
         PSMTXMultVecSR(pPL->mat, &m_up_vec, &up);
     }
@@ -719,7 +718,7 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     m_pos0_L = IdSys.unitPtr(1, IDC_BINOCULAR)->scr;
     m_pos0_C = IdSys.unitPtr(2, IDC_BINOCULAR)->scr;
     m_pos0_R = IdSys.unitPtr(3, IDC_BINOCULAR)->scr;
-    if (StaFlagChk(pGS, STA_EVENT)) {
+    if (StaFlagChk(pG, STA_EVENT)) {
         IdSys.unitPtr(0x30, IDC_BINOCULAR)->be_flag &= ~8;
         IdSys.unitPtr(0x1B, IDC_BINOCULAR)->be_flag &= ~8;
     }
@@ -872,11 +871,11 @@ void IdBinocular::move(void* p)
     }
     {
         IdUnit* u = IdSys.unitPtr(0x35, IDC_BINOCULAR);
-        u->v0 = FRef(ratio);
+        u->v0 = ratio;
         u->v1 = 1.0f;
         u->scr = m_meter_pos0;
-        u->scr.y = u->scr.y - m_meter_h0 * FRef(ratio) * FRef(m);
-        u->size_H = m_meter_h0 * (1.0f - FRef(ratio)) * FRef(n);
+        u->scr.y = u->scr.y - m_meter_h0 * ratio * m;
+        u->size_H = m_meter_h0 * (1.0f - ratio) * n;
         y = (m_meter_h0 * 0.5f * 0.5f + u->scr.y) * 2.0f;
     }
     for (int k = 0; k <= 3; k++) {

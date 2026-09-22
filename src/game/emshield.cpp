@@ -761,7 +761,7 @@ void cEmShield::setFall(Vec* spd, f32 gravity)
     Mtx m;
     Vec v;
     u32 i;
-    register f64 hd asm("fr1"); // COMPILER-DIFF: #8
+    f64 hd; // COMPILER-DIFF: #8
 
     Motion.pMot = 0;
     // COMPILER-DIFF: #8 -- the original ranks `fmr f29,f1` as if f1 did not die at the copy. A DFmode

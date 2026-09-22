@@ -95,7 +95,7 @@ void R106Init()
     SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, r106_openedShelf, 1, 0);
     if (!ScfFlagChk(pG, SCF_R106_EVENT)) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r106_Event, 0, 1);
-        PSet(r106_work->evd, DC.setData(EvtMgr.NameChange("evd/r106s00.evd")));
+        r106_work->evd = DC.setData(EvtMgr.NameChange("evd/r106s00.evd"));
         r106_work->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EmReadSearch(0x12, 0, 0x3C0000);
         EmReadSearch(0x29, 0, 0);

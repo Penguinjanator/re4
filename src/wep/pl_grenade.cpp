@@ -492,7 +492,7 @@ static void wepDown(cPlayer* pl)
         pl->m_Frame = 0;
     }
     pl->motionMove();
-    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
+    pl->ang.y = pl->ang.y - pl->Waist->set(0.0f, 0.4f);
 }
 
 // r_no_2 == 5: the next-target state (Key.trg bit5 in the lock control): turn towards the locked

@@ -23,7 +23,6 @@
 #include "esp.h"
 #include "rnd.h"
 #include "em_sub.h"
-#include "ref_access.h"
 
 extern "C" {
 
@@ -401,7 +400,7 @@ void levelUpOn()
     cPlayer* pl = pPL;
 
     EmRoutineSet(pl, 0, 7, 0, 0);
-    BitSet(pPL->m_Work0, 0);
+    pPL->m_Work0 = 0;
     pPL->dmg.set(0, 10);
 }
 
@@ -411,7 +410,7 @@ void levelDownOn()
     cPlayer* pl = pPL;
 
     EmRoutineSet(pl, 0, 8, 0, 0);
-    BitSet(pPL->m_Work0, 0);
+    pPL->m_Work0 = 0;
     pPL->dmg.set(0, 10);
 }
 
@@ -421,7 +420,7 @@ void level2UpOn()
     cPlayer* pl = pPL;
 
     EmRoutineSet(pl, 0, 7, 0, 0);
-    BitSet(pPL->m_Work0, 1);
+    pPL->m_Work0 = 1;
     pPL->dmg.set(0, 10);
 }
 
@@ -431,7 +430,7 @@ void level2DownOn()
     cPlayer* pl = pPL;
 
     EmRoutineSet(pl, 0, 8, 0, 0);
-    BitSet(pPL->m_Work0, 1);
+    pPL->m_Work0 = 1;
     pPL->dmg.set(0, 10);
 }
 
@@ -486,7 +485,7 @@ int jumpCheck(cPlayer* pl)
         PSVECAdd(&p2, &hit, &p2);
         p2.y += up;
         h = SatMgr.getFloor(&p2, 0, 600.0f, 100000.0f, 0) - pl->pos.y;
-        FSet(pl->m_JumpAdjY, h);
+        pl->m_JumpAdjY = h;
         if (pG->stage_no == 2 && pG->room_no == 0x26) {
             if (fabsf(h) > up) {
                 pl->m_JumpAdjY = 0.0f;
@@ -507,7 +506,7 @@ void jumpFallOn()
     cPlayer* pl = pPL;
 
     EmRoutineSet(pl, 0, 0x13, 0, 0);
-    FSet(pPL->ang.y, pPL->ang.y + Muku3(pPL->ang.y, &pl->m_JumpVec, 3.1415927f));
+    pPL->ang.y = pPL->ang.y + Muku3(pPL->ang.y, &pl->m_JumpVec, 3.1415927f);
     pPL->dmg.set(0, 0x80);
 }
 
@@ -883,7 +882,7 @@ void cPlayer::seqSeCtrl()
     SndCall(kind, no, &getPartsPtr(parts)->world, id, 0, 0);
     Motion.Seq_old.Se = 0;
     if ((Motion.Seq_frame >= 1.0f && Motion.Seq_frame <= 4.0f) || (Motion.Seq_frame >= 8.0f && Motion.Seq_frame <= 16.0f)) {
-        AddSandPower(&pPL->pos, -0.5f);
+        AddSandPower(pPL->pos, -0.5f);
     }
 }
 
@@ -1146,7 +1145,7 @@ int cPlayer::endCamera()
     int ret = 0;
 
     if (stat & 0x200) {
-        BitOff(stat, 0x200);
+        stat &= ~0x200;
         StaFlagOff(pG, STA_THERMO_GRAPH);
         if (StaFlagChk(pG, STA_SUB_SCRN)) {
             LightMgr.update(CamCtrl.areaNo, 0);
@@ -1166,7 +1165,7 @@ int cPlayer::endCamera()
         if (StaFlagChk(pG, STA_SUB_SCRN)) {
             CameraMove();
         }
-        BitOff(stat, 4);
+        stat &= ~4;
         SpfFlagOff(pG, SPF_KEY);
         ret = 1;
     }
@@ -1614,10 +1613,10 @@ void cPlNeck::move()
             ang = -0.7853981852531433f;
         }
         if (ang < 0.0f && m_Flag) {
-            U16And(m_Flag, 0xFFFE);
+            m_Flag &= 0xFFFE;
             motSet(motL, (u16) pPL->Motion.Seq_frame);
         } else if (ang > 0.0f && !m_Flag) {
-            BitOn16(m_Flag, 1);
+            m_Flag |= 1;
             motSet(motR, (u16) pPL->Motion.Seq_frame);
         }
         m_lockCtr--;

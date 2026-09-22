@@ -18,7 +18,6 @@
 #include "puzzle.h"
 #include "mercenaries.h"
 #include "eprintf.h"
-#include "ref_access.h"
 #include <stdlib.h>
 #include "player.h"
 #include "em_dm_val.h"
@@ -197,7 +196,7 @@ int healing(u16 n)
 {
     if (ItemMgr.m_to_whom == 0) {
         if ((s16) pG->pl_life < (s16) pG->pl_life_max) {
-            U16Set(pG->pl_life, n + pG->pl_life);
+            pG->pl_life = n + pG->pl_life;
             if ((s16) pG->pl_life > (s16) pG->pl_life_max) {
                 pG->pl_life = pG->pl_life_max;
             }
@@ -205,7 +204,7 @@ int healing(u16 n)
         }
     } else if (ItemMgr.m_to_whom == 1) {
         if ((s16) pG->ashley_life < (s16) pG->ashley_life_max) {
-            U16Set(pG->ashley_life, n + pG->ashley_life);
+            pG->ashley_life = n + pG->ashley_life;
             if ((s16) pG->ashley_life > (s16) pG->ashley_life_max) {
                 pG->ashley_life = pG->ashley_life_max;
             }
@@ -1141,13 +1140,12 @@ void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if (!((s32) pG->System_flg < 0) && !BitChk(pG->System_flg, 0x40000000)) {
+    if (!((s32) pG->System_flg < 0) && !(pG->System_flg & 0x40000000)) {
         if (pG->pl_type == 1) {
             type = 0;
         }
         set_game(0);
-        pG->peseta_bak = 0;
-        pG->peseta = 0;
+        pG->peseta = pG->peseta_bak = 0;
         get(0xAC, 1);
         get(0xAD, 1);
         if (FlagChkSign(pG->Debug_flg, DBG_START_ST2) || FlagChkSign(pG->Debug_flg, DBG_START_ST3)) {
@@ -1591,7 +1589,7 @@ void cItemMgr::construct(ItemWork* p, ITEM_ID id)
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (ScfFlagChk(pGS, SCF_ST1_SUB_PERFECT)) {
+            if (ScfFlagChk(pG, SCF_ST1_SUB_PERFECT)) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);
@@ -1784,7 +1782,7 @@ void cItemMgr::ordering(ITEM_ID id)
 // Adds n pesetas (capped at 99,999,999).
 int addMoney(int n)
 {
-    U32Set(pG->peseta, pG->peseta + n);
+    pG->peseta = pG->peseta + n;
     if ((s32) pG->peseta > 99999998) {
         pG->peseta = 99999999;
     }
@@ -1934,7 +1932,7 @@ int cItemMgr::use(ItemWork* p)
     case 0x17:
     case 0x35:
         p->num--;
-        if (DbgFlagChk(pGS, DBG_INF_BULLET2)) {
+        if (DbgFlagChk(pG, DBG_INF_BULLET2)) {
             if (p->num != 0) {
                 return 1;
             }
@@ -1952,7 +1950,7 @@ int cItemMgr::use(ItemWork* p)
 
             if (level <= 19) {
                 level++;
-                U16Set(pG->pl_life_max, 1200);
+                pG->pl_life_max = 1200;
                 pG->pl_life_max += (int) ((f32) (level * 60) + 0.5f);
                 ok = 1;
             }
@@ -1961,7 +1959,7 @@ int cItemMgr::use(ItemWork* p)
 
             if (level <= 4) {
                 level++;
-                U16Set(pG->pl_life_max, 600);
+                pG->pl_life_max = 600;
                 pG->pl_life_max += (int) ((f32) (level * 120) + 0.5f);
                 ok = 1;
             }
@@ -1970,7 +1968,7 @@ int cItemMgr::use(ItemWork* p)
 
             if (level <= 4) {
                 level++;
-                U16Set(pG->ashley_life_max, 600);
+                pG->ashley_life_max = 600;
                 pG->ashley_life_max += (int) ((f32) (level * 120) + 0.5f);
                 ok = 1;
             }
@@ -2362,8 +2360,8 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                 get(newId, 1);
             } else {
                 itemInfo(newId, &info);
-                a->num = 1;
                 a->id = newId;
+                a->num = 1;
             }
         }
     }

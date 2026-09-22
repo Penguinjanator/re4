@@ -103,7 +103,7 @@ void R103Init()
     SceSetItemEvent(8, 0x81, 1, 0xB, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r103_shelf1, 0);
     SceSetItemEvent(9, 0x83, 2, 9, (void (*)(int)) r103_openShelf, (void (*)(int)) r103_openedShelf, (int) &r103_shelf2, 0);
     if (!ItfFlagChk(pG, ITF_R103_FILE)) {
-        U32Set(r103_work->eff, EspPullCoreKind());
+        r103_work->eff = EspPullCoreKind();
         EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, (u8) r103_work->eff, 0, 0);
         SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r103_getFile, 0, 1);
     }
@@ -247,8 +247,8 @@ extern "C" void r103_setSubMissionTarget(u32 objNo)
             cObj* obj = SmdGetObjPtr(objNo);
 
             PSVECSubtract(&((cEmItem*) item)->pos, &obj->pos, &((cEmItem*) item)->pos);
-            FSet(((cEmItem*) item)->pos.x, -120.0f);
-            FSet(((cEmItem*) item)->pos.z, 0.0f);
+            ((cEmItem*) item)->pos.x = -120.0f;
+            ((cEmItem*) item)->pos.z = 0.0f;
             ((cEmItem*) item)->setParent(obj, 0, 0);
             ((cEmItem*) item)->setRotType(2);
         }
@@ -289,7 +289,7 @@ static void r103_checkCloseCover(R103Cesspit* c)
     lid = SmdGetObjPtr(c->lid);
     cover->be_flag |= 0x20;
     lid->be_flag |= 0x20;
-    FSet(cover->ang.x, -0.5235988f);
+    cover->ang.x = -0.5235988f;
     hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &cover->pos, &cover->ang, 0);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
@@ -444,14 +444,14 @@ extern "C" void r103_initCesspit(R103Cesspit* c)
 
     at = SceAtPtr(c->itemAt);
     SceAtSetEnable(c->itemAt2, 1);
-    BitOn(SmdGetObjPtr(c->lid)->be_flag, 0x20);
+    SmdGetObjPtr(c->lid)->be_flag |= 0x20;
     if (!ScfFlagChk(pG, SCF_R103_CLOSE_COVER)) {
         SceExec(0x12, (TaskFunc) r103_checkCloseCover, (int) c, 0, SCE_PRIO_DEF_2, 0);
         SceExec(0x12, (TaskFunc) r103_checkCesspit0, (int) c, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(c->at10, 0);
         SceAtSetEnable(c->itemAt, 1);
     } else {
-        BitOff(SmdGetObjPtr(c->cover)->be_flag, 2);
+        SmdGetObjPtr(c->cover)->be_flag &= ~2;
         if (!ScfFlagChk(pG, SCF_R103_OPEN_COVER)) {
             SmdGetObjPtr(c->lid)->pParts->ang.x = 1.12f;
             SceAtDataSet_exec(c->at18, SCE_LEVEL10, 0, (TaskFunc) r103_execOpenCover, c, 1);

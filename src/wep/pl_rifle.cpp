@@ -23,7 +23,6 @@
 #include "snd.h"
 #include "pad.h"
 #include "math_sub.h"
-#include "ref_access.h"
 
 
 // Store through a scalar reference: the following global load stays below it.
@@ -32,7 +31,7 @@
 // Scope camera on: the thermal light set for the infrared scope (weapon type 2 / weapon 0x1D).
 static inline void scopeOn(cPlayer* pl)
 {
-    BitOn(pl->stat, 0x10);
+    pl->stat |= 0x10;
     if (pG->weapon_type == 2 || pG->weapon_no == 0x1D) {
         StaFlagOn(pG, STA_THERMO_GRAPH);
         pl->stat |= 0x200;
@@ -285,7 +284,7 @@ static void wep09_r3_fire00(cPlayer* pl)
         SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
     }
     VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0, 1);
-    ISet(pl->m_Work4, 0);
+    pl->m_Work4 = 0;
     if (pG->weapon_no == 0xA) {
         obj = pl->Wep->m_pWep;
         obj->wep.mode = 2;
@@ -306,7 +305,7 @@ static void wep09_r3_fire10(cPlayer* pl)
     cPlWep* w;
 
     pl->motionMove();
-    ISet(pl->m_Work4, pl->m_Work4 + 1);   // reference store: the pG load stays below it
+    pl->m_Work4 = pl->m_Work4 + 1;   // reference store: the pG load stays below it
     w = pl->Wep;
     if (pl->m_Work4 > (u8) PlShotFrameTbl[pG->weapon_no][pG->weapon_lv_speed]) {
         if (pG->weapon_no != 9 || w->m_pWep->bulletNum() == 0) {

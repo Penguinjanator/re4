@@ -181,7 +181,7 @@ static void r309_setEffOnEm(s16 no)
         obj = SetObj00(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &ofs, &rot);
         OyaSetObj00(obj, em.getPtr(), 0x11);
         obj->setNoSuspend(1);
-        U32Set(r309_work->kind0, EspPullCoreKind());
+        r309_work->kind0 = EspPullCoreKind();
         EstSet(obj, -1, 0, 0, EFF_CORE, 0x2D, 0xC01, (u8) r309_work->kind0, 0, 0);
         while (em.isActive() == 1) {
             SceSleep(1);

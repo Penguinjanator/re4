@@ -423,7 +423,7 @@ void emRack_R1_Break(cEmRack* em)
     if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
-        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
@@ -515,7 +515,7 @@ void emRack_R1_Shock(cEmRack* em)
         if (w->Timer != 0) {
             w->Timer--;
             p->ang.x = 0.0f;
-            if (pGS->Frame_cnt & 1) {
+            if (pG->Frame_cnt & 1) {
                 p->ang.x = fRand0_1() * 0.024543693f + 0.024543693f;
             }
         } else {

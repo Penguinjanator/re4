@@ -55,7 +55,7 @@ void cObjMine::init(cModel* parent)
 {
     cAtariInfo* at;
 
-    U16Set(wep.itemId, 0x36);
+    wep.itemId = 0x36;
     if (modelInit(WEP_ARC_PTR(0x8), WEP_ARC_PTR(0x7)) == 0) {
         pLog->err(0, 0, "cObjMine::init() failed.");
         return;
@@ -70,7 +70,7 @@ void cObjMine::init(cModel* parent)
 
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
-    PSet(wep.parent, parent);
+    wep.parent = parent;
     wep.motReset[0] = WEP_ARC_PTR(0x21);
     resetMotion();
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);

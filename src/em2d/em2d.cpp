@@ -38,7 +38,6 @@
 #include "cam_ctrl.h"
 #include "quake.h"
 #include "item.h"
-#include "ref_access.h"
 #include "em.h"
 #include <dolphin/os.h>
 #include "em_mod.h"
@@ -227,25 +226,25 @@ static u8 em2d_tex_flag = 0xF;
 // EmRoutineSet stores; the target materialises `li 0` at the store and a fresh one for the routine.
 #define em2dSetAtkWait(w, a, b, c, d, e)   \
     {                                      \
-        IntSet((w)->atkWait, a);           \
+        ((w)->atkWait = a);           \
         if (pG->Game_level > 1) {               \
-            IntSet((w)->atkWait, b);       \
+            ((w)->atkWait = b);       \
         }                                  \
         if (pG->Game_level > 3) {               \
-            IntSet((w)->atkWait, c);       \
+            ((w)->atkWait = c);       \
         }                                  \
         if (pG->Game_level > 6) {               \
-            IntSet((w)->atkWait, d);       \
+            ((w)->atkWait = d);       \
         }                                  \
         if (pG->Game_level == 10) {             \
-            IntSet((w)->atkWait, e);       \
+            ((w)->atkWait = e);       \
         }                                  \
     }
 
 // The same with the damage counter reset between the first store and the difficulty chain.
 static inline void em2dSetAtkWaitR(Em2dWork* w, int a, int b, int c, int d, int e)
 {
-    IntSet(w->atkWait, a);
+    w->atkWait = a;
     w->dmgTotal = 0;
     if (pG->Game_level > 1) {
         w->atkWait = b;
@@ -402,8 +401,8 @@ void em2dDmCk(cEm2d* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->SeInfo.pos = em->pos;
-    pGS->SeInfo.type = 0;
+    pG->SeInfo.pos = em->pos;
+    pG->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -1569,7 +1568,7 @@ static void em2d_R1_Atk(cEm2d* em)
         em2dGravityMove(em, w);
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPLS->pos, 0.157079637f);
+            em2dTurnTo(em, &pPL->pos, 0.157079637f);
         }
         if (MotionMove(em, 0)) {
             if (w->atkHit == 0) {
@@ -1627,7 +1626,7 @@ static void em2d_R1_AtkPoison(cEm2d* em)
         em2dGravityMove(em, w);
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPLS->pos, 0.0981747732f);
+            em2dTurnTo(em, &pPL->pos, 0.0981747732f);
         }
         if (MotionMove(em, 0)) {
             em2dSetAtkWaitR(w, 100, 75, 60, 45, 30);
@@ -1670,7 +1669,7 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPLS->pos, 0.196349546f);  // struct view: the pPL load stays below the timer store
+            em2dTurnTo(em, &pPL->pos, 0.196349546f);  // struct view: the pPL load stays below the timer store
             em2dActEvtSetKick(em, w->kickSide);
         }
         if (MotionMove(em, 0)) {
@@ -1778,7 +1777,7 @@ static void em2d_R1_JumpAtk(cEm2d* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPLS->pos, 0.261799395f);
+            em2dTurnTo(em, &pPL->pos, 0.261799395f);
             em2dActEvtSetKick(em, w->kickSide);
         }
         if (em->Motion.Seq_old.Free & 8) {
@@ -1790,7 +1789,7 @@ static void em2d_R1_JumpAtk(cEm2d* em)
             }
             fe = 0;
             w->dmgTotal = fe;
-            IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
+            w->jumpWait = Rnd() % 150 + 150;  // reference store: the pG load stays below it
             w->atkWait = 100;
             if (pG->Game_level > 1) {
                 w->atkWait = 75;
@@ -1884,7 +1883,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     case 5:
         if (MotionMove(em, 0)) {
             em->atari.setPriority(0);
-            IntSet(w->jumpWait, Rnd() % 150 + 150);
+            w->jumpWait = Rnd() % 150 + 150;
             w->atkWait = 100;
             if (pG->Game_level > 1) {
                 w->atkWait = 75;
@@ -1924,7 +1923,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
         } else if (em->Motion.Seq_old.Free & 4) {
             if ((s16) pG->pl_life <= 1) {
                 em->r_no_2 = 10;
-                pGS->pl_life = 0;
+                pG->pl_life = 0;
             } else {
                 em->r_no_2 = 8;
             }
@@ -2179,7 +2178,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
         em2dCatchCamMove(em, em);
         if (MotionMove(em, 0)) {
             em->atari.setPriority(0);
-            IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
+            w->jumpWait = Rnd() % 150 + 150;  // reference store: the pG load stays below it
             w->atkWait = 100;
             if (pG->Game_level > 1) {
                 w->atkWait = 75;
@@ -2264,7 +2263,7 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 2, 0, 0);
             } else {
-                IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
+                w->jumpWait = Rnd() % 150 + 150;  // reference store: the pG load stays below it
                 w->atkWait = 100;
                 if (pG->Game_level > 1) {
                     w->atkWait = 75;
@@ -2339,7 +2338,7 @@ static void plem2dKick(cPlayer* pl)
         pl->m_Work0 = 27;
         pl->m_Work1 = 7;
         pl->m_Work2 = 10;
-        SndCall(1, 0x35, &pPLS->pos, 0, 0, pPLS);  // struct view: the pPL load stays below the stores
+        SndCall(1, 0x35, &pPL->pos, 0, 0, pPL);  // struct view: the pPL load stays below the stores
         pl->r_no_2++;
     case 1:
         if (MotionMove(pl, 0)) {
@@ -3553,7 +3552,7 @@ static void em2d_R1_A_Atk(cEm2d* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPLS->pos, 0.0981747732f);
+            em2dTurnTo(em, &pPL->pos, 0.0981747732f);
         }
         fl = SatMgr.getFloor(&em->pos, 0, 600.0f, 100000.0f, 0);
         if (em->pos.y < fl) {
@@ -3757,7 +3756,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         } else if (em->Motion.Seq_old.Free & 4) {
             if ((s16) pG->pl_life <= 1) {
                 em->r_no_2 = 10;
-                pGS->pl_life = 0;
+                pG->pl_life = 0;
             } else {
                 em->r_no_2 = 8;
             }
@@ -4701,25 +4700,25 @@ void em2dRouteCk(cEm2d* em)
     w->flags &= ~1;
     if (em->r_no_0 != 0) {
         a = em->getPartsPtr(0)->world;
-        b.x = pPLS->pos.x;
-        b.y = pPLS->pos.y + 1500.0f;
-        b.z = pPLS->pos.z;
+        b.x = pPL->pos.x;
+        b.y = pPL->pos.y + 1500.0f;
+        b.z = pPL->pos.z;
         if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
             w->flags |= 1;
         }
     }
     if (em->set == 1) {
         w->plDist = VEC_DIST(&em->pos, &pPL->pos);
-        w->homeDist = VEC_DIST(&w->homePos, &pPLS->pos);
+        w->homeDist = VEC_DIST(&w->homePos, &pPL->pos);
     } else {
         w->plDist = RouteCkPosToPosDis(&em->pos, &pPL->pos);
-        w->homeDist = RouteCkPosToPosDis(&w->homePos, &pPLS->pos);
+        w->homeDist = RouteCkPosToPosDis(&w->homePos, &pPL->pos);
     }
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;  // before the flags RMW: the pPL load (may alias a w store) precedes `stw flags`
+    w->pTarget = pPL;  // before the flags RMW: the pPL load (may alias a w store) precedes `stw flags`
     w->flags &= ~4;
     if (w->flags & 0x8000) {
         if (w->homeDist < em->Guard_r) {
@@ -6299,9 +6298,9 @@ int em2dFindCk(cEm2d* em)
             {
                 // em10FindCk bell idiom: the override makes the arm sets dead (the compares stay) and
                 // `r` a block-local pseudo loaded at the use.
-                f32 dx = em->pos.x - pGS->SeInfo.pos.x;
-                f32 dy = em->pos.y - pGS->SeInfo.pos.y;
-                f32 dz = em->pos.z - pGS->SeInfo.pos.z;
+                f32 dx = em->pos.x - pG->SeInfo.pos.x;
+                f32 dy = em->pos.y - pG->SeInfo.pos.y;
+                f32 dz = em->pos.z - pG->SeInfo.pos.z;
                 r = 25000.0f;
                 if (dx * dx + dy * dy + dz * dz < r * r && (w->flags & 1) && w->plDist < r) {
                     w->flags |= 0x200;
@@ -6403,7 +6402,7 @@ void cEm2d::setReset(Vec* pos, Vec* rot)
     w->homePos = this->pos;
     em2dInitRtnSet(this);
     w->flags |= 0x200;
-    if (pGS->room_id == 0x213) {
+    if (pG->room_id == 0x213) {
         Vec r213Pos = {0.0f, 6000.0f, -52632.0f};
         this->pos = r213Pos;
         this->ang.y = fRand1_1() * 3.14159274f;

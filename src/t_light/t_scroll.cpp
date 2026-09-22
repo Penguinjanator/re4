@@ -114,8 +114,8 @@ static ScrollWork scrollWork;
 struct ScrollWorkPtr {
     ScrollWork* p;
 };
-static ScrollWorkPtr scrollWorkPtr;
-#define pWork scrollWorkPtr.p
+static ScrollWork* scrollWorkPtr;
+#define pWork scrollWorkPtr
 // second view of the same symbol: an asm-labelled decl gets the assembler name "*scrollWorkPtr", a different
 // string from "scrollWorkPtr", so gcse/cse hash `high(sym)` of the two views as different expressions while
 // the assembler output is the same (edit_select_sub)

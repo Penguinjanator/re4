@@ -65,12 +65,8 @@ struct R201Work {
     int altarEff;        // 0x194
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R201WorkPtr {
-    R201Work* p;
-};
 
-static R201WorkPtr r201_work;
+static R201Work* r201_work;
 
 
 static void r201_openShelf(int no);
@@ -115,7 +111,7 @@ static void r201_execEvent00_sub();
 void R201Init()
 {
 #line 52 "D:/Bio4/Prog/r201.cpp"
-    R201Work*& wp = r201_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    R201Work*& wp = r201_work;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R201Work*) MEM_CALLOC(sizeof(R201Work), 1, 0xd);
     if (pG->JumpPoint == 2) {
         RsfSet(G_ROOM_ID, 0);
@@ -168,8 +164,8 @@ void R201Init()
             }
         }
     }
-    r201_work.p->doorY = SmdGetObjPtr(0x53)->pos.y;
-    if (!KyfFlagChk(pGS, KYF_R201_DOOR)) {
+    r201_work->doorY = SmdGetObjPtr(0x53)->pos.y;
+    if (!KyfFlagChk(pG, KYF_R201_DOOR)) {
         r201_setBattleArea(0, 1);
         SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r201_checkDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r201_checkDungeonKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -180,17 +176,17 @@ void R201Init()
             r201_setBattleArea(0, 1);
         }
     }
-    getRoomEtcBarred(0x10, &r201_work.p->barred, 1);
-    getRoomEtcSwitch(0x1C, &r201_work.p->sw, 1);
-    if (r201_work.p->barred && r201_work.p->sw) {
-        ((cEmSwitch*) r201_work.p->sw)->setOpenOnly();
+    getRoomEtcBarred(0x10, &r201_work->barred, 1);
+    getRoomEtcSwitch(0x1C, &r201_work->sw, 1);
+    if (r201_work->barred && r201_work->sw) {
+        ((cEmSwitch*) r201_work->sw)->setOpenOnly();
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
-            ((cEmBarred*) r201_work.p->barred)->setClosed();
-            ((cEmSwitch*) r201_work.p->sw)->setClosed();
+            ((cEmBarred*) r201_work->barred)->setClosed();
+            ((cEmSwitch*) r201_work->sw)->setClosed();
             SceExec(0x12, (TaskFunc) r201_checkSwitch, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
-            ((cEmBarred*) r201_work.p->barred)->setOpened();
-            ((cEmSwitch*) r201_work.p->sw)->setClosed();
+            ((cEmBarred*) r201_work->barred)->setOpened();
+            ((cEmSwitch*) r201_work->sw)->setClosed();
             SceAtSetEnable(0, 0);
             SceAtSetEnable(1, 0);
             SceAtSetEnable(3, 0);
@@ -199,9 +195,9 @@ void R201Init()
         }
     }
     if (!ScfFlagChk(pG, SCF_R201_EVENT00)) {
-        r201_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r201s00.evd"));
-        r201_work.p->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
-        EmReadSearch(0x1B, 0, r201_work.p->evd->m_size);
+        r201_work->evd = DC.setData(EvtMgr.NameChange("evd/r201s00.evd"));
+        r201_work->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
+        EmReadSearch(0x1B, 0, r201_work->evd->m_size);
         SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r201_execEvent00, 0, 1);
     } else {
         EmReadSearch(0x1B, 0, 0);
@@ -220,7 +216,7 @@ void R201Init()
         rot.x = 0.0f;
         rot.y = 3.1415927f;
         rot.z = 0.0f;
-        r201_work.p->bell[0] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
+        r201_work->bell[0] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     }
     if (RsfCheck(G_ROOM_ID, 11) == 0) {
         pos.x = 26972.0f;
@@ -229,7 +225,7 @@ void R201Init()
         rot.x = 0.0f;
         rot.y = 0.0f;
         rot.z = 0.0f;
-        r201_work.p->bell[1] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
+        r201_work->bell[1] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     }
     SceExec(0x12, (TaskFunc) r201_checkBellBreak, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSetItemEvent(0x26, 0x8F, 0xC, 0x10, r201_openShelf, r201_openedShelf, 0, 0);
@@ -326,13 +322,13 @@ static void r201_checkBellBreak()
             }
         }
         if (RsfCheck(G_ROOM_ID, 10) == 0) {
-            if (r201_work.p->bell[0] && ((cObjBell*) r201_work.p->bell[0])->ckBreak() == 1) {
+            if (r201_work->bell[0] && ((cObjBell*) r201_work->bell[0])->ckBreak() == 1) {
                 RsfSet(G_ROOM_ID, 10);
                 SceAtSetEnable(0x24, 0);
             }
         }
         if (RsfCheck(G_ROOM_ID, 11) == 0) {
-            if (r201_work.p->bell[1] && ((cObjBell*) r201_work.p->bell[1])->ckBreak() == 1) {
+            if (r201_work->bell[1] && ((cObjBell*) r201_work->bell[1])->ckBreak() == 1) {
                 RsfSet(G_ROOM_ID, 11);
                 SceAtSetEnable(0x23, 0);
             }
@@ -363,11 +359,11 @@ static void r201_checkPicture()
 static void r201_closeAltar_end()
 {
     if (pG->Room_flg[0] & 0x20000000) {
-        SndStop(r201_work.p->snd, 0);
-        EffectEspDelete(0, (u8) r201_work.p->altarEff, 0, 0);
-        EffectEspgenDelete(0, (u8) r201_work.p->altarEff, 0);
-        EffectEfmDelete(0, (u8) r201_work.p->altarEff, 0);
-        r201_work.p->altar.setEndPos();
+        SndStop(r201_work->snd, 0);
+        EffectEspDelete(0, (u8) r201_work->altarEff, 0, 0);
+        EffectEspgenDelete(0, (u8) r201_work->altarEff, 0);
+        EffectEfmDelete(0, (u8) r201_work->altarEff, 0);
+        r201_work->altar.setEndPos();
         SceAtSetEnable(0x1A, 1);
     }
     CamCtrl.Comeback(0);
@@ -458,38 +454,38 @@ void r201_moveAltarObj(int open, int init)
         Vec d = {0.0f, -6012.0f, 0.0f};
 
         if (init == 1) {
-            r201_work.p->altarEff = EspPullCoreKind();
-            r201_work.p->altar.initMove1_pos(obj, 120, &d, 10.0f, 10.0f);
-            r201_work.p->altar.setVibration(10, 10, 2.0f, 0.5f, 2.0f);
+            r201_work->altarEff = EspPullCoreKind();
+            r201_work->altar.initMove1_pos(obj, 120, &d, 10.0f, 10.0f);
+            r201_work->altar.setVibration(10, 10, 2.0f, 0.5f, 2.0f);
             if (open == 1) {
                 SceAtSetEnable(0x1A, 0);
-                r201_work.p->altar.setReverse(1);
+                r201_work->altar.setReverse(1);
             } else {
                 SceAtSetEnable(0x1A, 1);
-                r201_work.p->altar.setReverse(0);
+                r201_work->altar.setReverse(0);
             }
         } else {
-            r201_work.p->snd = SndCall(6, 0x12, 0, 0, 0, 0);
+            r201_work->snd = SndCall(6, 0x12, 0, 0, 0, 0);
             if (open == 1) {
-                r201_attachGem(r201_work.p, r201_work.p->gem[0]);
-                r201_attachGem(r201_work.p, r201_work.p->gem[1]);
-                r201_attachGem(r201_work.p, r201_work.p->gem[2]);
-                r201_work.p->altar.setReverse(0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, (u8) r201_work.p->altarEff, 0, 0);
+                r201_attachGem(r201_work, r201_work->gem[0]);
+                r201_attachGem(r201_work, r201_work->gem[1]);
+                r201_attachGem(r201_work, r201_work->gem[2]);
+                r201_work->altar.setReverse(0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 8, 1, (u8) r201_work->altarEff, 0, 0);
             } else {
-                r201_work.p->altar.setReverse(1);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, (u8) r201_work.p->altarEff, 0, 0);
+                r201_work->altar.setReverse(1);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 9, 1, (u8) r201_work->altarEff, 0, 0);
             }
             // ONE loop for both directions: the `SceSleep(1)` block is shared and the `open` compare
             // (kept in r29 by mfcr) is re-tested per iteration after the sleep (`b test; sleep: ..; test:`).
             for (;;) {
                 if (open == 1) {
-                    if (r201_work.p->altar.move() == 0) {
+                    if (r201_work->altar.move() == 0) {
                         SceAtSetEnable(0x1A, 0);
                         break;
                     }
                 } else {
-                    if (r201_work.p->altar.move() == 0) {
+                    if (r201_work->altar.move() == 0) {
                         SceAtSetEnable(0x1A, 1);
                         break;
                     }
@@ -507,27 +503,27 @@ void r201_initGemObj()
     SceAtSetEnable(0x94, 1);
     SceAtSetEnable(0x95, 1);
     SceAtSetEnable(0x96, 1);
-    r201_work.p->gem[0] = SceAtItemModelPtr(0x94);
-    r201_work.p->gem[1] = SceAtItemModelPtr(0x95);
-    r201_work.p->gem[2] = SceAtItemModelPtr(0x96);
-    r201_work.p->gem[0]->pos.x = 141.0f;
-    r201_work.p->gem[0]->pos.y = 3908.0f;
-    r201_work.p->gem[0]->pos.z = -31679.0f;
-    r201_work.p->gem[1]->pos.x = 517.0f;
-    r201_work.p->gem[1]->pos.y = 3908.0f;
-    r201_work.p->gem[1]->pos.z = -31679.0f;
-    r201_work.p->gem[2]->pos.x = 858.0f;
-    r201_work.p->gem[2]->pos.y = 3908.0f;
-    r201_work.p->gem[2]->pos.z = -31679.0f;
-    r201_work.p->gem[0]->setNoSuspend(1);
-    r201_work.p->gem[1]->setNoSuspend(1);
-    r201_work.p->gem[2]->setNoSuspend(1);
-    r201_work.p->gem[0]->LightInfo.EnableMask &= ~0x20;
-    r201_work.p->gem[0]->LightInfo.EnableMask |= 0x10;
-    r201_work.p->gem[1]->LightInfo.EnableMask &= ~0x20;
-    r201_work.p->gem[1]->LightInfo.EnableMask |= 0x10;
-    r201_work.p->gem[2]->LightInfo.EnableMask &= ~0x20;
-    r201_work.p->gem[2]->LightInfo.EnableMask |= 0x10;
+    r201_work->gem[0] = SceAtItemModelPtr(0x94);
+    r201_work->gem[1] = SceAtItemModelPtr(0x95);
+    r201_work->gem[2] = SceAtItemModelPtr(0x96);
+    r201_work->gem[0]->pos.x = 141.0f;
+    r201_work->gem[0]->pos.y = 3908.0f;
+    r201_work->gem[0]->pos.z = -31679.0f;
+    r201_work->gem[1]->pos.x = 517.0f;
+    r201_work->gem[1]->pos.y = 3908.0f;
+    r201_work->gem[1]->pos.z = -31679.0f;
+    r201_work->gem[2]->pos.x = 858.0f;
+    r201_work->gem[2]->pos.y = 3908.0f;
+    r201_work->gem[2]->pos.z = -31679.0f;
+    r201_work->gem[0]->setNoSuspend(1);
+    r201_work->gem[1]->setNoSuspend(1);
+    r201_work->gem[2]->setNoSuspend(1);
+    r201_work->gem[0]->LightInfo.EnableMask &= ~0x20;
+    r201_work->gem[0]->LightInfo.EnableMask |= 0x10;
+    r201_work->gem[1]->LightInfo.EnableMask &= ~0x20;
+    r201_work->gem[1]->LightInfo.EnableMask |= 0x10;
+    r201_work->gem[2]->LightInfo.EnableMask &= ~0x20;
+    r201_work->gem[2]->LightInfo.EnableMask |= 0x10;
     SceAtSetEnable(0x94, 0);
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);
@@ -581,21 +577,21 @@ int r201_setGem(int no)
 static void r201_checkSetGem_end()
 {
     if (pG->Room_flg[0] & 0x20000000) {
-        SndStop(r201_work.p->snd, 0);
-        EffectEspDelete(0, (u8) r201_work.p->altarEff, 0, 0);
-        EffectEspgenDelete(0, (u8) r201_work.p->altarEff, 0);
-        EffectEfmDelete(0, (u8) r201_work.p->altarEff, 0);
-        r201_work.p->altar.setEndPos();
+        SndStop(r201_work->snd, 0);
+        EffectEspDelete(0, (u8) r201_work->altarEff, 0, 0);
+        EffectEspgenDelete(0, (u8) r201_work->altarEff, 0);
+        EffectEfmDelete(0, (u8) r201_work->altarEff, 0);
+        r201_work->altar.setEndPos();
         SceAtSetEnable(0x1A, 0);
     }
-    if (r201_work.p->gem[0]) {
-        r201_work.p->gem[0]->be_flag &= ~2;
+    if (r201_work->gem[0]) {
+        r201_work->gem[0]->be_flag &= ~2;
     }
-    if (r201_work.p->gem[1]) {
-        r201_work.p->gem[1]->be_flag &= ~2;
+    if (r201_work->gem[1]) {
+        r201_work->gem[1]->be_flag &= ~2;
     }
-    if (r201_work.p->gem[2]) {
-        r201_work.p->gem[2]->be_flag &= ~2;
+    if (r201_work->gem[2]) {
+        r201_work->gem[2]->be_flag &= ~2;
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -747,7 +743,7 @@ static void r201_setBattleArea_sub(int open)
         RsfSet(G_ROOM_ID, 1);
         ScfFlagOn(pG, SCF_81);
         obj = SmdGetObjPtr(0x53);
-        while (obj->pos.y - r201_work.p->doorY < 1600.0f) {
+        while (obj->pos.y - r201_work->doorY < 1600.0f) {
             SceSleep(1);
         }
         SceAtSetEnable(0xA, 0);
@@ -803,16 +799,16 @@ void r201_setBattleArea(int open, int init)
         for (;;) {
             if (open == 1) {
                 obj->pos.y += step;
-                if (r201_work.p->doorY + 2600.0f < obj->pos.y) {
-                    obj->pos.y = r201_work.p->doorY + 2600.0f;
+                if (r201_work->doorY + 2600.0f < obj->pos.y) {
+                    obj->pos.y = r201_work->doorY + 2600.0f;
                     SndCall(6, 0x25, 0, 0, 0, 0);
                     return;
                 }
             } else {
                 obj->pos.y -= spd;
                 spd += acc;
-                if (r201_work.p->doorY > obj->pos.y) {
-                    obj->pos.y = r201_work.p->doorY;
+                if (r201_work->doorY > obj->pos.y) {
+                    obj->pos.y = r201_work->doorY;
                     SndCall(6, 0x27, 0, 0, 0, 0);
                     return;
                 }
@@ -830,22 +826,22 @@ static void r201_execEmReset_sub()
     while (SceAtHitCheck(0x12) != 1 && SceAtHitCheck(0x16) != 1) {
         SceSleep(1);
     }
-    r201_work.p->em[0].setPtr(0x58, 2, 0);
-    r201_work.p->em[1].setPtr(0x59, 2, 0);
-    r201_work.p->em[2].setPtr(0x5A, 2, 0);
-    r201_work.p->em[2].setFlag(1);
+    r201_work->em[0].setPtr(0x58, 2, 0);
+    r201_work->em[1].setPtr(0x59, 2, 0);
+    r201_work->em[2].setPtr(0x5A, 2, 0);
+    r201_work->em[2].setFlag(1);
     SceSleep(60);
     AreaGetCenterPos(&pos, &SceAtPtr(0x13)->area);
-    r201_work.p->em[0].setGoto(&pos, 1);
+    r201_work->em[0].setGoto(&pos, 1);
     SceSleep(15);
     AreaGetCenterPos(&pos, &SceAtPtr(0x14)->area);
-    r201_work.p->em[1].setGoto(&pos, 1);
+    r201_work->em[1].setGoto(&pos, 1);
     SceSleep(150);
-    while (r201_work.p->em[2].isAlive() == 1 && ((cEmGanado*) r201_work.p->em[2].getPtr())->ckBombFire()) {
+    while (r201_work->em[2].isAlive() == 1 && ((cEmGanado*) r201_work->em[2].getPtr())->ckBombFire()) {
         SceSleep(1);
     }
     AreaGetCenterPos(&pos, &SceAtPtr(0x15)->area);
-    r201_work.p->em[2].setGoto(&pos, 1);
+    r201_work->em[2].setGoto(&pos, 1);
 }
 
 // The reset wave: Ganados 0x57/0x5B/0x5C (list 2) walk in through the side areas (0xD, 0x18, 0x17)
@@ -854,26 +850,26 @@ static void r201_execEmReset()
 {
     Vec pos;
 
-    r201_work.p->em2[0].setPtr(0x57, 2, 0);
-    r201_work.p->em2[1].setPtr(0x5B, 2, 0);
-    r201_work.p->em2[2].setPtr(0x5C, 2, 0);
+    r201_work->em2[0].setPtr(0x57, 2, 0);
+    r201_work->em2[1].setPtr(0x5B, 2, 0);
+    r201_work->em2[2].setPtr(0x5C, 2, 0);
     SceExec(0x12, (TaskFunc) r201_execEmReset_sub, 0, 0, SCE_PRIO_DEF_2, 0);
     AreaGetCenterPos(&pos, &SceAtPtr(0xD)->area);
-    r201_work.p->em2[0].setGoto(&pos, 2);
-    while (r201_work.p->em2[0].ckGoto() != 0) {
+    r201_work->em2[0].setGoto(&pos, 2);
+    while (r201_work->em2[0].ckGoto() != 0) {
         SceSleep(1);
     }
     AreaGetCenterPos(&pos, &SceAtPtr(0x18)->area);
-    r201_work.p->em2[1].setGoto(&pos, 0xB);
-    r201_work.p->em2[2].setGoto(&pos, 0xB);
+    r201_work->em2[1].setGoto(&pos, 0xB);
+    r201_work->em2[2].setGoto(&pos, 0xB);
     SceSleep(30);
     AreaGetCenterPos(&pos, &SceAtPtr(0x17)->area);
-    r201_work.p->em2[0].setGoto(&pos, 1);
-    while (r201_work.p->em2[0].ckGoto() != 0) {
+    r201_work->em2[0].setGoto(&pos, 1);
+    while (r201_work->em2[0].ckGoto() != 0) {
         SceSleep(1);
     }
-    r201_work.p->em2[0].clearFindPL();
-    r201_work.p->em2[0].setFlag(0x10);
+    r201_work->em2[0].clearFindPL();
+    r201_work->em2[0].setFlag(0x10);
 }
 
 // End of the switch event: switch SE / environment on unless already, camera back, SceEventEnd, the
@@ -898,7 +894,7 @@ static void r201_disarmTrap_end()
 static void r201_disarmTrap()
 {
     pPL->setNoSuspend(1);
-    r201_work.p->sw->setNoSuspend(1);
+    r201_work->sw->setNoSuspend(1);
     SceSetEventCancel(1, (TaskFunc) r201_disarmTrap_end, 0, -1, 1);
     SceEventStart(1);
     CamCtrl.CutCall(6);
@@ -923,7 +919,7 @@ static void r201_execClawManUpCut_end()
 
     em.setPtr(0x56, -1, 1);
     em.setNoSuspend(0);
-    SndStrReq(r201_work.p->strId, 4, 200, 0);
+    SndStrReq(r201_work->strId, 4, 200, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -939,7 +935,7 @@ static void r201_execClawManUpCut()
 
     em.setPtr(0x56, 2, 0);
     em.setNoSuspend(1);
-    r201_work.p->strId = SndStrReq(0, 0x1E, 0x80000003, 0, 0, 0.0f);
+    r201_work->strId = SndStrReq(0, 0x1E, 0x80000003, 0, 0, 0.0f);
     CamCtrl.CutCall(9);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -1003,26 +999,26 @@ static void r201_appearClawMan()
 // Switch sounds: `on` 1 starts the two loops, 0 stops them.
 void r201_setSwitchSe(int on)
 {
-    r201_work.p->sePos.x = 41100.0f;
-    r201_work.p->sePos.y = 3500.0f;
-    r201_work.p->sePos.z = -41000.0f;
-    r201_work.p->sePos2.x = 41100.0f;
-    r201_work.p->sePos2.y = 3500.0f;
-    r201_work.p->sePos2.z = -41000.0f;
+    r201_work->sePos.x = 41100.0f;
+    r201_work->sePos.y = 3500.0f;
+    r201_work->sePos.z = -41000.0f;
+    r201_work->sePos2.x = 41100.0f;
+    r201_work->sePos2.y = 3500.0f;
+    r201_work->sePos2.z = -41000.0f;
     if (on == 1) {
-        if (r201_work.p->snd0) {
-            SndStop(r201_work.p->snd0, 0);
-            SndCall(6, 0xC, &r201_work.p->sePos, 0, 0, 0);
-            r201_work.p->snd0 = 0;
+        if (r201_work->snd0) {
+            SndStop(r201_work->snd0, 0);
+            SndCall(6, 0xC, &r201_work->sePos, 0, 0, 0);
+            r201_work->snd0 = 0;
         }
-        if (r201_work.p->snd1) {
-            SndStop(r201_work.p->snd1, 0);
-            SndCall(6, 0xD, &r201_work.p->sePos, 0, 0, 0);
-            r201_work.p->snd1 = 0;
+        if (r201_work->snd1) {
+            SndStop(r201_work->snd1, 0);
+            SndCall(6, 0xD, &r201_work->sePos, 0, 0, 0);
+            r201_work->snd1 = 0;
         }
     } else {
-        r201_work.p->snd0 = SndCall(6, 0xA, &r201_work.p->sePos, 0, 0, 0);
-        r201_work.p->snd1 = SndCall(6, 0xB, &r201_work.p->sePos, 0, 0, 0);
+        r201_work->snd0 = SndCall(6, 0xA, &r201_work->sePos, 0, 0, 0);
+        r201_work->snd1 = SndCall(6, 0xB, &r201_work->sePos, 0, 0, 0);
     }
 }
 
@@ -1031,17 +1027,17 @@ void r201_setSwitchEnv(int on)
 {
     void* zero;
 
-    r201_work.p->sePos.x = 41100.0f;
-    r201_work.p->sePos.y = 3500.0f;
-    r201_work.p->sePos.z = -41000.0f;
-    r201_work.p->sePos2.x = 41100.0f;
-    r201_work.p->sePos2.y = 3500.0f;
-    r201_work.p->sePos2.z = -41000.0f;
+    r201_work->sePos.x = 41100.0f;
+    r201_work->sePos.y = 3500.0f;
+    r201_work->sePos.z = -41000.0f;
+    r201_work->sePos2.x = 41100.0f;
+    r201_work->sePos2.y = 3500.0f;
+    r201_work->sePos2.z = -41000.0f;
     if (on == 1) {
         zero = 0;
         RsfSet(G_ROOM_ID, 5);
-        ((cEmBarred*) r201_work.p->barred)->setOpen(0);
-        EffectEspgenDelete(0, r201_work.p->effKind, 0);
+        ((cEmBarred*) r201_work->barred)->setOpen(0);
+        EffectEspgenDelete(0, r201_work->effKind, 0);
         EstSet(0, -1, 0, 0, EFF_ROOM, 3, 1, ESP_CORE_KIND_NONE, zero, zero);
         SceAtSetEnable(0, 0);
         SceAtSetEnable(1, 0);
@@ -1051,8 +1047,8 @@ void r201_setSwitchEnv(int on)
     } else {
         zero = 0;
         RsfClear(G_ROOM_ID, 5);
-        ((cEmBarred*) r201_work.p->barred)->setClose(0);
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, r201_work.p->effKind, zero, zero);
+        ((cEmBarred*) r201_work->barred)->setClose(0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, 1, r201_work->effKind, zero, zero);
         SceAtSetEnable(3, 1);
         SceAtSetEnable(0x28, 1);
         SceAtSetEnable(5, 1);
@@ -1072,11 +1068,11 @@ void r201_setSwitchEnv(int on)
 // (cEmSwitch::ckOpen), then SE 0x23 and the barred-door event (r201_disarmTrap).
 static void r201_checkSwitch(int on)
 {
-    r201_work.p->effKind = EspPullCoreKind();
+    r201_work->effKind = EspPullCoreKind();
     r201_setSwitchSe(on);
     r201_setSwitchEnv(on);
     while (on != 1) {
-        if (r201_work.p->sw && ((cEmSwitch*) r201_work.p->sw)->ckOpen() == 1) {
+        if (r201_work->sw && ((cEmSwitch*) r201_work->sw)->ckOpen() == 1) {
             SndCall(6, 0x23, 0, 0, 0, 0);
             SceExec(0x12, (TaskFunc) r201_disarmTrap, 0, 0, SCE_PRIO_DEF_2, 0);
             break;
@@ -1097,19 +1093,19 @@ static void r201_execEvent00()
 
     ScfFlagOn(pG, SCF_R201_EVENT00);
     SceEventStart(0);
-    if (r201_work.p->evd->waitLoadOk() == 1) {
+    if (r201_work->evd->waitLoadOk() == 1) {
         SysFlagOn(pG, SYS_SCREEN_STOP);
         SceSleep(2);
         m = SearchEmModule(0x1B);
-        MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
+        MemorySwap(m->pArc, (u32) r201_work->evd->m_addr, r201_work->evd->m_size);
         EvtMgr.SetEvt(m->pArc, &key);
         ((Event*) key)->StatusFlag |= EvtStfBit(EvtStfPlPosNoSet);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
-        MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
+        MemorySwap(m->pArc, (u32) r201_work->evd->m_addr, r201_work->evd->m_size);
     }
-    r201_work.p->evd->setCommand(CMND_DEL_DATA, 0, 0);
+    r201_work->evd->setCommand(CMND_DEL_DATA, 0, 0);
     SceEventEnd(0);
     OpeOwTypeSet(4);
 }

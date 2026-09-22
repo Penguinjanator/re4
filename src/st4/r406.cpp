@@ -31,13 +31,9 @@ struct R406Work {
     cSceObj shelf;       // 0x04
 };
 
-// One-member struct: every store through the work reloads the pointer (setTexRender).
-struct R406WorkPtr {
-    R406Work* p;
-};
 
 static u8 r406_texTbl[0x20];
-static R406WorkPtr r406_work;
+static R406Work* r406_work;
 
 // Hit effects of attribute type 2 (water). The original link 8-aligned r40a's .rodata after this
 // table (a zero word); r40a's split object is 4-aligned, so the pad word is carried behind the table.
@@ -84,7 +80,7 @@ void R406Init()
     cObj* obj;
 
 #line 57 "D:/Bio4/Prog/r406.cpp"
-    r406_work.p = (R406Work*) MEM_CALLOC(sizeof(R406Work), 1, 0xd);
+    r406_work = (R406Work*) MEM_CALLOC(sizeof(R406Work), 1, 0xd);
     setTexRender();
     if (pG->pl_type == 2) {
         PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x2B),
@@ -128,8 +124,8 @@ void R406Init()
     if (obj) {
         Vec d = {0.0f, 3270.0f, 0.0f};
 
-        r406_work.p->shelf.initMove1_pos(obj, 90, &d, 20.0f, 0.0f);
-        r406_work.p->shelf.setEndPos();
+        r406_work->shelf.initMove1_pos(obj, 90, &d, 20.0f, 0.0f);
+        r406_work->shelf.setEndPos();
         SceSetItemEvent(6, 0x82, 4, 5, r406_openShelf, r406_openedShelf, 0, 0);
     }
 }
@@ -366,13 +362,13 @@ void setTexRender()
     cObj* obj;
     u8* tbl = r406_texTbl;
 
-    if (GetTexRenderMgr(&r406_work.p->tex)) {
+    if (GetTexRenderMgr(&r406_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r406_work.p->tex->texId;
-        r406_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r406_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r406_work->tex->texId;
+        r406_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r406_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }

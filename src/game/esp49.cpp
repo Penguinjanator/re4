@@ -48,7 +48,7 @@ void cEsp49::move()
             return;
         }
         w->Base_alpha = m_Col_a;
-        if (parent != pEffParentWorldS && (m_Release_time == 0xff || m_Release_time <= m_Life_time)) {
+        if (parent != pEffParentWorld && (m_Release_time == 0xff || m_Release_time <= m_Life_time)) {
             PSMTXMultVec(parent->mat, &m_Pos, &wpos);
         } else {
             wpos = m_Pos;

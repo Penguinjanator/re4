@@ -20,7 +20,6 @@
 #include "eprintf.h"
 #include "os_vi.h"
 #include "shadow.h"
-#include "ref_access.h"
 #include "trans.h"
 #include "player.h"
 #include "pl_npc.h"
@@ -47,7 +46,6 @@ ShadowMng* ShadowMngWork;
 static GXLightObj* light_obj;
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h);
-static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 // Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.PartsNo selects.
 // cLightInfo accessors: the address argument is a fresh `&m->lightInfo` computation at each
@@ -122,7 +120,7 @@ int ShdInit(ShdHeader* data)
     }
     g_objNum = data->num;
 #line 185 "D:/Bio4/Prog/shadow.cpp"
-    PSet(g_objTbl, (cObj**) MEM_CALLOC(data->num * 4, 1, 13));
+    g_objTbl = (cObj**) MEM_CALLOC(g_objNum * 4, 1, 13);
     ofsTbl = (u32*) ((u8*) data + data->tblOfs);
     e = data->entry;
     for (i = 0; i < data->num; i++) {
@@ -253,7 +251,7 @@ ShadowMng* getShadowMng()
         return 0;
     }
     mng = &ShadowMngWork[g_Shd_num];
-    U16Set(mng->no, g_Shd_num);
+    mng->no = g_Shd_num;
     mng->num = 0;
     g_Shd_num++;
     return mng;
@@ -275,7 +273,7 @@ void ShadowTrans()
 
     g_Shd_num = 0;
     g_SelfShdNum = 0;
-    if (BitChk(pG->Disp_flg, 0x02000000)) {
+    if (pG->Disp_flg & 0x02000000) {
         return;
     }
     if (DpfFlagChk(pG, DPF_SELF_SHADOW)) {
@@ -651,7 +649,7 @@ void shadowModelRender(ShadowMng* mng)
     StaFlagOn(pG, STA_PROC_SHD_TEX);
     if (mng->pTex == 0) {
 #line 846 "D:/Bio4/Prog/shadow.cpp"
-        PSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
+        mng->pTex = MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13);
         DCInvalidateRange(mng->pTex, g_Shd_tex_size * g_Shd_tex_size);
         if (mng->pTex == 0) {
             pLog->warn(0, 0, "ShadowModelRender() : not enough memory");
@@ -742,8 +740,8 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     SHD_LIGHT_POS(m, pos, "LightHitCheck() cCoord NO ERR %d");
     mng->target = pos;
     mng->lightPos = mng->target;
-    mng->dir.x = FRef(shadow_add_dir_x);
-    FSet(mng->dir.y, -1.0f);
+    mng->dir.x = shadow_add_dir_x;
+    mng->dir.y = -1.0f;
     mng->dir.z = shadow_add_dir_x;
     PSVECNormalize(&mng->dir, &mng->dir);
     w = (ShadowLightWork*) l->work;
@@ -1018,7 +1016,7 @@ void make_shadow_texture(ShadowMng* mng)
         Mtx trans;
         GXColor c;
 
-        MSet(pSelfShadowMng[g_SelfShdNum], mng);
+        pSelfShadowMng[g_SelfShdNum] = mng;
         g_SelfShdNum++;
         StaFlagOn(pG, STA_SELF_SHADOW);
         GXLoadTexObj(&IndTex[shd_tex_no], 0);
@@ -1309,8 +1307,10 @@ void shadowScrModelRender(ShadowMng* mngs)
             // COMPILER-DIFF: 5 (interblock hoist of the `mr r3, obj` argument copy above the flag test)
             cObj* o = obj;
             asm("" : "+r"(o));
-            if (BitChk(o->be_flag, 1) && BitChk(o->be_flag, 0x80)) {
-                ProcShadowScrModel(o, mngs);
+            if (o->be_flag & 1) {
+                if (o->be_flag & 0x80) {
+                    ProcShadowScrModel(o, mngs);
+                }
             }
         }
     }
@@ -1325,8 +1325,10 @@ void shadowScrModelRender(ShadowMng* mngs)
         } else {
             cnt++;
         }
-        if (BitChk(em->be_flag, 1) && BitChk(em->be_flag, 0x80)) {
-            ProcShadowScrModel(em, mngs);
+        if (em->be_flag & 1) {
+            if (em->be_flag & 0x80) {
+                ProcShadowScrModel(em, mngs);
+            }
         }
     }
     for (i = 0; i < 8; i++) {

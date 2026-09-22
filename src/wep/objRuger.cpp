@@ -69,7 +69,7 @@ void cObjRuger::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x36));
+    wep.motReset[0] = WEP_ARC_PTR(0x36);
     wep.motReset[1] = WEP_ARC_PTR(0x3B);
     resetMotion();
     wep.shotFrame[0] = ruger_tbl[0];

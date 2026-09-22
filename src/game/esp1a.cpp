@@ -148,8 +148,8 @@ int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
             low_RotMatrix(m2, &m_pMod->ang);
             PSMTXMultVecSR(m2, &m_Speed, &m_Speed);
             PSMTXMultVecSR(m2, &m_Speed_plus, &m_Speed_plus);
-            m_pMod = NULL;
             parent = pEffParentWorld;
+            m_pMod = NULL;
         }
     } else {
         pLog->err(0, 0, "ESP1a : no parent!!");

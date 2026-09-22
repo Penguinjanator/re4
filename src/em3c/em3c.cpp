@@ -801,7 +801,7 @@ static void plemSurprised(cPlayer* pl)
         PSMTXMultVec(pl->pEmCatch->mat, &v, &pl->pos);
         pl->ang.y = GetXZAngle(&pl->pos, &pl->pEmCatch->pos);
         pl->atari.throughOn();
-        if (pGS->pl_type == 1) {
+        if (pG->pl_type == 1) {
             MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x64), 0, 3, 1, 0);
         } else {
             MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x63), 0, 3, 1, 0);
@@ -832,7 +832,7 @@ static void plemEscapeAction(cEm3c* em)
 
     w->actMode = 0;
     w->Act_ck = 1;
-    pPLS->dmg.m_Timer = 2;
+    pPL->dmg.m_Timer = 2;
     SetPlDamage(em, plemEscape);
     if (pSUB) {
         f32 d = (em->pos.x - pSUB->pos.x) * (em->pos.x - pSUB->pos.x) + (em->pos.y - pSUB->pos.y) * (em->pos.y - pSUB->pos.y)
@@ -1217,10 +1217,10 @@ static void em3c_R1_MoveAtk(cEm3c* em)
             far = 0;
         }
         w->Timer = 20;
-        if (pGS->Game_level <= 2) {
+        if (pG->Game_level <= 2) {
             w->Timer = 10;
         }
-        if (pGS->Game_level > 7) {
+        if (pG->Game_level > 7) {
             w->Timer = 30;
         }
         if (w->female) {
@@ -1655,10 +1655,10 @@ int em3cAtkCk(cEm3c* em, Vec* pos, int no)
                 EstSet(pPL, -1, 0, 0, EFF_EM3C, 9, 0, ESP_CORE_KIND_NONE, pPL, 0);
                 SetPlDamage(em, plemDmMStar);
                 if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) < PI / 2.0f) {
-                    FSet(pPL->ang.y, pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
+                    pPL->ang.y = pPL->ang.y + Muku(&pPL->pos, &em->pos, pPL->ang.y, PI);
                     pPL->r_no_3 = 0;
                 } else {
-                    FSet(pPL->ang.y, pPL->ang.y + Muku(&em->pos, &pPL->pos, pPL->ang.y, PI));
+                    pPL->ang.y = pPL->ang.y + Muku(&em->pos, &pPL->pos, pPL->ang.y, PI);
                     pPL->r_no_3 = 1;
                 }
             }
@@ -1812,7 +1812,7 @@ void em3cRouteCk(cEm3c* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->L_go = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->Be_flg &= ~4;
 }
 
@@ -2142,8 +2142,8 @@ void em3cPartsBombControl(cEm3c* em)
         TransMatrix(p->mat, &cen);
         ScaleMatrix(p->mat, &p->scale);
         p->world = cen;
-        // pGS: the pG load stays behind the `p->worldPos = cen` word stores (global.h)
-        if (pGS->debug_mode == 8) {
+        // pG: the pG load stays behind the `p->worldPos = cen` word stores (global.h)
+        if (pG->debug_mode == 8) {
             // the routine's j/k again (and j for the speed loop above, p for the parts walk below):
             // one pseudo per name is what puts j in r24, k in r29 and p in r26 like the target --
             // separate counters rank differently in global alloc and permute the callee-saved set
@@ -2504,7 +2504,7 @@ void em3cAtkSuspend(cEm3c* em, int on)
 
     if (on) {
         StaFlagOn(pG, STA_SUSPEND);
-        pPLS->setNoSuspend(1);
+        pPL->setNoSuspend(1);
         em->setNoSuspend(1);
         if (pSUB) {
             pSUB->setNoSuspend(1);
@@ -2512,7 +2512,7 @@ void em3cAtkSuspend(cEm3c* em, int on)
         StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
     } else {
         StaFlagOff(pG, STA_SUSPEND);
-        pPLS->setNoSuspend(0);
+        pPL->setNoSuspend(0);
         em->setNoSuspend(0);
         if (pSUB) {
             pSUB->setNoSuspend(0);

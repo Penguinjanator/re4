@@ -432,7 +432,7 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r333_work->tex->texId;
-        IntSet(r333_work->tex->m_Rep_type, 1);
+        r333_work->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, EFF_ROOM, 0, r333_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
@@ -590,12 +590,12 @@ static void gameResult()
 
     SceEventStart(0);
     disp_bak = pG->Disp_flg;
-    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    pG->Disp_flg = 0xFFFFFFFF;
     DpfFlagOff(pG, DPF_ID_SYSTEM);
     DpfFlagOff(pG, DPF_MESSAGE);
     DpfFlagOff(pG, DPF_COCKPIT);
     stop_bak = pG->Stop_flg;
-    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     SpfFlagOff(pG, SPF_SCE);
     SpfFlagOff(pG, SPF_KEY);
     SpfFlagOff(pG, SPF_ID_SYSTEM);
@@ -632,10 +632,10 @@ static void gameResult()
     SceEventEnd(0);
     disp_bak2 = disp_bak;
     stop_bak2 = stop_bak;
-    U32Set(pG->Disp_flg, disp_bak);
+    pG->Disp_flg = disp_bak;
     pG->Stop_flg = stop_bak;
     OpeSetOpenTerm(0x17, -675462.0f, -26062.0f, -552700.0f, 0.665f);
-    U32Set(pG->Disp_flg, disp_bak2);
+    pG->Disp_flg = disp_bak2;
     pG->Stop_flg = stop_bak2;
     SceEventStart(0);
     setLangExt3(data_name + 3);
@@ -676,7 +676,7 @@ static void gameResult()
     res->quit();
     delete res;
     swap.SwapIn();
-    U16Set(pG->game_cnt, pG->game_cnt + 1);
+    pG->game_cnt = pG->game_cnt + 1;
     if (pG->game_cnt > 99) {
         pG->game_cnt = 99;
     }
@@ -688,13 +688,13 @@ static void gameResult()
         int i;
 
         ExtFlagOn(pSys, EXT_GET_OMAKE_ETC_GAME);
-        // Struct-member view of pSys (pGS): the element store is not disjoint from the pointer load,
+        // Struct-member view of pSys (pG): the element store is not disjoint from the pointer load,
         // so pSys is reloaded per iteration and the address stays `(pSys + 0x10) + i*4` (`stwx`).
         for (i = 0; i < 4; i++) {
-            pSysS->MercSysRoom[i] = 0;
+            pSys->MercSysRoom[i] = 0;
         }
         for (i = 0; i < 2; i++) {
-            pSysS->MercSysRank[i] = 0;
+            pSys->MercSysRank[i] = 0;
         }
         MercSysGetSaveWork(&save);
         for (i = 0; i < 4; i++) {
@@ -707,8 +707,8 @@ static void gameResult()
         CardSave(0, 0x12);
         SceSleep(1);
     }
-    U32Set(pG->Disp_flg, disp_bak);
-    U32Set(pG->Stop_flg, stop_bak);
+    pG->Disp_flg = disp_bak;
+    pG->Stop_flg = stop_bak;
     SysFlagOn(pG, SYS_SOFT_RESET);
 }
 

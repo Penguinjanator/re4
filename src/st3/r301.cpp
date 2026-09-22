@@ -41,13 +41,9 @@ struct R301Work {
     u32 sndId;           // 0x100  SndCall handle of the slide sound
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R301WorkPtr {
-    R301Work* p;
-};
 
 static u8 r301_texTbl[0x20];
-static R301WorkPtr r301_work;
+static R301Work* r301_work;
 
 // Hit effects of attribute type 2 (water).
 static const AtEffInfo r301_eff_info = {1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F}};
@@ -78,7 +74,7 @@ static void setTexRender();
 void R301Init()
 {
     cObj* obj;
-    R301Work*& wp = r301_work.p;   // the address is computed before the call
+    R301Work*& wp = r301_work;   // the address is computed before the call
 
     DbgFlagOn(pG, DBG_CAST_ERR_NO_DISP);
 #line 63 "D:/Bio4/Prog/r301.cpp"
@@ -135,13 +131,13 @@ static void r301_checkBgm()
 static void r301_execContinuePoint_end()
 {
     if (pG->Room_flg[0] & 0x40000000) {
-        EffectEspDelete(0, (u8) r301_work.p->espKind, 0, 0);
-        EffectEspgenDelete(0, (u8) r301_work.p->espKind, 0);
-        EffectEfmDelete(0, (u8) r301_work.p->espKind, 0);
-        if (r301_work.p->sndId) {
-            SndStop(r301_work.p->sndId, 0);
+        EffectEspDelete(0, (u8) r301_work->espKind, 0, 0);
+        EffectEspgenDelete(0, (u8) r301_work->espKind, 0);
+        EffectEfmDelete(0, (u8) r301_work->espKind, 0);
+        if (r301_work->sndId) {
+            SndStop(r301_work->sndId, 0);
         }
-        r301_work.p->rock.setEndPos();
+        r301_work->rock.setEndPos();
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -166,21 +162,21 @@ static void r301_execContinuePoint()
         RsfSet(G_ROOM_ID, 5);
         KyfFlagOn(pG, KYF_ST1_01);
         SceAtSetEnable(0xF, 0);
-        r301_work.p->espKind = 0;
-        r301_work.p->sndId = 0;
+        r301_work->espKind = 0;
+        r301_work->sndId = 0;
         SceSetEventCancel(1, (TaskFunc) r301_execContinuePoint_end, 0, 1, 1);
         SceEventStart(0);
         CamCtrl.CutCall(6);
-        r301_work.p->espKind = EspPullCoreKind();
-        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r301_work.p->espKind, (void*) zero, (void*) zero);
+        r301_work->espKind = EspPullCoreKind();
+        EstSet(0, -1, 0, 0, EFF_ROOM, 4, 1, (u8) r301_work->espKind, (void*) zero, (void*) zero);
         SndCall(6, 5, 0, 0, 0, 0);
         SceSleep(15);
-        r301_work.p->sndId = SndCall(6, 6, 0, 0, 0, 0);
-        while (r301_work.p->rock.move() == 1) {
+        r301_work->sndId = SndCall(6, 6, 0, 0, 0, 0);
+        while (r301_work->rock.move() == 1) {
             SceSleep(1);
         }
         SndCall(6, 7, 0, 0, 0, 0);
-        r301_work.p->sndId = 0;
+        r301_work->sndId = 0;
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
@@ -201,12 +197,12 @@ void r301_initContinuePoint()
     if (obj) {
         Vec d = {0.0f, 3270.0f, 0.0f};
 
-        r301_work.p->rock.initMove1_pos(obj, 90, &d, 20.0f, 0.0f);
-        r301_work.p->rock.setVibration(5, 5, 1.0f, 0.4f, 2.0f);
+        r301_work->rock.initMove1_pos(obj, 90, &d, 20.0f, 0.0f);
+        r301_work->rock.setVibration(5, 5, 1.0f, 0.4f, 2.0f);
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
             SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) r301_execContinuePoint, 0, 1);
         } else {
-            r301_work.p->rock.setEndPos();
+            r301_work->rock.setEndPos();
             SceAtSetEnable(0x10, 0);
             SceAtSetEnable(0x11, 0);
         }
@@ -669,13 +665,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r301_texTbl;
 
-    if (GetTexRenderMgr(&r301_work.p->tex)) {
+    if (GetTexRenderMgr(&r301_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r301_work.p->tex->texId;
-        r301_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r301_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r301_work->tex->texId;
+        r301_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 3, r301_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }

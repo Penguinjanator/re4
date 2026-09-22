@@ -37,13 +37,9 @@ struct R400Work {
     u32 point;    // 0x10  frames of the point count (> 450: the second phase)
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R400WorkPtr {
-    R400Work* p;
-};
 
 
-static R400WorkPtr r400_work;
+static R400Work* r400_work;
 
 Vec r400_pos[3] = {{-12400.0f, 2576.0f, 31080.0f}, {-7526.0f, 4232.0f, -8319.0f}, {25337.0f, 1110.0f, -704.0f}};
 static Vec r400_rot[3] = {{0.0f, 2.486f, 0.0f}, {0.0f, 0.63f, 0.0f}, {0.0f, -1.66f, 0.0f}};
@@ -81,7 +77,7 @@ void R400Init()
     cEmWindow* win;
 
 #line 49 "D:/Bio4/Prog/r400.cpp"
-    r400_work.p = (R400Work*) MEM_CALLOC(sizeof(R400Work), 1, 0xd);
+    r400_work = (R400Work*) MEM_CALLOC(sizeof(R400Work), 1, 0xd);
     setLadderMotion(5);
     setLadderMotion(6);
     setLadderMotion(7);
@@ -310,23 +306,23 @@ void R400Main()
     SceDebugDisp("");
     SceDebugDisp("");
     if (!StaFlagChk(pG, STA_EVENT)) {
-        r400_work.p->cnt = SceCountEmAlive(0x10, 0x20);
-        if (r400_work.p->timer == 1 && !(pG->Room_flg[0] & 0x80000000)) {
-            U32Set(r400_work.p->base, r400_work.p->cnt);
+        r400_work->cnt = SceCountEmAlive(0x10, 0x20);
+        if (r400_work->timer == 1 && !(pG->Room_flg[0] & 0x80000000)) {
+            r400_work->base = r400_work->cnt;
             pG->Room_flg[0] |= 0x80000000;
         }
-        r400_work.p->timer++;
-        if (r400_work.p->timer > 300) {
-            r400_work.p->timer = 1;
+        r400_work->timer++;
+        if (r400_work->timer > 300) {
+            r400_work->timer = 1;
             em_destroy();
         }
         GameAddPoint(LVADD_TIMECOUNT);
-        r400_work.p->point++;
-        if (r400_work.p->point > 450) {
+        r400_work->point++;
+        if (r400_work->point > 450) {
             pG->Room_flg[0] |= 0x40000000;
         }
         if (pG->Room_flg[0] & 0x40000000) {
-            SceDebugDisp("EM_NUM[%d/%d]", r400_work.p->cnt, r400_work.p->base);
+            SceDebugDisp("EM_NUM[%d/%d]", r400_work->cnt, r400_work->base);
             if (pG->Room_flg[2] & 0x80000000) {
                 reset_40();
             }
@@ -366,21 +362,21 @@ void R400Main()
                     reset_item2();
                 }
             }
-            if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 9) {
+            if (r400_work->base != 0 && r400_work->base - r400_work->cnt > 9) {
                 if (!(pG->Room_flg[0] & 0x10000000)) {
                     pG->Room_flg[0] |= 0x10000000;
                     emset_boss(0x11, 0);
                     emset_boss(0x12, 1);
                 }
             }
-            if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 24) {
+            if (r400_work->base != 0 && r400_work->base - r400_work->cnt > 24) {
                 if (!(pG->Room_flg[0] & 0x08000000)) {
                     pG->Room_flg[0] |= 0x08000000;
                     emset_boss(0x61, 0);
                     emset_boss(0x62, 1);
                 }
             }
-            if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 34) {
+            if (r400_work->base != 0 && r400_work->base - r400_work->cnt > 34) {
                 if (!(pG->Room_flg[0] & 0x04000000)) {
                     pG->Room_flg[0] |= 0x04000000;
                     emset_boss(0x76, 0);
@@ -413,7 +409,7 @@ void setLadderMotion(int no)
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x2D);
+                mot[9] = ROOM_ARC_PTR(pG->pRoom, 0x2D);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
@@ -486,7 +482,7 @@ void emset_boss(int no, int dir)
 // Resets list entry `no` (chk: only while fewer than 10 enemies are alive); 1 when it was set.
 int em_reset(int no, int chk)
 {
-    if (chk == 1 && r400_work.p->cnt > 9) {
+    if (chk == 1 && r400_work->cnt > 9) {
         return 0;
     }
     if (pG->Em_list[no].be_flag & 2) {
@@ -495,8 +491,8 @@ int em_reset(int no, int chk)
     cEmWrap em;
     em.setEm(no, -1, 1, 1, 1);
     em.setGoto(&pPL->pos, 0xC);
-    r400_work.p->base++;
-    r400_work.p->cnt++;
+    r400_work->base++;
+    r400_work->cnt++;
     SceDebugDisp("RESET[%d]", no);
     return 1;
 }

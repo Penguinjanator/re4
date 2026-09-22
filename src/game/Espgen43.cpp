@@ -13,7 +13,6 @@
 #include "camera.h"
 #include "os_vi.h"
 #include "db_log.h"
-#include "ref_access.h"
 
 // Byte-identical. AddSandPower's `stfs f1, Add_power` is an asm with a hard-register anti-dependence
 // (see the COMPILER-DIFF note there); everything else is plain C.
@@ -98,7 +97,7 @@ void AddSandPowerSub(EspgenWork* w)
         for (j = -3; j <= 3; j++) {
             k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= stride) {
-                p->pHeightBuf[k].y -= FGet(Add_power) * 0.02f;
+                p->pHeightBuf[k].y -= Add_power * 0.02f;
             }
         }
     }
@@ -106,7 +105,7 @@ void AddSandPowerSub(EspgenWork* w)
         for (j = -2; j <= 2; j++) {
             k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= stride) {
-                p->pHeightBuf[k].y -= FGet(Add_power) * 0.1f;
+                p->pHeightBuf[k].y -= Add_power * 0.1f;
             }
         }
     }
@@ -114,7 +113,7 @@ void AddSandPowerSub(EspgenWork* w)
         for (j = -1; j <= 1; j++) {
             k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= 0) {
-                p->pHeightBuf[k].y += FGet(Add_power) * 0.35f;
+                p->pHeightBuf[k].y += Add_power * 0.35f;
             }
         }
     }
@@ -132,28 +131,16 @@ void AddSandPowerSub(EspgenWork* w)
 
 // Public dent entry: deforms every live sand surface at `pos` by `power`; no-op unless a sand
 // surface exists this frame (Status_flg[0] bit1).
-void AddSandPower(Vec* pos, f32 power)
+void AddSandPower(Vec& pos, f32 power)
 {
+    // A local for the zero, declared before the flag check: without it Chk_pos's high word loses
+    // its register tie and the .z word ends up sharing a register with it.
+    int n = 0;
+
     if (StaFlagChk(pG, STA_SAND_ALIVE)) {
-        // COMPILER-DIFF: word copy with the .z word pinned to r11 (the original issues `stfs Add_power`
-        // in the first cycle in both schedulers). Scalar `u32` loads are not MEM_IN_STRUCT_P, so the
-        // plain `Add_power` store gates them (priority 7) and takes the first cycle in sched1 too;
-        // that moves the Chk_pos high's birth one slot later, which would rank it above the .z word
-        // (2 refs) in local-alloc and give it r11. Pinning the .z word removes that qty: high takes
-        // r10 (r11 busy), addi r8, W0 r0, W4 r9 as in the original. Order 0,4,8 keeps the addi's
-        // death on the .z store so sched1 issues S0, S8, S4.
-        register u32 c asm("r11");
-        u32* s = (u32*) pos;
-        u32* d = (u32*) &Chk_pos;
-        u32 a, b;
+        Height_find = n;
         Add_power = power;
-        ISet(Height_find, 0);
-        a = s[0];
-        b = s[1];
-        c = s[2];
-        d[0] = a;
-        d[1] = b;
-        d[2] = c;
+        Chk_pos = pos;
         EspgenApplyFunc(AddSandPowerSub);
     }
 }
@@ -198,7 +185,7 @@ int GetSandHeight(Vec* pos, f32* height)
         return 0;
     }
     Height_find = 0;
-    FSet(Height_ret, -100000000.0f);
+    Height_ret = -100000000.0f;
     Chk_pos = *pos;
     EspgenApplyFunc(GetSandHeightSub);
     *height = Height_ret;

@@ -32,12 +32,6 @@ extern "C" {
 extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll prolog)
 }
 
-// The store into EmInitFunc in EmReadSearch keeps the following m->pArc load below it: the
-// original wrote it as a struct member (scalar-vs-struct alias heuristic), like pLog/pGS.
-struct EmInitFuncPtr {
-    void* p;
-};
-#define EM_INIT_FUNC (((EmInitFuncPtr*) &EmInitFunc)->p)
 
 
 // game/game.cpp: GAME_WORK Game seen through this unit's own view struct (not global.h's declaration)
@@ -137,14 +131,14 @@ void decodeData()
 
     out_data_size = Yz2DecodeSet((char*) in_data_addr, (void*) (MemGetHeapEndAddr(MemGetCurrentHeap()) - READ_BUFF_OFS));
 #line 59 "D:/Bio4/Prog/read.cpp"
-    PSet(pG->pRoom, MEM_ALLOC(ROOM_ARC_SIZE, 1, 0xD));
+    (pG->pRoom = MEM_ALLOC(ROOM_ARC_SIZE, 1, 0xD));
     used = (u32) pG->pRoom - (u32) pG->pStFnt;
     Mem_free(pG->pRoom);
     if (out_data_size < ROOM_ARC_SIZE - used) {
         out_data_size = ROOM_ARC_SIZE - used;
     }
 #line 71 "D:/Bio4/Prog/read.cpp"
-    PSet(pG->pRoom, MEM_ALLOC(out_data_size, 1, 0xD));
+    (pG->pRoom = MEM_ALLOC(out_data_size, 1, 0xD));
     if (pG->pRoom == NULL || (u32) pG->pRoom + out_data_size >= (u32) in_data_addr) {
         sprintf(buf, "r%03x.dat", pG->room_id);
         OSReport("-- %s DATA ENCODE ERROR!\n", buf);
@@ -195,9 +189,9 @@ void ReadAreaData()
             return;
         }
     }
-    PSet(pG->Rtp, GetDataExt(pG->pRoom, "RTP", 0));
-    PSet(pG->RoomMes, GetDataExt(pG->pRoom, "MDT", 0));
-    PSet(pG->pOsd, GetDataExt(pG->pRoom, "OSD", 0));
+    pG->Rtp = GetDataExt(pG->pRoom, "RTP", 0);
+    pG->RoomMes = GetDataExt(pG->pRoom, "MDT", 0);
+    pG->pOsd = GetDataExt(pG->pRoom, "OSD", 0);
     pG->pEmi = (EmiData*) GetDataExt(pG->pRoom, "EMI", 0);
 }
 
@@ -268,7 +262,7 @@ static void* readEm(int id, void* addr, u32 size)
     u32 flags = pG->Disp_flg;
     ReadModule* m;
 
-    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    pG->Disp_flg = 0xFFFFFFFF;
     DpfFlagOff(pG, DPF_MESSAGE);
     m = pullEmModule();
     if (m == NULL) {
@@ -543,7 +537,7 @@ static int checkAshleyId(int id)
     return id;
 }
 
-// The archive of enemy module `id`: the loaded slot (its init function becomes EM_INIT_FUNC), or
+// The archive of enemy module `id`: the loaded slot (its init function becomes EmInitFunc), or
 // loads it (readEm).
 void* EmReadSearch(int id, void* addr, u32 size)
 {
@@ -552,7 +546,7 @@ void* EmReadSearch(int id, void* addr, u32 size)
     id = checkAshleyId(id);
     m = SearchEmModule(id);
     if (m != NULL) {
-        EM_INIT_FUNC = m->pInitFunc;
+        EmInitFunc = m->pInitFunc;
         return m->pArc;
     }
     return readEm(id, addr, size);

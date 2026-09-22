@@ -35,13 +35,8 @@ void Esp0a_Trans(cEsp0a* esp);
 void Esp0a_Trans2(cEsp* esp);
 }
 
-// The pulled copy is kept in a one-member struct: the original reloads the pointer from its
-// stack slot after every store through it (esp_sub EspSeqSet idiom).
-struct EspPtr {
-    cEsp* p;
-};
 
-// Reference read of the world parent: an unflagged MEM that stays below the stores through e.p.
+// Reference read of the world parent: an unflagged MEM that stays below the stores through e.
 static inline cCoord* RefCoordP(cCoord*& p)
 {
     return p;
@@ -104,35 +99,35 @@ void Esp0a_Trans(cEsp0a* esp)
         break;
     case 1: {
         cEsp* base;
-        EspPtr e;
+        cEsp* e;
         u32 i = 0;
 
         if (PullEsp(&base, 0)) {
             *base = *esp;
             base->m_Id = 0;
             for (; i < 50; i++) {
-                if (PullEsp(&e.p, 0)) {
+                if (PullEsp(&e, 0)) {
                     Vec wpos;
-                    *e.p = *base;
+                    *e = *base;
                     int ot = 8;
-                    e.p->m_Speed.x = e.p->m_Speed.y = e.p->m_Speed.z = 0.0f;
-                    e.p->m_Size_plus = 0.0f;
-                    e.p->m_Col_d_r = 1.0f;
-                    e.p->m_Col_d_g = 1.0f;
-                    e.p->m_Col_d_b = 1.0f;
-                    e.p->m_Col_d_a = 1.0f;
-                    e.p->m_Col_max_cnt = 0;
-                    e.p->m_Col_start_cnt = 0;
-                    e.p->m_Pos_start_cnt = 0;
-                    e.p->m_Size_start_cnt = 0;
-                    e.p->m_Life_max = 1;
-                    e.p->m_Life_time = 0;
-                    if (e.p->parent != RefCoordP(pEffParentWorld)) {
-                        PSMTXMultVec(e.p->parent->mat, &e.p->m_Pos, &wpos);
+                    e->m_Speed.x = e->m_Speed.y = e->m_Speed.z = 0.0f;
+                    e->m_Size_plus = 0.0f;
+                    e->m_Col_d_r = 1.0f;
+                    e->m_Col_d_g = 1.0f;
+                    e->m_Col_d_b = 1.0f;
+                    e->m_Col_d_a = 1.0f;
+                    e->m_Col_max_cnt = 0;
+                    e->m_Col_start_cnt = 0;
+                    e->m_Pos_start_cnt = 0;
+                    e->m_Size_start_cnt = 0;
+                    e->m_Life_max = 1;
+                    e->m_Life_time = 0;
+                    if (e->parent != pEffParentWorld) {
+                        PSMTXMultVec(e->parent->mat, &e->m_Pos, &wpos);
                     } else {
-                        wpos = e.p->m_Pos;
+                        wpos = e->m_Pos;
                     }
-                    AddOtWorldPos(e.p, Esp0a_Trans2, &wpos, ot, 0.0f);
+                    AddOtWorldPos(e, Esp0a_Trans2, &wpos, ot, 0.0f);
                 }
                 if (!base->CommonMove()) {
                     break;

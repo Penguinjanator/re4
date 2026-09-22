@@ -61,7 +61,6 @@
 #include "hermite.h"
 #include "math_sub.h"
 #include "eprintf.h"
-#include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
 #include "pl_mod.h"
@@ -288,7 +287,7 @@ int Event::Run()
     if (EvtChk(StatusFlag, EvtStfBit(EvtStfFadeOut))) {
         if (NowTotalFrame == MaxTotalFrame - 0x1E) {
             FadeSetW(2, 0x2D, 0, 0);
-            IntSet(DelTimer, 0xF);
+            DelTimer = 0xF;
             DpfFlagOff(pG, DPF_MESSAGE);
             EvtMesDeleteAll();
         }
@@ -297,7 +296,7 @@ int Event::Run()
         if (!EvtChk(StatusFlag, EvtStfBit(EvtStfDiedemoSet))) {
             if (NowTotalFrame == MaxTotalFrame - 0x1E || NowTotalFrame == MaxTotalFrame) {
                 SetDiedemoExec();
-                IntSet(DelTimer, 0xF);
+                DelTimer = 0xF;
                 DpfFlagOff(pG, DPF_MESSAGE);
                 EvtMesDeleteAll();
             }
@@ -594,7 +593,7 @@ int Event::RunEvtCancel()
             return 1;
         }
     }
-    BitOn(StatusFlag, EvtStfBit(EvtStfEvtCancelOn));
+    StatusFlag |= EvtStfBit(EvtStfEvtCancelOn);
     StaFlagOn(pG, STA_EVENT_CANCEL);
     EvtMesDeleteAll();
     FadeSetW(1, 1, 0, 0);
@@ -624,7 +623,7 @@ cancel_end:
     StatusFlag &= ~EvtStfBit(EvtStfEvtCancelExe);
     EvtMesDeleteAll();
     key = (u32*) Name;
-    IntSet(TimerMes, 0);
+    TimerMes = 0;
     DpfFlagOff(pG, DPF_MESSAGE);
     EvtMgr.EvtSndStrStop(key, 1, 1);
     ExeFunc(3, 0);
@@ -1954,7 +1953,7 @@ void Event::MesClear()
     if (TimerMes > 0) {
         TimerMes--;
         if (TimerMes <= 0) {
-            IntSet(TimerMes, 0);
+            TimerMes = 0;
             DpfFlagOn(pG, DPF_MESSAGE);
         }
     }
@@ -2497,23 +2496,23 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     if (EvtReadMram(nm, em, &addr, 0, 0)) {
         if (EvtMgr.SetEvt((void*) addr, (u32*) &evt)) {
             if (flags & EvtReadFlagDiedemo) {
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfEndSleepOrder));
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfDiedemo));
+                evt->StatusFlag |= EvtStfBit(EvtStfEndSleepOrder);
+                evt->StatusFlag |= EvtStfBit(EvtStfDiedemo);
             }
             if (flags & EvtReadFlagNoFree) {
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfEndSleepOrder));
+                evt->StatusFlag |= EvtStfBit(EvtStfEndSleepOrder);
             }
             if (flags & EvtReadFlagPlPosNoSet) {
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfPlPosNoSet));
+                evt->StatusFlag |= EvtStfBit(EvtStfPlPosNoSet);
             }
             if (flags & EvtReadFlagFadeOut) {
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfFadeOut));
+                evt->StatusFlag |= EvtStfBit(EvtStfFadeOut);
             }
             if (flags & EvtReadFlagSceEventStartTrue) {
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfSceEventStartTrue));
+                evt->StatusFlag |= EvtStfBit(EvtStfSceEventStartTrue);
             }
             if (flags & EvtReadFlagSubCharNoCtrl) {
-                BitOn(evt->StatusFlag, EvtStfBit(EvtStfSubCharNoCtrl));
+                evt->StatusFlag |= EvtStfBit(EvtStfSubCharNoCtrl);
             }
         }
         if (flags & EvtReadFlagFadeIn) {

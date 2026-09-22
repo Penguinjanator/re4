@@ -40,7 +40,6 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "em.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "em_mod.h"
 
@@ -588,7 +587,7 @@ static void em3a_R1_Atk(cEm3a* em)
     case 3:
         em3aHoverMove(em, w, fl);
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.034906585f);
-        FSet(em->ang.y, LIMIT_ANGLE(em->ang.y));
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
         if (em3aLookPLCk(em) == 0 || em->plDist2 > 100000000.0f) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -695,7 +694,7 @@ static void em3a_R1_Chase(cEm3a* em)
     case 1:
         a = em->pos;
         a.y = fl + 500.0f;
-        b = pPLS->pos;
+        b = pPL->pos;
         b.y += 500.0f;
         RouteCkPosToPos(&a, &b, &w->routePos);
         w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
@@ -824,7 +823,7 @@ static void em3a_R1_FixAtk(cEm3a* em)
     case 3:
         em3aFixMove(em, w);
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.034906585f);
-        FSet(em->ang.y, LIMIT_ANGLE(em->ang.y));
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
         if (fabsf(em->pos.y - pPL->pos.y) > 5000.0f) {
             break;
@@ -1364,7 +1363,7 @@ void em3aPatrolInit(cEm3a* em)
     u32 i;
 
     w->pRoute = 0;
-    if (GRef(pG)->pEmi == 0) {
+    if (pG->pEmi == 0) {
         return;
     }
     for (i = 0; i < (pG->pEmi)->n; i++) {
@@ -1372,7 +1371,7 @@ void em3aPatrolInit(cEm3a* em)
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
         if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == 0) {
-            EmiSet(w->pRoute, e);
+            w->pRoute = e;
             return;
         }
     }
@@ -1464,7 +1463,7 @@ int em3aFindPLCk(cEm3a* em)
             p = em->getPartsPtr(0);
         }
         a = p->world;
-        b = pPLS->pos;
+        b = pPL->pos;
         b.y += 1000.0f;
         if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
             return 1;
@@ -1497,7 +1496,7 @@ int em3aLookPLCk(cEm3a* em)
     Vec b;
 
     a = em->pos;
-    b = pPLS->pos;
+    b = pPL->pos;
     a.y += 200.0f;
     b.y += 1000.0f;
     return EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0;

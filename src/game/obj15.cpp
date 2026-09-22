@@ -74,8 +74,8 @@ cObjGatling* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->ang.y = 0.0f;
         obj->ang.z = 0.0f;
     }
-    FSet(w->rotY, obj->ang.y);
-    FSet(w->maxRot, 3.1415927f);
+    w->rotY = obj->ang.y;
+    w->maxRot = 3.1415927f;
     {
         Vec hpos;
         Vec hrot;

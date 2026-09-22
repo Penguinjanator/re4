@@ -52,12 +52,8 @@ struct R30dWork {
     ScePrim* timer;   // 0x3C  R30dTimerDisp task
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R30dWorkPtr {
-    R30dWork* p;
-};
 
-static R30dWorkPtr r30d_work;
+static R30dWork* r30d_work;
 
 // The coop state words are stored at raw offsets from the block pointer: scalar stores that keep the
 // block pointer as their base (a struct member store would be folded onto the work pointer) and
@@ -112,7 +108,7 @@ void R30dInit()
     int i;
     int n;
 
-    R30dWork*& wp = r30d_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    R30dWork*& wp = r30d_work;   // reference: the following `lwz pG` stays below the store (r227 idiom)
 #line 57 "D:/Bio4/Prog/r30d.cpp"
     wp = (R30dWork*) MEM_CALLOC(sizeof(R30dWork), 1, 0xd);
     ScfFlagOn(pG, SCF_R30D_ENTER);
@@ -137,7 +133,7 @@ void R30dInit()
         sw1->setActButton(0);
     }
     for (i = 0; i < 2; i++) {
-        r30d_work.p->cnt[i] = 0;
+        r30d_work->cnt[i] = 0;
     }
     if (!(R30D_SAVE_FLAGS & 0x10000000)) {
         SceAtDataSet_exec(0x14, 0x12, 0, (TaskFunc) R30dShutterPowerMain, 0, 1);
@@ -188,9 +184,9 @@ void R30dInit()
         int k;
 
         for (k = 0; k < 2; k++) {
-            r30d_work.p->obj[k] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &pos[k], &ang[k], 0x10, 1);
-            if (r30d_work.p->obj[k]) {
-                MotionSetCore(r30d_work.p->obj[k], &r30d_work.p->obj[k]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
+            r30d_work->obj[k] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &pos[k], &ang[k], 0x10, 1);
+            if (r30d_work->obj[k]) {
+                MotionSetCore(r30d_work->obj[k], &r30d_work->obj[k]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
             }
         }
     }
@@ -198,16 +194,16 @@ void R30dInit()
     SceSetItemEvent(5, 0x81, 1, 4, OpenBoxTreasure, OpenedBoxTreasure, 0x81, 0);
     SceSetItemEvent(0x1B, 0x87, 5, 9, OpenBoxTreasure, OpenedBoxTreasure, 0x87, 0);
     if (pG->room_id_prev == 0x30F) {
-        r30d_work.p->em[0].setEm(0x5E, -1, 0, 1, 1);
-        v.y = r30d_work.p->em[0].getAngY() + PI;
+        r30d_work->em[0].setEm(0x5E, -1, 0, 1, 1);
+        v.y = r30d_work->em[0].getAngY() + PI;
         v.x = 0.0f;
         v.z = 0.0f;
-        r30d_work.p->em[0].setAng(&v);
-        r30d_work.p->em[1].setEm(0x5C, -1, 0, 1, 1);
-        v.y = r30d_work.p->em[1].getAngY() + PI;
+        r30d_work->em[0].setAng(&v);
+        r30d_work->em[1].setEm(0x5C, -1, 0, 1, 1);
+        v.y = r30d_work->em[1].getAngY() + PI;
         v.x = 0.0f;
         v.z = 0.0f;
-        r30d_work.p->em[1].setAng(&v);
+        r30d_work->em[1].setAng(&v);
     }
     SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
 }
@@ -221,9 +217,9 @@ void R30dMain()
     int n;
 
     for (i = 0; i < 2; i++) {
-        r30d_work.p->cnt[i]--;
-        if (r30d_work.p->cnt[i] < 0) {
-            r30d_work.p->cnt[i] = 0;
+        r30d_work->cnt[i]--;
+        if (r30d_work->cnt[i] < 0) {
+            r30d_work->cnt[i] = 0;
         }
     }
     getRoomEtcSwitch(8, (cEm**) &sw[0], 1);
@@ -231,14 +227,14 @@ void R30dMain()
     for (n = 0; n < 1; n++) {
         if (sw[n]) {
             if (sw[n]->ckOpen() == 0) {
-                if (r30d_work.p->cnt[n] <= 0 && n == 0) {
+                if (r30d_work->cnt[n] <= 0 && n == 0) {
                     if ((!(pG->Room_flg[2] & 0x80000000) && sceAtFlag(0x10000000)) ||
                         (!sceAtFlag(0x40000000) && sceAtFlag(0x08000000))) {
                         sw[n]->setOpen();
                     }
                 }
             } else {
-                r30d_work.p->cnt[n] = 0x1C2;
+                r30d_work->cnt[n] = 0x1C2;
             }
         }
     }
@@ -446,7 +442,7 @@ static void R30dDoorCheck()
 // decides whether the gate opens (mode 1) or the levers snap back (mode 2).
 static void R30dCoopSwitch()
 {
-    R30dCoop* c = &r30d_work.p->coop;
+    R30dCoop* c = &r30d_work->coop;
     Vec v;
 
     memset(c, 0, sizeof(R30dCoop));
@@ -461,7 +457,7 @@ static void R30dCoopSwitch()
     pPL->beginEvent(0);
     SetSubAux(funcAshleySwitch, 0);
     if (sceAtFlag(0x01000000)) {
-        cObj* o1 = r30d_work.p->obj[1];
+        cObj* o1 = r30d_work->obj[1];
         if (o1) {
             f32 x = o1->pos.x - 828.79f;
             f32 z = o1->pos.z - 55.0f;
@@ -474,7 +470,7 @@ static void R30dCoopSwitch()
             v.z = 0.0f;
             pPL->setAng(&v);
         }
-        cObj* o0 = r30d_work.p->obj[0];
+        cObj* o0 = r30d_work->obj[0];
         if (o0) {
             cSubChar* sub = pSUB;
             f32 x = o0->pos.x - 619.92f;
@@ -489,7 +485,7 @@ static void R30dCoopSwitch()
             pSUB->setAng(&v);
         }
     } else {
-        cObj* o0 = r30d_work.p->obj[0];
+        cObj* o0 = r30d_work->obj[0];
         if (o0) {
             f32 x = o0->pos.x - 828.79f;
             f32 z = o0->pos.z - 55.0f;
@@ -502,7 +498,7 @@ static void R30dCoopSwitch()
             v.z = 0.0f;
             pPL->setAng(&v);
         }
-        cObj* o1 = r30d_work.p->obj[1];
+        cObj* o1 = r30d_work->obj[1];
         if (o1) {
             cSubChar* sub = pSUB;
             f32 x = o1->pos.x - 619.92f;
@@ -519,36 +515,36 @@ static void R30dCoopSwitch()
     }
     COOP_MODE(c) = 0;
     COOP_STEP(c) = 0;
-    r30d_work.p->timer = 0;
+    r30d_work->timer = 0;
     SceUpCut(2, 6, -1, 0);
     CamCtrl.CutCall(7);
     COOP_ACTIVE(c) = 1;
     do {
         if ((PlGetStatus() & 0x00020000) == 0) {
-            if (r30d_work.p->timer) {
-                SceKill(r30d_work.p->timer);
+            if (r30d_work->timer) {
+                SceKill(r30d_work->timer);
             }
-            r30d_work.p->timer = 0;
+            r30d_work->timer = 0;
             COOP_ACTIVE(c) = 0;
             EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
             EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             break;
         } else if ((SubCharGetStatus() & 0x01000000) == 0) {
-            if (r30d_work.p->timer) {
-                SceKill(r30d_work.p->timer);
+            if (r30d_work->timer) {
+                SceKill(r30d_work->timer);
             }
-            r30d_work.p->timer = 0;
+            r30d_work->timer = 0;
             COOP_ACTIVE(c) = 0;
             EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
             EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
             break;
         } else if (Key.trg & 0x40000000) {
-            if (r30d_work.p->timer) {
-                SceKill(r30d_work.p->timer);
+            if (r30d_work->timer) {
+                SceKill(r30d_work->timer);
             }
-            r30d_work.p->timer = 0;
+            r30d_work->timer = 0;
             COOP_ACTIVE(c) = 0;
             EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -562,7 +558,7 @@ static void R30dCoopSwitch()
                     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);
                     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 3, 0, 1, 0);
                     for (int k = 0; k < 2; k++) {
-                        cObj* o = r30d_work.p->obj[k];
+                        cObj* o = r30d_work->obj[k];
                         if (o) {
                             MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
                         }
@@ -573,7 +569,7 @@ static void R30dCoopSwitch()
                     while (MotionGetState(pPL) != 0) {
                         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 5, 0, 5, 0);
                         pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 5, 0, 5, 0);
-                        r30d_work.p->timer = SceExec(0x12, (TaskFunc) R30dTimerDisp, 0, 0, 2, 0);
+                        r30d_work->timer = SceExec(0x12, (TaskFunc) R30dTimerDisp, 0, 0, 2, 0);
                         COOP_STEP(c)++;
                         break;
                     }
@@ -588,7 +584,7 @@ static void R30dCoopSwitch()
                             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 5, 0, 1, 0);
                             pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 5, 0, 1, 0);
                             for (int k = 0; k < 2; k++) {
-                                cObj* o = r30d_work.p->obj[k];
+                                cObj* o = r30d_work->obj[k];
                                 if (o) {
                                     MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, 0, 1, 0);
                                 }
@@ -611,10 +607,10 @@ static void R30dCoopSwitch()
                     while (MotionGetState(pPL) != 0) {
                         SceAtSetEnable(0x10, 0);
                         SceAtSetEnable(0x11, 0);
-                        if (r30d_work.p->timer) {
-                            SceKill(r30d_work.p->timer);
+                        if (r30d_work->timer) {
+                            SceKill(r30d_work->timer);
                         }
-                        r30d_work.p->timer = 0;
+                        r30d_work->timer = 0;
                         EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
                         EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
                         EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
@@ -646,17 +642,17 @@ static void R30dCoopSwitch()
             case 2:
                 if (COOP_STEP(c) == 0) {
                     while (MotionGetState(pPL) != 0) {
-                        if (r30d_work.p->timer) {
-                            SceKill(r30d_work.p->timer);
+                        if (r30d_work->timer) {
+                            SceKill(r30d_work->timer);
                         }
-                        r30d_work.p->timer = 0;
+                        r30d_work->timer = 0;
                         SceUpCut(4, 6, -1, 0);
                         COOP_ACTIVE(c) = 0;
                         EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
                         EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
                         EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
                         for (int k = 0; k < 2; k++) {
-                            cObj* o = r30d_work.p->obj[k];
+                            cObj* o = r30d_work->obj[k];
                             if (o) {
                                 MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
                             }
@@ -678,7 +674,7 @@ static void R30dCoopSwitch()
 // The countdown display: digits 4..1 for 30 frames each, then the "0" that ends the attempt.
 static void R30dTimerDisp()
 {
-    R30dCoop* c = &r30d_work.p->coop;
+    R30dCoop* c = &r30d_work->coop;
 
     COOP_TIMER(c) = 0;
     COOP_NUM(c) = 4;

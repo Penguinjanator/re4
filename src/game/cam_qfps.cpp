@@ -351,7 +351,7 @@ void CameraQuasiFPS::calcDepressionRatio()
             angle_y = (f32) Key.substickY / C_RANGE;
         }
         // reference store: keeps the C_RANGE load below it (issued after the Key byte load)
-        FSet(angle_y, angle_y < -1.0f ? -1.0f : (angle_y > 1.0f ? 1.0f : angle_y));
+        (angle_y = angle_y < -1.0f ? -1.0f : (angle_y > 1.0f ? 1.0f : angle_y));
         t = -(f32) Key.substickX / C_RANGE;
         if (t < 0.0f) {
             angle_x = ANGLE_LEFT_LIMIT * t;
@@ -536,7 +536,7 @@ void CameraQuasiFPS::checkCameraType()
         }
     }
     blend_dst = trans_tbl[m_trans_type];
-    if (DbgFlagChk(pGS, DBG_ADJUST_CAM)) {
+    if (DbgFlagChk(pG, DBG_ADJUST_CAM)) {
         blend_dst = g_transOfs[TRANS_DATA_AREA];
     }
     switch (m_trans_type) {
@@ -617,7 +617,7 @@ void CameraQuasiFPS::checkCameraType()
         break;
     }
     blend_src = ready_tbl[m_ready_type];
-    if (DbgFlagChk(pGS, DBG_ADJUST_CAM)) {
+    if (DbgFlagChk(pG, DBG_ADJUST_CAM)) {
         blend_src = g_readyOfs[14];
     }
 }
@@ -748,7 +748,7 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
     PSMTXMultVec(m, &ofs->Campos, &wb);
     l0 = wa;
     l1 = wb;
-    if (pGS->debug_mode == 0xF) {  // struct view: the pG load stays below the copies' stores
+    if (pG->debug_mode == 0xF) {  // struct view: the pG load stays below the copies' stores
         Draw_line3d(&l0, &l1, 0xFFFF0000, 0);
     }
     t = sinf(ofs->Fovy * PI / 360.0f) / cosf(ofs->Fovy * PI / 360.0f);
@@ -1182,17 +1182,17 @@ void CameraQuasiFPS::init()
     one = 1;
     two = 2;
     zero = 0;
-    FSet(m_walk_ratio, 0.8f);
-    FSet(CamSmth.m_ratio, 0.8f);
+    m_walk_ratio = 0.8f;
+    CamSmth.m_ratio = 0.8f;
     fz = 0.0f;  // after the 0.8 stores: pool order 0.8, 0.0
-    FSet(m_zoom_ratio, fz);
+    (m_zoom_ratio = fz);
     { u8& r_ = reset; r_ = one; }
     { s16& r_ = m_search_frame; r_ = zero; }
     { u8& r_ = m_site; r_ = two; }
     fl = m_state & ~7;
-    BitSet(m_state, fl);
-    FSet(angle_y, fz);
-    FSet(angle_x, fz);
+    m_state = fl;
+    angle_y = fz;
+    angle_x = fz;
     { s16& r_ = m_search_cnt; r_ = zero; }
     asm("" : "=m"(m_floor_ratio) : "r"(one), "r"(two), "r"(zero), "f"(fz), "r"(fl));  // COMPILER-DIFF: #13 (keep-alive)
     if (pPL) {

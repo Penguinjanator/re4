@@ -43,13 +43,6 @@ public:
 cDbOption dbPl;
 static cDbOption* pT;
 
-// joySet reloads pT between the two pad copies and the original compiler kept that load below
-// the first copy's stores. GCC 2.95 only keeps the order when the load is a struct member
-// (MEM_IN_STRUCT_P, see cLogPtr in db_log.h), so joySet reads pT through this view.
-struct cDbOptionPtr {
-    cDbOption* p;
-};
-#define PT_MEMBER (((cDbOptionPtr*) &pT)->p)
 
 void tp_init();
 void tp_menu();
@@ -81,8 +74,8 @@ void cDbOption::clear(u8 flag)
 // Copies both pads for this frame.
 void cDbOption::joySet()
 {
-    PT_MEMBER->joy[0] = Joy[0];
-    PT_MEMBER->joy[1] = Joy[1];
+    pT->joy[0] = Joy[0];
+    pT->joy[1] = Joy[1];
 }
 
 // Counts idle frames (cursor blink), reset by any pad repeat.
@@ -351,7 +344,7 @@ void tp_pl_posmove()
     if (pT->rno[2] == 0) {
         TaskSignal(0);
         sfb = pG->Stop_flg;
-        BitSet(pG->Stop_flg, 0xAFFFFFFF);
+        pG->Stop_flg = 0xAFFFFFFF;
         pT->rno[2] = 1;
     }
     if (Joy[0].on & JOY_X) {
@@ -387,7 +380,7 @@ void tp_pl_posmove()
         int cur = 2;  // kept in a callee-saved register across the calls
         DbgFlagOff(pG, DBG_PL_NOHIT);
         TaskSuspend(0);
-        BitSet(pG->Stop_flg, sfb);
+        pG->Stop_flg = sfb;
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = cur;
     }
@@ -453,7 +446,7 @@ void tp_pl_weapon()
 
     switch (pT->rno[2]) {
     case 0:
-        BitOn(pG->Disp_flg, 0x40000000);
+        pG->Disp_flg |= 0x40000000;
         pG->Disp_flg |= 0x10000000;
         TaskSleep(1);
         TaskSuspend(0);
@@ -635,7 +628,7 @@ void tp_pl_weapon()
     eprintf(280, 112, 0, 0, "RELOAD Lv.%d", pG->weapon_lv_reload + 1);
     if (pT->joy[0].rep & JOY_B) {
         int zero = 0;  // callee-saved zero reused as setRno's stack argument
-        BitOff(pG->Disp_flg, 0x40000000);
+        (pG->Disp_flg &= ~0x40000000);
         pG->Disp_flg &= ~0x10000000;
         TaskSignal(0);
         pT->setRno(1, 0, 0, 0, 0, 0, 0, zero);
@@ -689,7 +682,7 @@ void tp_pl_face()
     if (pT->rno[2] == 0) {
         TaskSignal(0);
         sfb = pG->Stop_flg;
-        BitSet(pG->Stop_flg, 0xAFFFFFFF);
+        pG->Stop_flg = 0xAFFFFFFF;
         pData = NULL;
         pT->rno[2] = 1;
     }
@@ -845,7 +838,7 @@ void tp_scr_view()
         chg = 1;
     }
     if (chg) {
-        BitOn(pG->Disp_flg, 0x8000000);
+        pG->Disp_flg |= 0x8000000;
         DbgFlagOff(pG, DBG_SAT_DISP);
         DbgFlagOff(pG, DBG_EAT_DISP);
         switch (pT->cursor) {
@@ -853,19 +846,19 @@ void tp_scr_view()
             pG->Disp_flg &= ~0x8000000;
             break;
         case 1:
-            BitOn(pG->Disp_flg, 0x8000000);
+            pG->Disp_flg |= 0x8000000;
             DbgFlagOn(pG, DBG_SAT_DISP);
             break;
         case 2:
-            BitOn(pG->Disp_flg, 0x8000000);
+            pG->Disp_flg |= 0x8000000;
             DbgFlagOn(pG, DBG_EAT_DISP);
             break;
         case 3:
-            BitOff(pG->Disp_flg, 0x8000000);
+            pG->Disp_flg &= ~0x8000000;
             DbgFlagOn(pG, DBG_SAT_DISP);
             break;
         case 4:
-            BitOff(pG->Disp_flg, 0x8000000);
+            pG->Disp_flg &= ~0x8000000;
             DbgFlagOn(pG, DBG_EAT_DISP);
             break;
         case 5:

@@ -140,7 +140,7 @@ void cSubWep::moveWater()
             }
         }
     }
-    AddWaterPower(&pos, 1.0f);
+    AddWaterPower(pos, 1.0f);
     waterExplode();
     ObjMgr.destroy(this);
 }
@@ -293,7 +293,7 @@ void cSubWep::addSpeed()
                 EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
-            AddWaterPower(&pos, 0.5f);
+            AddWaterPower(pos, 0.5f);
             ObjMgr.destroy(this);
         } else if (type == 0) {
             if (info->eff0[0] != 0xD2) {
@@ -302,7 +302,7 @@ void cSubWep::addSpeed()
                 EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
-            AddWaterPower(&pos, 0.5f);
+            AddWaterPower(pos, 0.5f);
             r_no_0 = 1;
             be_flag &= ~2;
         } else {
@@ -347,7 +347,7 @@ void cSubWep::addSpeed()
                 EstSet(0, -1, &pos, 0, EFF_CORE, 0x3A, 0, ESP_CORE_KIND_NONE, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
-            AddWaterPower(&pos, 0.5f);
+            AddWaterPower(pos, 0.5f);
             ObjMgr.destroy(this);
         } else if (type == 0) {
             if (info->eff0[0] != 0xD2) {
@@ -598,7 +598,7 @@ void cObjGrenade::explode()
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
         EspSetWaterBomb(&pos);
-        AddWaterPower(&pos, 1.0f);
+        AddWaterPower(pos, 1.0f);
         SndCall(1, 0x17, &pos, 0, 0, 0);
     } else {
         if (subWep.effNo == 0xD2 && subWep.effPrm == 1) {
@@ -633,7 +633,7 @@ void cObjGrenade::explode()
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = pos;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
 }
 
 // Under-water blast: the same 6000-radius damage, water SE and bell noise, no effect.
@@ -644,7 +644,7 @@ void cObjGrenade::waterExplode()
     SndCall(1, 0x17, &pos, 0, 0, 0);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = pos;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
 }
 
 // Incendiary: explodes on the first floor hit (flags bit0).
@@ -665,7 +665,7 @@ void cObjGreFire::explode()
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
         EspSetWaterBomb(&pos);
-        AddWaterPower(&pos, 1.0f);
+        AddWaterPower(pos, 1.0f);
         SndCall(1, 0x17, &pos, 0, 0, 0);
     } else {
         if (subWep.effNo == 0xD2 && subWep.effPrm == 1) {
@@ -702,7 +702,7 @@ void cObjGreFire::explode()
     StaFlagOn(pG, STA_PL_FIRE);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = pos;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
 }
 
 // Fizzles under water (SE only).
@@ -727,7 +727,7 @@ void cObjGreLight::explode()
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
         EspSetWaterBomb(&pos);
-        AddWaterPower(&pos, 1.0f);
+        AddWaterPower(pos, 1.0f);
         SndCall(1, 0x17, &pos, 0, 0, 0);
     } else {
         if (subWep.effNo == 0xD2 && subWep.effPrm == 1) {
@@ -748,7 +748,7 @@ void cObjGreLight::explode()
     PlWepHitCheck2(0, &pos, &pos, 0x17, 0, 15000.0f);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = pos;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
 }
 
 // Fizzles under water (SE only).
@@ -769,7 +769,7 @@ void cObjEgg::explode()
     f32 wh;
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
-        AddWaterPower(&pos, 1.0f);
+        AddWaterPower(pos, 1.0f);
     } else {
         if (subWep.flags & 0x10) {
             EstSet(0, -1, &pos, 0, EFF_CORE, 0x43, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -782,7 +782,7 @@ void cObjEgg::explode()
     PlWepHitCheck2(0, &pos, &pos, 0x19, 0, 2000.0f);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = pos;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
 }
 
 // Nothing: an egg just sinks.

@@ -126,11 +126,8 @@ struct R22cWork {
     int scoreTimer[8];   // 0x188
 };
 
-struct R22cWorkPtr {
-    R22cWork* p;
-};
 
-static R22cWorkPtr r22c_work;
+static R22cWork* r22c_work;
 
 
 static s32 r22c_d0[] = {0, 0, 0, 200, -22000, 0, 2, 240, 1};
@@ -444,36 +441,36 @@ void ScoreMove();
 void R22cInit()
 {
 #line 1978 "D:/Bio4/Prog/r22c.cpp"
-    r22c_work.p = (R22cWork*) MEM_CALLOC(sizeof(R22cWork), 1, 0xd);
-    r22c_work.p->result.read();
+    r22c_work = (R22cWork*) MEM_CALLOC(sizeof(R22cWork), 1, 0xd);
+    r22c_work->result.read();
     ScoreInit();
     EmReadSearch(0x3E, 0, 0);
     switch (pG->room_id_prev) {
     case 0x204:
     default:
-        r22c_work.p->level = 1;
+        r22c_work->level = 1;
         break;
     case 0x211:
-        r22c_work.p->level = 2;
+        r22c_work->level = 2;
         break;
     case 0x220:
-        r22c_work.p->level = 3;
+        r22c_work->level = 3;
         break;
     case 0x305:
     case 0x31D:
-        r22c_work.p->level = 4;
+        r22c_work->level = 4;
         break;
     }
     switch (pG->JumpPoint) {
     case 1:
-        r22c_work.p->level = 2;
+        r22c_work->level = 2;
         break;
     case 2:
-        r22c_work.p->level = 3;
+        r22c_work->level = 3;
         break;
     }
     if (Joy[0].on & 0x40) {
-        r22c_work.p->level = 4;
+        r22c_work->level = 4;
     }
     SceExec(0x12, (TaskFunc) r22cSetWepMan, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r22cGateCtrl, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -481,10 +478,10 @@ void R22cInit()
     SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r22c_checkShootingScore, 0, 1);
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r22c_checkExitDoor, 0, 1);
     SceAtSetActColor(2, 1);
-    if (getRoomEtcDoor(0, &r22c_work.p->door[0], 1) && getRoomEtcDoor(1, &r22c_work.p->door[1], 1)) {
-        r22c_work.p->door[0]->setDoor(r22c_work.p->door[1]);
-        r22c_work.p->door[0]->setCloseLock();
-        r22c_work.p->door[1]->setCloseLock();
+    if (getRoomEtcDoor(0, &r22c_work->door[0], 1) && getRoomEtcDoor(1, &r22c_work->door[1], 1)) {
+        r22c_work->door[0]->setDoor(r22c_work->door[1]);
+        r22c_work->door[0]->setCloseLock();
+        r22c_work->door[1]->setCloseLock();
     }
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(1)->be_flag &= ~2;
@@ -497,7 +494,7 @@ void R22cInit()
         int i;
 
         for (i = 0; i < 24; i++) {
-            r22c_work.p->itemNum[i] = ItemMgr.num((u16) (i + 0xDC));
+            r22c_work->itemNum[i] = ItemMgr.num((u16) (i + 0xDC));
         }
     }
 }
@@ -507,7 +504,7 @@ static const char* r22c_levelName[5] = {"-", "A", "B", "C", "D"};
 // Per frame: debug-print the level letter and game state.
 void R22cMain()
 {
-    eprintf(0x130, 0x1A4, 0, 0, "LEVEL:%s-%d", r22c_levelName[r22c_work.p->level], r22c_work.p->state);
+    eprintf(0x130, 0x1A4, 0, 0, "LEVEL:%s-%d", r22c_levelName[r22c_work->level], r22c_work->state);
 }
 
 // Background gag: the birds fly off (effect 3, SE 0xE / 0xF) for 8 seconds.
@@ -647,7 +644,7 @@ static void r22c_checkExitDoor()
 static void r22c_talkWepMan()
 {
     SceAtSetEnable(1, 0);
-    SndCall(8, 9, &r22c_work.p->wepMan->pos, r22c_work.p->wepMan->id, 0, 0);
+    SndCall(8, 9, &r22c_work->wepMan->pos, r22c_work->wepMan->id, 0, 0);
     if (pG->Room_flg[0] & 0x80000000) {
         SceMesSet(6, 0, 1, 0x64, MES_Y(cMes.getWork()));
         switch (SceMesGetSelection()) {
@@ -716,41 +713,41 @@ void checkBottleCap()
 {
     int cap = 0;
 
-    switch (r22c_work.p->level) {
+    switch (r22c_work->level) {
     case 1:
     default:
-        if (r22c_work.p->state == 2 && r22c_work.p->score > 3999) {
+        if (r22c_work->state == 2 && r22c_work->score > 3999) {
             cap = 0xF0;
-        } else if (r22c_work.p->score > 2999) {
+        } else if (r22c_work->score > 2999) {
             cap = (int) getCap(1, 2, 3, 4, 5);
         }
         break;
     case 2:
-        if (r22c_work.p->state == 2 && r22c_work.p->score > 3999) {
+        if (r22c_work->state == 2 && r22c_work->score > 3999) {
             cap = 0xF1;
-        } else if (r22c_work.p->score > 2999) {
+        } else if (r22c_work->score > 2999) {
             cap = (int) getCap(6, 7, 8, 9, 0xA);
         }
         break;
     case 3:
-        if (r22c_work.p->state == 2 && r22c_work.p->hits > 0x18) {
+        if (r22c_work->state == 2 && r22c_work->hits > 0x18) {
             cap = 0xF2;
-        } else if (r22c_work.p->score > 2999) {
+        } else if (r22c_work->score > 2999) {
             cap = (int) getCap(0xB, 0xC, 0xD, 0xE, 0xF);
         }
         break;
     case 4:
-        if (r22c_work.p->state == 2 && r22c_work.p->hits > 0x18) {
+        if (r22c_work->state == 2 && r22c_work->hits > 0x18) {
             cap = 0xF3;
-        } else if (r22c_work.p->score > 2999) {
+        } else if (r22c_work->score > 2999) {
             cap = (int) getCap(0x10, 0x11, 0x12, 0x13, 0x14);
         }
         break;
     }
-    r22c_work.p->capId = -1;
+    r22c_work->capId = -1;
     if (cap) {
-        r22c_work.p->cap[cap - 1]++;
-        r22c_work.p->capId = cap + 0xDB;
+        r22c_work->cap[cap - 1]++;
+        r22c_work->capId = cap + 0xDB;
         PlCapNum[cap - 1]++;
     }
 }
@@ -764,26 +761,26 @@ void getBottleCap()
 
     if ((Joy[0].on & 0x640) == 0x640) {
         for (i = 0; i < 24; i++) {
-            r22c_work.p->cap[i] = 1;
+            r22c_work->cap[i] = 1;
         }
     }
     for (i = 0, total = 0; i < 24; i++) {
-        if (r22c_work.p->cap[i]) {
-            ItemMgr.get((u16) (i + 0xDC), (u16) r22c_work.p->cap[i]);
-            r22c_work.p->itemNum[i] += r22c_work.p->cap[i];
-            total += r22c_work.p->cap[i];
-            r22c_work.p->cap[i] = 0;
+        if (r22c_work->cap[i]) {
+            ItemMgr.get((u16) (i + 0xDC), (u16) r22c_work->cap[i]);
+            r22c_work->itemNum[i] += r22c_work->cap[i];
+            total += r22c_work->cap[i];
+            r22c_work->cap[i] = 0;
         }
     }
     if (total > 0) {
         cMes.getWork()->setNumber(total, 0);
         SceMesSet(5, 0, 1, 0x64, MES_Y(cMes.getWork()));
-        SndCall(0, 0x13, &r22c_work.p->wepMan->pos, 0, 0, 0);
+        SndCall(0, 0x13, &r22c_work->wepMan->pos, 0, 0, 0);
         if (ItemMgr.num(0xA2) == 0) {
             ItemMgr.get(0xA2, 0);
         }
     }
-    r22c_work.p->score = 0;
+    r22c_work->score = 0;
 }
 
 // The weapon choice (sel 0 asks with message 4: handgun / TMP / rifle; 3 = cancel with SE 5): equips
@@ -840,7 +837,7 @@ int weaponSelect(int sel)
         }
         break;
     }
-    r22c_work.p->wepSel = sel;
+    r22c_work->wepSel = sel;
     return sel;
 }
 
@@ -848,19 +845,19 @@ int weaponSelect(int sel)
 // normal, and back the whole inventory up (ItemMgr.save into itemSaveBuf).
 void itemSave()
 {
-    r22c_work.p->wepNo = pG->weapon_no;
-    r22c_work.p->wepType = pG->weapon_type;
+    r22c_work->wepNo = pG->weapon_no;
+    r22c_work->wepType = pG->weapon_type;
     pG->Room_flg[0] |= 0x80000000;
     SceAtSetEnable(9, 0);
-    r22c_work.p->door[0]->setNormal();
-    r22c_work.p->door[1]->setNormal();
+    r22c_work->door[0]->setNormal();
+    r22c_work->door[1]->setNormal();
 #line 2565 "D:/Bio4/Prog/r22c.cpp"
-    r22c_work.p->itemSaveBuf = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 0xd);
-    if (r22c_work.p->itemSaveBuf == 0) {
+    r22c_work->itemSaveBuf = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 0xd);
+    if (r22c_work->itemSaveBuf == 0) {
         pLog->err(0, 0, "ITEM BACKUP FAILED.");
     } else {
-        ItemMgr.save(r22c_work.p->itemSaveBuf);
-        r22c_work.p->itemSel = (s8) SubScreenWk.board_size;
+        ItemMgr.save(r22c_work->itemSaveBuf);
+        r22c_work->itemSel = (s8) SubScreenWk.board_size;
     }
 }
 
@@ -902,28 +899,28 @@ void gameEnd()
     cPlayer* pl = pPL;
 
     pl->setNoSuspend(1);
-    r22c_work.p->wepMan->setNoSuspend(1);
+    r22c_work->wepMan->setNoSuspend(1);
     SceEventStart(0);
     FadeSetW(2, 5, 0, 0);
     SceSleep(5);
     ItemMgr.clear();
-    SubScreenWk.board_size = SubScreenWk.board_next = (u8) r22c_work.p->itemSel;
-    ItemMgr.load(r22c_work.p->itemSaveBuf);
-    Mem_free(r22c_work.p->itemSaveBuf);
-    r22c_work.p->itemSaveBuf = 0;
+    SubScreenWk.board_size = SubScreenWk.board_next = (u8) r22c_work->itemSel;
+    ItemMgr.load(r22c_work->itemSaveBuf);
+    Mem_free(r22c_work->itemSaveBuf);
+    r22c_work->itemSaveBuf = 0;
     pl->weaponRelease();
-    pl->weaponLoad(r22c_work.p->wepNo, r22c_work.p->wepType);
+    pl->weaponLoad(r22c_work->wepNo, r22c_work->wepType);
     pl->weaponInit();
     pG->Room_flg[0] &= ~0x80000000;
     SceAtSetEnable(9, 1);
-    r22c_work.p->door[0]->setCloseLock();
-    r22c_work.p->door[1]->setCloseLock();
+    r22c_work->door[0]->setCloseLock();
+    r22c_work->door[1]->setCloseLock();
     FadeSetW(0x80000002, 10, 0, 0);
     SceSleep(1);
     getBottleCap();
     getBonus();
     SceEventEnd(0);
-    r22c_work.p->wepMan->setNoSuspend(0);
+    r22c_work->wepMan->setNoSuspend(0);
     pl->setNoSuspend(0);
 }
 
@@ -956,36 +953,36 @@ int r22c_checkGameLevel()
     }
     switch (sel) {
     case 1:
-        r22c_work.p->level = 1;
-        r22c_work.p->state = 1;
+        r22c_work->level = 1;
+        r22c_work->state = 1;
         break;
     case 2:
-        r22c_work.p->level = 1;
-        r22c_work.p->state = 2;
+        r22c_work->level = 1;
+        r22c_work->state = 2;
         break;
     case 3:
-        r22c_work.p->level = 2;
-        r22c_work.p->state = 1;
+        r22c_work->level = 2;
+        r22c_work->state = 1;
         break;
     case 4:
-        r22c_work.p->level = 2;
-        r22c_work.p->state = 2;
+        r22c_work->level = 2;
+        r22c_work->state = 2;
         break;
     case 5:
-        r22c_work.p->level = 3;
-        r22c_work.p->state = 1;
+        r22c_work->level = 3;
+        r22c_work->state = 1;
         break;
     case 6:
-        r22c_work.p->level = 3;
-        r22c_work.p->state = 2;
+        r22c_work->level = 3;
+        r22c_work->state = 2;
         break;
     case 7:
-        r22c_work.p->level = 4;
-        r22c_work.p->state = 1;
+        r22c_work->level = 4;
+        r22c_work->state = 1;
         break;
     case 8:
-        r22c_work.p->level = 4;
-        r22c_work.p->state = 2;
+        r22c_work->level = 4;
+        r22c_work->state = 2;
         break;
     default:
         sel = 0;
@@ -1027,30 +1024,30 @@ int r22c_checkGame()
         break;
     }
     if (sel == 0) {
-        r22c_work.p->state = 0;
+        r22c_work->state = 0;
         return 0;
     }
-    r22c_work.p->level = sel;
+    r22c_work->level = sel;
     switch (sel) {
     case 1:
-        if (r22c_work.p->itemNum[8] != 0 && r22c_work.p->itemNum[9] != 0) {
-            r22c_work.p->state = 2;
+        if (r22c_work->itemNum[8] != 0 && r22c_work->itemNum[9] != 0) {
+            r22c_work->state = 2;
         } else {
-            r22c_work.p->state = 1;
+            r22c_work->state = 1;
         }
         break;
     case 2:
-        if (r22c_work.p->itemNum[13] != 0 && r22c_work.p->itemNum[16] != 0) {
-            r22c_work.p->state = 2;
+        if (r22c_work->itemNum[13] != 0 && r22c_work->itemNum[16] != 0) {
+            r22c_work->state = 2;
         } else {
-            r22c_work.p->state = 1;
+            r22c_work->state = 1;
         }
         break;
     case 3:
-        r22c_work.p->state = 1;
+        r22c_work->state = 1;
         break;
     case 4:
-        r22c_work.p->state = 1;
+        r22c_work->state = 1;
         break;
     }
     return sel;
@@ -1068,14 +1065,14 @@ static void r22c_startShootingGame()
     } else {
         r22c_checkGame();
     }
-    if (r22c_work.p->state == 0) {
+    if (r22c_work->state == 0) {
         SceExit();
     }
-    r22c_work.p->step = 0;
+    r22c_work->step = 0;
     ScoreClear();
     for (;;) {
-        r22c_shootFunc[r22c_work.p->step]();
-        DispTime(0x28, 0x2A, 0, r22c_work.p->time, 7);
+        r22c_shootFunc[r22c_work->step]();
+        DispTime(0x28, 0x2A, 0, r22c_work->time, 7);
         ScoreMove();
         SceSleep(1);
     }
@@ -1088,27 +1085,27 @@ static void shootInit()
     SceAtSetEnable(0, 0);
     int zero = 0;
     pG->Room_flg[0] &= ~0x40000000;
-    weaponSelect(r22c_work.p->wepSel);
+    weaponSelect(r22c_work->wepSel);
     ItemMgr.reload();
-    r22c_work.p->timer = zero;
-    r22c_work.p->hits = zero;
-    r22c_work.p->score = zero;
-    r22c_work.p->time = zero;
-    r22c_work.p->combo = zero;
-    r22c_work.p->pause = zero;
-    r22c_work.p->ufoWait = zero;
-    r22c_work.p->total = zero;
-    r22c_work.p->ageSum = zero;
-    r22c_work.p->cnt46 = zero;
-    r22c_work.p->cnt47 = zero;
-    U32Set(r22c_work.p->shotHit, pG->g_hit_cnt);
-    r22c_work.p->shotTotal = pG->g_shot_cnt;
-    r22c_work.p->effTimer = zero;
-    r22c_work.p->effFlags = zero;
+    r22c_work->timer = zero;
+    r22c_work->hits = zero;
+    r22c_work->score = zero;
+    r22c_work->time = zero;
+    r22c_work->combo = zero;
+    r22c_work->pause = zero;
+    r22c_work->ufoWait = zero;
+    r22c_work->total = zero;
+    r22c_work->ageSum = zero;
+    r22c_work->cnt46 = zero;
+    r22c_work->cnt47 = zero;
+    r22c_work->shotHit = pG->g_hit_cnt;
+    r22c_work->shotTotal = pG->g_shot_cnt;
+    r22c_work->effTimer = zero;
+    r22c_work->effFlags = zero;
     LightMgr.onKind(1);
     LightMgr.offKind(2);
     {
-        R22cWork* w = r22c_work.p;
+        R22cWork* w = r22c_work;
 
         switch (w->level) {
         case 1:
@@ -1158,8 +1155,8 @@ static void shootInit()
             break;
         }
     }
-    r22c_work.p->strId = SndStrReq(0, 0x32, 0x80000003, 0, 0, 0.0f);
-    r22c_work.p->step = 1;
+    r22c_work->strId = SndStrReq(0, 0x32, 0x80000003, 0, 0, 0.0f);
+    r22c_work->step = 1;
 }
 
 static const char* r22c_startMsg = "START";
@@ -1173,15 +1170,15 @@ static const char* r22c_startMsg = "START";
 // 0x10000000 = the hard set (R22C_HARD_MODE).
 static void shootReady()
 {
-    r22c_work.p->timer++;
-    if (r22c_work.p->timer > 30) {
+    r22c_work->timer++;
+    if (r22c_work->timer > 30) {
         eprintf(0xDC, 0x8C, 0, 0, r22c_startMsg);
     }
-    if (r22c_work.p->timer > 60) {
-        r22c_work.p->timer = 0;
-        r22c_work.p->step = 2;
+    if (r22c_work->timer > 60) {
+        r22c_work->timer = 0;
+        r22c_work->step = 2;
     }
-    if (R22C_HARD_MODE(r22c_work.p)) {
+    if (R22C_HARD_MODE(r22c_work)) {
         pG->Room_flg[0] |= 0x10000000;
     } else {
         pG->Room_flg[0] &= ~0x10000000;
@@ -1193,107 +1190,107 @@ static void shootReady()
 // into step 3 when the script is exhausted / cancelled.
 static void shootMain()
 {
-    if (r22c_work.p->ufoWait == 0 && r22c_work.p->pause != 0) {
+    if (r22c_work->ufoWait == 0 && r22c_work->pause != 0) {
         if (!(pG->Room_flg[0] & 0x40000000)) {
-            if (r22c_work.p->pause == 0x78) {
-                r22c_work.p->result.reloadtime();
+            if (r22c_work->pause == 0x78) {
+                r22c_work->result.reloadtime();
             }
-            r22c_work.p->pause--;
+            r22c_work->pause--;
         }
     } else {
         JOY* joy = &Joy[0];
 
         for (;;) {
-            int n = (int) r22c_work.p->tbl[0];
+            int n = (int) r22c_work->tbl[0];
             int i;
 
             for (i = 0; i < n; i++) {
-                R22cMarkRec* d = (R22cMarkRec*) r22c_work.p->tbl[i + 2];
+                R22cMarkRec* d = (R22cMarkRec*) r22c_work->tbl[i + 2];
 
-                if (d->time == r22c_work.p->timer) {
+                if (d->time == r22c_work->timer) {
                     switch (d->flag) {
                     default:
                         if (d->flag != 2) {
-                            r22c_work.p->total++;
+                            r22c_work->total++;
                         }
                         ((cEmMark*) EmMgr.create(0x3E))->init((EmMarkData*) d);
                         break;
                     case 0xFE:
-                        r22c_work.p->pause = 0x78;
-                        SndStrReq(r22c_work.p->strId, 4, 0x320, 0);
-                        r22c_work.p->strId = SndStrReq(0, 0x3E, 0x80000003, 0, 0, 0.0f);
+                        r22c_work->pause = 0x78;
+                        SndStrReq(r22c_work->strId, 4, 0x320, 0);
+                        r22c_work->strId = SndStrReq(0, 0x3E, 0x80000003, 0, 0, 0.0f);
                         break;
                     case 0xFD:
-                        r22c_work.p->ufoWait = 30;
+                        r22c_work->ufoWait = 30;
                         break;
                     }
                 }
             }
-            if (r22c_work.p->timer > (int) r22c_work.p->tbl[1]) {
-                r22c_work.p->timer = 0;
-                r22c_work.p->resultStep = 0;
-                r22c_work.p->step = 3;
+            if (r22c_work->timer > (int) r22c_work->tbl[1]) {
+                r22c_work->timer = 0;
+                r22c_work->resultStep = 0;
+                r22c_work->step = 3;
                 break;
             }
             eprintf(0xA0, 0x1A4, 5, 0, "GIVE UP: (X) button");
             if (joy->trg & 0x400) {
                 deleteAllMark();
-                r22c_work.p->timer = 0;
-                r22c_work.p->resultStep = 0;
-                r22c_work.p->step = 3;
+                r22c_work->timer = 0;
+                r22c_work->resultStep = 0;
+                r22c_work->step = 3;
                 break;
             }
             if (StaFlagChk(pG, STA_PL_MISS_SHOT)) {
-                r22c_work.p->combo = 0;
+                r22c_work->combo = 0;
             }
-            if (r22c_work.p->combo == 5) {
-                r22c_work.p->combo = 0;
+            if (r22c_work->combo == 5) {
+                r22c_work->combo = 0;
                 if (!(pG->Room_flg[0] & 0x40000000)) {
                     SceExec(0x12, (TaskFunc) funcUfo, 0, 0, SCE_PRIO_DEF_2, 0);
-                    r22c_work.p->ufoWait = 3;
+                    r22c_work->ufoWait = 3;
                 }
             }
-            r22c_work.p->timer++;
+            r22c_work->timer++;
             if (countMark() != 0) {
                 break;
             }
-            if (r22c_work.p->pause != 0) {
+            if (r22c_work->pause != 0) {
                 break;
             }
-            if (r22c_work.p->ufoWait != 0) {
+            if (r22c_work->ufoWait != 0) {
                 break;
             }
         }
     }
-    if (R22C_HARD_MODE(r22c_work.p)) {
+    if (R22C_HARD_MODE(r22c_work)) {
         pG->Room_flg[0] |= 0x10000000;
     }
-    if (r22c_work.p->ufoWait) {
-        r22c_work.p->ufoWait--;
+    if (r22c_work->ufoWait) {
+        r22c_work->ufoWait--;
     }
-    if (r22c_work.p->effTimer) {
-        r22c_work.p->effTimer--;
+    if (r22c_work->effTimer) {
+        r22c_work->effTimer--;
     }
-    r22c_work.p->time++;
-    eprintf(0x20, 0x54, 0, 0, "%3d:%d", r22c_work.p->timer / 30, r22c_work.p->timer);
-    eprintf(0x20, 0x62, 0, 0, "%3d:%d", r22c_work.p->time / 30, r22c_work.p->time);
-    eprintf(0x20, 0x70, 0, 0, "%d", r22c_work.p->effTimer / 30);
-    eprintf(0x20, 0x7E, 0, 0, "%d", r22c_work.p->ufoWait / 30);
+    r22c_work->time++;
+    eprintf(0x20, 0x54, 0, 0, "%3d:%d", r22c_work->timer / 30, r22c_work->timer);
+    eprintf(0x20, 0x62, 0, 0, "%3d:%d", r22c_work->time / 30, r22c_work->time);
+    eprintf(0x20, 0x70, 0, 0, "%d", r22c_work->effTimer / 30);
+    eprintf(0x20, 0x7E, 0, 0, "%d", r22c_work->ufoWait / 30);
 }
 
 // Game step 3: once no target is left, the score is registered and the bottle cap picked, then the
 // result screen (ResultScreen) is shown until the player dismisses it, with the cap / bonus messages.
 static void shootResult()
 {
-    switch (r22c_work.p->resultStep) {
+    switch (r22c_work->resultStep) {
     case 0: {
         int n = countMark();
 
         if (n == 0) {
-            if (r22c_work.p->eat) {
+            if (r22c_work->eat) {
                 SmdGetObjPtr(3)->be_flag &= ~2;
-                EatMgr.destroy(r22c_work.p->eat);
-                r22c_work.p->eat = 0;
+                EatMgr.destroy(r22c_work->eat);
+                r22c_work->eat = 0;
             }
             scoreRegist();
             checkBottleCap();
@@ -1301,48 +1298,48 @@ static void shootResult()
             EffectEspgenDelete(0, ESP_CORE_KIND_MARK, 0);
             EffectEfmDelete(0, ESP_CORE_KIND_MARK, 0);
             KeyStop(0xEFCF0000);
-            r22c_work.p->timer = 0;
-            r22c_work.p->resultStep = 1;
+            r22c_work->timer = 0;
+            r22c_work->resultStep = 1;
         }
         break;
     }
     case 1:
-        if (r22c_work.p->timer > 60) {
-            r22c_work.p->resultStep = 2;
-            r22c_work.p->result.init();
+        if (r22c_work->timer > 60) {
+            r22c_work->resultStep = 2;
+            r22c_work->result.init();
         }
         break;
     case 2: {
         int key = 0;
 
-        if (r22c_work.p->timer > 90) {
+        if (r22c_work->timer > 90) {
             if (Key.trg & 0xC0000000) {
-                r22c_work.p->resultStep = 3;
+                r22c_work->resultStep = 3;
                 key = 1;
             }
         }
-        r22c_work.p->result.move(key);
+        r22c_work->result.move(key);
         break;
     }
     case 3:
-        if (r22c_work.p->result.move(0)) {
-            r22c_work.p->resultStep = 0;
-            r22c_work.p->step = 4;
-            r22c_work.p->result.quit();
+        if (r22c_work->result.move(0)) {
+            r22c_work->resultStep = 0;
+            r22c_work->step = 4;
+            r22c_work->result.quit();
         }
         break;
     }
-    r22c_work.p->timer++;
+    r22c_work->timer++;
 }
 
 // Game step 4: stream faded, lights back, Stop_flg bit 31 / Room_flg[0] 0x20000000 off, area 0 on, task exit.
 static void shootEnd()
 {
-    SndStrReq(r22c_work.p->strId, 4, 0xC8, 0);
+    SndStrReq(r22c_work->strId, 4, 0xC8, 0);
     LightMgr.onKind(1);
     LightMgr.offKind(2);
     SpfFlagOff(pG, SPF_KEY);
-    BitOff(pG->Room_flg[0], 0x20000000);
+    pG->Room_flg[0] &= ~0x20000000;
     SceAtSetEnable(0, 1);
     SceExit();
 }
@@ -1379,26 +1376,26 @@ void R22cHitMark(int type, int kind, Vec* pos, int hit, int age)
     int pt;
 
     if (type == 3) {
-        r22c_work.p->cnt46++;
+        r22c_work->cnt46++;
     }
     if (kind == 4) {
         pt = 200;
     } else {
         pt = r22c_scoreTbl[type][kind];
     }
-    r22c_work.p->score += pt;
+    r22c_work->score += pt;
     if (kind == 0) {
-        r22c_work.p->cnt47++;
+        r22c_work->cnt47++;
     }
     ScoreSet(pt, pos);
     if (hit == 1) {
         if (pt > 0) {
-            r22c_work.p->hits++;
+            r22c_work->hits++;
         }
-        r22c_work.p->ageSum += age;
+        r22c_work->ageSum += age;
     }
     if (pt > 0) {
-        r22c_work.p->combo++;
+        r22c_work->combo++;
     }
 }
 
@@ -1419,7 +1416,7 @@ static void funcUfo()
     m = (cEmMark*) EmMgr.create(0x3E);
     m->init((EmMarkData*) r22c_d38F0);
     se = SndCall(6, 6, &m->pos, 0, 0, 0);
-    r22c_work.p->total++;
+    r22c_work->total++;
     while (m->isAlive() && m->type == 3 && m->hp > 0) {
         if (se) {
             SndStop(se, 0);
@@ -1468,7 +1465,7 @@ static void r22cSetWepMan()
         d.Guard_r = 0;
         d.Character = 0;
         em = EmSetEvent(&d);
-        r22c_work.p->wepMan = em;
+        r22c_work->wepMan = em;
         em->dmg.set(0, 0x80);
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r22c_talkWepMan, 0, 1);
         SceSleep(10);
@@ -1487,7 +1484,7 @@ static void r22cSetWepMan()
 // High score per level (pG->shootingScore).
 void scoreRegist()
 {
-    R22cWork* w = r22c_work.p;
+    R22cWork* w = r22c_work;
     int lv = w->level - 1;
     if (w->score > pG->shootingScore[lv]) {
         pG->shootingScore[lv] = w->score;
@@ -1512,7 +1509,7 @@ static void r22cGateCtrl()
     SmdGetObjPtr(0x34)->be_flag &= ~2;
     SmdGetObjPtr(0x35)->be_flag &= ~2;
     SmdGetObjPtr(0x36)->be_flag &= ~2;
-    switch (r22c_work.p->level) {
+    switch (r22c_work->level) {
     case 1:
     default:
         type = 0xC;
@@ -1579,7 +1576,7 @@ int isWepmanAlive()
 {
     int no;
 
-    switch (r22c_work.p->level) {
+    switch (r22c_work->level) {
     case 1:
     default:
         no = 0;
@@ -1602,7 +1599,7 @@ void setWepmanKilled()
 {
     int no;
 
-    switch (r22c_work.p->level) {
+    switch (r22c_work->level) {
     case 1:
     default:
         no = 0;
@@ -1625,67 +1622,67 @@ void setWepmanKilled()
 // Background effect `no` fired by a target hit (emmark.cpp).
 void R22cHitEffect(int no)
 {
-    if (r22c_work.p->effTimer != 0) {
+    if (r22c_work->effTimer != 0) {
         return;
     }
     switch (no) {
     case 0:
-        if (r22c_work.p->effFlags & 0x10) {
+        if (r22c_work->effFlags & 0x10) {
             return;
         }
-        r22c_work.p->effFlags |= 0x10;
+        r22c_work->effFlags |= 0x10;
         SceExec(0x12, (TaskFunc) r22c_BirdsFly, 0, 0, SCE_PRIO_DEF_2, 0);
-        r22c_work.p->effTimer = 0x1E0;
+        r22c_work->effTimer = 0x1E0;
         break;
     case 1:
-        if (r22c_work.p->effFlags & 0x20) {
+        if (r22c_work->effFlags & 0x20) {
             return;
         }
         EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0, ESP_CORE_KIND_MARK, 0, 0);
-        r22c_work.p->effFlags |= 0x20;
-        r22c_work.p->effTimer = 0x4B0;
+        r22c_work->effFlags |= 0x20;
+        r22c_work->effTimer = 0x4B0;
         break;
     case 2:
-        if (r22c_work.p->effFlags & 0x40) {
+        if (r22c_work->effFlags & 0x40) {
             return;
         }
         SceExec(0x12, (TaskFunc) r22c_BeeFly, 0, 0, SCE_PRIO_DEF_2, 0);
-        r22c_work.p->effFlags |= 0x40;
-        r22c_work.p->effTimer = 0x4B0;
+        r22c_work->effFlags |= 0x40;
+        r22c_work->effTimer = 0x4B0;
         break;
     case 4:
-        if (r22c_work.p->effFlags & 0x80) {
+        if (r22c_work->effFlags & 0x80) {
             return;
         }
-        r22c_work.p->effFlags |= 0x80;
+        r22c_work->effFlags |= 0x80;
         SceExec(0x12, (TaskFunc) r22c_ShootingStar, 0, 0, SCE_PRIO_DEF_2, 0);
-        r22c_work.p->effTimer = 0x4B0;
+        r22c_work->effTimer = 0x4B0;
         break;
     case 3:
-        if (r22c_work.p->effFlags & 4) {
+        if (r22c_work->effFlags & 4) {
             return;
         }
         SndCall(6, 0xC, 0, 0, 0, 0);
-        r22c_work.p->effFlags |= 4;
+        r22c_work->effFlags |= 4;
         break;
     case 5:
-        if (FlagChkSignW(r22c_work.p->effFlags, 31) && !(r22c_work.p->effFlags & 2)) {
-            r22c_work.p->effFlags |= 2;
+        if (FlagChkSignW(r22c_work->effFlags, 31) && !(r22c_work->effFlags & 2)) {
+            r22c_work->effFlags |= 2;
             SceExec(0x12, (TaskFunc) r22c_FireWorks, 0, 0, SCE_PRIO_DEF_2, 0);
-            r22c_work.p->effTimer = 0x4B0;
+            r22c_work->effTimer = 0x4B0;
         } else {
-            if (r22c_work.p->effFlags & 8) {
+            if (r22c_work->effFlags & 8) {
                 return;
             }
             SndCall(6, 0xD, 0, 0, 0, 0);
-            r22c_work.p->effFlags |= 8;
+            r22c_work->effFlags |= 8;
         }
         break;
     case 6:
-        if (r22c_work.p->effFlags & 1) {
+        if (r22c_work->effFlags & 1) {
             return;
         }
-        r22c_work.p->effFlags |= 1;
+        r22c_work->effFlags |= 1;
         LightMgr.offKind(1);
         LightMgr.onKind(2);
         break;
@@ -1761,7 +1758,7 @@ void ResultScreen::init()
     IdSys.roomInit();
     IdTexDataLoad(RES_PTR(data, ofsTexResult), TEX_OWNER_ID_TITLE);
     IdSys.set(RES_PTR(data, ofsIdResult), 0xFF, IDC_TITLE, 0x13, 6, 0);
-    if (r22c_work.p->capId == 0xFFFF) {
+    if (r22c_work->capId == 0xFFFF) {
         SndCall(6, 0xA, 0, 0, 0, 0);
     } else {
         SndCall(6, 8, 0, 0, 0, 0);
@@ -1796,7 +1793,7 @@ int ResultScreen::move(int flag)
             }
         }
     }
-    n = r22c_work.p->hits;
+    n = r22c_work->hits;
     u = IdSys.unitPtr(1, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
@@ -1804,7 +1801,7 @@ int ResultScreen::move(int flag)
     u = IdSys.unitPtr(2, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
-    n = r22c_work.p->total;
+    n = r22c_work->total;
     u = IdSys.unitPtr(0x11, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
@@ -1812,7 +1809,7 @@ int ResultScreen::move(int flag)
     u = IdSys.unitPtr(0x12, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
-    n = r22c_work.p->score;
+    n = r22c_work->score;
     for (i = 0; i < 6; i++) {
         digit[i] = n % 10;
         n /= 10;
@@ -1831,7 +1828,7 @@ int ResultScreen::move(int flag)
     }
     sum = 0;
     for (i = 0; i < 24; i++) {
-        sum += r22c_work.p->cap[i];
+        sum += r22c_work->cap[i];
     }
     n = sum;
     u = IdSys.unitPtr(0x31, IDC_TITLE);
@@ -1841,7 +1838,7 @@ int ResultScreen::move(int flag)
     u = IdSys.unitPtr(0x32, IDC_TITLE);
     u->tex_flag |= 2;
     u->texNo = n % 10;
-    switch (r22c_work.p->capId) {
+    switch (r22c_work->capId) {
     case 0xFFFF:
         IdSys.unitPtr(0xFD, IDC_TITLE)->be_flag &= ~8;
         IdSys.unitPtr(0xFE, IDC_TITLE)->be_flag &= ~8;
@@ -1868,7 +1865,7 @@ void ResultScreen::quit()
 // The floating score numbers: their own IDSystem (0x80 units) and cleared timers.
 void ScoreInit()
 {
-    r22c_work.p->score2.gameInit(0x80);
+    r22c_work->score2.gameInit(0x80);
     ScoreClear();
 }
 
@@ -1878,9 +1875,9 @@ void ScoreClear()
     u32 i;
 
     for (i = 0; i < 8; i++) {
-        r22c_work.p->scoreTimer[i] = 0;
+        r22c_work->scoreTimer[i] = 0;
     }
-    r22c_work.p->score2.roomInit();
+    r22c_work->score2.roomInit();
 }
 
 // Per frame: count the eight floating score slots down and kill the expired ones (id 0x40 + slot); step / draw them.
@@ -1889,17 +1886,17 @@ void ScoreMove()
     int i;
 
     for (i = 0; i < 8; i++) {
-        if (r22c_work.p->scoreTimer[i]) {
-            r22c_work.p->scoreTimer[i]--;
+        if (r22c_work->scoreTimer[i]) {
+            r22c_work->scoreTimer[i]--;
         } else {
-            r22c_work.p->scoreTimer[i] = 0;
+            r22c_work->scoreTimer[i] = 0;
         }
-        if (r22c_work.p->scoreTimer[i] == 0) {
-            r22c_work.p->score2.kill(0xFF, 0x40 + i);
+        if (r22c_work->scoreTimer[i] == 0) {
+            r22c_work->score2.kill(0xFF, 0x40 + i);
         }
     }
-    r22c_work.p->score2.move();
-    r22c_work.p->score2.trans();
+    r22c_work->score2.move();
+    r22c_work->score2.trans();
 }
 
 // Floating score number `pt` at world position `pos` (id table 0x40 + slot).
@@ -1921,7 +1918,7 @@ void ScoreSet(int pt, Vec* pos)
         int k;
 
         for (k = 0; k < 8; k++) {
-            if (r22c_work.p->scoreTimer[k] == 0) {
+            if (r22c_work->scoreTimer[k] == 0) {
                 slot = k;
                 break;
             }
@@ -1930,10 +1927,10 @@ void ScoreSet(int pt, Vec* pos)
     if (slot < 0) {
         return;
     }
-    r22c_work.p->scoreTimer[slot] = 30;
+    r22c_work->scoreTimer[slot] = 30;
     type = slot + 0x40;
-    r22c_work.p->score2.set(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
-    u = r22c_work.p->score2.unitPtr(0, type);
+    r22c_work->score2.set(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
+    u = r22c_work->score2.unitPtr(0, type);
     v = *pos;
     GetScreenPos(&v, &scr);
     scr.x = (scr.x - 256.0f) * 1.25f;
@@ -1943,14 +1940,14 @@ void ScoreSet(int pt, Vec* pos)
         IdUnit* m;
 
         pt = -pt;
-        r22c_work.p->score2.unitPtr(0xFE, type)->be_flag &= ~8;
-        m = r22c_work.p->score2.unitPtr(0xFD, type);
+        r22c_work->score2.unitPtr(0xFE, type)->be_flag &= ~8;
+        m = r22c_work->score2.unitPtr(0xFD, type);
         u->col0[0] = m->col0[0];
         u->col0[1] = m->col0[1];
         u->col0[2] = m->col0[2];
         u->col0[3] = m->col0[3];
     } else {
-        r22c_work.p->score2.unitPtr(0xFE, type)->be_flag |= 8;
+        r22c_work->score2.unitPtr(0xFE, type)->be_flag |= 8;
     }
     d = digit;
     {
@@ -1975,7 +1972,7 @@ void ScoreSet(int pt, Vec* pos)
         }
     }
     for (i = 3; i >= 0; i--) {
-        IdUnit* du = r22c_work.p->score2.unitPtr(i + 1, type);
+        IdUnit* du = r22c_work->score2.unitPtr(i + 1, type);
 
         if (i - n >= 0) {
             du->tex_flag = 2;
@@ -1993,11 +1990,11 @@ static void r22c_checkShootingScore()
     SceAtSetEnable(7, 0);
     CamCtrl.CutCall(4);
     SceSleep(0x23);
-    r22c_work.p->result.highscore(1000);
+    r22c_work->result.highscore(1000);
     while ((Joy[0].on & 0x300) == 0) {
         SceSleep(1);
     }
-    r22c_work.p->result.quit();
+    r22c_work->result.quit();
     SceSleep(1);
     CamCtrl.Comeback(0);
     SceAtSetEnable(7, 1);

@@ -62,7 +62,7 @@ void cWepItem::move00()
                 StaFlagOn(pG, STA_PL_FIRE);
                 if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
                     EstSet(0, -1, &pos, 0, w->estNo3, (u8) w->est4, 0, ESP_CORE_KIND_NONE, 0, 0);
-                    AddWaterPower(&pos, 1.0f);
+                    AddWaterPower(pos, 1.0f);
                     SndCall(1, 0x17, &pos, 0, 0, 0);
                 } else {
                     EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -72,7 +72,7 @@ void cWepItem::move00()
                 hitCkPl();
                 StaFlagOn(pG, STA_SE_BURST);
                 pG->SeInfo.pos = pos;
-                pGS->SeInfo.type = 1;
+                pG->SeInfo.type = 1;
                 ObjMgr.destroy(this);
                 return;
             case 2:
@@ -240,7 +240,7 @@ int obj10AddSpeed(cWepItem* obj)
         if (!(w->flag & 8)) {
             EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, ESP_CORE_KIND_NONE, 0, 0);
             w->flag |= 8;
-            AddWaterPower(&obj->pos, 0.5f);
+            AddWaterPower(obj->pos, 0.5f);
             switch (obj->type) {
             default:
                 SndCall(6, 0x64, &obj->pos, 0, 0, 0);

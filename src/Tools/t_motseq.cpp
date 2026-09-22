@@ -16,7 +16,6 @@
 #include "t_prim.h"
 #include "t_util.h"
 #include "db_mod.h"
-#include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
 #include "tools.h"
@@ -86,12 +85,8 @@ struct MsqWork {
     u8 pad_1DBD[0x1E10 - 0x1DBD];
 };
 
-// every store through the work pointer reloads it: the pointer is a struct member
-struct MsqWorkPtr {
-    MsqWork* p;
-};
-static MsqWorkPtr msqWork = {0};
-#define MSQ (msqWork.p)
+static MsqWork* msqWork = {0};
+#define MSQ (msqWork)
 
 static void msq_R0_Model();
 static void msq_R0_SeqLoad();
@@ -167,7 +162,7 @@ void msqToolInit()
     MsqWork* w;
     Camera* cam;
     TprimRect rect;
-    MsqWork*& wp = msqWork.p;
+    MsqWork*& wp = msqWork;
     f32 zero;
 
     TutilInitDefault();
@@ -179,9 +174,9 @@ void msqToolInit()
     EprintfSetCurrentNo(0);
     StaFlagOn(pG, STA_BG_OFF);
     DbgFlagOn(pG, DBG_DBG_CAM);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x00800000);
-    BitOn(pG->Disp_flg, 0x02000000);
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x00800000;
+    pG->Disp_flg |= 0x02000000;
     pG->Disp_flg |= 0x00800000;
     memclr_asm(MSQ, sizeof(MsqWork));
     for (i = 0; i < 1; i++) {
@@ -886,15 +881,15 @@ static void msq_R0_QuitCk()
 static void msq_R0_Quit()
 {
     dbModelQuit();
-    BitOff(pG->Stop_flg, 0x40000000);
+    pG->Stop_flg &= ~0x40000000;
     DbgFlagOff(pG, DBG_TEST_MODE);
     ToolWorkPop(0);
     bio4_GXSetCopyClear(g_sysBgColor, 0xFFFFFF);
     DbgFlagOff(pG, DBG_DBG_CAM);
     StaFlagOff(pG, STA_BG_OFF);
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Stop_flg, 0x00800000);
-    BitOff(pG->Disp_flg, 0x00800000);
+    pG->Stop_flg &= ~0x10000000;
+    pG->Stop_flg &= ~0x00800000;
+    pG->Disp_flg &= ~0x00800000;
     pG->Disp_flg &= ~0x02000000;
     TutilQuitDefault();
     TaskExit();
@@ -1276,7 +1271,7 @@ void msqCameraMove()
         MSQ->joy.trg = 0;
         MSQ->joy.on = 0;
         MSQ->joy.rep = 0;
-        U32Set(MSQ->joy.rep2, 0);
+        MSQ->joy.rep2 = 0;
         DbgFlagOn(pG, DBG_DBG_CAM);
         CamDbg.move(&pG->Camera, Joy, 0);
     }

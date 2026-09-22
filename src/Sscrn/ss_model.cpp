@@ -1457,7 +1457,7 @@ void wep13Init(int type)
         info->color[2] = 0xE0;
         info->color[3] = 0xFF;
     }
-    (void*&) wep->pParts->pParent = m->getPartsPtr(10);
+    wep->pParts->pParent = m->getPartsPtr(10);
     info = ssModInfoMgr.create(PL_ARC(0x70), PL_ARC(0x71));
     {
         f32(*mat)[4] = info->mat;

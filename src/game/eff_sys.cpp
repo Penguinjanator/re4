@@ -1115,8 +1115,10 @@ void EffClearToolState()
 
 extern "C" void EffSetToolStateCallBack(int no, void (*on)(), void (*off)())
 {
-    g_pEspSys->toolCb[no] = on;
-    g_pEspSys->toolCb2[no] = off;
+    cEspSystem* sys = g_pEspSys;
+
+    sys->toolCb[no] = on;
+    sys->toolCb2[no] = off;
 }
 
 // After the effect update: runs callback 0's `on` function while tool state bits 0-1 are set,

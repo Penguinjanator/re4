@@ -152,10 +152,10 @@ void cObj04::move()
                 }
             }
             if (pos.y - ofs < floor) {
-                FSet(speed.x, speed.x * w->bounce.x);
-                FSet(speed.y, speed.y * -w->bounce.y);
-                FSet(speed.z, speed.z * w->bounce.x);
-                FSet(pos.y, floor + ofs);
+                speed.x = speed.x * w->bounce.x;
+                speed.y = speed.y * -w->bounce.y;
+                speed.z = speed.z * w->bounce.x;
+                pos.y = floor + ofs;
                 hit = 1;
                 PSVECScale(&w->rotSpd, &w->rotSpd, obj04_gnd_ratio);
             }

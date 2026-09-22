@@ -66,7 +66,6 @@
 #include "em_set.h"
 #include "db_log.h"
 #include "gx.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "read.h"
 #include "trans.h"
@@ -265,14 +264,14 @@ void gameInit()
     LightMgr.initPath((LightPathHeader*) (pG->pCore->ofs_3C + (u32) pG->pCore));
     ScenarioInit();
     PlayerInit();
-    U16Set(pG->ashley_life, 600);
+    pG->ashley_life = 600;
     if (SysFlagChk(pG, SYS_NEW_GAME)) {
         ItemMgr.gameInit();
         SceAtInitSaveItem();
     }
     SysFlagOff(pG, SYS_DOOR_AFTER);
     MerchantGameInit();
-    FSet(pG->Speed, 1.0f);
+    pG->Speed = 1.0f;
     InitGameTime();
     if (SysFlagChk(pG, SYS_LOAD_GAME)) {
         GameLoad();
@@ -531,7 +530,7 @@ void gameRoomInit()
     cMes.roomInit();
     SndRoomBgmLoad();
     DbWork = new cDbWork;
-    U32Set(pG->Disp_flg, 0);
+    pG->Disp_flg = 0;
     if (SysFlagChk(pG, SYS_DOORDEMO)) {
         DpfFlagOn(pG, DPF_PL);
         SpfFlagOn(pG, SPF_PL);
@@ -584,9 +583,9 @@ void gameMainLoop()
     UpdateNearClipDist();
     gameStopMove();
     GameAddPoint(0);
-    FSet(pG->quake_ofs.x, 0.0f);
-    FSet(pG->quake_ofs.y, 0.0f);
-    FSet(pG->quake_ofs.z, 0.0f);
+    pG->quake_ofs.x = 0.0f;
+    pG->quake_ofs.y = 0.0f;
+    pG->quake_ofs.z = 0.0f;
     gameDiedemoCheck();
     ProcessTickGet(5, "CamCtrl.Check()");
     SceAtCheck();
@@ -747,11 +746,11 @@ void gameMainLoop()
 void GameLoad()
 {
     GameSave.load(pSaveData);
-    U16Set(pG->pl_flag, 1);
+    pG->pl_flag = 1;
     SysFlagOn(pG, SYS_LOAD_GAME);
     SysFlagOff(pG, SYS_CONTINUE);
     SysFlagOff(pG, SYS_START_EVT_SKIP);
-    U16Set(pG->RoomNo_next, pG->room_id);
+    pG->RoomNo_next = pG->room_id;
     pG->Part_next = pG->Part;
 }
 
@@ -772,16 +771,16 @@ void GameContinue(int mode)
         SysFlagOn(pG, SYS_LOAD_GAME);
     }
     if (mode == 0) {
-        U16Set(pG->r_continue_cnt, x4F90 + 1);
-        U16Set(pG->c_continue_cnt, x8338 + 1);
+        pG->r_continue_cnt = x4F90 + 1;
+        pG->c_continue_cnt = x8338 + 1;
         pG->g_continue_cnt = g_continue_cnt + 1;
     }
     pG->play_time = time;
     PlSetCostume();
     ContinueWepData();
     pG->NextPos = pG->sub_pos;
-    FSet(pGS->NextY, pGS->sub_angle);
-    U16Set(pG->RoomNo_next, pG->room_id);
+    pG->NextY = pG->sub_angle;
+    pG->RoomNo_next = pG->room_id;
     pG->Part_next = pG->Part;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
@@ -820,12 +819,12 @@ void clearGlobalSaveData()
         memcpy(score, &keep2, sizeof(keep2));
     }
     memcpy(&pG->pl_life, &keep, sizeof(keep));
-    U16Set(pG->game_cnt, x4F8E);
-    U32Set(pG->peseta, x4F98);
+    pG->game_cnt = x4F8E;
+    pG->peseta = x4F98;
     pG->language = x4F93;
     pG->game_mode = x8354;
-    S32Set(pG->SaveKind, game_mode);
-    U16Set(pG->pl_life, pG->pl_life_max);
+    pG->SaveKind = game_mode;
+    pG->pl_life = pG->pl_life_max;
     pG->ashley_life = pG->ashley_life_max;
     InitGameTime();
 }
@@ -875,9 +874,9 @@ bool cGameSave::save(SAVE_DATA_HEAD* data, int mode)
     checkAddr(data);
     if (pG->Rno0 == 3) {
         VEC_COPY(pG->sub_pos, pPL->pos);
-        FSet(pG->sub_angle, pPL->ang.y);
+        pG->sub_angle = pPL->ang.y;
     }
-    S32Set(pG->SaveKind, mode);
+    pG->SaveKind = mode;
     *data->pGlobal = *(GameSaveBlock*) pG->save_data_start_addr;
     RoomData.save(data->pRoom);
     SscrnDataSave(data->pSscrn);
@@ -991,7 +990,7 @@ void gameEnding()
         int req;
 
         gameRoomMemInit();
-        BitSet(pG->Disp_flg, 0xFFFFFFFF);
+        pG->Disp_flg = 0xFFFFFFFF;
 #line 1419 "D:/Bio4/Prog/game.cpp"
         req = DvdReadN("Etc/Ending.tpl", 0, 0, 0, 0, 5, __FILE__, __LINE__);
         Dvd.ReadCheck(req, 0, 0, (void**) &pTpl);
@@ -1018,7 +1017,7 @@ void gameOption()
     case 0:
         SetGameTime();
         stop_bak = pG->Stop_flg;
-        BitSet(pG->Stop_flg, 0xFFFFFFFF);
+        pG->Stop_flg = 0xFFFFFFFF;
         SpfFlagOff(pG, SPF_KEY);
         SpfFlagOff(pG, SPF_ID_SYSTEM);
         OptScrn.init(0);
@@ -1141,7 +1140,7 @@ void gameDiedemo(DiedemoWork* w)
                 IdSys.beMove(IdSys.unitPtr(0x40, IDC_CONTINUE), 0);
                 IdSys.unitPtr(0, IDC_CONTINUE)->be_flag |= 8;
                 IdSys.unitPtr(1, IDC_CONTINUE)->be_flag &= ~8;
-                BitSet(pG->Stop_flg, 0xFFFFFFFF);
+                pG->Stop_flg = 0xFFFFFFFF;
                 SpfFlagOff(pG, SPF_ID_SYSTEM);
             }
             break;
@@ -1221,7 +1220,7 @@ void gameDoordemo()
 {
     OSReport("--DOORDEMO START!!\n");
     SysFlagOn(pG, SYS_ROOMJUMP);
-    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     KeyStop(0xEFCF0000);
     if (DbgFlagChk(pG, DBG_ROOMJMP)) {
         fadeSetG(0, 0, 0, 0);
@@ -1282,8 +1281,8 @@ void gameDoordemo()
         DoorSeCall(0);
     }
     pG->sub_pos = pG->NextPos;
-    FSet(pGS->sub_angle, pGS->NextY);
-    U16Set(pG->room_id, pG->RoomNo_next);
+    pG->sub_angle = pG->NextY;
+    pG->room_id = pG->RoomNo_next;
     pG->Part = pG->Part_next;
     if (!FlagChkSign(pG->Debug_flg, DBG_ROOMJMP) && !SysFlagChk(pG, SYS_CONTINUE)) {
         pG->JumpPoint = 0;
@@ -1316,11 +1315,11 @@ void gameRoomMemInit()
         MemSetCurrentHeap(4);
     }
     memclr_asm(pG->room_start_addr, 0x4E00);
-    U32Set(pG->Debug_flg[0], 0);
-    U32Set(pG->Debug_flg[1], 0);
-    U32Set(pG->Status_flg[0], 0);
-    U32Set(pG->Status_flg[1], 0);
-    U32Set(pG->Status_flg[2], 0);
+    pG->Debug_flg[0] = 0;
+    pG->Debug_flg[1] = 0;
+    pG->Status_flg[0] = 0;
+    pG->Status_flg[1] = 0;
+    pG->Status_flg[2] = 0;
     if (DbgFlagChk(pG, DBG_DOOR_SET_MODE)) {
         DbgFlagOn(pG, DBG_TEST_MODE);
         SpfFlagOn(pG, SPF_SCE);
@@ -1537,12 +1536,12 @@ void GamePointBossReset()
 // allocation succeeds, and registers it with the draw code.
 void primInit()
 {
-    S32Set(pG->prim_cnt, 0);
+    pG->prim_cnt = 0;
     pG->nPrim *= 2;
     do {
-        S32Set(pG->nPrim, pG->nPrim / 2);
+        pG->nPrim = pG->nPrim / 2;
 #line 2215 "D:/Bio4/Prog/game.cpp"
-        S32Set(pG->prim_cnt, (s32) MEM_ALLOC(pG->nPrim * 2, 1, 13));
+        (pG->prim_cnt = (s32) MEM_ALLOC(pG->nPrim * 2, 1, 13));
         if ((u32) pG->prim_cnt < 0x80000000 || (u32) pG->prim_cnt > 0x82FFFFFF) {
             pLog->err(0, 0, "workInit() PRIM BUFFER SIZE WAS REDUCE %08X", pG->nPrim);
         }

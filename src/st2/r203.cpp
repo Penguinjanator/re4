@@ -35,12 +35,8 @@ struct R203Work {
     cDataUnit* data;    // 0xA8  the s00 event data
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R203WorkPtr {
-    R203Work* p;
-};
 
-static R203WorkPtr r203_work;
+static R203Work* r203_work;
 
 
 static Vec r203_wanderPos[3] = {
@@ -75,24 +71,24 @@ void R203Init()
     };
 
 #line 69 "D:/Bio4/Prog/r203.cpp"
-    r203_work.p = (R203Work*) MEM_CALLOC(sizeof(R203Work), 1, 0xd);
+    r203_work = (R203Work*) MEM_CALLOC(sizeof(R203Work), 1, 0xd);
     if (ScfFlagChk(pG, SCF_R201_EVENT00)) {
         setEm(0x27, -1, 0, 1, 0);
         setEm(0x29, -1, 0, 1, 0);
-        if (r203_work.p->em[0].setEm(0x34, 2, 0, 1, 0) == 1) {
+        if (r203_work->em[0].setEm(0x34, 2, 0, 1, 0) == 1) {
             SceExec(0x12, (TaskFunc) r203_GanadoWandering, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (r203_work.p->em[1].setEm(0x35, 2, 0, 1, 0) == 1) {
+        if (r203_work->em[1].setEm(0x35, 2, 0, 1, 0) == 1) {
             SceExec(0x12, (TaskFunc) r203_GanadoWandering, 1, 0, SCE_PRIO_DEF_2, 0);
         }
-        if (r203_work.p->em[2].setEm(0x36, 2, 0, 1, 0) == 1) {
+        if (r203_work->em[2].setEm(0x36, 2, 0, 1, 0) == 1) {
             SceExec(0x12, (TaskFunc) r203_GanadoWandering, 2, 0, SCE_PRIO_DEF_2, 0);
         }
     } else {
         u32 i;
 
         for (i = 0; i < 9; i++) {
-            r203_work.p->em[tbl[i][0]].setEm(tbl[i][1], 2, 0, 1, 0);
+            r203_work->em[tbl[i][0]].setEm(tbl[i][1], 2, 0, 1, 0);
         }
         SceAtDataSet_exec(0x8A, SCE_LEVEL10, 0, (TaskFunc) r203_GetKeyItem, 0, 1);
         SceExec(0x12, (TaskFunc) r203_GanadoEscape, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -107,8 +103,8 @@ void R203Init()
             SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }
-        r203_work.p->data = DC.setData(EvtMgr.NameChange("evd/r203s00.evd"));
-        r203_work.p->data->setCommand(CMND_ARAM_LOAD, 0, 0);
+        r203_work->data = DC.setData(EvtMgr.NameChange("evd/r203s00.evd"));
+        r203_work->data->setCommand(CMND_ARAM_LOAD, 0, 0);
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r203_EventMeetAgain, 0, 1);
         EvtMgr.SetFunc("evt_r203s00_func", (void*) Evt_R203S00_Func);
     }
@@ -154,19 +150,19 @@ static void r203_GanadoEscape()
         {-48575.0f, 4155.0f, -7620.0f},
     };
 
-    while (r203_work.p->em[6].ckFindPL() != 1) {
+    while (r203_work->em[6].ckFindPL() != 1) {
         SceSleep(1);
     }
-    r203_work.p->em[6].setGoto(&pos[0], 1);
-    while (r203_work.p->em[6].ckGoto() == 1) {
+    r203_work->em[6].setGoto(&pos[0], 1);
+    while (r203_work->em[6].ckGoto() == 1) {
         SceSleep(1);
     }
-    r203_work.p->em[6].setGoto(&pos[1], 1);
+    r203_work->em[6].setGoto(&pos[1], 1);
     SceSleep(150);
     if (!(pG->Room_flg[2] & 0x80000000)) {
-        r203_work.p->em[0].setGoto(&pPL->pos, 0xD);
-        r203_work.p->em[1].setGoto(&pPL->pos, 0xD);
-        r203_work.p->em[2].setGoto(&pPL->pos, 0xD);
+        r203_work->em[0].setGoto(&pPL->pos, 0xD);
+        r203_work->em[1].setGoto(&pPL->pos, 0xD);
+        r203_work->em[2].setGoto(&pPL->pos, 0xD);
     }
 }
 
@@ -188,7 +184,7 @@ static void r203_GetKeyItem()
     SceAtDataReset(0x8A);
     SceAtExecute(0x8A);
     for (i = 0; i < 9; i++) {
-        if (SceAtCheckHitModel(2, r203_work.p->em[idx[i]].getPtr()) == 1) {
+        if (SceAtCheckHitModel(2, r203_work->em[idx[i]].getPtr()) == 1) {
             cnt++;
         }
     }
@@ -196,8 +192,8 @@ static void r203_GetKeyItem()
         n = 5 - cnt;
     }
     for (i = 0; i < n; i++) {
-        r203_work.p->em[tbl[i][0]].setEm(tbl[i][1], 2, 0, 1, 0);
-        r203_work.p->em[tbl[i][0]].setGoto(&pos[i & 1], 0xD);
+        r203_work->em[tbl[i][0]].setEm(tbl[i][1], 2, 0, 1, 0);
+        r203_work->em[tbl[i][0]].setGoto(&pos[i & 1], 0xD);
     }
 }
 
@@ -206,26 +202,26 @@ static void r203_GanadoWandering(int no)
 {
     int on = 1;
 
-    r203_work.p->pt[no] = no;
+    r203_work->pt[no] = no;
     while (on) {
-        cEmWrap* em = &r203_work.p->em[no];
+        cEmWrap* em = &r203_work->em[no];
 
         if (em->ckFindPL() == 1 || em->isActive() == 0) {
             on = 0;
         } else if (em->ckGoto() != 6) {
-            r203_work.p->pt[no]++;
+            r203_work->pt[no]++;
             {
-                s8* pt = r203_work.p->pt;
+                s8* pt = r203_work->pt;
 
                 pt[no] = pt[no] < 0 ? 2 : (pt[no] > 2 ? 0 : pt[no]);
             }
-            em->setGoto((Vec*) (r203_work.p->pt[no] * sizeof(Vec) + (u32) r203_wanderPos), 6);
+            em->setGoto((Vec*) (r203_work->pt[no] * sizeof(Vec) + (u32) r203_wanderPos), 6);
         }
         SceSleep(1);
         // Dead test (store dead in flow, compare in flow2): its extra basic block takes the loop to 11
         // blocks, above haifa's MAX_RGN_BLOCKS (10), so sched1 forms no interblock region and nothing
         // is hoisted above the branches (the original's shape; its loop had one more block).
-        if (r203_work.p->data == 0) {
+        if (r203_work->data == 0) {
             em = 0;
         }
     }
@@ -242,14 +238,14 @@ static void r203_EventMeetAgain()
     RsfSet(G_ROOM_ID, 3);
     m = SearchEmModule(0x11);
     SceEventStart(0);
-    if (r203_work.p->data->waitLoadOk() == 1) {
-        MemorySwap(m->pArc, (u32) r203_work.p->data->m_addr, r203_work.p->data->m_size);
+    if (r203_work->data->waitLoadOk() == 1) {
+        MemorySwap(m->pArc, (u32) r203_work->data->m_addr, r203_work->data->m_size);
         EvtMgr.SetEvt(m->pArc, 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
-        MemorySwap(m->pArc, (u32) r203_work.p->data->m_addr, r203_work.p->data->m_size);
-        r203_work.p->data->setCommand(CMND_DEL_DATA, 0, 0);
+        MemorySwap(m->pArc, (u32) r203_work->data->m_addr, r203_work->data->m_size);
+        r203_work->data->setCommand(CMND_DEL_DATA, 0, 0);
     }
     {
         f32 ry = -2.45f;

@@ -47,12 +47,7 @@ struct R10fWork {
     int pad_2C;
 };
 
-// The work pointer as a one-member struct: every store through it reloads the pointer (Init's
-// gondola table stores are followed by a reload of the pointer and the element).
-struct R10fWorkPtr {
-    R10fWork* p;
-};
-static R10fWorkPtr r10f_work;
+static R10fWork* r10f_work;
 
 // The gondola sub-motion works: 0xD0 bytes each in the original build (motion.h's MotionWork is
 // the later 0xDC layout).
@@ -86,12 +81,12 @@ void R10fInit()
     cEmWindow* win;
 
 #line 57 "D:/Bio4/Prog/r10f.cpp"
-    r10f_work.p = (R10fWork*) MEM_CALLOC(sizeof(R10fWork), 1, 0xd);
+    r10f_work = (R10fWork*) MEM_CALLOC(sizeof(R10fWork), 1, 0xd);
 
     // COMPILER-DIFF: candidate #17 (value-carrying pins): the pG temp of the first test is r10 in the
     // original (local-alloc adjacency with the work high's r9 under its sched1 order) and the pG temp of
     // the setSubMotion block is r10 too (its qty ahead of the work pointer's; ours reverses the two).
-    register GlobalWork* g asm("r10");
+    GlobalWork *g;
     g = pG;
     if (!KyfFlagChk(g, KYF_R10F_TO_R200_DOOR)) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, 0, 1);
@@ -116,13 +111,13 @@ void R10fInit()
 #line 93 "D:/Bio4/Prog/r10f.cpp"
         m = (R10fMotWork*) MEM_CALLOC(sizeof(R10fMotWork) * 10, 1, 0xd);
         for (i = 0; i < 10; i++) {
-            r10f_work.p->gondola[i] = (cObjGondola*) SetGondola(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot);
-            if (r10f_work.p->gondola[i] != 0) {
-                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
+            r10f_work->gondola[i] = (cObjGondola*) SetGondola(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot);
+            if (r10f_work->gondola[i] != 0) {
+                r10f_work->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
                 if (m != 0) {
                     register GlobalWork* g2 asm("r10");    // COMPILER-DIFF: candidate #17 (see above)
                     g2 = pG;
-                    r10f_work.p->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(g2->pRoom, 0x30), ROOM_ARC_PTR(g2->pRoom, 0x31));
+                    r10f_work->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(g2->pRoom, 0x30), ROOM_ARC_PTR(g2->pRoom, 0x31));
                 }
             }
         }
@@ -243,7 +238,7 @@ static void r10f_GondolaGetOn(int side)
         // outranks the loops' givs in global-alloc (r29 instead of r28). `int f` + `(u16) f` at the
         // calls: the mask (`clrlwi r5`) sits at each use, a promoted u16 local masks once at the store.
         for (u32 i = 0; i < 10; i++) {
-            if (r10f_work.p->gondola[i] != 0) {
+            if (r10f_work->gondola[i] != 0) {
                 int f;
 
                 if (side == 0) {
@@ -252,29 +247,29 @@ static void r10f_GondolaGetOn(int side)
                     f = (400 + i * 450) % 4500;
                 }
                 if (i == 0) {
-                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), (u16) f);
+                    r10f_work->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), (u16) f);
                 } else {
-                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) f);
+                    r10f_work->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) f);
                 }
-                r10f_work.p->gondola[i]->setNoSuspend(1);
+                r10f_work->gondola[i]->setNoSuspend(1);
             }
         }
         // p is written in full in both arms (jump2 cross-jumps the four stores into the join; the 0.0
         // and angle pool loads stay in the arms).
         if (side == 0) {
-            r10f_work.p->idx = 1;
+            r10f_work->idx = 1;
             p.x = 0.0f;
             p.y = 1.5707964f;
             p.z = 0.0f;
             cut = 6;
         } else {
-            r10f_work.p->idx = 4;
+            r10f_work->idx = 4;
             p.x = 0.0f;
             p.y = -1.5707964f;
             p.z = 0.0f;
             cut = 5;
         }
-        r10f_work.p->gondola[r10f_work.p->idx]->setRidePL();
+        r10f_work->gondola[r10f_work->idx]->setRidePL();
         pPL->setAng(&p);
         if (pSUB != 0) {
             pSUB->setAng(&p);
@@ -288,19 +283,19 @@ static void r10f_GondolaGetOn(int side)
             SceSleep(1);
         }
         for (u32 i = 0; i < 10; i++) {
-            if (r10f_work.p->gondola[i] != 0) {
-                r10f_work.p->gondola[i]->setNoSuspend(0);
+            if (r10f_work->gondola[i] != 0) {
+                r10f_work->gondola[i]->setNoSuspend(0);
             }
         }
         CamCtrl.Comeback(0);
     } else {
         for (u32 i = 0; i < 10; i++) {
-            if (r10f_work.p->gondola[i] != 0) {
-                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
+            if (r10f_work->gondola[i] != 0) {
+                r10f_work->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
             }
         }
-        r10f_work.p->idx = 0;
-        r10f_work.p->gondola[0]->setRidePL();
+        r10f_work->idx = 0;
+        r10f_work->gondola[0]->setRidePL();
         SceExec(0x12, (TaskFunc) r10f_GondolaEmSet, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     obj->setNoSuspend(0);
@@ -378,7 +373,7 @@ static void r10f_GondolaGetOff(int side)
     ObjMgr.destroy(obj);
     SceEventEnd(0);
     SubCharCtrl(SCC_CHASE, 0);
-    r10f_work.p->gondola[r10f_work.p->idx]->setGetOffPL();
+    r10f_work->gondola[r10f_work->idx]->setGetOffPL();
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
     }
@@ -415,12 +410,12 @@ static void r10f_GondolaEmSet(int idx)
     for (k = 0; k < 6; k++) {
         u32 n;
 
-        while (r10f_work.p->gondola[cur]->Motion.Seq_frame <= 2000.0f) {
+        while (r10f_work->gondola[cur]->Motion.Seq_frame <= 2000.0f) {
             SceSleep(1);
         }
         for (n = 0; n < 3 && *(s16*) (t + (k * 6 + n * 2)) != -1; n++) {
             if (em.setEm(*(s16*) (t + (k * 6 + n * 2)), -1, 0, 1, 0) == 1) {
-                r10f_work.p->gondola[cur]->setRideEm(em.getPtr());
+                r10f_work->gondola[cur]->setRideEm(em.getPtr());
             }
         }
         cur--;
@@ -436,7 +431,7 @@ extern "C" cObj* r10f_setFalseEye()
     cObj* obj;
 
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
-    BitOn(obj->be_flag, 0x20);
+    obj->be_flag |= 0x20;
     obj->setParent(pPL, 0xA, &pos, &rot);
     return obj;
 }

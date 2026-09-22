@@ -240,7 +240,7 @@ void objPillar_R0_Throw(cObjPillar* obj)
         w->Spd.x = 0.0f;
         w->Spd.y = 0.0f;
         w->Spd.z = 500.0f;
-        v = pPLS->pos;
+        v = pPL->pos;
         v.y += 1000.0f;
         PSVECSubtract(&v, &obj->pos, &d);
         len = SQRTF(d.x * d.x + d.z * d.z) / 500.0f;
@@ -447,8 +447,8 @@ void cObjPillar::setBreak(Vec* pos, void* mot, int a)
 {
     PillarWork* w = &pillar;
 
-    BitOff(w->Be_flg, 1);
-    FSet(ang.y, GetXZAngle(pos, &this->pos));
+    w->Be_flg &= ~1;
+    ang.y = GetXZAngle(pos, &this->pos);
     if (fabsf(Muku(&this->pos, &pPL->pos, ang.y, PI)) < PI / 2) {
         ang.y = GetXZAngle(&this->pos, &pPL->pos);
     }
@@ -468,7 +468,7 @@ void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, 
 {
     PillarWork* w = &pillar;
 
-    BitOff(w->Be_flg, 1);
+    w->Be_flg &= ~1;
     if (fabsf(Muku(&pos, &pPL->pos, ang.y, PI)) < 0.5235988f) {
         ang.y = GetXZAngle(&pos, &pPL->pos);
     }
@@ -489,7 +489,7 @@ void cObjPillar::setFall(void* mot0, void* mot1)
 {
     PillarWork* w = &pillar;
 
-    BitOff(w->Be_flg, 1);
+    w->Be_flg &= ~1;
     pos = getPartsPtr(0)->world;
     w->motFall0 = mot0;
     w->motFall1 = mot1;

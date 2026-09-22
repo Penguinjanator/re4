@@ -34,7 +34,6 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "quake.h"
-#include "ref_access.h"
 #include "em.h"
 #include "em_mod.h"
 
@@ -252,7 +251,7 @@ void cEm25::move()
     Motion.Mot_flag &= ~0x40000000;
     em25DmCk(this);
     w->Be_flg &= ~0x2F;
-    if (!DbgFlagChk(pGS, DBG_EM_NO_DEATH) && w->Alive_timer) {
+    if (!DbgFlagChk(pG, DBG_EM_NO_DEATH) && w->Alive_timer) {
         w->Alive_timer--;
     }
     if (w->Atk_wait) {
@@ -634,7 +633,7 @@ static void em25_R1_JumpAtk(cEm25* em)
     case 1:
         if (w->Timer) {
             w->Timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.0981747732f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.0981747732f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -691,7 +690,7 @@ static void em25_R1_Bite(cEm25* em)
         }
         if (w->Timer) {
             w->Timer--;
-            LifeDownSet2(pPLS, 5, 0, 1);
+            LifeDownSet2(pPL, 5, 0, 1);
             if (w->Timer == 0) {
                 if ((u32) PlGachaGet() < 15) {
                     LifeDownSet2(pPL, 500, 0, 1);
@@ -805,7 +804,10 @@ static void em25_R1_P_Appear(cEm25* em)
             em->scale.z = 1.0f;
             em->invisible_factor = 1.0f;
             em->hp = 0;
-            U8Set(w->Atk_enable, 1);
+            // A local for the 1: stored directly, it shares a register with EmRoutineSet's own
+            // literal arguments below instead of getting its own.
+            int n = 1;
+            w->Atk_enable = n;
             EmRoutineSet(em, 1, 9, 0, 0);
         }
         break;
@@ -1320,7 +1322,10 @@ void cEm25::setParent(cEm* parent, int parts, Vec* ppos, Vec* prot)
         ang.z = 0.0f;
     }
     AtariOff(&atari, 0xFCFF);
-    U8Set(w->dead, 0);
+    // A local for the 0: stored directly, it shares a register with the w->Mode/EmRoutineSet
+    // literals below instead of getting its own.
+    int n = 0;
+    w->dead = n;
     w->Mode = 1;
     EmRoutineSet(this, 1, 8, 0, 0);
 }
@@ -1498,20 +1503,20 @@ int em25CatchCk(cEm25* em)
         return 0;
     }
     a = em->pos;
-    b = pPLS->pos;
+    b = pPL->pos;
     a.y += 500.0f;
     b.y += 500.0f;
     if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
         return 0;
     }
     a = em->pos;
-    b = pPLS->pos;
+    b = pPL->pos;
     a.y += 500.0f;
     b.y += 500.0f;
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
         return 0;
     }
-    PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPLS->pos));
+    PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
     TransMatrix(m, &em->pos);
     a.x = 300.0f;
     a.y = 500.0f;
@@ -1535,7 +1540,7 @@ int em25CatchCk(cEm25* em)
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
         return 0;
     }
-    pPLS->dmg.set(0, 2);
+    pPL->dmg.set(0, 2);
     em->dmg.set(0, 2);
     VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
     return 1;
@@ -1593,7 +1598,7 @@ void em25RouteCk(cEm25* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pEm = pPLS;
+    w->pEm = pPL;
     w->Be_flg &= ~4;
 }
 

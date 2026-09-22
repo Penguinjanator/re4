@@ -131,12 +131,8 @@ struct R209Work {
     ScePrim* task[4];    // 0x7FC
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R209WorkPtr {
-    R209Work* p;
-};
 
-static R209WorkPtr r209_work;
+static R209Work* r209_work;
 
 
 
@@ -267,28 +263,28 @@ void R209Init()
     cModel* m;
 
 #line 94 "D:/Bio4/Prog/r209.cpp"
-    r209_work.p = (R209Work*) MEM_CALLOC(sizeof(R209Work), 1, 0xd);
-    getRoomEtcDoor(4, &r209_work.p->door4, 1);
-    r209_work.p->door[0].init(0xB3);
-    r209_work.p->door[1].init(0xB4);
-    r209_work.p->door[2].init(0xB5);
-    r209_work.p->door[3].init(0xB6);
-    r209_work.p->door[4].init(2);
-    r209_work.p->door[5].init(3);
-    r209_work.p->door[6].init(0xA1);
+    r209_work = (R209Work*) MEM_CALLOC(sizeof(R209Work), 1, 0xd);
+    getRoomEtcDoor(4, &r209_work->door4, 1);
+    r209_work->door[0].init(0xB3);
+    r209_work->door[1].init(0xB4);
+    r209_work->door[2].init(0xB5);
+    r209_work->door[3].init(0xB6);
+    r209_work->door[4].init(2);
+    r209_work->door[5].init(3);
+    r209_work->door[6].init(0xA1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        if (getRoomEtcDoor(9, &r209_work.p->door9, 1) == 1) {
-            r209_work.p->door9->setCloseLock();
+        if (getRoomEtcDoor(9, &r209_work->door9, 1) == 1) {
+            r209_work->door9->setCloseLock();
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r209_DoorMessage, 0, 1);
             SceExec(0x12, (TaskFunc) r209_CheckUseSalonKey, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        r209_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r209s00.evd"));
-        EmReadSearch(0x1A, 0, r209_work.p->evd->m_size);
-        r209_work.p->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
+        r209_work->evd = DC.setData(EvtMgr.NameChange("evd/r209s00.evd"));
+        EmReadSearch(0x1A, 0, r209_work->evd->m_size);
+        r209_work->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EvtMgr.SetFunc("evt_r209s00_func", (void*) Evt_R209S00_Func);
-        getRoomEtcDoor(4, &r209_work.p->door4, 1);
+        getRoomEtcDoor(4, &r209_work->door4, 1);
         SceExec(0x12, (TaskFunc) r209_2ndBattle, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
@@ -296,46 +292,46 @@ void R209Init()
         Vec rot0 = {0.0f, 0.0f, 0.0f};
 
         ScfFlagOff(pG, SCF_8c);
-        r209_work.p->leader.setEm(0x7D, 3, 1, 0, 0);
-        r209_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &ofs, &rot0);
-        OyaSetObj00(r209_work.p->head, r209_work.p->leader.getPtr(), 2);
-        EstSet(r209_work.p->head, -1, 0, 0, EFF_CORE, 0x2D, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        r209_work.p->em[4].w.setEm(0x7E, 3, 1, 0, 0);
-        r209_work.p->em[5].w.setEm(0x7F, 3, 1, 0, 0);
-        r209_work.p->em[6].w.setEm(0x8B, 3, 1, 0, 0);
-        r209_work.p->em[7].w.setEm(0x8D, 3, 1, 0, 0);
-        r209_work.p->em[1].w.setEm(0x7B, 3, 1, 0, 0);
-        r209_work.p->em[2].w.setEm(0x7C, 3, 1, 0, 0);
-        getRoomEtcDoor(2, &r209_work.p->door2, 1);
-        getRoomEtcDoor(3, &r209_work.p->door3, 1);
+        r209_work->leader.setEm(0x7D, 3, 1, 0, 0);
+        r209_work->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &ofs, &rot0);
+        OyaSetObj00(r209_work->head, r209_work->leader.getPtr(), 2);
+        EstSet(r209_work->head, -1, 0, 0, EFF_CORE, 0x2D, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        r209_work->em[4].w.setEm(0x7E, 3, 1, 0, 0);
+        r209_work->em[5].w.setEm(0x7F, 3, 1, 0, 0);
+        r209_work->em[6].w.setEm(0x8B, 3, 1, 0, 0);
+        r209_work->em[7].w.setEm(0x8D, 3, 1, 0, 0);
+        r209_work->em[1].w.setEm(0x7B, 3, 1, 0, 0);
+        r209_work->em[2].w.setEm(0x7C, 3, 1, 0, 0);
+        getRoomEtcDoor(2, &r209_work->door2, 1);
+        getRoomEtcDoor(3, &r209_work->door3, 1);
         SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r209_LeaderPointAtPlayer, 0, 1);
         SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) r209_LeaderEscapeToD, 0, 1);
         SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r209_StrStopReqFunc, (void*) 0xD, 1);
-        r209_work.p->strId = SndStrReq(0, 0x14, 0x80000003, 0, 0, 0.0f);
+        r209_work->strId = SndStrReq(0, 0x14, 0x80000003, 0, 0, 0.0f);
         SceAtSetEnable(0x8F, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3)) {
         SmdGetObjPtr(0xAC)->be_flag &= ~2;
         SceAtSetEnable(0xC, 0);
     }
-    r209_work.p->bridgeObj = SmdGetObjPtr(0x84);
-    r209_work.p->bridge[0] = SmdGetObjPtr(0x81);
-    r209_work.p->bridge[1] = SmdGetObjPtr(0x82);
-    r209_work.p->bridge[2] = SmdGetObjPtr(0x83);
-    r209_work.p->bridge[3] = SmdGetObjPtr(0xB2);
+    r209_work->bridgeObj = SmdGetObjPtr(0x84);
+    r209_work->bridge[0] = SmdGetObjPtr(0x81);
+    r209_work->bridge[1] = SmdGetObjPtr(0x82);
+    r209_work->bridge[2] = SmdGetObjPtr(0x83);
+    r209_work->bridge[3] = SmdGetObjPtr(0xB2);
     for (i = 0; i < 4; i++) {
-        PSVECSubtract(&r209_work.p->bridge[i]->pos, &r209_work.p->bridgeObj->pos, &r209_work.p->bridgeOfs[i]);
+        PSVECSubtract(&r209_work->bridge[i]->pos, &r209_work->bridgeObj->pos, &r209_work->bridgeOfs[i]);
     }
     if (RsfCheck(G_ROOM_ID, 6)) {
         u32 j;
         f32 rotY[4] = {0.0f, PI, PI, 0.0f};
 
-        r209_work.p->bridgeObj->pos.z = 14530.0f;
-        r209_work.p->bridgeObj->matUpdate();
+        r209_work->bridgeObj->pos.z = 14530.0f;
+        r209_work->bridgeObj->matUpdate();
         for (j = 0; j < 4; j++) {
-            PSVECAdd(&r209_work.p->bridgeObj->pos, &r209_work.p->bridgeOfs[j], &r209_work.p->bridge[j]->pos);
-            r209_work.p->bridge[j]->ang.y = rotY[j];
-            r209_work.p->bridge[j]->matUpdate();
+            PSVECAdd(&r209_work->bridgeObj->pos, &r209_work->bridgeOfs[j], &r209_work->bridge[j]->pos);
+            r209_work->bridge[j]->ang.y = rotY[j];
+            r209_work->bridge[j]->matUpdate();
         }
         SceAtSetEnable(0x21, 0);
     } else {
@@ -349,14 +345,14 @@ void R209Init()
     }
     SmdGetObjPtr(2)->be_flag &= ~2;
     SmdGetObjPtr(3)->be_flag &= ~2;
-    r209_work.p->sat2 = SatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 3);
-    if (RsfCheck(*(u16*) &pGS->stage_no, 8) == 0) {
+    r209_work->sat2 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 3);
+    if (RsfCheck(*(u16*) &pG->stage_no, 8) == 0) {
         SmdGetObjPtr(0xAD)->pos.z = 0.0f;
         SmdGetObjPtr(0xAD)->matUpdate();
     } else {
-        SatMgr.destroy(r209_work.p->sat2);
-        r209_work.p->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 1);
-        r209_work.p->eat1 = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 2);
+        SatMgr.destroy(r209_work->sat2);
+        r209_work->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 1);
+        r209_work->eat1 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 2);
     }
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         SmdGetObjPtr(1)->pos.y = 4000.0f;
@@ -364,8 +360,8 @@ void R209Init()
         SmdGetObjPtr(0xB7)->pos.y = 1491.0f;
         SmdGetObjPtr(0xB7)->matUpdate();
     } else {
-        r209_work.p->sat0 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 2);
-        r209_work.p->eat0 = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 3);
+        r209_work->sat0 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 2);
+        r209_work->eat0 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 3);
     }
     SceAtSetEnable(0x82, 1);
     m = SceAtItemModelPtr(0x82);
@@ -390,13 +386,13 @@ void R209Main()
     int atNo[8] = {0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D};
     u32 atNum = 8;
 
-    r209_work.p->snipeCnt = 0;
-    if (RsfCheck(*(u16*) &pGS->stage_no, 3)) {
+    r209_work->snipeCnt = 0;
+    if (RsfCheck(*(u16*) &pG->stage_no, 3)) {
         for (i = 0; i < 8; i++) {
-            w = &r209_work.p->em[r209_snipeEmNo[i]];
+            w = &r209_work->em[r209_snipeEmNo[i]];
             if (w->active == 1 && w->w.isActive() == 1 && w->w.ckParasite() == 0) {
-                r209_work.p->snipeIdx[r209_work.p->snipeCnt] = r209_snipeEmNo[i];
-                r209_work.p->snipeCnt++;
+                r209_work->snipeIdx[r209_work->snipeCnt] = r209_snipeEmNo[i];
+                r209_work->snipeCnt++;
             }
         }
         // do-while: a `for` keeps a duplicated entry test `i < atNum` that cse1 cannot fold (atNum is a
@@ -415,14 +411,14 @@ void R209Main()
         // consecutive sets of one variable (consec_sets_giv): one giv with benefit 2 adds and no
         // not-worth intermediate, so `j` still has only reducible givs and is eliminated into the
         // pointer compare, and the giv init `addi bit,base8,8` is emitted after the loop's movables.
-        for (i = 0; i < (u32) r209_work.p->snipeCnt; i++) {
+        for (i = 0; i < (u32) r209_work->snipeCnt; i++) {
             u32 base8 = i * 8;
-            int idx = r209_work.p->snipeIdx[i];
+            int idx = r209_work->snipeIdx[i];
 
             for (j = 0; j < atNum; j++) {
                 u32 bit = j + base8;
                 bit += 8;
-                if (SceAtCheckHitModel(atNo[j], r209_work.p->em[idx].w.getPtr())) {
+                if (SceAtCheckHitModel(atNo[j], r209_work->em[idx].w.getPtr())) {
                     // Not a pointer-base bit-set macro: the block's three local qtys (idx, amt/shift, val/or) are
                     // hand-sorted by local-alloc, and with a pointer base the idx pseudo prefers
                     // GENERAL_REGS and takes r0.  An integer (u32) base makes both plus operands
@@ -441,15 +437,15 @@ void R209Main()
         }
     }
     for (i = 0; i < 8; i++) {
-        r209_work.p->atPrev[i] = r209_work.p->atCur[i];
-        r209_work.p->atCur[i] = flags[i];
-        r209_work.p->atOn[i] = flags[i] & ~r209_work.p->atPrev[i];
-        r209_work.p->atOff[i] = r209_work.p->atPrev[i] & ~flags[i];
+        r209_work->atPrev[i] = r209_work->atCur[i];
+        r209_work->atCur[i] = flags[i];
+        r209_work->atOn[i] = flags[i] & ~r209_work->atPrev[i];
+        r209_work->atOff[i] = r209_work->atPrev[i] & ~flags[i];
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if (r209_work.p->leader.isActive() == 0) {
+        if (r209_work->leader.isActive() == 0) {
             RsfSet(G_ROOM_ID, 3);
-            r209_work.p->head->be_flag &= ~2;
+            r209_work->head->be_flag &= ~2;
             EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
             EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -458,39 +454,42 @@ void R209Main()
                 RsfSet(G_ROOM_ID, 7);
                 SceExec(0x12, (TaskFunc) r209_GatlingAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
-            if (r209_work.p->leader.ckGoto() != 1) {
-                r209_work.p->leaderPointNo = -1;
+            if (r209_work->leader.ckGoto() != 1) {
+                r209_work->leaderPointNo = -1;
             }
-            r209_work.p->leaderInPlace = r209_InPlaceCheck(r209_work.p->leader.getPtr());
-            r209_work.p->plInPlace = r209_InPlaceCheck(pPL);
-            if (r209_work.p->leaderInPlace == 0) {
+            r209_work->leaderInPlace = r209_InPlaceCheck(r209_work->leader.getPtr());
+            r209_work->plInPlace = r209_InPlaceCheck(pPL);
+            if (r209_work->leaderInPlace == 0) {
                 pG->Room_flg[0] |= 0x20000000;
             }
-            if (r209_work.p->plInPlace == 0) {
+            if (r209_work->plInPlace == 0) {
                 pG->Room_flg[0] |= 0x40000000;
-                r209_work.p->plInPlaceCnt++;
+                r209_work->plInPlaceCnt++;
             } else {
-                r209_work.p->plInPlaceCnt = 0;
+                r209_work->plInPlaceCnt = 0;
             }
-            if ((pG->Room_flg[0] & 0x40000000) && (pGS->Room_flg[0] & 0x20000000)) {  // two `andis.`: the struct view stops fold from merging the bit tests
-                if (r209_work.p->leaderInPlace == 1 && r209_work.p->plInPlace == 1) {
-                    SceAtSetEnable(0x19, 0);
-                    SceAtSetEnable(0x1A, 0);
-                    SceAtSetEnable(0x1C, 0);
-                    SceAtSetEnable(0x1D, 0);
-                    r209_work.p->leader.getPtr()->Character = 0;
+            // two `andis.`: separate ifs keep fold from merging the bit tests
+            if (pG->Room_flg[0] & 0x40000000) {
+                if (pG->Room_flg[0] & 0x20000000) {
+                    if (r209_work->leaderInPlace == 1 && r209_work->plInPlace == 1) {
+                        SceAtSetEnable(0x19, 0);
+                        SceAtSetEnable(0x1A, 0);
+                        SceAtSetEnable(0x1C, 0);
+                        SceAtSetEnable(0x1D, 0);
+                        r209_work->leader.getPtr()->Character = 0;
+                    }
                 }
             }
         }
     }
     r209_BowgunCtrl();
     n = SceCountEmAlive(0x10, 0x20);
-    if (n == 0 && r209_work.p->strId) {
-        SndStrReq(r209_work.p->strId, 4, 600, 0);
-        r209_work.p->strId = n;
+    if (n == 0 && r209_work->strId) {
+        SndStrReq(r209_work->strId, 4, 600, 0);
+        r209_work->strId = n;
     }
     for (i = 0; i < 7; i++) {
-        r209_work.p->door[i].move();
+        r209_work->door[i].move();
     }
 }
 
@@ -523,7 +522,7 @@ extern "C" int r209_GanadoSnipeCheck(cEmWrap* w)
 // the next r209_leaderPoint.
 static void r209_LeaderAction()
 {
-    R209Work* wp = r209_work.p;
+    R209Work* wp = r209_work;
     int loop = 1;
     int moved = 0;
     cEm* em = wp->leader.getPtr();
@@ -556,7 +555,7 @@ static void r209_LeaderPointAtPlayer()
     int opened = 0;
 
     getRoomEtcDoor(1, &door, 1);
-    r209_work.p->leader.setFindPL();
+    r209_work->leader.setFindPL();
     do {
         if (door->flag & 0x10000000) {
             opened = 1;
@@ -564,14 +563,14 @@ static void r209_LeaderPointAtPlayer()
         SceSleep(1);
     } while (opened == 0);
     SceEventStart(1);
-    r209_work.p->leader.setNoSuspend(1);
-    r209_work.p->head->setNoSuspend(1);
-    r209_work.p->em[4].w.setNoSuspend(1);
-    r209_work.p->em[5].w.setNoSuspend(1);
-    r209_work.p->em[6].w.setNoSuspend(1);
-    r209_work.p->em[7].w.setNoSuspend(1);
+    r209_work->leader.setNoSuspend(1);
+    r209_work->head->setNoSuspend(1);
+    r209_work->em[4].w.setNoSuspend(1);
+    r209_work->em[5].w.setNoSuspend(1);
+    r209_work->em[6].w.setNoSuspend(1);
+    r209_work->em[7].w.setNoSuspend(1);
     CamCtrl.CutCall(3);
-    r209_work.p->leader.setGoto(&pPL->pos, 8);
+    r209_work->leader.setGoto(&pPL->pos, 8);
     SceSetEventCancel(1, (TaskFunc) r209_LeaderPointAtPlayerEndProc, 0, -1, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -589,16 +588,16 @@ static void r209_LeaderPointAtPlayer()
 static void r209_LeaderPointAtPlayerEndProc()
 {
     CamCtrl.Comeback(0);
-    r209_work.p->leader.setNoSuspend(0);
-    r209_work.p->head->setNoSuspend(0);
-    r209_work.p->em[4].w.setNoSuspend(0);
-    r209_work.p->em[5].w.setNoSuspend(0);
-    r209_work.p->em[6].w.setNoSuspend(0);
-    r209_work.p->em[7].w.setNoSuspend(0);
-    r209_work.p->em[6].w.setFlag(1);
-    r209_work.p->em[7].w.setFlag(1);
+    r209_work->leader.setNoSuspend(0);
+    r209_work->head->setNoSuspend(0);
+    r209_work->em[4].w.setNoSuspend(0);
+    r209_work->em[5].w.setNoSuspend(0);
+    r209_work->em[6].w.setNoSuspend(0);
+    r209_work->em[7].w.setNoSuspend(0);
+    r209_work->em[6].w.setFlag(1);
+    r209_work->em[7].w.setFlag(1);
     SceEventEnd(0);
-    while (r209_work.p->leader.ckGoto() == 8) {
+    while (r209_work->leader.ckGoto() == 8) {
         SceSleep(1);
     }
     r209_LeaderMoveToPoint(5, 1);
@@ -608,19 +607,19 @@ static void r209_LeaderPointAtPlayerEndProc()
 // Send the leader to r209_leaderPoint[no] with goto mode `flag` (1 run, 8 taunt walk).
 extern "C" void r209_LeaderMoveToPoint(int no, int flag)
 {
-    r209_work.p->leaderPointNo = no;
-    r209_work.p->leader.setGoto(&r209_leaderPoint[no], flag);
+    r209_work->leaderPointNo = no;
+    r209_work->leader.setGoto(&r209_leaderPoint[no], flag);
 }
 
 // The leader's first-floor route: points 1, 0, then 2 (running).
 static void r209_ToPoint1F()
 {
     r209_LeaderMoveToPoint(1, 1);
-    while (r209_work.p->leader.ckGoto() == 1) {
+    while (r209_work->leader.ckGoto() == 1) {
         SceSleep(1);
     }
     r209_LeaderMoveToPoint(0, 1);
-    while (r209_work.p->leader.ckGoto() == 1) {
+    while (r209_work->leader.ckGoto() == 1) {
         SceSleep(1);
     }
     r209_LeaderMoveToPoint(2, 1);
@@ -638,18 +637,18 @@ static void r209_DoorOpen1F(int no)
 {
     Vec ang;
 
-    if (r209_work.p->leader.isActive() == 0) {
+    if (r209_work->leader.isActive() == 0) {
         SceExit();
     }
-    if (r209_work.p->leader.getPtr()->hp <= 0) {
+    if (r209_work->leader.getPtr()->hp <= 0) {
         SceExit();
     }
     SceAtSetEnable(no, 0);
     if (no == 0x1A) {
-        if (r209_work.p->leader.isActive()) {
-            if (r209_work.p->leaderInPlace == 0) {
-                if (SceAtCheckHitModel(5, r209_work.p->leader.getPtr()) == 0) {
-                    cEmWrap* w = &r209_work.p->leader;
+        if (r209_work->leader.isActive()) {
+            if (r209_work->leaderInPlace == 0) {
+                if (SceAtCheckHitModel(5, r209_work->leader.getPtr()) == 0) {
+                    cEmWrap* w = &r209_work->leader;
                     f32 angY = 2.32f;
 
                     w->setPos(&r209_leaderPoint[0]);
@@ -658,38 +657,38 @@ static void r209_DoorOpen1F(int no)
                     ang.z = 0.0f;
                     w->setAng(&ang);
                 }
-                while ((r209_work.p->door2->flag & 0x10000000) == 0) {
+                while ((r209_work->door2->flag & 0x10000000) == 0) {
                     SceSleep(1);
                 }
                 r209_LeaderMoveToPoint(4, 1);
-                r209_work.p->em[0].w.setEm(0x79, 3, 0, 0, 0);
+                r209_work->em[0].w.setEm(0x79, 3, 0, 0, 0);
             } else {
-                r209_work.p->leader.setPos(&r209_leaderPoint[1]);
+                r209_work->leader.setPos(&r209_leaderPoint[1]);
                 SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r209_ToPoint2FOut, 0, 1);
-                r209_work.p->em[0].w.setEm(0x79, 3, 0, 0, 0);
+                r209_work->em[0].w.setEm(0x79, 3, 0, 0, 0);
             }
         }
-        while (r209_work.p->door2->flag & 0x10000000) {
+        while (r209_work->door2->flag & 0x10000000) {
             SceSleep(1);
         }
-        if (r209_work.p->plInPlace == 0) {
-            r209_work.p->doorState = 1;
+        if (r209_work->plInPlace == 0) {
+            r209_work->doorState = 1;
         }
     } else {
-        if (r209_work.p->doorState == 2) {
-            if (r209_work.p->leaderInPlace != 1) {
+        if (r209_work->doorState == 2) {
+            if (r209_work->leaderInPlace != 1) {
                 SceAtSetEnable(0x19, 0);
                 SceAtSetEnable(0x1A, 0);
                 SceAtSetEnable(0x1C, 0);
                 SceAtSetEnable(0x1D, 0);
                 r209_LeaderMoveToPoint(3, 1);
-                r209_work.p->leader.getPtr()->Character = 0;
+                r209_work->leader.getPtr()->Character = 0;
                 SceExit();
             } else {
                 goto inPlace;
             }
-        } else if (r209_work.p->leaderInPlace == 1) {
-            if (r209_work.p->plInPlaceCnt > 0x95) {
+        } else if (r209_work->leaderInPlace == 1) {
+            if (r209_work->plInPlaceCnt > 0x95) {
 inPlace:
                 pG->Room_flg[0] |= 0x00200000;
                 SceAtSetEnable(0x19, 0);
@@ -710,18 +709,18 @@ static void r209_DoorOpen2F(int no)
 {
     Vec ang;
 
-    if (r209_work.p->leader.isActive() == 0) {
+    if (r209_work->leader.isActive() == 0) {
         SceExit();
     }
-    if (r209_work.p->leader.getPtr()->hp <= 0) {
+    if (r209_work->leader.getPtr()->hp <= 0) {
         SceExit();
     }
     SceAtSetEnable(no, 0);
     if (no == 0x1D) {
-        r209_work.p->em[0].w.setEm(0x79, 3, 0, 0, 0);
-        if (r209_work.p->leaderInPlace == 0) {
-            if (SceAtCheckHitModel(7, r209_work.p->leader.getPtr()) == 0) {
-                cEmWrap* w = &r209_work.p->leader;
+        r209_work->em[0].w.setEm(0x79, 3, 0, 0, 0);
+        if (r209_work->leaderInPlace == 0) {
+            if (SceAtCheckHitModel(7, r209_work->leader.getPtr()) == 0) {
+                cEmWrap* w = &r209_work->leader;
                 f32 angY = 2.32f;
 
                 w->setPos(&r209_leaderPoint[1]);
@@ -730,33 +729,33 @@ static void r209_DoorOpen2F(int no)
                 ang.z = 0.0f;
                 w->setAng(&ang);
             }
-            while ((r209_work.p->door3->flag & 0x10000000) == 0) {
+            while ((r209_work->door3->flag & 0x10000000) == 0) {
                 SceSleep(1);
             }
             r209_LeaderMoveToPoint(2, 1);
-        } else if (r209_work.p->task[0] == 0) {
-            r209_work.p->task[0] = SceExec(0x12, (TaskFunc) r209_ToPoint1F, 0, 0, SCE_PRIO_DEF_2, 0);
+        } else if (r209_work->task[0] == 0) {
+            r209_work->task[0] = SceExec(0x12, (TaskFunc) r209_ToPoint1F, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        while (r209_work.p->door3->flag & 0x10000000) {
+        while (r209_work->door3->flag & 0x10000000) {
             SceSleep(1);
         }
-        if (r209_work.p->plInPlace == 0) {
-            r209_work.p->doorState = 2;
+        if (r209_work->plInPlace == 0) {
+            r209_work->doorState = 2;
         }
     } else {
-        if (r209_work.p->doorState == 1) {
-            if (r209_work.p->leaderInPlace != 1) {
+        if (r209_work->doorState == 1) {
+            if (r209_work->leaderInPlace != 1) {
                 SceAtSetEnable(0x19, 0);
                 SceAtSetEnable(0x1A, 0);
                 SceAtSetEnable(0x1C, 0);
                 SceAtSetEnable(0x1D, 0);
-                r209_work.p->leader.getPtr()->Character = 0;
+                r209_work->leader.getPtr()->Character = 0;
                 SceExit();
             } else {
                 goto inPlace;
             }
-        } else if (r209_work.p->leaderInPlace == 1) {
-            if (r209_work.p->plInPlaceCnt > 0x95) {
+        } else if (r209_work->leaderInPlace == 1) {
+            if (r209_work->plInPlaceCnt > 0x95) {
 inPlace:
                 pG->Room_flg[0] |= 0x00200000;
                 SceAtSetEnable(0x19, 0);
@@ -779,7 +778,7 @@ static void r209_LeaderEscapeToD()
     Vec pos0 = {-41412.0f, 4000.0f, 10379.0f};
     Vec pos;
     cObj* obj = SmdGetObjPtr(0xAC);
-    R209Work* wp = r209_work.p;
+    R209Work* wp = r209_work;
 
     if (wp->leader.isActive() == 0) {
         SceExit();
@@ -804,12 +803,12 @@ static void r209_LeaderEscapeToD()
     SceEventStart(1);
     SceAtSetEnable(0xC, 0);
     wp->leader.setNoSuspend(1);
-    r209_work.p->head->setNoSuspend(1);
+    r209_work->head->setNoSuspend(1);
     r209_LeaderMoveToPoint(7, 1);
     CamCtrl.CutCall(0xC);
     pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_LeaderEscapeToDEndProc, 0, 0xB, 1);
-    r209_work.p->seId = RoomSeCall(3, &obj->pos, 0, 0, 0);
+    r209_work->seId = RoomSeCall(3, &obj->pos, 0, 0, 0);
     while (obj->pos.y < 2900.0f) {
         obj->pos.y += 33.0f;
         obj->matUpdate();
@@ -833,7 +832,7 @@ static void r209_LeaderEscapeToD()
 // door D facing 1.11 rad and the room flags for the next phase set.
 static void r209_LeaderEscapeToDEndProc()
 {
-    cEmWrap* w = &r209_work.p->leader;
+    cEmWrap* w = &r209_work->leader;
     Vec pos;
 
     if (pG->Room_flg[0] & 0x00100000) {
@@ -849,13 +848,13 @@ static void r209_LeaderEscapeToDEndProc()
         pos.z = 0.0f;
         w->setAng(&pos);
         SmdGetObjPtr(0xAC)->be_flag &= ~2;
-        SndStop(r209_work.p->seId, 0);
+        SndStop(r209_work->seId, 0);
     }
     CamCtrl.Comeback(0);
     RsfSet(G_ROOM_ID, 1);
     w->getPtr()->atari.setFlag200();
     w->setNoSuspend(0);
-    r209_work.p->head->setNoSuspend(0);
+    r209_work->head->setNoSuspend(0);
     SceAtDataSet_exec(0x1A, SCE_LEVEL10, 0, (TaskFunc) r209_DoorOpen1F, (void*) 0x1A, 1);
     SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r209_DoorOpen1F, (void*) 0x19, 1);
     SceAtDataSet_exec(0x1D, SCE_LEVEL10, 0, (TaskFunc) r209_DoorOpen2F, (void*) 0x1D, 1);
@@ -865,7 +864,7 @@ static void r209_LeaderEscapeToDEndProc()
     while (w->ckGoto() == 1) {
         SceSleep(1);
     }
-    while (SceAtHitCheck(0xB) == 0 && r209_GanadoSnipeCheck(&r209_work.p->leader) == 0) {
+    while (SceAtHitCheck(0xB) == 0 && r209_GanadoSnipeCheck(&r209_work->leader) == 0) {
         SceSleep(1);
     }
     r209_LeaderMoveToPoint(1, 1);
@@ -892,7 +891,7 @@ static void r209_CheckUseSalonKey()
     RsfSet(G_ROOM_ID, 2);
     ScfFlagOn(pG, SCF_73);
     SceAtSetEnable(2, 0);
-    r209_work.p->door9->setNormal();
+    r209_work->door9->setNormal();
     SceUpCut(1, -1, 2, 0);
 }
 
@@ -904,43 +903,43 @@ static void r209_GatlingAppear()
     Vec rot;
     cEm* em;
 
-    if (r209_work.p->leader.isActive() == 0) {
+    if (r209_work->leader.isActive() == 0) {
         SceExit();
     }
-    if (r209_work.p->leader.getPtr()->hp <= 0) {
+    if (r209_work->leader.getPtr()->hp <= 0) {
         SceExit();
     }
     SceEventStart(1);
-    r209_work.p->door2->setNoSuspend(0);
-    r209_work.p->door3->setNoSuspend(0);
+    r209_work->door2->setNoSuspend(0);
+    r209_work->door3->setNoSuspend(0);
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    SndStrReq(r209_work.p->strId, 4, 400, 0);
-    U32Set(r209_work.p->strId, SndStrReq(0, 0x1B, 0x80000003, 0, 0, 0.0f));
+    SndStrReq(r209_work->strId, 4, 400, 0);
+    r209_work->strId = SndStrReq(0, 0x1B, 0x80000003, 0, 0, 0.0f);
     pos.x = -27050.0f;
     pos.y = 1000.0f;
     pos.z = 13348.0f;
     rot.x = 0.0f;
     rot.y = 0.7853982f;
     rot.z = 0.0f;
-    r209_work.p->gatling = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), &pos, &rot);
-    if (r209_work.p->gatling != NULL) {
-        r209_work.p->gatling->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
+    r209_work->gatling = SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), &pos, &rot);
+    if (r209_work->gatling != NULL) {
+        r209_work->gatling->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
     }
-    em = r209_work.p->leader.getPtr();
-    ((cEmGanado*) em)->setGatling(r209_work.p->gatling, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29));
+    em = r209_work->leader.getPtr();
+    ((cEmGanado*) em)->setGatling(r209_work->gatling, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29));
     em->setNoSuspend(1);
-    r209_work.p->head->setNoSuspend(1);
-    r209_work.p->gatling->setNoSuspend(1);
+    r209_work->head->setNoSuspend(1);
+    r209_work->gatling->setNoSuspend(1);
     CamCtrl.CutCall(0x11);
     pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_GatlingAppearEndProc, 0, 0xB, 1);
-    r209_work.p->seId = RoomSeCall(7, &r209_work.p->gatling->pos, 0, 0, 0);
-    while (r209_work.p->gatling->pos.y < 3250.0f) {
-        r209_work.p->gatling->pos.y += 30.0f;
+    r209_work->seId = RoomSeCall(7, &r209_work->gatling->pos, 0, 0, 0);
+    while (r209_work->gatling->pos.y < 3250.0f) {
+        r209_work->gatling->pos.y += 30.0f;
         SceSleep(1);
     }
-    r209_work.p->gatling->pos.y = 3250.0f;
-    RoomSeCall(8, &r209_work.p->gatling->pos, 0, 0, 0);
+    r209_work->gatling->pos.y = 3250.0f;
+    RoomSeCall(8, &r209_work->gatling->pos, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -954,16 +953,16 @@ static void r209_GatlingAppear()
 static void r209_GatlingAppearEndProc()
 {
     if (pG->Room_flg[0] & 0x00100000) {
-        SndStop(r209_work.p->seId, 0);
-        r209_work.p->gatling->pos.y = 3250.0f;
+        SndStop(r209_work->seId, 0);
+        r209_work->gatling->pos.y = 3250.0f;
     }
     CamCtrl.Comeback(0);
-    r209_work.p->leader.setNoSuspend(0);
-    r209_work.p->head->setNoSuspend(0);
-    r209_work.p->gatling->setNoSuspend(0);
+    r209_work->leader.setNoSuspend(0);
+    r209_work->head->setNoSuspend(0);
+    r209_work->gatling->setNoSuspend(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    r209_work.p->leader.setFlag(1);
+    r209_work->leader.setFlag(1);
     SceExec(0x12, (TaskFunc) r209_GatlingEndCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
@@ -972,7 +971,7 @@ static void r209_GatlingEndCheck()
 {
     cModel* m;
 
-    while (r209_work.p->leader.isActive() == 1) {
+    while (r209_work->leader.isActive() == 1) {
         SceSleep(1);
     }
     SceSleep(15);
@@ -1013,24 +1012,24 @@ static void r209_2ndBattle()
 {
     ReadModule* m = SearchEmModule(0x1A);
 
-    while ((r209_work.p->door4->flag & 0x10000000) == 0) {
+    while ((r209_work->door4->flag & 0x10000000) == 0) {
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 3);
     SceDestroyEm(0x10, 0x20);
-    memclr_asm(r209_work.p->em, sizeof(R209Em) * 23);
+    memclr_asm(r209_work->em, sizeof(R209Em) * 23);
     SceSleep(2);
     SndBgmTblSet(0x209, 1);
     SysFlagOn(pG, SYS_SCREEN_STOP);
     SubScreenWait(60);
-    if (r209_work.p->evd->waitLoadOk() == 1) {
-        MemorySwap(m->pArc, (u32) r209_work.p->evd->m_addr, r209_work.p->evd->m_size);
+    if (r209_work->evd->waitLoadOk() == 1) {
+        MemorySwap(m->pArc, (u32) r209_work->evd->m_addr, r209_work->evd->m_size);
         EvtMgr.SetEvt(m->pArc, (u32*) 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
-        MemorySwap(m->pArc, (u32) r209_work.p->evd->m_addr, r209_work.p->evd->m_size);
-        r209_work.p->evd->setCommand(CMND_DEL_DATA, 0, 0);
+        MemorySwap(m->pArc, (u32) r209_work->evd->m_addr, r209_work->evd->m_size);
+        r209_work->evd->setCommand(CMND_DEL_DATA, 0, 0);
     }
     SceAtSetEnable(0, 0);
     {
@@ -1048,29 +1047,29 @@ static void r209_2ndBattle()
         pos.z = 0.0f;
         pl->setAng(&pos);
     }
-    if (r209_work.p->em[0].w.setEm(0x93, 3, 1, 0, 0) == 1) {
-        r209_work.p->em[0].active = 1;
-        r209_work.p->em[0].snipe = 1;
-        r209_work.p->em[0].w.setFindPL();
+    if (r209_work->em[0].w.setEm(0x93, 3, 1, 0, 0) == 1) {
+        r209_work->em[0].active = 1;
+        r209_work->em[0].snipe = 1;
+        r209_work->em[0].w.setFindPL();
     }
-    if (r209_work.p->em[1].w.setEm(0x94, 3, 1, 0, 0) == 1) {
-        r209_work.p->em[1].active = 1;
-        r209_work.p->em[1].snipe = 1;
+    if (r209_work->em[1].w.setEm(0x94, 3, 1, 0, 0) == 1) {
+        r209_work->em[1].active = 1;
+        r209_work->em[1].snipe = 1;
     }
-    if (r209_work.p->em[2].w.setEm(0x95, 3, 1, 0, 0) == 1) {
-        r209_work.p->em[2].active = 1;
-        r209_work.p->em[2].snipe = 1;
+    if (r209_work->em[2].w.setEm(0x95, 3, 1, 0, 0) == 1) {
+        r209_work->em[2].active = 1;
+        r209_work->em[2].snipe = 1;
     }
-    if (r209_work.p->em[3].w.setEm(0x96, 3, 1, 0, 0) == 1) {
-        r209_work.p->em[3].active = 1;
-        r209_work.p->em[3].snipe = 1;
+    if (r209_work->em[3].w.setEm(0x96, 3, 1, 0, 0) == 1) {
+        r209_work->em[3].active = 1;
+        r209_work->em[3].snipe = 1;
     }
-    if (r209_work.p->em[15].w.setEm(0x88, 3, 1, 0, 0) == 1) {
-        r209_work.p->em[15].snipe = 1;
+    if (r209_work->em[15].w.setEm(0x88, 3, 1, 0, 0) == 1) {
+        r209_work->em[15].snipe = 1;
     }
-    if (r209_work.p->em[16].w.setEm(0x89, 3, 1, 0, 0) == 1) {
-        r209_work.p->em[16].active = 1;
-        r209_work.p->em[16].snipe = 1;
+    if (r209_work->em[16].w.setEm(0x89, 3, 1, 0, 0) == 1) {
+        r209_work->em[16].active = 1;
+        r209_work->em[16].snipe = 1;
     }
     SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r209_SwitchAppearCheck, 0, 1);
     SceExec(0x12, (TaskFunc) r209_PotBreakCheck, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -1104,7 +1103,7 @@ static void r209_2ndBattleEmSet()
             }
             break;
         case 1:
-            if ((u32) r209_work.p->snipeCnt <= 2) {
+            if ((u32) r209_work->snipeCnt <= 2) {
                 SceExec(0x12, (TaskFunc) r209_RotateDoor, 4, 0, SCE_PRIO_DEF_2, 0);
                 step = 2;
                 SceExec(0x12, (TaskFunc) r209_RotateDoor, 5, 0, SCE_PRIO_DEF_2, 0);
@@ -1114,14 +1113,14 @@ static void r209_2ndBattleEmSet()
             step = 3;
             break;
         case 3:
-            if (RsfCheck(G_ROOM_ID, 8) && (u32) r209_work.p->snipeCnt <= 1) {
+            if (RsfCheck(G_ROOM_ID, 8) && (u32) r209_work->snipeCnt <= 1) {
                 // `li r25,4 .. mr r29,r25` is gcse's PRE of step+1 across the loop.
                 if (pG->Game_level > 7) {
                     for (i = 0; i < 3; i++) {
-                        r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
-                        r209_work.p->em[tbl[i].em].active = 1;
-                        r209_work.p->em[tbl[i].em].snipe = 1;
-                        r209_work.p->em[tbl[i].em].w.setFindPL();
+                        r209_work->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
+                        r209_work->em[tbl[i].em].active = 1;
+                        r209_work->em[tbl[i].em].snipe = 1;
+                        r209_work->em[tbl[i].em].w.setFindPL();
                     }
                 }
                 step++;
@@ -1129,16 +1128,16 @@ static void r209_2ndBattleEmSet()
             break;
         }
         open = 0;
-        if (FlagChkVar(r209_work.p->atOn, 64) && (pG->Room_flg[0] & 0x04000000) == 0) {
+        if (FlagChkVar(r209_work->atOn, 64) && (pG->Room_flg[0] & 0x04000000) == 0) {
             if ((done ^ 1) & 1) {
-                cnt = r209_work.p->em[0].w.isActive() == 0;
-                if (r209_work.p->em[1].w.isActive() == 0) {
+                cnt = r209_work->em[0].w.isActive() == 0;
+                if (r209_work->em[1].w.isActive() == 0) {
                     cnt++;
                 }
-                if (r209_work.p->em[2].w.isActive() == 0) {
+                if (r209_work->em[2].w.isActive() == 0) {
                     cnt++;
                 }
-                if (r209_work.p->em[3].w.isActive() == 0) {
+                if (r209_work->em[3].w.isActive() == 0) {
                     cnt++;
                 }
                 if (cnt > 1) {
@@ -1166,23 +1165,23 @@ static void r209_2ndBattleEmSet()
 // bowgun Ganados appear; player-cancellable.
 static void r209_2ndBattleBowgunAppear()
 {
-    R209Work* wp = r209_work.p;   // one load for the four task stores (pointer stores alias the work pointer)
+    R209Work* wp = r209_work;   // one load for the four task stores (pointer stores alias the work pointer)
 
     wp->task[3] = 0;
     wp->task[2] = 0;
     wp->task[1] = 0;
     wp->task[0] = 0;
     SceEventStart(1);
-    r209_work.p->task[0] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 0, 0, SCE_PRIO_DEF_2, 0);
-    r209_work.p->task[1] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 1, 0, SCE_PRIO_DEF_2, 0);
-    r209_work.p->task[2] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 2, 0, SCE_PRIO_DEF_2, 0);
-    pGS->Room_flg[0] &= ~0x00100000;
+    r209_work->task[0] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 0, 0, SCE_PRIO_DEF_2, 0);
+    r209_work->task[1] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 1, 0, SCE_PRIO_DEF_2, 0);
+    r209_work->task[2] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 2, 0, SCE_PRIO_DEF_2, 0);
+    pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_2ndBattleBowgunAppearEndProc, 0, 0xB, 1);
     CamCtrl.CutCall(0x12);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    r209_work.p->task[3] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 3, 0, SCE_PRIO_DEF_2, 0);
+    r209_work->task[3] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 3, 0, SCE_PRIO_DEF_2, 0);
     CamCtrl.CutCall(0x13);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -1199,15 +1198,15 @@ static void r209_2ndBattleBowgunAppearEndProc()
 
     if (pG->Room_flg[0] & 0x00100000) {
         for (i = 0; i < 4; i++) {
-            r209_work.p->door[i].setClosed();
-            if (r209_work.p->task[i] != NULL) {
-                SceKill(r209_work.p->task[i]);
+            r209_work->door[i].setClosed();
+            if (r209_work->task[i] != NULL) {
+                SceKill(r209_work->task[i]);
             }
-            r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
-            r209_work.p->em[tbl[i].em].active = 1;
-            r209_work.p->em[tbl[i].em].snipe = 1;
-            r209_work.p->em[tbl[i].em].w.setPos(&r209_bowgunStartPos[i]);
-            r209_work.p->em[tbl[i].em].w.setNoSuspend(0);
+            r209_work->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
+            r209_work->em[tbl[i].em].active = 1;
+            r209_work->em[tbl[i].em].snipe = 1;
+            r209_work->em[tbl[i].em].w.setPos(&r209_bowgunStartPos[i]);
+            r209_work->em[tbl[i].em].w.setNoSuspend(0);
         }
     }
     CamCtrl.Comeback(0);
@@ -1227,13 +1226,13 @@ static void r209_2ndBattleFinish()
     pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_2ndBattleFinishEndProc, 0, 0xB, 1);
     CamCtrl.CutCall(4);
-    r209_work.p->door[5].setOpen();
-    while (r209_work.p->door[5].getStatus() != 1) {
+    r209_work->door[5].setOpen();
+    while (r209_work->door[5].getStatus() != 1) {
         SceSleep(1);
     }
     CamCtrl.CutCall(5);
-    r209_work.p->door[4].setOpen();
-    while (r209_work.p->door[4].getStatus() != 1) {
+    r209_work->door[4].setOpen();
+    while (r209_work->door[4].getStatus() != 1) {
         SceSleep(1);
     }
     SceSetEventCancel(0, 0, 0, -1, 1);
@@ -1244,11 +1243,11 @@ static void r209_2ndBattleFinish()
 static void r209_2ndBattleFinishEndProc()
 {
     if (pG->Room_flg[0] & 0x00100000) {
-        r209_work.p->door[4].setOpened();
-        r209_work.p->door[5].setOpened();
+        r209_work->door[4].setOpened();
+        r209_work->door[5].setOpened();
     }
     SceAtSetEnable(0, 1);
-    r209_work.p->door4->setNormal();
+    r209_work->door4->setNormal();
     SmdGetObjPtr(2)->be_flag &= ~2;
     SmdGetObjPtr(3)->be_flag &= ~2;
     CamCtrl.Comeback(0);
@@ -1278,7 +1277,7 @@ static void r209_SwitchAppearCheck()
             // COMPILER-DIFF: candidate (sched1 order of the pool/work highs): the seId store through the
             // loaded work pointer has alias base 0, so ours chains it to the obj loads and issues
             // `lis work` before `lis lim`; the codeless asm ties the store to the lim load instead.
-            R209Work* wp = r209_work.p;
+            R209Work* wp = r209_work;
             asm("" : "=r"(seId), "=r"(wp) : "0"(seId), "1"(wp), "f"(lim));
             wp->seId = seId;
             obj1->be_flag |= 0x20;
@@ -1308,8 +1307,8 @@ static void r209_SwitchAppearCheckEnd()
     cObj* objB7 = SmdGetObjPtr(0xB7);
 
     if (pG->Room_flg[0] & 0x00100000) {
-        if (r209_work.p->seId) {
-            SndStop(r209_work.p->seId, 0);
+        if (r209_work->seId) {
+            SndStop(r209_work->seId, 0);
         }
         EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
         EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -1322,8 +1321,8 @@ static void r209_SwitchAppearCheckEnd()
     objB7->be_flag &= ~0x20;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    r209_work.p->sat0 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 2);
-    r209_work.p->eat0 = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 3);
+    r209_work->sat0 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 2);
+    r209_work->eat0 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 3);
     SceAtSetEnable(0x15, 0);
 }
 
@@ -1361,7 +1360,7 @@ static void r209_BridgeAppearCheck()
             int seId = RoomSeCall(0xF, 0, 0, 0, 0);
             const f32 lim = 3322.0f;
             // COMPILER-DIFF: candidate (sched1 order of the pool/work highs), see r209_SwitchAppearCheck
-            R209Work* wp = r209_work.p;
+            R209Work* wp = r209_work;
             asm("" : "=r"(seId), "=r"(wp) : "0"(seId), "1"(wp), "f"(lim));
             wp->seId = seId;
             while (obj->pos.z < lim) {
@@ -1388,8 +1387,8 @@ static void r209_BridgeAppearCheckEnd()
     cEmDoor* door;
 
     if (pG->Room_flg[0] & 0x00100000) {
-        if (r209_work.p->seId) {
-            SndStop(r209_work.p->seId, 0);
+        if (r209_work->seId) {
+            SndStop(r209_work->seId, 0);
         }
         EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
         EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -1400,11 +1399,11 @@ static void r209_BridgeAppearCheckEnd()
     obj->be_flag &= ~0x20;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    r209_work.p->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 1);
-    r209_work.p->eat1 = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 2);
-    SatMgr.destroy(r209_work.p->sat2);
-    r209_work.p->em[21].w.setEm(0xA1, 3, 1, 0, 0);
-    r209_work.p->em[22].w.setEm(0xA2, 3, 1, 0, 0);
+    r209_work->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r209_zeroVec, &r209_zeroVec, 1);
+    r209_work->eat1 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r209_zeroVec, &r209_zeroVec, 2);
+    SatMgr.destroy(r209_work->sat2);
+    r209_work->em[21].w.setEm(0xA1, 3, 1, 0, 0);
+    r209_work->em[22].w.setEm(0xA2, 3, 1, 0, 0);
     // the rest of the function inside the hit arm: the sleep body is laid out after it (`beq SLEEP; ..; b END`)
     // and `lis work@ha` / `&door` are hoisted before the loop
     while (1) {
@@ -1413,8 +1412,8 @@ static void r209_BridgeAppearCheckEnd()
             if (door != NULL && door->hp > 0 && (door->flag & 0x10000000) == 0) {
                 SceSleep(1);
             }
-            r209_work.p->em[21].w.setFlag(1);
-            r209_work.p->em[22].w.setFlag(1);
+            r209_work->em[21].w.setFlag(1);
+            r209_work->em[22].w.setFlag(1);
             break;
         }
         SceSleep(1);
@@ -1426,32 +1425,32 @@ static void r209_BridgeAppearCheckEnd()
 static void r209_OpenPicture(int no)
 {
     pG->Room_flg[0] |= 0x04000000;
-    while (r209_work.p->door[6].getStatus() != 0) {
+    while (r209_work->door[6].getStatus() != 0) {
         SceSleep(1);
     }
     // unsigned index: `cmplwi 1; blt case0` without a `cmpwi 0` test
     switch ((u32) no) {
     case 0:
-        r209_work.p->picEm[0].setEm(0x9D, 3, 1, 0, 0);
-        r209_work.p->picEm[1].setEm(0x9E, 3, 1, 0, 0);
+        r209_work->picEm[0].setEm(0x9D, 3, 1, 0, 0);
+        r209_work->picEm[1].setEm(0x9E, 3, 1, 0, 0);
         break;
     case 1:
-        r209_work.p->picEm[0].setEm(0x9F, 3, 1, 0, 0);
-        r209_work.p->picEm[1].setEm(0xA0, 3, 1, 0, 0);
+        r209_work->picEm[0].setEm(0x9F, 3, 1, 0, 0);
+        r209_work->picEm[1].setEm(0xA0, 3, 1, 0, 0);
         break;
     case 2:
-        r209_work.p->picEm[0].setEm(0xA1, 3, 1, 0, 0);
-        r209_work.p->picEm[1].setEm(0xA2, 3, 1, 0, 0);
+        r209_work->picEm[0].setEm(0xA1, 3, 1, 0, 0);
+        r209_work->picEm[1].setEm(0xA2, 3, 1, 0, 0);
         break;
     }
     SceEventStart(1);
-    r209_work.p->picEm[0].setNoSuspend(1);
-    r209_work.p->picEm[1].setNoSuspend(1);
+    r209_work->picEm[0].setNoSuspend(1);
+    r209_work->picEm[1].setNoSuspend(1);
     CamCtrl.CutCall(0xF);
     pG->Room_flg[0] &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_OpenPictureEndProc, 0, 0xB, 1);
-    r209_work.p->door[6].setOpen();
-    while (r209_work.p->door[6].getStatus() != 1) {
+    r209_work->door[6].setOpen();
+    while (r209_work->door[6].getStatus() != 1) {
         SceSleep(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -1465,14 +1464,14 @@ static void r209_OpenPicture(int no)
 static void r209_OpenPictureEndProc()
 {
     if (pG->Room_flg[0] & 0x00100000) {
-        r209_work.p->door[6].setOpened();
+        r209_work->door[6].setOpened();
     }
     CamCtrl.Comeback(0);
-    r209_work.p->picEm[0].setNoSuspend(0);
-    r209_work.p->picEm[1].setNoSuspend(0);
+    r209_work->picEm[0].setNoSuspend(0);
+    r209_work->picEm[1].setNoSuspend(0);
     SceEventEnd(0);
-    r209_work.p->picEm[0].setFlag(1);
-    r209_work.p->picEm[1].setFlag(1);
+    r209_work->picEm[0].setFlag(1);
+    r209_work->picEm[1].setFlag(1);
     SceSleep(150);
     SceExec(0x12, (TaskFunc) r209_ClosePicture, 0, 0, SCE_PRIO_DEF_2, 0);
 }
@@ -1480,12 +1479,12 @@ static void r209_OpenPictureEndProc()
 // The picture lift (door[6]) closes again and the task waits for it.
 static void r209_ClosePicture()
 {
-    r209_work.p->door[6].setClose();
-    while (r209_work.p->door[6].getStatus() != 0) {
+    r209_work->door[6].setClose();
+    while (r209_work->door[6].getStatus() != 0) {
         SceSleep(1);
     }
-    r209_work.p->picEm[0].destroy();
-    r209_work.p->picEm[1].destroy();
+    r209_work->picEm[0].destroy();
+    r209_work->picEm[1].destroy();
     pG->Room_flg[0] &= ~0x04000000;
 }
 
@@ -1494,7 +1493,7 @@ static void r209_ClosePicture()
 // near half of each side).
 extern "C" void r209_BowgunCtrl()
 {
-    R209Work* wp = r209_work.p;
+    R209Work* wp = r209_work;
     u32 n = wp->snipeCnt;
     int f;
     u32 hit;
@@ -1601,14 +1600,14 @@ extern "C" void r209_BowgunCtrl()
 // (r209_bowgunPos2) are inserted by the side the enemy stands on (atCur bits 8 + i * 8 ..).
 extern "C" void r209_BowgunActionSet1(int i, int flag, int pt)
 {
-    R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
+    R209Em* e = &r209_work->em[r209_work->snipeIdx[i]];
     u32* at;
     u32 c0;
     int cnt = 0;
 
     e->pathReset = 1;
     memclr_asm(e->path, 0x14);
-    at = r209_work.p->atCur;
+    at = r209_work->atCur;
     c0 = R209_SNIPE_AT(at, i, 0);
     if ((c0 && R209_SNIPE_AT(at, i, 1)) || R209_SNIPE_AT(at, i, 1)) {
         e->path[cnt] = &r209_bowgunPos2[3];
@@ -1642,25 +1641,25 @@ extern "C" void r209_BowgunActionSet1(int i, int flag, int pt)
 // r209_bowgunPos2 / r209_bowgunPos chosen by which side `pt` is on; the path restarts.
 extern "C" void r209_BowgunActionSet2(int i, int flag, int pt)
 {
-    R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
+    R209Em* e = &r209_work->em[r209_work->snipeIdx[i]];
     int cnt = 0;
 
     e->pathReset = 1;
     memclr_asm(e->path, 0x14);
-    if (r209_SnipeAt(r209_work.p->atCur, i, 0) && r209_SnipeAt(r209_work.p->atCur, i, 1)) {
+    if (r209_SnipeAt(r209_work->atCur, i, 0) && r209_SnipeAt(r209_work->atCur, i, 1)) {
         if (pt >= 5 && pt <= 7) {
             e->path[cnt] = &r209_bowgunPos2[3];
             cnt = 1;
         }
-    } else if (r209_SnipeAt(r209_work.p->atCur, i, 2) || r209_SnipeAt(r209_work.p->atCur, i, 3)
-               || r209_SnipeAt(r209_work.p->atCur, i, 0)) {
+    } else if (r209_SnipeAt(r209_work->atCur, i, 2) || r209_SnipeAt(r209_work->atCur, i, 3)
+               || r209_SnipeAt(r209_work->atCur, i, 0)) {
         e->path[cnt] = &r209_bowgunPos2[0];
         cnt = 1;
         if (pt >= 5 && pt <= 7) {
             e->path[cnt] = &r209_bowgunPos2[3];
             cnt = 2;
         }
-    } else if (r209_SnipeAt(r209_work.p->atCur, i, 4) || r209_SnipeAt(r209_work.p->atCur, i, 5)) {
+    } else if (r209_SnipeAt(r209_work->atCur, i, 4) || r209_SnipeAt(r209_work->atCur, i, 5)) {
         if (pt >= 3 && pt <= 5) {
             e->path[cnt] = &r209_bowgunPos2[3];
             cnt = 1;
@@ -1672,14 +1671,14 @@ extern "C" void r209_BowgunActionSet2(int i, int flag, int pt)
 // Bowgun Ganado `i` gets path variant 3 toward `pt` (the other side's way points).
 extern "C" void r209_BowgunActionSet3(int i, int flag, int pt)
 {
-    R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
+    R209Em* e = &r209_work->em[r209_work->snipeIdx[i]];
     u32* at;
     u32 c0;
     int cnt = 0;
 
     e->pathReset = 1;
     memclr_asm(e->path, 0x14);
-    at = r209_work.p->atCur;
+    at = r209_work->atCur;
     c0 = R209_SNIPE_AT(at, i, 4);
     if ((c0 && R209_SNIPE_AT(at, i, 5)) || R209_SNIPE_AT(at, i, 5)) {
         e->path[cnt] = &r209_bowgunPos2[3];
@@ -1712,14 +1711,14 @@ extern "C" void r209_BowgunActionSet3(int i, int flag, int pt)
 // Bowgun Ganado `i` gets path variant 4 toward `pt`.
 extern "C" void r209_BowgunActionSet4(int i, int flag, int pt)
 {
-    R209Em* e = &r209_work.p->em[r209_work.p->snipeIdx[i]];
+    R209Em* e = &r209_work->em[r209_work->snipeIdx[i]];
     u32* at;
     u32 c0;
     int cnt = 0;
 
     e->pathReset = 1;
     memclr_asm(e->path, 0x14);
-    at = r209_work.p->atCur;
+    at = r209_work->atCur;
     c0 = R209_SNIPE_AT(at, i, 0);
     if ((c0 && R209_SNIPE_AT(at, i, 1)) || R209_SNIPE_AT(at, i, 0)) {
         if (pt >= 9 && pt <= 11) {
@@ -1749,7 +1748,7 @@ static void r209_BowgunMove()
 
     for (;;) {
         for (i = 0; i < 8; i++) {
-            R209Em* e = &r209_work.p->em[r209_snipeEmNo[i]];
+            R209Em* e = &r209_work->em[r209_snipeEmNo[i]];
 
             if (e->w.isActive() && e->snipe != 0) {
                 if (e->pathReset != 0) {
@@ -1783,8 +1782,8 @@ static void Evt_R209S00_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        r209_work.p->door4->setClose();
-        r209_work.p->door4->setCloseLock();
+        r209_work->door4->setClose();
+        r209_work->door4->setCloseLock();
         break;
     case 1:
         if (e->NowCut == 0 && e->NowFrame == 0) {
@@ -1875,22 +1874,22 @@ static void r209_PanelPuzzle()
         SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         switch (SceMesGetSelection()) {
         case 1:
-            tbl[0] = r209_work.p->bridge[0];
-            tbl[1] = r209_work.p->bridge[1];
+            tbl[0] = r209_work->bridge[0];
+            tbl[1] = r209_work->bridge[1];
             break;
         case 2:
-            tbl[0] = r209_work.p->bridge[0];
-            tbl[1] = r209_work.p->bridge[1];
-            tbl[2] = r209_work.p->bridge[2];
+            tbl[0] = r209_work->bridge[0];
+            tbl[1] = r209_work->bridge[1];
+            tbl[2] = r209_work->bridge[2];
             break;
         case 3:
-            tbl[1] = r209_work.p->bridge[1];
-            tbl[2] = r209_work.p->bridge[2];
-            tbl[3] = r209_work.p->bridge[3];
+            tbl[1] = r209_work->bridge[1];
+            tbl[2] = r209_work->bridge[2];
+            tbl[3] = r209_work->bridge[3];
             break;
         case 4:
-            tbl[2] = r209_work.p->bridge[2];
-            tbl[3] = r209_work.p->bridge[3];
+            tbl[2] = r209_work->bridge[2];
+            tbl[3] = r209_work->bridge[3];
             break;
         case 6:
             quit = 1;
@@ -1904,7 +1903,7 @@ static void r209_PanelPuzzle()
     } while (loop != 0);
     sum = 0;
     for (i = 0; i < 4; i++) {
-        sum += chk[i][r209_work.p->panel[i]];
+        sum += chk[i][r209_work->panel[i]];
     }
     if (sum == 6) {
         if (quit == 0) {
@@ -1916,8 +1915,8 @@ static void r209_PanelPuzzle()
     }
     for (i = 0; i < 4; i++) {
         tbl[i] = 0;
-        if (r209_work.p->panel[i] == 1) {
-            tbl[i] = r209_work.p->bridge[i];
+        if (r209_work->panel[i] == 1) {
+            tbl[i] = r209_work->bridge[i];
         }
     }
     if (tbl[0] != 0 || tbl[1] != 0 || tbl[2] != 0 || tbl[3] != 0) {
@@ -1947,8 +1946,8 @@ extern "C" void r209_PanelRotate(cObj** tbl)
     }
     for (i = 0; i < 4; i++) {
         if (tbl[i]) {
-            r209_work.p->panel[i] ^= 1;
-            tbl[i]->ang.y = r209_work.p->panel[i] != 0 ? PI : 0.0f;
+            r209_work->panel[i] ^= 1;
+            tbl[i]->ang.y = r209_work->panel[i] != 0 ? PI : 0.0f;
             tbl[i]->matUpdate();
         }
     }
@@ -1961,18 +1960,18 @@ extern "C" void r209_PanelPazzleEnd()
 
     CamCtrl.CutCall(0x10);
     RoomSeCall(0x14, 0, 0, 0, 0);
-    r209_work.p->bridgeObj->be_flag |= 0x20;
-    if (r209_work.p->bridgeObj->pos.z < 14530.0f) {
+    r209_work->bridgeObj->be_flag |= 0x20;
+    if (r209_work->bridgeObj->pos.z < 14530.0f) {
         f32 spd = 75.0f;
 
         do {
-            r209_work.p->bridgeObj->pos.z += spd;
+            r209_work->bridgeObj->pos.z += spd;
             for (i = 0; i < 4; i++) {
-                r209_work.p->bridge[i]->pos.z += spd;
-                r209_work.p->bridge[i]->matUpdate();
+                r209_work->bridge[i]->pos.z += spd;
+                r209_work->bridge[i]->matUpdate();
             }
             SceSleep(1);
-        } while (r209_work.p->bridgeObj->pos.z < 14530.0f);
+        } while (r209_work->bridgeObj->pos.z < 14530.0f);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -1986,9 +1985,9 @@ extern "C" void r209_PanelPazzleEndEndProc()
 {
     u32 i;
 
-    r209_work.p->bridgeObj->pos.z = 14530.0f;
+    r209_work->bridgeObj->pos.z = 14530.0f;
     for (i = 0; i < 4; i++) {
-        PSVECAdd(&r209_work.p->bridgeObj->pos, &r209_work.p->bridgeOfs[i], &r209_work.p->bridge[i]->pos);
+        PSVECAdd(&r209_work->bridgeObj->pos, &r209_work->bridgeOfs[i], &r209_work->bridge[i]->pos);
     }
     SceAtSetEnable(0x1E, 0);
     *(u32*) (RoomData.getRoomSavePtr(pG->room_id) + 4) |= 0x02000000;
@@ -2007,15 +2006,15 @@ static void r209_PanelMes(int no)
 {
     int tbl[4][2] = {{8, 9}, {10, 11}, {12, 13}, {14, 15}};
 
-    SceUpCut(tbl[no][r209_work.p->panel[no]], -1, -1, 0);
+    SceUpCut(tbl[no][r209_work->panel[no]], -1, -1, 0);
 }
 
 // Task (AT 0xD): the streamed music stops when the player leaves the area.
 static void r209_StrStopReqFunc(int atNo)
 {
-    if (r209_work.p->strId != 0) {
-        SndStrReq(r209_work.p->strId, 4, 600, 0);
-        r209_work.p->strId = 0;
+    if (r209_work->strId != 0) {
+        SndStrReq(r209_work->strId, 4, 600, 0);
+        r209_work->strId = 0;
         SceAtSetEnable(atNo, 0);
     }
 }
@@ -2040,31 +2039,31 @@ static void r209_RotateDoor(int no)
     int em = tbl[no].em;
     R209Em* e;
 
-    while (r209_work.p->door[d].getStatus() != 0) {
+    while (r209_work->door[d].getStatus() != 0) {
         SceSleep(1);
     }
-    e = &r209_work.p->em[em];
+    e = &r209_work->em[em];
     if (e->w.setEm(id, 3, 1, 0, 0) == 0) {
         SceExit();
     }
-    r209_work.p->em[em].active = 1;
-    e = &r209_work.p->em[em];
+    r209_work->em[em].active = 1;
+    e = &r209_work->em[em];
     e->w.setNoSuspend(1);
-    r209_work.p->door[d].setOpen();
-    while (r209_work.p->door[d].getStatus() != 1) {
+    r209_work->door[d].setOpen();
+    while (r209_work->door[d].getStatus() != 1) {
         SceSleep(1);
     }
     e->w.setGoto(&r209_bowgunStartPos[d], 1);
     while (SceAtCheckHitModel(atNo[d], e->w.getPtr()) != 0 && e->w.isActive() != 0) {
         SceSleep(1);
     }
-    r209_work.p->em[em].snipe = 1;
+    r209_work->em[em].snipe = 1;
     // Pointer-arithmetic element access: the address is formed as (W + d*64) + 0x674 (`add; lwz`);
     // door[d].sat folds the work offset first ((W + 0x674) + d*64: `addi; lwzx`).
-    (*(r209_work.p->door + d)).sat->m_Flag |= 4;
+    (*(r209_work->door + d)).sat->m_Flag |= 4;
     SceSleep(0x1E);
-    r209_work.p->door[d].setClose();
-    while (r209_work.p->door[d].getStatus() != 0) {
+    r209_work->door[d].setClose();
+    while (r209_work->door[d].getStatus() != 0) {
         SceSleep(1);
     }
     e->w.setNoSuspend(0);
@@ -2115,7 +2114,7 @@ void cR209Door::init(u32 id_)
         switch (id) {
         case 0xA1:
             openH = 1738.0f;
-            eat = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &obj->pos, &obj->ang, 4);
+            eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &obj->pos, &obj->ang, 4);
             break;
         case 2:
             flagNo = SCF_8b;
@@ -2224,7 +2223,7 @@ void cR209Door::open()
             break;
         case 2:
             se = 6;
-            r209_work.p->door4->setNormal();
+            r209_work->door4->setNormal();
             break;
         case 3:
             se = 4;
@@ -2283,7 +2282,7 @@ void cR209Door::close()
             se = -1;
             break;
         case 2:
-            r209_work.p->door4->setCloseLock();
+            r209_work->door4->setCloseLock();
             spd = -50.0f;
             se = -1;
             break;
@@ -2422,7 +2421,7 @@ void cR209Door::setOpened()
         SceAtSetEnable(0, 1);
         break;
     case 2:
-        r209_work.p->door4->setNormal();
+        r209_work->door4->setNormal();
         break;
     case 0xA1:
         break;
@@ -2452,7 +2451,7 @@ void cR209Door::setClosed()
         SceAtSetEnable(0, 0);
         break;
     case 2:
-        r209_work.p->door4->setCloseLock();
+        r209_work->door4->setCloseLock();
         break;
     case 0xA1:
         break;

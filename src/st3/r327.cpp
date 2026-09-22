@@ -64,12 +64,8 @@ struct R327EmTbl {
     int id;
 };
 
-// One-member struct: the work pointer is reloaded after every store through the work (the r229 idiom).
-struct R327WorkPtr {
-    R327Work* p;
-};
 
-static R327WorkPtr r327_work;
+static R327Work* r327_work;
 
 
 // The original object's .data is 8-aligned (0x170 in the REL after r320's 0x16c).
@@ -121,9 +117,9 @@ void R327Init()
     u32 i;
 
 #line 61 "D:/Bio4/Prog/r327.cpp"
-    r327_work.p = (R327Work*) MEM_CALLOC(sizeof(R327Work), 1, 0xd);
+    r327_work = (R327Work*) MEM_CALLOC(sizeof(R327Work), 1, 0xd);
     // Reference-view store: the flags test's `pG` load is issued after it (alias.c keeps them ordered).
-    IntSet(r327_work.p->first, 1);
+    (r327_work->first = 1);
     if (ScfFlagChk(pG, SCF_R329_ASHLEY_HELP)) {
         for (i = 0; i < 0x100; i++) {
             EmListData* e = &pG->Em_list[i];
@@ -132,13 +128,13 @@ void R327Init()
                 e->be_flag &= ~1;
             }
         }
-        r327_work.p->first = 0;
+        r327_work->first = 0;
     }
-    if (r327_work.p->first != 0) {
+    if (r327_work->first != 0) {
         for (i = 0; i < 11; i++) {
-            r327_work.p->em[r327_firstTbl[i].idx].em.setEm(r327_firstTbl[i].id, 7, 0, 1, 1);
-            r327_work.p->em[r327_firstTbl[i].idx].set = 1;
-            r327_work.p->em[r327_firstTbl[i].idx].id = r327_firstTbl[i].id;
+            r327_work->em[r327_firstTbl[i].idx].em.setEm(r327_firstTbl[i].id, 7, 0, 1, 1);
+            r327_work->em[r327_firstTbl[i].idx].set = 1;
+            r327_work->em[r327_firstTbl[i].idx].id = r327_firstTbl[i].id;
         }
     }
     if (RsfCheck(G_ROOM_ID, 0) && RsfCheck(G_ROOM_ID, 1)) {
@@ -202,7 +198,7 @@ void R327Main()
     int i;
 
     for (i = 0; i < 32; i++) {
-        R327Em* e = &r327_work.p->em[i];
+        R327Em* e = &r327_work->em[i];
 
         if (e->em.isActive()) {
             cEmRun* run = &e->run;
@@ -224,23 +220,23 @@ int r327_EnemySetSub(R327EmTbl* a, u32 na, R327EmTbl* b, u32 nb)
     int ret = 0;
     u32 i;
 
-    if (r327_work.p->first == 0) {
+    if (r327_work->first == 0) {
         return 0;
     }
     for (i = 0; i < na; i++) {
-        if (r327_work.p->em[a[i].idx].set == 0) {
-            r327_work.p->em[a[i].idx].em.setEm(a[i].id, 7, 0, 1, 1);
-            r327_work.p->em[a[i].idx].set = 1;
-            r327_work.p->em[a[i].idx].id = a[i].id;
+        if (r327_work->em[a[i].idx].set == 0) {
+            r327_work->em[a[i].idx].em.setEm(a[i].id, 7, 0, 1, 1);
+            r327_work->em[a[i].idx].set = 1;
+            r327_work->em[a[i].idx].id = a[i].id;
             ret = 1;
             break;
         }
     }
     for (i = 0; i < nb; i++) {
-        if (r327_work.p->em[b[i].idx].set == 0) {
-            r327_work.p->em[b[i].idx].em.setEm(b[i].id, 7, 0, 1, 1);
-            r327_work.p->em[b[i].idx].set = 1;
-            r327_work.p->em[b[i].idx].id = b[i].id;
+        if (r327_work->em[b[i].idx].set == 0) {
+            r327_work->em[b[i].idx].em.setEm(b[i].id, 7, 0, 1, 1);
+            r327_work->em[b[i].idx].set = 1;
+            r327_work->em[b[i].idx].id = b[i].id;
             ret = 1;
             break;
         }
@@ -342,7 +338,7 @@ static void r327_GatlingGanadoSet()
 {
     int idx;
 
-    if (r327_work.p->first == 0) {
+    if (r327_work->first == 0) {
         SceExit();
     }
     for (;;) {
@@ -350,7 +346,7 @@ static void r327_GatlingGanadoSet()
         int i;
 
         for (i = 0; i < 32; i++) {
-            R327Em* e = &r327_work.p->em[i];
+            R327Em* e = &r327_work->em[i];
 
             if (e->set != 0 && !e->em.isActive()) {
                 n++;
@@ -364,18 +360,18 @@ static void r327_GatlingGanadoSet()
     RsfSet(G_ROOM_ID, 2);
     SceEventStart(1);
     if (SceAtHitCheck(0xB)) {
-        r327_work.p->em[31].em.setEm(0x9D, 7, 0, 1, 1);
+        r327_work->em[31].em.setEm(0x9D, 7, 0, 1, 1);
         idx = 31;
-        r327_work.p->em[31].id = 0x9D;
+        r327_work->em[31].id = 0x9D;
         CamCtrl.CutCall(7);
     } else {
-        r327_work.p->em[3].em.setEm(0x7C, 7, 0, 1, 1);
+        r327_work->em[3].em.setEm(0x7C, 7, 0, 1, 1);
         idx = 3;
-        r327_work.p->em[3].id = 0x7C;
+        r327_work->em[3].id = 0x7C;
         CamCtrl.CutCall(5);
     }
-    r327_work.p->em[idx].em.setNoSuspend(1);
-    r327_work.p->em[idx].em.setFindPL();
+    r327_work->em[idx].em.setNoSuspend(1);
+    r327_work->em[idx].em.setFindPL();
     pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_GatlingGanadoSetEndProc, idx, 0, 1);
     while (!CamCtrl.IsMotionEnd()) {
@@ -389,7 +385,7 @@ static void r327_GatlingGanadoSet()
 static void r327_GatlingGanadoSetEndProc(int idx)
 {
     CamCtrl.Comeback(0);
-    r327_work.p->em[idx].em.setNoSuspend(0);
+    r327_work->em[idx].em.setNoSuspend(0);
     SceEventEnd(0);
 }
 
@@ -457,7 +453,7 @@ static void r327_GanadoAppearCut()
     int both = 0;
     int i;
 
-    if (r327_work.p->first == 0) {
+    if (r327_work->first == 0) {
         SceExit();
     }
     if ((u32) SceCountEmAlive(0x1D, -1) <= 5) {
@@ -470,10 +466,10 @@ static void r327_GanadoAppearCut()
     for (i = 0; i < 4; i++) {
         R327EmTbl* t = &r327_appearTbl[side][i];
 
-        r327_work.p->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
-        r327_work.p->em[t->idx].set = 1;
-        r327_work.p->em[t->idx].id = t->id;
-        r327_work.p->em[t->idx].em.setNoSuspend(1);
+        r327_work->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
+        r327_work->em[t->idx].set = 1;
+        r327_work->em[t->idx].id = t->id;
+        r327_work->em[t->idx].em.setNoSuspend(1);
     }
     CamCtrl.CutCall(side == 0 ? 0x10 : 8);
     pG->Room_flg[0] &= ~0x80000000;
@@ -486,10 +482,10 @@ static void r327_GanadoAppearCut()
         for (i = 0; i < 4; i++) {
             R327EmTbl* t = &r327_appearTbl[side][i];
 
-            r327_work.p->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
-            r327_work.p->em[t->idx].set = 1;
-            r327_work.p->em[t->idx].id = t->id;
-            r327_work.p->em[t->idx].em.setNoSuspend(1);
+            r327_work->em[t->idx].em.setEm(t->id, 7, 0, 1, 1);
+            r327_work->em[t->idx].set = 1;
+            r327_work->em[t->idx].id = t->id;
+            r327_work->em[t->idx].em.setNoSuspend(1);
         }
         CamCtrl.CutCall(side == 0 ? 0x10 : 8);
         while (!CamCtrl.IsMotionEnd()) {
@@ -512,13 +508,13 @@ static void r327_GanadoAppearCutEndProc(int side)
     int i;
 
     for (i = 0; i < 4; i++) {
-        if (r327_work.p->em[t[i].idx].set == 0) {
-            r327_work.p->em[t[i].idx].em.setEm(t[i].id, 7, 0, 1, 1);
-            r327_work.p->em[t[i].idx].set = 1;
-            r327_work.p->em[t[i].idx].id = t[i].id;
+        if (r327_work->em[t[i].idx].set == 0) {
+            r327_work->em[t[i].idx].em.setEm(t[i].id, 7, 0, 1, 1);
+            r327_work->em[t[i].idx].set = 1;
+            r327_work->em[t[i].idx].id = t[i].id;
         }
-        r327_work.p->em[t[i].idx].em.setNoSuspend(0);
-        r327_work.p->em[t[i].idx].em.setFindPL();
+        r327_work->em[t[i].idx].em.setNoSuspend(0);
+        r327_work->em[t[i].idx].em.setFindPL();
     }
     if (side == 1) {
         R327EmTbl* t2 = r327_appearTbl[1];
@@ -526,13 +522,13 @@ static void r327_GanadoAppearCutEndProc(int side)
         t = t2;
         asm("" : "=m"(*t2) : "r"(t2)); // COMPILER-DIFF: #13 (see above)
         for (i = 0; i < 4; i++) {
-            if (r327_work.p->em[t2[i].idx].set == 0) {
-                r327_work.p->em[t2[i].idx].em.setEm(t2[i].id, 7, 0, 1, 1);
-                r327_work.p->em[t2[i].idx].set = 1;
-                r327_work.p->em[t2[i].idx].id = t2[i].id;
+            if (r327_work->em[t2[i].idx].set == 0) {
+                r327_work->em[t2[i].idx].em.setEm(t2[i].id, 7, 0, 1, 1);
+                r327_work->em[t2[i].idx].set = 1;
+                r327_work->em[t2[i].idx].id = t2[i].id;
             }
-            r327_work.p->em[t2[i].idx].em.setNoSuspend(0);
-            r327_work.p->em[t2[i].idx].em.setFindPL();
+            r327_work->em[t2[i].idx].em.setNoSuspend(0);
+            r327_work->em[t2[i].idx].em.setFindPL();
         }
     }
     CamCtrl.Comeback(0);
@@ -601,7 +597,7 @@ static void r327_GanadoGotoCheck()
             int i;
 
             for (i = 0; i < 32; i++) {
-                R327Em* e = &r327_work.p->em[i];
+                R327Em* e = &r327_work->em[i];
 
                 if (e->em.isActive()) {
                     cEmRun* run = &e->run;
@@ -729,16 +725,16 @@ static void r327_SetSwitchDisable()
     void* tpl;
 
     if (ItemGetBinTplAddr(0x74, &bin, &tpl) == 1) {
-        r327_work.p->sw = SetObjSmd(bin, tpl, &pos, &rot, 0x10, 1);
-        r327_work.p->sw->setNoSuspend(1);
+        r327_work->sw = SetObjSmd(bin, tpl, &pos, &rot, 0x10, 1);
+        r327_work->sw->setNoSuspend(1);
     }
     RsfSet(G_ROOM_ID, 12);
     RsfSet(G_ROOM_ID, 13);
     SceEventStart(1);
     pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_SetSwitchDisableEndProc, 0, 0, 1);
-    r327_work.p->em2.setEm(0x9E, -1, 0, 0, 0);
-    r327_work.p->em2.setNoSuspend(1);
+    r327_work->em2.setEm(0x9E, -1, 0, 0, 0);
+    r327_work->em2.setNoSuspend(1);
     CamCtrl.CutCall(0x11);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
@@ -750,16 +746,16 @@ static void r327_SetSwitchDisable()
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM02, 0, 0);
     PSVECSubtract(&pos2, &pos, &dpos);
-    sce.initMove1_all(r327_work.p->sw, 10, &dpos, &rot, 0.0f, 0.0f, 1);
-    RoomSeCall(0x20, &r327_work.p->sw->pos, 0, 0, 0);
+    sce.initMove1_all(r327_work->sw, 10, &dpos, &rot, 0.0f, 0.0f, 1);
+    RoomSeCall(0x20, &r327_work->sw->pos, 0, 0, 0);
     while (sce.move() == 1) {
         SceSleep(1);
     }
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
     }
-    r327_work.p->sw->be_flag &= ~2;
-    r327_work.p->em2.setGoto(&gotoPos, 1);
+    r327_work->sw->be_flag &= ~2;
+    r327_work->em2.setGoto(&gotoPos, 1);
     CamCtrl.CutCall(0xF);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
@@ -813,11 +809,11 @@ static void r327_SetSwitchDisableEndProc()
         EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
         EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM02, (void*) zero, (void*) zero);
     }
-    r327_work.p->em2.destroy();
+    r327_work->em2.destroy();
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    ObjMgr.destroy(r327_work.p->sw);
-    r327_work.p->sw = (cObj*) zero;
+    ObjMgr.destroy(r327_work->sw);
+    r327_work->sw = (cObj*) zero;
     SceExec(0x12, (TaskFunc) r327_GanadoAppearCut, 0, 0, 2, 0);
 }
 

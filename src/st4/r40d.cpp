@@ -31,12 +31,8 @@ struct R40dWork {
     ScePrim* se;          // 0x14  the terminal sound task
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R40dWorkPtr {
-    R40dWork* p;
-};
 
-static R40dWorkPtr r40d_work;
+static R40dWork* r40d_work;
 
 void r40d_openShelf_main(int no, int mode);
 static void r40d_openedShelf(int no);
@@ -62,13 +58,13 @@ static void r40d_execDoorLock();
 void R40dInit()
 {
 #line 35 "D:/Bio4/Prog/r40d.cpp"
-    r40d_work.p = (R40dWork*) MEM_CALLOC(sizeof(R40dWork), 1, 0xd);
-    r40d_work.p->se = 0;
-    getRoomEtcBarred(0, (cEm**) &r40d_work.p->door[0], 1);
-    getRoomEtcBarred(1, (cEm**) &r40d_work.p->door[1], 1);
-    r40d_work.p->eff[0] = EspPullCoreKind();
-    r40d_work.p->eff[1] = EspPullCoreKind();
-    IntSet(r40d_work.p->eff[2], EspPullCoreKind());
+    r40d_work = (R40dWork*) MEM_CALLOC(sizeof(R40dWork), 1, 0xd);
+    r40d_work->se = 0;
+    getRoomEtcBarred(0, (cEm**) &r40d_work->door[0], 1);
+    getRoomEtcBarred(1, (cEm**) &r40d_work->door[1], 1);
+    r40d_work->eff[0] = EspPullCoreKind();
+    r40d_work->eff[1] = EspPullCoreKind();
+    r40d_work->eff[2] = EspPullCoreKind();
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         r40d_setDoorEff(0, 1);
         r40d_setDoorEff(1, 1);
@@ -83,13 +79,13 @@ void R40dInit()
             r40d_setDoorEff(0, 0);
             r40d_setDoorEff(1, 0);
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
-            if (r40d_work.p->door[0]) {
-                r40d_work.p->door[0]->setLockMode(1);
+            if (r40d_work->door[0]) {
+                r40d_work->door[0]->setLockMode(1);
             }
-            if (r40d_work.p->door[1]) {
-                r40d_work.p->door[1]->setLockMode(1);
+            if (r40d_work->door[1]) {
+                r40d_work->door[1]->setLockMode(1);
             }
-            r40d_work.p->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, SCE_PRIO_DEF_2, 0);
+            r40d_work->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
             r40d_setDoorEff(0, 1);
             r40d_setDoorEff(1, 1);
@@ -223,8 +219,8 @@ static void r40d_operateTerminal_end()
     r40d_setDoorEff(0, 1);
     r40d_setDoorEff(1, 1);
     CamCtrl.Comeback(0);
-    if (r40d_work.p->se) {
-        SceKill(r40d_work.p->se);
+    if (r40d_work->se) {
+        SceKill(r40d_work->se);
     }
     SceEventEnd(0);
     r40d_setEmA();
@@ -247,11 +243,11 @@ static void r40d_operateTerminal()
         RsfSet(G_ROOM_ID, 1);
         SceAtSetEnable(3, 0);
         SceAtSetEnable(4, 0);
-        if (r40d_work.p->door[0]) {
-            r40d_work.p->door[0]->setLockMode(0);
+        if (r40d_work->door[0]) {
+            r40d_work->door[0]->setLockMode(0);
         }
-        if (r40d_work.p->door[1]) {
-            r40d_work.p->door[1]->setLockMode(0);
+        if (r40d_work->door[1]) {
+            r40d_work->door[1]->setLockMode(0);
         }
         SceSetEventCancel(1, (TaskFunc) r40d_operateTerminal_end, 0, -1, 1);
         SceEventStart(1);
@@ -306,12 +302,12 @@ void r40d_setDoorEff(int no, int on)
     switch (no) {
     case 0:
     default:
-        eff = r40d_work.p->eff[0];
+        eff = r40d_work->eff[0];
         a = 3;
         b = 1;
         break;
     case 1:
-        eff = r40d_work.p->eff[1];
+        eff = r40d_work->eff[1];
         a = 4;
         b = 2;
         break;
@@ -319,16 +315,16 @@ void r40d_setDoorEff(int no, int on)
     EffectEspDelete(0, (u8) eff, 0, 0);
     EffectEspgenDelete(0, (u8) eff, 0);
     EffectEfmDelete(0, (u8) eff, 0);
-    EffectEspDelete(0, (u8) r40d_work.p->eff[2], 0, 0);
-    EffectEspgenDelete(0, (u8) r40d_work.p->eff[2], 0);
-    EffectEfmDelete(0, (u8) r40d_work.p->eff[2], 0);
+    EffectEspDelete(0, (u8) r40d_work->eff[2], 0, 0);
+    EffectEspgenDelete(0, (u8) r40d_work->eff[2], 0);
+    EffectEfmDelete(0, (u8) r40d_work->eff[2], 0);
     if (on == 1) {
         EstSet(0, -1, 0, 0, EFF_ROOM, a, 1, (u8) eff, 0, 0);
     } else {
         void* zero = 0;
 
         EstSet(0, -1, 0, 0, EFF_ROOM, b, 1, (u8) eff, zero, zero);
-        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, (u8) r40d_work.p->eff[2], zero, zero);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 5, 1, (u8) r40d_work->eff[2], zero, zero);
     }
 }
 
@@ -341,7 +337,7 @@ static void r40d_execDoorLock_end()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r40d_setEmB();
-    r40d_work.p->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, SCE_PRIO_DEF_2, 0);
+    r40d_work->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Both doors lock with a camera cut each once the key item was taken.
@@ -352,13 +348,13 @@ static void r40d_execDoorLock()
     SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
     SceAtSetEnable(3, 1);
     SceAtSetEnable(4, 1);
-    if (r40d_work.p->door[0]) {
-        r40d_work.p->door[0]->setLockMode(1);
-        r40d_work.p->door[0]->setClosed();
+    if (r40d_work->door[0]) {
+        r40d_work->door[0]->setLockMode(1);
+        r40d_work->door[0]->setClosed();
     }
-    if (r40d_work.p->door[1]) {
-        r40d_work.p->door[1]->setLockMode(1);
-        r40d_work.p->door[1]->setClosed();
+    if (r40d_work->door[1]) {
+        r40d_work->door[1]->setLockMode(1);
+        r40d_work->door[1]->setClosed();
     }
     SceSetEventCancel(1, (TaskFunc) r40d_execDoorLock_end, 0, -1, 1);
     SceEventStart(1);

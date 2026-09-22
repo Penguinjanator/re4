@@ -70,7 +70,7 @@ void cObjMagnum::init(cModel* parent)
 
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
-    PSet(wep.parent, parent);
+    wep.parent = parent;
     wep.motReset[0] = WEP_ARC_PTR(0x34);
     resetMotion();
     wep.shotFrame[0] = 0x20;

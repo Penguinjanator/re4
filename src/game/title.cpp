@@ -31,7 +31,6 @@
 #include "pl_sub.h"
 #include "eprintf.h"
 #include "title.h"
-#include "ref_access.h"
 #include <string.h>
 #include <dolphin/os.h>
 
@@ -120,12 +119,12 @@ void titleInit(TitleWork* w)
     READ_ERROR("title.snd read error!!");
     // The work fields are written through the reference setters (the order and the ISet/FSet
     // forms decide the store schedule; found by brute force).
-    ISet(w->req, req);
+    (w->req = req);
     w->Rno0 = 1;
     w->xC = 0;
     w->Rno1 = 0;
-    ISet(w->scroll, 0);
-    FSet(w->scroll_add, 1.5f);
+    w->scroll = 0;
+    w->scroll_add = 1.5f;
     StaFlagOn(pG, STA_TITLE);
     IdAllocBuffer();
 }
@@ -179,8 +178,8 @@ void titleWait(TitleWork* w)
             {
                 register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
                 z = 0;
-                S8Set(w->Rno0, 2);
-                ISet(w->sndFlag, 1);
+                w->Rno0 = 2;
+                w->sndFlag = 1;
                 w->Rno1 = z;
                 w->counter = 0;
                 w->dbg_mode = 0;
@@ -1061,7 +1060,7 @@ void titleSub(TitleWork* w)
         if ((Key.on & 0x20000) && w->omk_char_no != 0) {
             u32 bit = charBit[w->omk_char_no];
             u32* tbl = &pSys->Extra_flg;
-            BitOn(tbl[bit >> 5], 0x80000000 >> (bit & 0x1F));
+            tbl[bit >> 5] |= 0x80000000 >> (bit & 0x1F);
         }
         if (Key.trg & KEY_B) {
             FadeSetW(0, 5, 0, 0);
@@ -1459,52 +1458,52 @@ void titleExit(TitleWork* w)
             G_ROOM_ID = 0x405;
             pG->JumpPoint = point;
             pG->Part = point;
-            FSet(pG->sub_pos.x, 28450.0f);
-        FSet(pG->sub_pos.y, -16798.0f);
-        FSet(pG->sub_pos.z, -40000.0f);
-        FSet(pG->sub_angle, -2.49f);
+            pG->sub_pos.x = 28450.0f;
+        pG->sub_pos.y = -16798.0f;
+        pG->sub_pos.z = -40000.0f;
+        pG->sub_angle = -2.49f;
         } else if (SysFlagChk(pG, SYS_OMAKE_ETC_GAME)) {
         switch (w->omk_stage_no) {
         case 0:
             G_ROOM_ID = 0x400;
             pG->JumpPoint = point;
             pG->Part = point;
-            FSet(pG->sub_pos.x, -12400.0f);
-            FSet(pG->sub_pos.y, 2576.0f);
-            FSet(pG->sub_pos.z, 31080.0f);
-            FSet(pG->sub_angle, 2.486f);
+            pG->sub_pos.x = -12400.0f;
+            pG->sub_pos.y = 2576.0f;
+            pG->sub_pos.z = 31080.0f;
+            pG->sub_angle = 2.486f;
             break;
         case 1:
             G_ROOM_ID = 0x402;
             pG->JumpPoint = point;
             pG->Part = point;
-            FSet(pG->sub_pos.x, 21035.0f);
-            FSet(pG->sub_pos.y, 3065.0f);
-            FSet(pG->sub_pos.z, -26370.0f);
-            FSet(pG->sub_angle, -1.53f);
+            pG->sub_pos.x = 21035.0f;
+            pG->sub_pos.y = 3065.0f;
+            pG->sub_pos.z = -26370.0f;
+            pG->sub_angle = -1.53f;
             break;
         case 2:
             G_ROOM_ID = 0x403;
             pG->JumpPoint = point;
             pG->Part = point;
-            FSet(pG->sub_pos.x, 31558.0f);
-            FSet(pG->sub_pos.y, 8314.0f);
-            FSet(pG->sub_pos.z, 38823.0f);
-            FSet(pG->sub_angle, 2.345f);
+            pG->sub_pos.x = 31558.0f;
+            pG->sub_pos.y = 8314.0f;
+            pG->sub_pos.z = 38823.0f;
+            pG->sub_angle = 2.345f;
             break;
         case 3:
             G_ROOM_ID = 0x404;
             pG->JumpPoint = point;
             pG->Part = point;
-            FSet(pG->sub_pos.x, -640.0f);
-            FSet(pG->sub_pos.y, 0.0f);
-            FSet(pG->sub_pos.z, -15890.0f);
-            FSet(pG->sub_angle, 3.13f);
+            pG->sub_pos.x = -640.0f;
+            pG->sub_pos.y = 0.0f;
+            pG->sub_pos.z = -15890.0f;
+            pG->sub_angle = 3.13f;
             break;
         }
         } else {
             pG->sub_pos = pG->NextPos;
-            FSet(pGS->sub_angle, pGS->NextY);
+            pG->sub_angle = pG->NextY;
             G_ROOM_ID = pG->RoomNo_next;
             pG->Part = pG->Part_next;
         }

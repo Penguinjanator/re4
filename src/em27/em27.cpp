@@ -955,8 +955,8 @@ void em27ObaHitCk(cEm27* em)
 #line 1327 "D:/Bio4/Prog/em27.cpp"
     VECNormalize(&d, &d);
     PSVECScale(&d, &d, r);
-    FSet(em->pos.x, pPL->pos.x + d.x);
-    FSet(em->pos.z, pPL->pos.z + d.z);
+    em->pos.x = pPL->pos.x + d.x;
+    em->pos.z = pPL->pos.z + d.z;
     PartsWorldPosCalc(em);
 }
 
@@ -1006,13 +1006,13 @@ void em27WaterEffSet(cEm27* em)
     v.y = h;
     p = em->getPartsPtr(0);
     if (p->world.y > h && p->world_old.y < h) {
-        AddWaterPower(&em->pos, -0.5f);
+        AddWaterPower(em->pos, -0.5f);
         EstSet(0, -1, &v, &em->ang, EFF_EM27, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
         EstSet(em, -1, 0, 0, EFF_EM27, 4, 0, ESP_CORE_KIND_NONE, em, 0);
         SndCall(8, (Rnd() & 3) | 4, &em->pos, em->id, 0, em);
     }
     if (p->world.y < h && p->world_old.y > h) {
-        AddWaterPower(&em->pos, 0.5f);
+        AddWaterPower(em->pos, 0.5f);
         EstSet(0, -1, &v, &em->ang, EFF_EM27, 1, 0, ESP_CORE_KIND_NONE, 0, 0);
         SndCall(8, (Rnd() & 1) + 7, &em->pos, em->id, 0, em);
     }

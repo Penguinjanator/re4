@@ -47,7 +47,6 @@
 #include "db_log.h"
 #include "em_sub.h"
 #include "act_btn.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "pl_mod.h"
 
@@ -112,8 +111,6 @@ static void subBoatR10eIn2();
 // The lake boat player `pl` rides (cPlayer::m_pBoat; pl0e reads the same field as its jet ski, PL_JETSKI).
 #define PL_BOAT(pl) ((cPl0f*) (pl)->m_pBoat)
 #define ROPE(w) ((cObj*) (w)->pRope)
-
-static inline void U8Set(u8& d, int v) { d = v; }
 
 
 static Pl0fFunc Pl0f_R0_move_tbl[5] = {
@@ -304,7 +301,9 @@ static void pl0f_R0_Init(cPl0f* em)
 
         em->LightInfo.init2(0, 1, &ofs, &size, 4);
     }
-    U8Set(em->lockParts, 0);   // SImode zero: not merged with x12F's QImode zero across the init2 call
+    // A local for the 0: an SImode zero, not merged with x12F's QImode zero across the init2 call above.
+    int n = 0;
+    em->lockParts = n;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -489,12 +488,12 @@ static void pl0f_R1_RideStart(cPl0f* em)
     pl->Body->initWepHand((u32) ARC(0x8));
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
-    PSet(pl->m_pBoat, em);
+    pl->m_pBoat = em;
     BoatMoveFunc = PlBoatMove;
     EmRoutineSet(pPL, 0, 0xF, 2, 0);
     w->Be_flg |= 1;
     w->Seid_engine = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
-    if (pSUBS) {
+    if (pSUB) {
         SetSubDamage(em, subBoatRide);
         pSUB->r_no_2 = 2;
     }
@@ -719,7 +718,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
  \
     switch (em->r_no_2) { \
     case 0: \
-        PSet(pl->m_pBoat, em); \
+        (pl->m_pBoat = em); \
         BoatMoveFunc = PlBoatMove; \
         EmRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
         if (pSUB) { \
@@ -925,8 +924,8 @@ void pl0fBoatControl(cPl0f* em)
     pl0fWaterEff(em);
     pl0fBoatRoll(em);
     if (w->Boat_spd > 100.0f) {
-        AddWaterPower(&w->node[0].wpos, fRand1_1() * 0.3f);
-        AddWaterPower(&w->node[1].wpos, fRand1_1() * 0.3f);
+        AddWaterPower(w->node[0].wpos, fRand1_1() * 0.3f);
+        AddWaterPower(w->node[1].wpos, fRand1_1() * 0.3f);
     }
     {
         cPlayer* pl = pPL;
@@ -1614,7 +1613,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
 // Lake boat: player state 0, boat ride (1).
 static void pl0fActRide(cPl0f* em)
 {
-    PSet(pPL->m_pBoat, em);
+    pPL->m_pBoat = em;
     BoatMoveFunc = PlBoatMove;
     EmRoutineSet(pPL, 0, 0xF, 0, 0);
     EmRoutineSet(em, 1, 1, 0, 0);
@@ -1626,7 +1625,7 @@ static void pl0fActRide(cPl0f* em)
 // Room 10D exit: player state 0xE, boat 9.
 static void pl0fActRideR10d(cPl0f* em)
 {
-    PSet(pPL->m_pBoat, em);
+    pPL->m_pBoat = em;
     BoatMoveFunc = PlBoatMove;
     EmRoutineSet(pPL, 0, 0xF, 0xE, 0);
     EmRoutineSet(em, 1, 9, 0, 0);
@@ -1638,7 +1637,7 @@ static void pl0fActRideR10d(cPl0f* em)
 // Room 10E first exit: player state 0x10, boat 11.
 static void pl0fActRideR10e(cPl0f* em)
 {
-    PSet(pPL->m_pBoat, em);
+    pPL->m_pBoat = em;
     BoatMoveFunc = PlBoatMove;
     EmRoutineSet(pPL, 0, 0xF, 0x10, 0);
     EmRoutineSet(em, 1, 0xB, 0, 0);
@@ -1650,7 +1649,7 @@ static void pl0fActRideR10e(cPl0f* em)
 // Room 10E second exit: player state 0x12, boat 13.
 static void pl0fActRideR10e2(cPl0f* em)
 {
-    PSet(pPL->m_pBoat, em);
+    pPL->m_pBoat = em;
     BoatMoveFunc = PlBoatMove;
     EmRoutineSet(pPL, 0, 0xF, 0x12, 0);
     EmRoutineSet(em, 1, 0xD, 0, 0);
@@ -1949,7 +1948,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         }
         if (MotionMove(pl, 0)) {
             PLBOAT_ENGINE_START();
-            EmRoutineSet(pPLS, 0, 0xF, 2, 0);
+            EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
     }
@@ -1974,7 +1973,7 @@ static void plboat_R2_Getoff(cPlayer* pl)
         pl->pos = pl->m_VecWork0;
         pl->ang.y = pl->m_Fwork0;
         boat->setPos(&pl->pos, pl->m_Fwork0);
-        FSet(pl->m_Blend, 0.0f);   // the pSUB load stays below the store
+        pl->m_Blend = 0.0f;   // the pSUB load stays below the store
         if (pSUB) {
             subOnBoat(pSUB, boat);
             pSUB->partsMatCalc();
@@ -2191,7 +2190,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
                 pl->m_pSpear->setLost();
                 pl->m_pSpear = 0;
             }
-            FSet(pl->m_Blend, 0.0f);   // the pPL load stays below the store
+            pl->m_Blend = 0.0f;   // the pPL load stays below the store
             EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
@@ -2225,7 +2224,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
             }
         }
         if (MotionMove(pl, 0)) {
-            FSet(pl->m_Blend, 0.0f);
+            pl->m_Blend = 0.0f;
             EmRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
@@ -2268,7 +2267,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
             pl->m_Work0++;
             if ((int) pl->m_Work0 > 20 && !(Key.on & 0x10)) {
                 if ((int) pl->m_Work0 >= 31 && (int) pl->m_Work0 <= 49) {
-                    FSet(pl->m_Blend, 0.0f);
+                    pl->m_Blend = 0.0f;
                     EmRoutineSet(pPL, 0, 0xF, 2, 0);
                 } else {
                     EmRoutineSet(pPL, 0, 0xF, 3, 4);
@@ -2490,7 +2489,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
         pl->m_Work1 = 23;
         pl->m_Fwork0 = pl->ang.y;
         pl->m_Work3 = 0;
-        pPLS->endCamera();   // struct view: the pPL load stays below the four stores
+        pPL->endCamera();   // struct view: the pPL load stays below the four stores
         pl00SetDropCam(pl);
         EstSet(pl, -1, 0, 0, 0xF, 0x15, 0, 0x35, boat, 0);
         pl->m_Work2 = 26;
@@ -3913,7 +3912,7 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
 
         pl0fSetAnchorEm2f(this);
         setPos(p, ang);
-        FSet(pPL->ang.y, ang);   // scalar-reference store: pPL is reloaded for the pos copy
+        pPL->ang.y = ang;   // scalar-reference store: pPL is reloaded for the pos copy
         pPL->pos = pos;
         EffectEspDelete(0, ESP_CORE_KIND_BOAT, this, 0);
         EffectEspgenDelete(0, ESP_CORE_KIND_BOAT, this);

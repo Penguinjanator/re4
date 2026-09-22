@@ -10,7 +10,6 @@
 #include "db_log.h"
 #include "main.h"
 #include "snd.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "pl_sub.h"
 #include "esp.h"
@@ -113,15 +112,15 @@ void cPlLeon::setModel()
         return;
     }
     addModel(info);
-    PSet(Body->pShape, info);
-    PSet(Body->pHeadData, PL_ARC_PTR(pG->pPlayer, 8));
+    Body->pShape = info;
+    Body->pHeadData = PL_ARC_PTR(pG->pPlayer, 8);
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 6), PL_ARC_PTR(pG->pPlayer, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    PSet(Body->pHair, info);
+    Body->pHair = info;
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 9), PL_ARC_PTR(pG->pPlayer, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
@@ -129,7 +128,7 @@ void cPlLeon::setModel()
     }
     addModel(info);
     info->be_flag |= 0x40;
-    PSet(Body->pEye, info);
+    Body->pEye = info;
     if (pG->pl_costume >= 1 && pG->pl_costume <= 3) {
         info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0x10), PL_ARC_PTR(pG->pPlayer, 5));
         if (!VALID_PTR(info)) {
@@ -234,7 +233,7 @@ void cPlLeon::setLeftHand(u32 no)
     }
     Body->oldLhandNo = Body->nowLhandNo;
     Body->nowLhandNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pG->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
@@ -288,7 +287,7 @@ void cPlLeon::setHead(int no)
     Body->pHair = 0;
     deleteModelInfo(Body->pEye);
     Body->pEye = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xB), PL_ARC_PTR(pG->pPlayer, 7));
     if (info) {
         addModel(info);
     }

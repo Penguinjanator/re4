@@ -552,7 +552,7 @@ static void em38_R1_Wait(cEm38* em)
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], 0, 0, 0, w->blendKind);
         if (MotionMove(em, 0)) {
             w->timer++;
-            if (pGS->Game_level <= 1 && w->timer <= 1) {
+            if (pG->Game_level <= 1 && w->timer <= 1) {
                 if ((u8) (Rnd() % 10) > 4) {
                     return;
                 }
@@ -639,7 +639,7 @@ static void em38_R1_HeadUp(cEm38* em)
         em->r_no_2++;
     case 5:
         w->flags |= 0x20;
-        t = Muku(&p->world, &pPLS->pos, em->ang.y, PI);
+        t = Muku(&p->world, &pPL->pos, em->ang.y, PI);
         if (t > 0.6981317f) {
             t = 0.6981317f;
         }
@@ -706,7 +706,7 @@ static void em38_R1_br_Atk(cEm38* em)
         if (w->atkHit) {
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 0xD, 1);
             EmRoutineSetW(em, 1, 4, 0, 0);
-            pPLS->dmg.m_Timer = 0x80;
+            pPL->dmg.m_Timer = 0x80;
             em->dmg.m_Timer = 0x80;
             if (w->pUpper) {
                 w->pUpper->dmg.m_Timer = 0x80;
@@ -750,7 +750,7 @@ static void em38_R1_Atk(cEm38* em)
         w->flags |= 0x80;
         if (w->timer) {
             w->timer--;
-            t = Muku(&p->world, &pPLS->pos, em->ang.y, PI);
+            t = Muku(&p->world, &pPL->pos, em->ang.y, PI);
             if (t > 0.6981317f) {
                 t = 0.6981317f;
             }
@@ -1079,7 +1079,7 @@ static void em38_R1_T_Atk(cEm38* em)
             }
             if (w->timer && w->atkHit == 0 && w->escaped == 0) {
                 w->timer--;
-                if ((pPLS->pos.x < -3000.0f && em->type == 1) || (pPLS->pos.x > 3000.0f && em->type == 2)) {
+                if ((pPL->pos.x < -3000.0f && em->type == 1) || (pPL->pos.x > 3000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
                             ActBtn.set(ACT_GUARD, 0xB, (void*) em38EscapeAction, em, ACTCTR_WEP_SET_IGNORE | ACTCTR_ENFORCE_EXEC, DISP_L_R, ACT_FUNC_NORMAL, 0);
@@ -1169,7 +1169,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
                 w->timer2--;
             } else if (w->timer && w->atkHit == 0 && w->escaped == 0) {
                 w->timer--;
-                if ((pPLS->pos.x < 4000.0f && em->type == 1) || (pPLS->pos.x > -4000.0f && em->type == 2)) {
+                if ((pPL->pos.x < 4000.0f && em->type == 1) || (pPL->pos.x > -4000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
                             ActBtn.set(ACT_GUARD, 0xB, (void*) em38BackjumpAction, em, ACTCTR_WEP_SET_IGNORE | ACTCTR_ENFORCE_EXEC, DISP_L_R, ACT_FUNC_NORMAL, 0);
@@ -1257,7 +1257,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
                 w->timer2--;
             } else if (w->timer && w->atkHit == 0 && w->escaped == 0) {
                 w->timer--;
-                if ((pPLS->pos.x < 6000.0f && em->type == 1) || (pPLS->pos.x > -6000.0f && em->type == 2)) {
+                if ((pPL->pos.x < 6000.0f && em->type == 1) || (pPL->pos.x > -6000.0f && em->type == 2)) {
                     if (pPL->r_no_0 == 4) {
                         if (em->type == 1) {
                             if (w->actVar) {
@@ -1386,7 +1386,7 @@ static void plem38_CatchHit(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         pl->atari.throughOn();
-        if (pPLS->r_no_3) {
+        if (pPL->r_no_3) {
             Vec v;
 
             v.x = -7405.05f;
@@ -1669,7 +1669,7 @@ void em38RouteCk(cEm38* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->flags &= ~4;
     if (w->flags & 2) {
         if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
@@ -1677,7 +1677,7 @@ void em38RouteCk(cEm38* em)
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;
             w->targetDist = em->l_sub;
-            w->pTarget = pSUBS;
+            w->pTarget = pSUB;
             w->flags |= 4;
         }
     }

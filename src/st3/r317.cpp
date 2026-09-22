@@ -64,12 +64,8 @@ struct R317ElevatorObjView {
     u32 hSnd;
 };
 
-// The work pointer is a struct member: every store through the work reloads it (r203).
-struct R317WorkPtr {
-    R317Work* p;
-};
 
-static R317WorkPtr r317_work;
+static R317Work* r317_work;
 
 // The original object's .rodata (0x4cc -> 0x4d0) and .data (0xdc -> 0xe0) are 8-aligned: r318's
 // sections start 8-aligned in the REL.
@@ -146,15 +142,15 @@ extern "C" void Evt_R317S14_Func(Event* e);
 // on area 8 (or at once after a continue) until Room_flg bit 0; the continue point on area 9 (bit 1).
 void R317Init()
 {
-    R317Work*& wp = r317_work.p;
+    R317Work*& wp = r317_work;
 
 #line 138 "D:/Bio4/Prog/r317.cpp"
     wp = (R317Work*) MEM_CALLOC(sizeof(R317Work), 1, 0xd);
     // Reference store: the following pG load stays dependent on it (target `stw; lis; lis; lwz`,
     // the PRE'd pG high filling the slot before the load); a struct store lets the load float up.
-    IntSet(r317_work.p->hardMode, 0);
+    (r317_work->hardMode = 0);
     if (pG->r_continue_cnt > 1) {
-        r317_work.p->hardMode = 1;
+        r317_work->hardMode = 1;
     }
     ShadowMngReAlloc(0x100);
     R317Elevator2Init();
@@ -315,7 +311,7 @@ void R317Elevator2Init()
     Vec pos1 = {0.0f, 10825.0f, 0.0f};
 
     // The struct view keeps the pG load below the template-copy stores.
-    if (RsfCheck(*(u16*) &pGS->stage_no, 3)) {
+    if (RsfCheck(*(u16*) &pG->stage_no, 3)) {
         obj->setPos(&pos1);
     } else {
         obj->setPos(&pos0);
@@ -384,7 +380,7 @@ void SceElevator2Main(SceElevator2Data* d)
     if (d->cut != -1) {
         CamCtrl.CutCall((s8) d->cut);
     }
-    FSet(r317_elvSpd, 0.0f);
+    r317_elvSpd = 0.0f;
     rot = 0.0f;
     if ((s16) d->seStart != -1) {
         *hSnd = SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
@@ -464,7 +460,7 @@ void SceElevator2Main(SceElevator2Data* d)
     if (d->cut2 != -1) {
         CamCtrl.CutCall((s8) d->cut2);
     }
-    FSet(r317_elvSpd, r317_elvMaxSpd);
+    r317_elvSpd = r317_elvMaxSpd;
     rot = rotMax;
     move = stopDist2;
     if (d->dir == 3) {
@@ -693,7 +689,7 @@ void Evt_R317S00_Func(Event* e)
                 }
             }
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if (e->NowCut > 4 && e->NowFrame >= 0) {
                 on = 1;
             }
@@ -768,7 +764,7 @@ void Evt_R317S01_Func(Event* e)
         if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r317s03.evd", 0, 0, 0, 0);
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if (e->NowCut == 6 && e->NowFrame > 6) {
                 on = 1;
             }
@@ -931,7 +927,7 @@ void Evt_R317S03_Func(Event* e)
             }
             break;
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if ((e->NowCut == 0x14 && e->NowFrame > 0x17) || (e->NowCut == 0x15 && e->NowFrame >= 0)) {
                 on = 1;
             }
@@ -1179,7 +1175,7 @@ void Evt_R317S07_Func(Event* e)
         if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r317s09.evd", 0, 0, 0, 0);
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if ((e->NowCut == 7 && e->NowFrame > 0x4C) || (e->NowCut == 8 && e->NowFrame >= 0)) {
                 on = 1;
             }
@@ -1289,7 +1285,7 @@ void Evt_R317S09_Func(Event* e)
         if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r317s11.evd", 0, 0, 0, 0);
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if ((e->NowCut == 8 && e->NowFrame > 0xF) || (e->NowCut == 9 && e->NowFrame >= 0)) {
                 on = 1;
             }
@@ -1381,7 +1377,7 @@ void Evt_R317S11_Func(Event* e)
         if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r317s01.evd", 0, 0, 0, 0);
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if (e->NowCut == 2 && e->NowFrame > 0x49) {
                 on = 1;
             }
@@ -1446,7 +1442,7 @@ void Evt_R317S13_Func(Event* e)
         EffectDelete2001();
         e->CancelNoSet();
         pG->Room_flg[0] |= 0x02000000;
-        r317_work.p->btnCount = 0;
+        r317_work->btnCount = 0;
         if (Rnd() & 0x80) {
             pG->Room_flg[0] |= 0x8000;
         } else {
@@ -1496,7 +1492,7 @@ void Evt_R317S13_Func(Event* e)
         if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r317s05.evd", 0, 0, 0, 0);
         }
-        if (r317_work.p->hardMode == 0) {
+        if (r317_work->hardMode == 0) {
             if (e->NowCut == 0xA && e->NowFrame >= 0) {
                 on = 1;
             }
@@ -1522,17 +1518,17 @@ void Evt_R317S13_Func(Event* e)
             ActBtn.set(ACT_NO_DISP, 5, 0, 0, ACTCTR_ENFORCE_EXEC | ACTCTR_EXACT_KEY, btn, ACT_FUNC_NORMAL, 0);
             if (btn == 2) {
                 if (Key.trg & 0x00080000) {
-                    r317_work.p->btnCount++;
+                    r317_work->btnCount++;
                 }
             } else {
                 if (Key.trg & 0x00040000) {
-                    r317_work.p->btnCount++;
+                    r317_work->btnCount++;
                 }
             }
-            if (r317_work.p->btnCount > 0x10) {
+            if (r317_work->btnCount > 0x10) {
                 pG->Room_flg[0] &= ~0x02000000;
             }
-            eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d]/[%d]", r317_work.p->btnCount, 0x11);
+            eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d]/[%d]", r317_work->btnCount, 0x11);
         }
         break;
     }

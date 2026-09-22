@@ -90,11 +90,11 @@ static void r22a_RopeMove(int side)
     Vec ang = r22a_ropeAng;
     Vec out;
     cPlayer* pl = pPL;
-    u32 flags = pGS->Stop_flg;
+    u32 flags = pG->Stop_flg;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);
-    U32Set(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     SpfFlagOff(pG, SPF_SCE);
     FadeSetW(2, 10, 0, 0);
     SceSleep(10);
@@ -246,7 +246,7 @@ static void r22a_EleDown()
     DpfFlagOn(pG, DPF_SHADOW);
     CamCtrl.CutCall(2);
     obj = SmdGetObjPtr(0x4F);
-    BitOn(obj->be_flag, 0x20);
+    obj->be_flag |= 0x20;
     f32 spd = 0.0f;
     f32 max = 100.0f;
     SndCall(6, 0, &pPL->pos, 0, 0, 0);
@@ -260,8 +260,8 @@ static void r22a_EleDown()
         }
     }
     SceSleep(30);
-    FSetP(pPL->pos.y, -3500.0f);
-    FSetP(pPL->pos.x, 15430.0f);
+    pPL->pos.y = -3500.0f;
+    pPL->pos.x = 15430.0f;
     pPL->pos.z = -38962.0f;
     SmdGetObjPtr(0x4F)->pos.y = -3500.0f;
     FadeSetW(0x80000002, 15, 0, 0);
@@ -270,7 +270,7 @@ static void r22a_EleDown()
         SceSleep(1);
         spd += (max - spd) * 0.1f;
         pPL->pos.y -= spd;
-        FSub(SmdGetObjPtr(0x4F)->pos.y, spd);
+        SmdGetObjPtr(0x4F)->pos.y -= spd;
     }
     SndCall(6, 1, &pPL->pos, 0, 0, 0);
     pPL->pos.y = -8500.0f;
@@ -294,7 +294,7 @@ static void r22a_EleUp()
     DpfFlagOn(pG, DPF_SHADOW);
     CamCtrl.CutCall(4);
     obj = SmdGetObjPtr(0x4F);
-    BitOn(obj->be_flag, 0x20);
+    obj->be_flag |= 0x20;
     f32 spd = 0.0f;
     f32 max = 100.0f;
     SndCall(6, 0, &pPL->pos, 0, 0, 0);
@@ -308,8 +308,8 @@ static void r22a_EleUp()
         }
     }
     SceSleep(30);
-    FSetP(pPL->pos.y, 21500.0f);
-    FSetP(pPL->pos.x, 15430.0f);
+    pPL->pos.y = 21500.0f;
+    pPL->pos.x = 15430.0f;
     pPL->pos.z = -38962.0f;
     SmdGetObjPtr(0x4F)->pos.y = 21500.0f;
     FadeSetW(0x80000002, 15, 0, 0);
@@ -318,7 +318,7 @@ static void r22a_EleUp()
         SceSleep(1);
         spd += (max - spd) * 0.1f;
         pPL->pos.y += spd;
-        FAdd(SmdGetObjPtr(0x4F)->pos.y, spd);
+        SmdGetObjPtr(0x4F)->pos.y += spd;
     }
     SndCall(6, 1, &pPL->pos, 0, 0, 0);
     pPL->pos.y = 26500.0f;

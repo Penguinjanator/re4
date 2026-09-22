@@ -44,22 +44,6 @@ struct TASK {
 extern TASK* CTASK_MAIN;  // sentinel "main thread" task (-1)
 extern TASK* pCTask;      // task currently being scheduled
 extern OSThread* pParentThread;  // thread to return to from the scheduler
-
-// Struct-member views of the same symbols (the pLog trick, db_log.h): the original reloads pCTask
-// after every store through it and keeps the following pParentThread load in order, which GCC
-// 2.95 only does for struct-member loads. Stores to the pointers themselves are plain
-// (`stw rX, pCTask@sda21`), which a struct-member store would not give, hence the second
-// declarations with asm labels.
-struct TaskPtr {
-    TASK* p;
-    TASK* operator->() { return p; }
-};
-struct ThreadPtr {
-    OSThread* p;
-    OSThread* operator()() { return p; }  // a direct `.p` gets its address CSE'd across blocks
-};
-extern TaskPtr CTASK __asm__("pCTask");
-extern ThreadPtr ParentThread __asm__("pParentThread");
 extern TASK Task[TASK_NUM];
 
 void TaskSleep(int frames);

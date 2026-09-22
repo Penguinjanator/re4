@@ -1628,7 +1628,7 @@ static void em36_R1_Catch(cEm36* em)
     case 1: {
         Vec v;
 
-        v = pPLS->pos;
+        v = pPL->pos;
         if (w->timer2) {
             w->timer2--;
             if (w->flags2 & 0x10) {
@@ -1863,10 +1863,10 @@ static void plem36_CatchHit(cPlayer* pl)
 static inline void em36SetFindWait(Em36Work* w)
 {
     w->findWait = (u8) (Rnd() % 150) + 150;
-    if (pGS->Game_level <= 3) {
+    if (pG->Game_level <= 3) {
         w->findWait = (u8) (Rnd() % 150) + 300;
     }
-    if (pGS->Game_level > 6) {
+    if (pG->Game_level > 6) {
         w->findWait = (u8) (Rnd() % 150) + 90;
     }
 }
@@ -1908,7 +1908,7 @@ static void em36_R1_LongCatch(cEm36* em)
     case 1: {
         Vec v;
 
-        v = pPLS->pos;
+        v = pPL->pos;
         if (w->timer2) {
             w->timer2--;
             if (w->flags2 & 0x10) {
@@ -2151,10 +2151,10 @@ static void em36_R1_LostCatch(cEm36* em)
         MotionSetCore(em, MOTION(em), ARC(0x40), ARC(0x41), 5, 1, 0);
         w->turnAng = em->ang.y;
         w->timer = 20;
-        if (pGS->Game_level <= 2) {
+        if (pG->Game_level <= 2) {
             w->timer = 5;
         }
-        if (pGS->Game_level > 7) {
+        if (pG->Game_level > 7) {
             w->timer = 30;
         }
         w->atkHit = step;
@@ -2163,7 +2163,7 @@ static void em36_R1_LostCatch(cEm36* em)
     case 1: {
         Vec v;
 
-        v = pPLS->pos;
+        v = pPL->pos;
         if (w->timer2) {
             w->timer2--;
             if (w->flags2 & 0x10) {
@@ -3353,11 +3353,11 @@ void em36RouteCk(cEm36* em)
         w->flags |= 0x800;
     }
     w->plRouteDis = RouteCkPosToPosDis(&em->pos, &pPL->pos);
-    if (pSUBS) {
+    if (pSUB) {
         RouteCkToEm(em, pSUB, &w->subRoutePos, 0);
         w->subRouteDis = RouteCkPosToPosDis(&em->pos, &pSUB->pos);
-        w->subDist2 = (em->pos.x - pSUBS->pos.x) * (em->pos.x - pSUBS->pos.x) +
-                      (em->pos.z - pSUBS->pos.z) * (em->pos.z - pSUBS->pos.z);
+        w->subDist2 = (em->pos.x - pSUB->pos.x) * (em->pos.x - pSUB->pos.x) +
+                      (em->pos.z - pSUB->pos.z) * (em->pos.z - pSUB->pos.z);
         w->subAng = Muku(&em->pos, &w->subRoutePos, em->ang.y, PI);
         w->subAngAbs = fabsf(w->subAng);
         if (em->r_no_0 == 0) {
@@ -3386,9 +3386,9 @@ void em36RouteCk(cEm36* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->flags &= ~4;
-    if (pSUBS && !StaFlagChk(pG, STA_ASHLEY_HIDE) && w->plRouteDis > w->subRouteDis + 1000.0f) {
+    if (pSUB && !StaFlagChk(pG, STA_ASHLEY_HIDE) && w->plRouteDis > w->subRouteDis + 1000.0f) {
         w->targetPos = w->subRoutePos;
         w->targetAng = w->subAng;
         w->targetAngAbs = w->subAngAbs;
@@ -4052,7 +4052,7 @@ void em36WeakMove(cEm36* em)
             PSMTXInverse(em->getPartsPtr(0)->mat, inv);
             PSMTXMultVec(inv, &l->pObj->getPartsPtr(0)->world, &v);
             w->hit[l->hit].ofs = v;
-            if (StaFlagChk(pGS, STA_THERMO_GRAPH) && l->hp > 0 && em->hp > 0) {
+            if (StaFlagChk(pG, STA_THERMO_GRAPH) && l->hp > 0 && em->hp > 0) {
                 l->pObj->be_flag |= 2;
                 w->hit[l->hit].flags |= 1;
             } else {
