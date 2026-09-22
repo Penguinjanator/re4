@@ -84,7 +84,7 @@ is an `emNN_set.cpp` (models, voice tables); the other `emNN` directories are on
 bass, 0x28 chicken, 0x29 bats, 0x2A traps, 0x2B El Gigante, 0x2C insect boss, 0x2D Novistador, 0x2E
 spider, 0x2F Del Lago, 0x30.. the bosses and late enemies). Ganado weapon reactions dispatch on
 `Em10DmSetWep_tbl[dmWep]` into five classes (melee, bullets, shotgun, heavy, flash) modulated by
-`Em10Work::flags` (down, dashing, carrying Ashley, on a ladder, headless...); head is part 5, arms
+`Em10Work::Be_flg` (down, dashing, carrying Ashley, on a ladder, headless...); head is part 5, arms
 8/0xE, hands 9/0xF. Groups coordinate through the room's ctrl12 timers (`CTRL12_ID_EM10_ATK/THROW/
 NOT_NEAR` lock all Ganados out of attacking for 30..120 frames by rank), `em10StayCk` limits how
 many close in, `CNT_PARASITE` caps head parasites at two; a hit anywhere sets `Status_flg[1]` bit 29
