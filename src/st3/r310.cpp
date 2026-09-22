@@ -306,25 +306,25 @@ near:
             goto end;
         }
         PSVECAdd(&pSUB->pos, &d, &pSUB->pos);
-        FSet(pSUB->ang.y, pSUB->ang.y + Muku2(pSUB->ang.y, ang, 0.17453292f));
+        pSUB->ang.y = pSUB->ang.y + Muku2(pSUB->ang.y, ang, 0.17453292f);
         sub = pSUB;
         sub->setPos(&sub->pos);
         sub->setAng(&sub->ang);
         asm("" : : "r"(sub)); // COMPILER-DIFF: 12 (regmove operand pick, r20d)
         SceSleep(1);
     }
-    FSet(pSUB->ang.y, ang);
+    pSUB->ang.y = ang;
     pSUB->setAng(&pSUB->ang);
     subPos = pSUB->pos;
     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x40000000;
     while ((SubCharGetStatus() & 0x80) == 0 && (SubCharGetStatus() & 0x02000000) == 0) {
-        FSet(pSUB->pos.z, subPos.z);
+        pSUB->pos.z = subPos.z;
         pSUB->setPos(&pSUB->pos);
         SceSleep(1);
     }
 end:
-    BitOff(pG->Room_flg[0], 0x40000000);
+    pG->Room_flg[0] &= ~0x40000000;
     r310_work->subTask = 0;
     SubCharCtrl(1, 0);
 }
@@ -359,7 +359,7 @@ static void r310_pushBox2_leon()
             goto done;
         }
         PSVECAdd(&pPL->pos, &d, &pPL->pos);
-        FSet(pPL->ang.y, pPL->ang.y + Muku2(pPL->ang.y, +1.5707964f, 0.17453292f));
+        pPL->ang.y = pPL->ang.y + Muku2(pPL->ang.y, +1.5707964f, 0.17453292f);
         pl = pPL;
         pl->setPos(&pl->pos);
         pl->setAng(&pl->ang);
@@ -367,10 +367,10 @@ static void r310_pushBox2_leon()
                              // `addi r4,pl,0xa0` argument insn.
         SceSleep(1);
     }
-    FSet(pPL->ang.y, +1.5707964f);
+    pPL->ang.y = +1.5707964f;
     pPL->setAng(&pPL->ang);
     plPos = pPL->pos;
-    PSet(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0));
+    r310_work->subTask = SceExec(0x12, (TaskFunc) r310_pushBox2_ashley, 0, 0, 2, 0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x80000000;
     while (PlGetStatus() & 0x00020000) {
@@ -381,16 +381,16 @@ static void r310_pushBox2_leon()
             goto finish;
         }
         if (!(Key.on & 0x00080000)) {
-            BitOff(pG->Room_flg[0], 0x80000000);
+            pG->Room_flg[0] &= ~0x80000000;
             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
             while (MotionGetState(pPL) != 4 && (PlGetStatus() & 0x00020000)) {
-                FSet(pPL->pos.z, plPos.z);
+                pPL->pos.z = plPos.z;
                 pPL->setPos(&pPL->pos);
                 SceSleep(1);
             }
             goto done;
         }
-        FSet(pPL->pos.z, plPos.z);
+        pPL->pos.z = plPos.z;
         pPL->setPos(&pPL->pos);
         SceSleep(1);
     }
@@ -398,7 +398,7 @@ done:
     if (r310_work->subTask) {
         ScePrim* none = 0;
 
-        BitOff(pG->Room_flg[0], 0x40000000);
+        pG->Room_flg[0] &= ~0x40000000;
         SceKill(r310_work->subTask);
         r310_work->subTask = none;
         SubCharCtrl(1, 0);
@@ -417,7 +417,7 @@ static void r310_pushBox2()
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
-            FSet(r310_work->box2->pos.x, r310_work->box2->pos.x + 10.0f);
+            r310_work->box2->pos.x = r310_work->box2->pos.x + 10.0f;
             if (r310_work->se == 0) {
                 r310_work->se = SndCall(6, 0x55, &r310_work->box2->pos, 0, 0, 0);
             }
@@ -446,7 +446,7 @@ static void r310_fallBox1()
     f32 y0;
 
     for (;;) {
-        FSet(r310_work->box1->ang.z, r310_work->box1->ang.z + 0.034906585f);
+        r310_work->box1->ang.z = r310_work->box1->ang.z + 0.034906585f;
         if (r310_work->box1->ang.z > 0.7853982f) {
             break;
         }
@@ -467,7 +467,7 @@ static void r310_fallBox1()
         } else {
             r310_work->box1->ang.z = lim;
         }
-        FSet(r310_work->box1->pos.y, r310_work->box1->pos.y - dy);
+        r310_work->box1->pos.y = r310_work->box1->pos.y - dy;
         dy += grav;
         if (!(y0 - r310_work->box1->pos.y > fall)) {
             SceSleep(1);
@@ -546,25 +546,25 @@ near:
             goto end;
         }
         PSVECAdd(&pSUB->pos, &d, &pSUB->pos);
-        FSet(pSUB->ang.y, pSUB->ang.y + Muku2(pSUB->ang.y, ang, 0.17453292f));
+        pSUB->ang.y = pSUB->ang.y + Muku2(pSUB->ang.y, ang, 0.17453292f);
         sub = pSUB;
         sub->setPos(&sub->pos);
         sub->setAng(&sub->ang);
         asm("" : : "r"(sub)); // COMPILER-DIFF: 12 (regmove operand pick, r20d)
         SceSleep(1);
     }
-    FSet(pSUB->ang.y, ang);
+    pSUB->ang.y = ang;
     pSUB->setAng(&pSUB->ang);
     subPos = pSUB->pos;
     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x40000000;
     while ((SubCharGetStatus() & 0x80) == 0 && (SubCharGetStatus() & 0x02000000) == 0) {
-        FSet(pSUB->pos.z, subPos.z);
+        pSUB->pos.z = subPos.z;
         pSUB->setPos(&pSUB->pos);
         SceSleep(1);
     }
 end:
-    BitOff(pG->Room_flg[0], 0x40000000);
+    pG->Room_flg[0] &= ~0x40000000;
     r310_work->subTask = 0;
     SubCharCtrl(1, 0);
 }
@@ -600,7 +600,7 @@ static void r310_pushBox1_leon()
             goto done;
         }
         PSVECAdd(&pPL->pos, &d, &pPL->pos);
-        FSet(pPL->ang.y, pPL->ang.y + Muku2(pPL->ang.y, -1.5707964f, 0.17453292f));
+        pPL->ang.y = pPL->ang.y + Muku2(pPL->ang.y, -1.5707964f, 0.17453292f);
         pl = pPL;
         pl->setPos(&pl->pos);
         pl->setAng(&pl->ang);
@@ -608,10 +608,10 @@ static void r310_pushBox1_leon()
                              // `addi r4,pl,0xa0` argument insn.
         SceSleep(1);
     }
-    FSet(pPL->ang.y, -1.5707964f);
+    pPL->ang.y = -1.5707964f;
     pPL->setAng(&pPL->ang);
     plPos = pPL->pos;
-    PSet(r310_work->subTask, SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0));
+    r310_work->subTask = SceExec(0x12, (TaskFunc) r310_pushBox1_ashley, 0, 0, 2, 0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pG->Room_flg[0] |= 0x80000000;
     while (PlGetStatus() & 0x00020000) {
@@ -622,16 +622,16 @@ static void r310_pushBox1_leon()
             goto finish;
         }
         if (!(Key.on & 0x00080000)) {
-            BitOff(pG->Room_flg[0], 0x80000000);
+            pG->Room_flg[0] &= ~0x80000000;
             pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
             while (MotionGetState(pPL) != 4 && (PlGetStatus() & 0x00020000)) {
-                FSet(pPL->pos.z, plPos.z);
+                pPL->pos.z = plPos.z;
                 pPL->setPos(&pPL->pos);
                 SceSleep(1);
             }
             goto done;
         }
-        FSet(pPL->pos.z, plPos.z);
+        pPL->pos.z = plPos.z;
         pPL->setPos(&pPL->pos);
         SceSleep(1);
     }
@@ -639,7 +639,7 @@ done:
     if (r310_work->subTask) {
         ScePrim* none = 0;
 
-        BitOff(pG->Room_flg[0], 0x40000000);
+        pG->Room_flg[0] &= ~0x40000000;
         SceKill(r310_work->subTask);
         r310_work->subTask = none;
         SubCharCtrl(1, 0);
@@ -659,7 +659,7 @@ static void r310_pushBox1()
     r310_stopBoxSe(0);
     while (r310_work->pushTask != 0) {
         if (FlagChkSign(pG->Room_flg, 0) && (pG->Room_flg[0] & 0x40000000)) {
-            FSet(r310_work->box1->pos.x, r310_work->box1->pos.x - 10.0f);
+            r310_work->box1->pos.x = r310_work->box1->pos.x - 10.0f;
             if (r310_work->se == 0) {
                 r310_work->se = SndCall(6, 0x55, &r310_work->box1->pos, 0, 0, 0);
             }
@@ -687,9 +687,9 @@ static void r310_pushBox1()
 // 6 / save bit 0x10000000.
 void r310_initBoxPush()
 {
-    PSet(r310_work->box1, SmdGetObjPtr(3));
+    r310_work->box1 = SmdGetObjPtr(3);
     if (r310_work->box1) {
-        BitOn(r310_work->box1->be_flag, 0x20);
+        r310_work->box1->be_flag |= 0x20;
         if (!(R310_SAVE_FLAGS & 0x40000000)) {
             SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r310_pushBox1, 0, 1);
             SceAtSetParent(1, r310_work->box1, 0);
@@ -707,9 +707,9 @@ void r310_initBoxPush()
             o->setAng(&rot);
         }
     }
-    PSet(r310_work->box2, SmdGetObjPtr(4));
+    r310_work->box2 = SmdGetObjPtr(4);
     if (r310_work->box2) {
-        BitOn(r310_work->box2->be_flag, 0x20);
+        r310_work->box2->be_flag |= 0x20;
         if (!(R310_SAVE_FLAGS & 0x20000000)) {
             SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r310_pushBox2, 0, 1);
             SceAtSetParent(6, r310_work->box2, 0);
@@ -811,7 +811,7 @@ static void R310EventS00()
         p.y = 0.0f;
         p.z = -25923.0f;
         pl->setPos(&p);
-        BitOn(pPL->be_flag, 0x00200000);
+        pPL->be_flag |= 0x00200000;
         if (pSUB) {
             pSUB->be_flag |= 0x00200000;
         }

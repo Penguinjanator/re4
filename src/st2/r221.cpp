@@ -60,13 +60,9 @@ struct R221Work {
     f32 elvY;             // 0x510  elevator rest height
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R221WorkPtr {
-    R221Work* p;
-};
 
 static u8 r221_texTbl[0x20];
-static R221WorkPtr r221_work;
+static R221Work* r221_work;
 
 // The death bits of enemy list `list` (pG->Em_flg[list]), as an integer base (the r218 idiom).
 static inline u32* emDeadWords(int list) { return EM_FLG_ROW(list); }
@@ -113,7 +109,7 @@ static void setTexRender();
 void R221Init()
 {
 #line 48 "D:/Bio4/Prog/r221.cpp"
-    r221_work.p = (R221Work*) MEM_CALLOC(sizeof(R221Work), 1, 0xd);
+    r221_work = (R221Work*) MEM_CALLOC(sizeof(R221Work), 1, 0xd);
     r221_initInsectboss();
     r201_initBonbe();
     setTexRender();
@@ -138,13 +134,13 @@ static void r221_appearBoss2nd()
 // Swap the shutter's effect: on = 1 the open-shutter effect 0xE, else the closed one 0xF.
 void r221_setShutterEff(int on)
 {
-    EffectEspDelete(0, r221_work.p->eff, 0, 0);
-    EffectEspgenDelete(0, r221_work.p->eff, 0);
-    EffectEfmDelete(0, r221_work.p->eff, 0);
+    EffectEspDelete(0, r221_work->eff, 0, 0);
+    EffectEspgenDelete(0, r221_work->eff, 0);
+    EffectEfmDelete(0, r221_work->eff, 0);
     if (on == 1) {
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 1, r221_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xE, 1, r221_work->eff, 0, 0);
     } else {
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, r221_work.p->eff, 0, 0);
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0xF, 1, r221_work->eff, 0, 0);
     }
 }
 
@@ -152,8 +148,8 @@ void r221_setShutterEff(int on)
 static void r221_checkShutterOpen_end()
 {
     RsfSet(G_ROOM_ID, 11);
-    if (r221_work.p->shutterSe) {
-        SndStop(r221_work.p->shutterSe, 0);
+    if (r221_work->shutterSe) {
+        SndStop(r221_work->shutterSe, 0);
     }
     r221_moveShutter(1, 1);
     CamCtrl.Comeback(0);
@@ -184,7 +180,7 @@ void r221_checkShutterOpen()
         }
     }
     SceSetEventCancel(1, (TaskFunc) r221_checkShutterOpen_end, 0, -1, 1);
-    r221_work.p->shutterSe = 0;
+    r221_work->shutterSe = 0;
     SceEventStart(1);
     r221_moveShutter(1, 0);
     SceSetEventCancel(0, 0, 0, -1, 1);
@@ -262,9 +258,9 @@ void r221_moveShutter(int a, int b)
     }
     if (b == 1) {
         if (a == 1) {
-            r221_work.p->shutter0.setEndPos();
+            r221_work->shutter0.setEndPos();
         } else {
-            r221_work.p->shutter1.setEndPos();
+            r221_work->shutter1.setEndPos();
         }
         return;
     }
@@ -273,20 +269,20 @@ void r221_moveShutter(int a, int b)
     SndCall(6, 0x11, 0, 0, 0, 0);
     r221_setShutterEff(a);
     SceSleep(15);
-    r221_work.p->shutterSe = SndCall(6, 5, 0, 0, 0, 0);
+    r221_work->shutterSe = SndCall(6, 5, 0, 0, 0, 0);
     if (a == 1) {
-        r221_work.p->shutter0.setStart();
-        while (r221_work.p->shutter0.move() == 1) {
+        r221_work->shutter0.setStart();
+        while (r221_work->shutter0.move() == 1) {
             SceSleep(1);
         }
     } else {
-        r221_work.p->shutter1.setStart();
-        while (r221_work.p->shutter1.move() == 1) {
+        r221_work->shutter1.setStart();
+        while (r221_work->shutter1.move() == 1) {
             SceSleep(1);
         }
     }
     SndCall(6, 6, 0, 0, 0, 0);
-    r221_work.p->shutterSe = 0;
+    r221_work->shutterSe = 0;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -306,11 +302,11 @@ void r221_initShutter()
         Vec t = {0.0f, dy, 0.0f};
         d = t;
 
-        r221_work.p->shutter0.initMove1_pos(o, 90, &d, 0.0f, 0.0f);
-        r221_work.p->shutter0.setEndPos();
+        r221_work->shutter0.initMove1_pos(o, 90, &d, 0.0f, 0.0f);
+        r221_work->shutter0.setEndPos();
         Vec v = {0.0f, 0.0f, 0.0f};
-        r221_work.p->shutter1.initMove3_y(o, &v, grav, -dy, 0.1f);
-        r221_work.p->eff = EspPullCoreKind();
+        r221_work->shutter1.initMove3_y(o, &v, grav, -dy, 0.1f);
+        r221_work->eff = EspPullCoreKind();
         r221_moveShutter(1, 1);
         if (RsfCheck(G_ROOM_ID, 8)) {
             r221_setShutterEff(1);
@@ -376,30 +372,30 @@ void r221_moveElevatoDoor(int a, int b)
     if (b == 1) {
         if (a == 1) {
             SceAtSetEnable(7, 0);
-            r221_work.p->door0.setReverse(1);
-            r221_work.p->door1.setReverse(1);
+            r221_work->door0.setReverse(1);
+            r221_work->door1.setReverse(1);
         } else {
             SceAtSetEnable(7, 1);
         }
         return;
     }
-    r221_work.p->doorSe = SndCall(6, 0xB, 0, 0, 0, 0);
+    r221_work->doorSe = SndCall(6, 0xB, 0, 0, 0, 0);
     if (a == 1) {
-        r221_work.p->door0.setReverse(0);
-        r221_work.p->door1.setReverse(0);
+        r221_work->door0.setReverse(0);
+        r221_work->door1.setReverse(0);
     } else {
         SceAtSetEnable(7, 1);
-        r221_work.p->door0.setReverse(1);
-        r221_work.p->door1.setReverse(1);
+        r221_work->door0.setReverse(1);
+        r221_work->door1.setReverse(1);
     }
     second = 0;
     for (i = 0; i < 60; i++) {
         if (i == 25) {
             second = 1;
         }
-        r221_work.p->door0.move();
+        r221_work->door0.move();
         if (second == 1) {
-            r221_work.p->door1.move();
+            r221_work->door1.move();
         }
         SceSleep(1);
     }
@@ -457,8 +453,8 @@ static void r221_moveWire(int mode)
         w1->pModelInfo->uvScrollV = -s;
         break;
     }
-    r221_work.p->wireTask = 0;
-    r221_work.p->wireTask2 = 0;
+    r221_work->wireTask = 0;
+    r221_work->wireTask2 = 0;
 }
 
 // Task: the elevator ride (dir 0: down with the camera event, 1: up with the event, 2: up).
@@ -518,9 +514,9 @@ static void r221_moveElevator(int dir)
             SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
         }
         if (down == 0 && evt == 1) {
-            r221_work.p->elvSe1 = SndCall(6, 0xF, &o->pos, 0, 0, 0);
+            r221_work->elvSe1 = SndCall(6, 0xF, &o->pos, 0, 0, 0);
         } else {
-            r221_work.p->elvSe1 = SndCall(6, 0, &o->pos, 0, 0, 0);
+            r221_work->elvSe1 = SndCall(6, 0, &o->pos, 0, 0, 0);
         }
         for (i = 0; i < 90; i++) {
             if (down == 1 && i == 60) {
@@ -537,10 +533,10 @@ static void r221_moveElevator(int dir)
                 SceAtExecute(0xF);
             }
         } else {
-            r221_work.p->wireTask = SceExec(0x12, (TaskFunc) r221_moveWire, 1, 2, SCE_PRIO_DEF_2, 0);
+            r221_work->wireTask = SceExec(0x12, (TaskFunc) r221_moveWire, 1, 2, SCE_PRIO_DEF_2, 0);
             SndCall(6, 1, 0, 0, 0, 0);
-            r221_work.p->elvSe0 = 0;
-            r221_work.p->elvSe1 = 0;
+            r221_work->elvSe0 = 0;
+            r221_work->elvSe1 = 0;
             r221_moveElevatoDoor(1, 0);
         }
         if (evt == 1) {
@@ -598,21 +594,21 @@ static void r221_checkElevatorArrive_end()
         }
         cObj* o = SmdGetObjPtr(0x41);
         if (o) {
-            o->pos.y = r221_work.p->elvY;
+            o->pos.y = r221_work->elvY;
             o->setPos(&o->pos);
             o->be_flag |= 2;
         }
-        if (r221_work.p->elvSe0) {
-            SndStop(r221_work.p->elvSe0, 0);
+        if (r221_work->elvSe0) {
+            SndStop(r221_work->elvSe0, 0);
         }
-        if (r221_work.p->elvSe1) {
-            SndStop(r221_work.p->elvSe1, 0);
+        if (r221_work->elvSe1) {
+            SndStop(r221_work->elvSe1, 0);
         }
-        if (r221_work.p->wireTask2) {
-            SceKill(r221_work.p->wireTask2);
+        if (r221_work->wireTask2) {
+            SceKill(r221_work->wireTask2);
         }
-        if (r221_work.p->wireTask) {
-            SceKill(r221_work.p->wireTask);
+        if (r221_work->wireTask) {
+            SceKill(r221_work->wireTask);
         }
         cObj* w0 = SmdGetObjPtr(0x42);
         cObj* w1 = SmdGetObjPtr(0x43);
@@ -623,8 +619,8 @@ static void r221_checkElevatorArrive_end()
             w1->pModelInfo->uvScrollV = 0.0f;
         }
         r221_moveElevatoDoor(1, 1);
-        if (r221_work.p->doorSe) {
-            SndStop(r221_work.p->doorSe, 0);
+        if (r221_work->doorSe) {
+            SndStop(r221_work->doorSe, 0);
         }
     }
     MessageControl* m = &cMes;
@@ -692,9 +688,9 @@ static void r221_checkElevatorArrive()
     }
     RsfSet(G_ROOM_ID, 6);
     ScfFlagOn(pG, SCF_88);
-    r221_work.p->wireTask = 0;
-    r221_work.p->doorSe = 0;
-    U32Set(r221_work.p->elvSe1, 0);
+    r221_work->wireTask = 0;
+    r221_work->doorSe = 0;
+    r221_work->elvSe1 = 0;
     pG->Room_flg[0] &= ~0x02000000;
     SceSetEventCancel(1, (TaskFunc) r221_checkElevatorArrive_end, 0, 2, 1);
     SceEventStart(1);
@@ -724,14 +720,14 @@ static void r221_operateElevator()
 
         em.setPtr(0x8C, -1, 1);
         pG->Em_list[0x8C].set = 2;
-        U16Set(pG->Em_list[0x8C].hp, em.getHp());
-        S16Set(pG->Em_list[0x8C].pos[0], -1458);
-        S16Set(pG->Em_list[0x8C].pos[1], 0x32);
-        S16Set(pG->Em_list[0x8C].pos[2], -577);
+        pG->Em_list[0x8C].hp = em.getHp();
+        pG->Em_list[0x8C].pos[0] = -1458;
+        pG->Em_list[0x8C].pos[1] = 0x32;
+        pG->Em_list[0x8C].pos[2] = -577;
         pG->Em_list[0x8C].rot[1] = 0x17D2;
     }
-    if (r221_work.p->str1C) {
-        SndStrReq(r221_work.p->str1C, 4, 200, 0);
+    if (r221_work->str1C) {
+        SndStrReq(r221_work->str1C, 4, 200, 0);
     }
     r221_moveElevator(0);
 }
@@ -741,10 +737,10 @@ static void r221_playBossBgm()
 {
     cEmWrap em;
 
-    if (r221_work.p->bossStr) {
-        SndStrReq(r221_work.p->bossStr, 4, 200, 0);
+    if (r221_work->bossStr) {
+        SndStrReq(r221_work->bossStr, 4, 200, 0);
     }
-    r221_work.p->str1C = SndStrReq(0, 0x24, 0x80000003, 0, 0, 0.0f);
+    r221_work->str1C = SndStrReq(0, 0x24, 0x80000003, 0, 0, 0.0f);
     for (;;) {
         em.setPtr(0x8C, -1, 0);
         if (em.isActive() == 0) {
@@ -752,7 +748,7 @@ static void r221_playBossBgm()
         }
         SceSleep(1);
     }
-    SndStrReq(r221_work.p->str1C, 4, 200, 0);
+    SndStrReq(r221_work->str1C, 4, 200, 0);
 }
 
 // End of the boss appearance (also its cancel path): camera back, SceEventEnd, Status_flg[2]
@@ -779,9 +775,9 @@ static void r221_checkBossAppear_end()
         }
         pG->Em_list[0x8C].set = zero;
         pG->Em_list[0x8C].be_flag = zero;
-        S16Set(pG->Em_list[0x8C].pos[0], -0x4F8);
-        S16Set(pG->Em_list[0x8C].pos[1], 0x58);
-        S16Set(pG->Em_list[0x8C].pos[2], -0x1FA1);
+        pG->Em_list[0x8C].pos[0] = -0x4F8;
+        pG->Em_list[0x8C].pos[1] = 0x58;
+        pG->Em_list[0x8C].pos[2] = -0x1FA1;
         pG->Em_list[0x8C].rot[1] = -0xBBB;
         em.setEm(0x8C, -1, 1, 1, 1);
         SceAtSetEmItem(em.getPtr(), 0x85);
@@ -803,8 +799,8 @@ static void r221_checkBossAppear_end()
     SceAtPtr(3)->trigger |= 0x80;
     SceAtPtr(0x10)->trigger |= 0x80;
     em.setNoSuspend(0);
-    BitOn(pG->Room_flg[0], 0x00800000);
-    BitOn(pG->Room_flg[0], 0x00200000);
+    pG->Room_flg[0] |= 0x00800000;
+    pG->Room_flg[0] |= 0x00200000;
 }
 
 // Task: the boss appears.
@@ -854,7 +850,7 @@ void r221_initSwitchboardLever()
     if (o) {
         Vec d = {0.0f, -407.00006f, 0.0f};
 
-        r221_work.p->lever.initMove1_pos(o, 7, &d, 0.0f, 0.0f);
+        r221_work->lever.initMove1_pos(o, 7, &d, 0.0f, 0.0f);
     }
 }
 
@@ -865,11 +861,11 @@ void r221_moveSwitchboardLever(int a)
         return;
     }
     if (a == 1) {
-        r221_work.p->lever.setEndPos();
+        r221_work->lever.setEndPos();
         return;
     }
     SndCall(6, 2, 0, 0, 0, 0);
-    while (r221_work.p->lever.move() == 1) {
+    while (r221_work->lever.move() == 1) {
         SceSleep(1);
     }
 }
@@ -885,17 +881,17 @@ static void r221_checkSwitchboard_end()
         r221_moveSwitchboardLever(1);
         r221_moveShutter(0, 1);
         r221_setShutterEff(0);
-        if (r221_work.p->shutterSe) {
-            SndStop(r221_work.p->shutterSe, 0);
+        if (r221_work->shutterSe) {
+            SndStop(r221_work->shutterSe, 0);
         }
         if (!(pG->Room_flg[0] & 0x10000000)) {
-            r221_work.p->wireTask2 = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
+            r221_work->wireTask2 = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
         }
-        if (r221_work.p->elvSe0 == 0) {
+        if (r221_work->elvSe0 == 0) {
             cObj* o = SmdGetObjPtr(0x41);
 
             if (o) {
-                r221_work.p->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
+                r221_work->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
             }
         }
         if (!(pG->Room_flg[0] & 0x08000000)) {
@@ -929,9 +925,9 @@ static void r221_checkSwitchboard()
     case 2:
         return;
     }
-    r221_work.p->shutterSe = 0;
-    r221_work.p->elvSe0 = 0;
-    r221_work.p->wireTask2 = 0;
+    r221_work->shutterSe = 0;
+    r221_work->elvSe0 = 0;
+    r221_work->wireTask2 = 0;
     SceSetEventCancel(1, (TaskFunc) r221_checkSwitchboard_end, 0, 2, 1);
     SceEventStart(0);
     RsfSet(G_ROOM_ID, 5);
@@ -956,11 +952,11 @@ static void r221_checkSwitchboard()
         cObj* o = SmdGetObjPtr(0x41);
 
         if (o) {
-            r221_work.p->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
+            r221_work->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
         }
     }
     ScePrim* wire = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
-    PSet(r221_work.p->wireTask2, wire);
+    r221_work->wireTask2 = wire;
     pG->Room_flg[0] |= 0x10000000;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -1001,7 +997,7 @@ static void r221_appearBosstail()
         }
         SceSleep(1);
     }
-    r221_work.p->bossStr = SndStrReq(0, 0x23, 0x80000003, 0, 0, 0.0f);
+    r221_work->bossStr = SndStrReq(0, 0x23, 0x80000003, 0, 0, 0.0f);
 }
 
 // Task: the elevator call button before the power is on.
@@ -1074,10 +1070,10 @@ void r221_initInsectboss()
 
             PSVECSubtract(&a, &o9->pos, &da);
             PSVECSubtract(&b, &o10->pos, &db);
-            r221_work.p->door0.initMove1_pos(o9, 60, &da, 30.0f, 20.0f);
-            r221_work.p->door1.initMove1_pos(o10, 30, &db, 30.0f, 20.0f);
-            r221_work.p->door0.setVibration(10, 10, 1.0f, 0.3f, 1.0f);
-            r221_work.p->door1.setVibration(10, 10, 1.0f, 0.3f, 1.0f);
+            r221_work->door0.initMove1_pos(o9, 60, &da, 30.0f, 20.0f);
+            r221_work->door1.initMove1_pos(o10, 30, &db, 30.0f, 20.0f);
+            r221_work->door0.setVibration(10, 10, 1.0f, 0.3f, 1.0f);
+            r221_work->door1.setVibration(10, 10, 1.0f, 0.3f, 1.0f);
         }
     }
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -1085,7 +1081,7 @@ void r221_initInsectboss()
 
         if (e) {
             e->be_flag &= ~2;
-            r221_work.p->elvY = e->pos.y;
+            r221_work->elvY = e->pos.y;
         }
         SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r221_checkElevator, 0, 1);
         if (RsfCheck(G_ROOM_ID, 5)) {
@@ -1150,10 +1146,10 @@ cObj* r201_setBonbe(int id, f32 ang)
 // 4/5/6/0x11 off; the bombs already thrown (per flags) are removed.
 void r201_initBonbe()
 {
-    r221_work.p->bonbe[0] = r201_setBonbe(0x1E, 0.15280247f);
-    r221_work.p->bonbe[1] = r201_setBonbe(0x20, 3.85f);
-    r221_work.p->bonbe[2] = r201_setBonbe(0x1F, 5.471593f);
-    r221_work.p->bonbe[3] = r201_setBonbe(0x21, 3.1518683f);
+    r221_work->bonbe[0] = r201_setBonbe(0x1E, 0.15280247f);
+    r221_work->bonbe[1] = r201_setBonbe(0x20, 3.85f);
+    r221_work->bonbe[2] = r201_setBonbe(0x1F, 5.471593f);
+    r221_work->bonbe[3] = r201_setBonbe(0x21, 3.1518683f);
     SceAtSetEnable(4, 0);
     SceAtSetEnable(5, 0);
     SceAtSetEnable(6, 0);
@@ -1177,25 +1173,25 @@ void r201_initBonbe()
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, 0, 1);
     } else {
         SceAtSetEnable(0x12, 0);
-        r221_work.p->bonbe[0]->be_flag &= ~2;
+        r221_work->bonbe[0]->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, (void*) 1, 1);
     } else {
         SceAtSetEnable(0x13, 0);
-        r221_work.p->bonbe[1]->be_flag &= ~2;
+        r221_work->bonbe[1]->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, (void*) 2, 1);
     } else {
         SceAtSetEnable(0x14, 0);
-        r221_work.p->bonbe[2]->be_flag &= ~2;
+        r221_work->bonbe[2]->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, (void*) 3, 1);
     } else {
         SceAtSetEnable(0x15, 0);
-        r221_work.p->bonbe[3]->be_flag &= ~2;
+        r221_work->bonbe[3]->be_flag &= ~2;
     }
 }
 
@@ -1273,7 +1269,7 @@ static void r201_throwBonbe(int no)
 
     switch ((u32) no) {
     case 0:
-        bonbe = r221_work.p->bonbe[0];
+        bonbe = r221_work->bonbe[0];
         atNo = 4;
         eff1 = 6;
         RsfSet(G_ROOM_ID, 0);
@@ -1291,7 +1287,7 @@ static void r201_throwBonbe(int no)
         SceExec(0x12, (TaskFunc) r221_callBonbeSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     case 1:
-        bonbe = r221_work.p->bonbe[1];
+        bonbe = r221_work->bonbe[1];
         atNo = 5;
         eff0 = 2;
         RsfSet(G_ROOM_ID, 1);
@@ -1310,7 +1306,7 @@ static void r201_throwBonbe(int no)
         SceExec(0x12, (TaskFunc) r221_callFootSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     case 2:
-        bonbe = r221_work.p->bonbe[2];
+        bonbe = r221_work->bonbe[2];
         atNo = 6;
         eff0 = 4;
         RsfSet(G_ROOM_ID, 2);
@@ -1328,7 +1324,7 @@ static void r201_throwBonbe(int no)
         SceExec(0x12, (TaskFunc) r221_callBonbeSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     case 3:
-        bonbe = r221_work.p->bonbe[3];
+        bonbe = r221_work->bonbe[3];
         atNo = 0x11;
         eff0 = 0xB;
         RsfSet(G_ROOM_ID, 7);
@@ -1413,13 +1409,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r221_texTbl;
 
-    if (GetTexRenderMgr(&r221_work.p->tex)) {
+    if (GetTexRenderMgr(&r221_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r221_work.p->tex->texId;
-        r221_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, r221_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r221_work->tex->texId;
+        r221_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, r221_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

@@ -50,11 +50,11 @@ void R109Init()
         Vec ang = {-1.259219f, 1.5707964f, 1.259219f};
         obj->setAng(&ang);
     }
-    PSet(r109_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos0, &r109_rot0, 0));
-    PSet(r109_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos1, &r109_rot1, 0));
-    PSet(r109_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos2, &r109_rot2, 0));
-    PSet(r109_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos0, &r109_rot0, 0));
-    PSet(r109_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos1, &r109_rot1, 0));
+    r109_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos0, &r109_rot0, 0);
+    r109_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos1, &r109_rot1, 0);
+    r109_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r109_pos2, &r109_rot2, 0);
+    r109_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos0, &r109_rot0, 0);
+    r109_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos1, &r109_rot1, 0);
     r109_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r109_pos2, &r109_rot2, 0);
 
     if (getRoomEtcTorch(0, &torch, 1)) {

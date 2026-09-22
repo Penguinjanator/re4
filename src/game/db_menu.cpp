@@ -207,7 +207,7 @@ void DbMenuRestoreStopFlag()
 {
     struct test* t = &test;
     if (t->stop_saved == 1) {
-        BitSet(pG->Stop_flg, t->stop_bak);
+        pG->Stop_flg = t->stop_bak;
         SpfFlagOff(pG, SPF_KEY);
         t->stop_saved = 0;
     }
@@ -248,7 +248,7 @@ void init(struct test* t)
 // Closes the menu: Stop_flg restored, menu flag cleared, task ends.
 static void exit(struct test* t)
 {
-    BitSet(pG->Stop_flg, t->stop_bak);
+    pG->Stop_flg = t->stop_bak;
     DbgFlagOff(pG, DBG_TEST_MODE);
     TaskExit();
 }

@@ -188,7 +188,7 @@ void UpdateNearClipDist()
 {
     GlobalWork* g = pG;
     if (!StaFlagChk(g, STA_NEARCLIP_TOUCH)) {
-        FSet(ZNEAR, 100.0f);
+        ZNEAR = 100.0f;
     }
     StaFlagOff(g, STA_NEARCLIP_TOUCH);
 }
@@ -196,7 +196,7 @@ void UpdateNearClipDist()
 // Requests a different near clip distance for this frame (water/ filter copies).
 void SetNearClipDist(f32 dist)
 {
-    FSet(ZNEAR, dist);
+    ZNEAR = dist;
     StaFlagOn(pG, STA_NEARCLIP_TOUCH);
 }
 

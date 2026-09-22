@@ -106,16 +106,13 @@ static char xmlTab[0x20];
 static char xmlBuf[0x4000];
 static char* xmlP;
 
-struct TSceItemWorkPtr {
-    TSceItemWork* p;
-};
-static TSceItemWorkPtr sceItemWk;
-#define pW (sceItemWk.p)
+static TSceItemWork* sceItemWk;
+#define pW (sceItemWk)
 struct SceAtWorkPtr {
     SceAtWork* p;
 };
-static SceAtWorkPtr sceItemCur;
-#define pCur (sceItemCur.p)
+static SceAtWork* sceItemCur;
+#define pCur (sceItemCur)
 
 extern "C" {
 void tSceItemInit_base();
@@ -251,18 +248,18 @@ void tSceItemInit_base()
 {
     *((u8*) &pG->debug_mode) = 0x11;
     DbgFlagOn(pG, DBG_BACK_CLIP);
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x8000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Disp_flg, 0x20000000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x4000000);
-    BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->Disp_flg, 0x100000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x8000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Disp_flg |= 0x20000000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x4000000;
+    pG->Disp_flg |= 0x2000000;
+    pG->Disp_flg |= 0x100000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     pW->light = 1;
     SetToolLight(1);
@@ -1604,9 +1601,9 @@ static void tSceItemPreview()
 // Un-pauses the player / HUD for the preview.
 static void tSceItemPreview_init()
 {
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Disp_flg, 0x40000000);
-    BitOff(pG->Disp_flg, 0x80000000);
+    pG->Stop_flg &= ~0x10000000;
+    pG->Disp_flg &= ~0x40000000;
+    pG->Disp_flg &= ~0x80000000;
     DbgFlagOff(pG, DBG_DBG_CAM);
     pW->sub = 1;
     pW->step = 0;
@@ -1672,15 +1669,15 @@ void tSceItemPreview_pl_pos()
 // Restores the tool flags, back to the main menu.
 static void tSceItemPreview_exit()
 {
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x8000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x8000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     MODE_RESET();
 }

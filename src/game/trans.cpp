@@ -971,7 +971,7 @@ void Render()
     ExecOt(0x14);
     pG->Camera = save;
     c.r = c.g = c.b = c.a = 0;
-    GXSetFog(0, 0.0f, 0.0f, FRef(ZNEAR), FRef(ZFAR), c);
+    GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, c);
     ExecOt(0x15);
     if (Filter09GetbUse() == 1) {
         Filter09Render(0);
@@ -1225,8 +1225,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 MODEL_EXT(m)->pTexChg->move(gx->texObj);
             }
         }
-        PSet(g_prev_tpl_addr, info->tpl_addr);
-        PSet(g_prev_add_tpl_addr, info->pAddTpl);
+        g_prev_tpl_addr = info->tpl_addr;
+        g_prev_add_tpl_addr = info->pAddTpl;
         nParts = d->displist_num;
         part = d->pParts;
         if (m->scale.x == 1.0f && m->scale.y == 1.0f && m->scale.z == 1.0f) {
@@ -1355,7 +1355,7 @@ void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     ISET0(tex_coord);
     ISET0(ind_stage);
     selfDone = 0;
-    if (StaFlagChk(pGS, STA_SELF_SHADOW) && isSelfUse) {
+    if (StaFlagChk(pG, STA_SELF_SHADOW) && isSelfUse) {
         u32 i;
         for (i = 0; i < g_SelfShdNum; i++) {
             if (GetSelfShadowMng(i)->pModel[0] == m) {
@@ -1481,7 +1481,7 @@ void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (U16Ref(t->blendRatio) == 0 || t->blendRatio == 0xFF) {
+    if (t->blendRatio == 0 || t->blendRatio == 0xFF) {
         return;
     }
     st = TEV_STAGE_ID();
@@ -1563,7 +1563,7 @@ void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (U16Ref(t->blendRatio) == 0 || t->blendRatio == 0xFF) {
+    if (t->blendRatio == 0 || t->blendRatio == 0xFF) {
         return;
     }
     st = TEV_STAGE_ID();
@@ -1640,7 +1640,7 @@ void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (U16Ref(t->blendRatio) == 0) {
+    if (t->blendRatio == 0) {
         return;
     }
     st = TEV_STAGE_ID();
@@ -1761,7 +1761,7 @@ void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
-    ISet(g_material_tex_coord, coord);
+    g_material_tex_coord = coord;
     t = MODEL_TEX(info);
     texId = part->texId;
     if ((t->flags & 2) && t->anim != 0) {
@@ -2140,7 +2140,7 @@ void ShadowCastSetup(ModelPart* part, cModel* m)
         tev_kcolor++;
         // Each arm carries the stage's tail through `tev_stage++` so the arm does not end in a
         // call (flow's post-call nop would stop jump2 cross-jumping the shared `li r7; bl`).
-        if (U16Ref(w->flags) & 4) {
+        if (w->flags & 4) {
             GXSetTevOrder(st, coord, map, 0xFF);
             GXSetTevColorIn(st, 0xE, 0xF, 8, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
@@ -2166,7 +2166,7 @@ void ShadowCastSetup(ModelPart* part, cModel* m)
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
         tev_kcolor++;
-        if (U16Ref(w->flags) & 4) {
+        if (w->flags & 4) {
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xE, 0xF, 8, 0xA);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
@@ -2191,7 +2191,7 @@ void ShadowCastSetup(ModelPart* part, cModel* m)
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
         tev_kcolor++;
-        if (U16Ref(w->flags) & 4) {
+        if (w->flags & 4) {
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
             GXSetTevColorIn(st, 0xE, 0xF, 0, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
@@ -2321,9 +2321,9 @@ void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
     // Reference-setter stores are neither MEM_SCALAR_P nor MEM_IN_STRUCT_P, so the in-struct load
     // of mng->pLight below cannot be scheduled above them (plain `x++` stores are scalar and let it).
-    ISet(tev_stage, tev_stage + 1);
-    ISet(tex_coord, tex_coord + 1);
-    ISet(tex_map, tex_map + 1);
+    (tev_stage = tev_stage + 1);
+    tex_coord = tex_coord + 1;
+    tex_map = tex_map + 1;
     w = (ShadowLightWork*) mng->pLight->work;
     for (i = 0; i < w->selfShadow; i++) {
         st = TEV_STAGE_ID();
@@ -2427,7 +2427,7 @@ void SetPrimBuffPtr()
     if (pG->prim_cnt == 0) {
         return;
     }
-    U32Set(pG->DblBufIdx, pG->DblBufIdx ^ 1);
+    pG->DblBufIdx = pG->DblBufIdx ^ 1;
     gx->prim = (u8*) pG->prim_cnt + pG->nPrim * pG->DblBufIdx;
 }
 

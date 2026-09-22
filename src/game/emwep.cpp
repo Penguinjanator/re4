@@ -295,7 +295,7 @@ void emWepDmCk(cEmWep* em)
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
         pG->SeInfo.pos = em->pos;
-        pGS->SeInfo.type = stat;
+        pG->SeInfo.type = stat;
         em->setLost();
         break;
     case 0xC:
@@ -311,7 +311,7 @@ void emWepDmCk(cEmWep* em)
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
         pG->SeInfo.pos = em->pos;
-        pGS->SeInfo.type = one;
+        pG->SeInfo.type = one;
         em->setLost();
         break;
     case 0:
@@ -955,7 +955,7 @@ void emWep_R1_Shot(cEmWep* em)
             em->ang.x = -atan2f(-em->pos.y, len);
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);
             em->ang.z = 0.0f;
-            if ((s16) pGS->pl_life <= 0) {
+            if ((s16) pG->pl_life <= 0) {
                 w->timer4 = 0;
             } else {
                 w->timer4 = 30;
@@ -999,7 +999,7 @@ void emWep_R1_Shot(cEmWep* em)
             em->ang.x = -atan2f(-em->pos.y, len);
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);
             em->ang.z = 0.0f;
-            if ((s16) pGS->ashley_life <= 0) {
+            if ((s16) pG->ashley_life <= 0) {
                 w->timer4 = 0;
             } else {
                 w->timer4 = 30;
@@ -1266,7 +1266,7 @@ void emWepRocketBobm(cEmWep* em)
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = em->pos_old;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
     em->setLost();
 }
 
@@ -1290,7 +1290,7 @@ void emWepArrowBomb(cEmWep* em)
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
     StaFlagOn(pG, STA_SE_BURST);
     pG->SeInfo.pos = em->pos;
-    pGS->SeInfo.type = 1;
+    pG->SeInfo.type = 1;
     em->setLost();
 }
 
@@ -1353,7 +1353,7 @@ void emWep_R1_BombThrow(cEmWep* em)
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
         pG->SeInfo.pos = em->pos;
-        pGS->SeInfo.type = 1;
+        pG->SeInfo.type = 1;
         em->setLost();
         return;
     }
@@ -1554,7 +1554,7 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
         StaFlagOn(pG, STA_SE_BURST);
         pG->SeInfo.pos = em->pos;
-        pGS->SeInfo.type = 1;
+        pG->SeInfo.type = 1;
         em->setLost();
         return;
     }
@@ -1890,7 +1890,7 @@ void cEmWep::setThrow(Vec* spd, EmAtkInfo* atk, f32 grav)
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
     Mtx m;
-    register f64 hd asm("fr1"); // COMPILER-DIFF: #8
+    f64 hd; // COMPILER-DIFF: #8
 
     // COMPILER-DIFF: #8 -- the original ranks `fmr f30,f1` (grav) after `mr r26,r5; addi w`, i.e. as
     // if f1 did not die at the copy; the DFmode read of f1 keeps it live past the copy (see

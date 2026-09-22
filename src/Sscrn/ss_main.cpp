@@ -171,8 +171,8 @@ void generalModelAlloc(SUB_SCREEN* wk)
     ssModInfoMgr.arrayAlloc(0xA0);
     ssPartsMgr.roomInit();
     ssPartsMgr.arrayAlloc(0x100);
-    MGR_PTR(cModel::mm) = &ssModInfoMgr;
-    MGR_PTR(cModel::pm) = &ssPartsMgr;
+    cModel::mm = &ssModInfoMgr;
+    cModel::pm = &ssPartsMgr;
     MapMgr.roomInit();
     MapMgr.arrayAlloc(0xA0);
     for (i = 0; i < 0xA0; i++) {
@@ -502,7 +502,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
             exam_id = wk->p_exam_item->id;
             break;
         }
-        PSet(wk->pItemBin, wk->pExamDat);
+        wk->pItemBin = wk->pExamDat;
         ssItemInfo(exam_id, &info);
         if (info.type == 0xD) {
             sprintf(name, "SS/item/cap%02d.bin", exam_id - 0xDB);
@@ -808,8 +808,8 @@ void sscrnModelFree(SUB_SCREEN* wk)
         return;
     }
     {
-        MGR_PTR(cModel::mm) = &ModInfoMgr;
-        MGR_PTR(cModel::pm) = &PartsMgr;
+        cModel::mm = &ModInfoMgr;
+        cModel::pm = &PartsMgr;
         MapMgr.destroyAll();
         ssModInfoMgr.arrayFree();
         ssPartsMgr.arrayFree();
@@ -1026,11 +1026,11 @@ static void weaponChangeTask()
                 break;
             }
             if (ssPlModel) {
-                BitOn(ssPlModel->be_flag, 2);
+                ssPlModel->be_flag |= 2;
                 ssPlModel->invisible_factor = 0.0f;
             }
             if (ssWepModel2) {
-                BitOn(ssWepModel->be_flag, 2);
+                ssWepModel->be_flag |= 2;
                 ssWepModel->invisible_factor = 0.0f;
             }
             wk->wepChange[wep_slot].req = 0;

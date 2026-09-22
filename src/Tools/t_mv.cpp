@@ -84,10 +84,10 @@ static int mvInit()
     GXColor bg;
     u8 zero = 0;
 
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOff(pG->System_flg, 0x800);
+    pG->Stop_flg |= 0x10000000;
+    pG->Disp_flg |= 0x2000000;
+    pG->Stop_flg |= 0x800000;
+    pG->System_flg &= ~0x800;
     DbgFlagOn(pG, DBG_DBG_CAM);
     ToolArrayPush(0);
     bg.r = bg.g = bg.b = 0x30;
@@ -198,10 +198,10 @@ static int mvQuit()
     ToolWorkPop(0);
     bg = g_sysBgColor;
     bio4_GXSetCopyClear(bg, 0xFFFFFF);
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Disp_flg, 0x2000000);
-    BitOff(pG->Stop_flg, 0x800000);
-    BitOn(pG->System_flg, 0x800);
+    pG->Stop_flg &= ~0x10000000;
+    pG->Disp_flg &= ~0x2000000;
+    pG->Stop_flg &= ~0x800000;
+    pG->System_flg |= 0x800;
     DbgFlagOff(pG, DBG_DBG_CAM);
     DbgFlagOff(pG, DBG_TEST_MODE);
     SetToolLight(-1);

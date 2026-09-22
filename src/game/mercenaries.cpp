@@ -62,7 +62,7 @@ static inline int fadeIsOn(FadeWork* f)
 
 #define EXT_FLAG_TBL ((u32*) &pSys->Extra_flg)
 
-#define EXT_FLAG_TBL_S ((u32*) &pSysS->Extra_flg)
+#define EXT_FLAG_TBL_S ((u32*) &pSys->Extra_flg)
 #define MID (&mercId._idSys)
 
 MercSysWork MercSysWk;
@@ -325,7 +325,7 @@ int MercSysMoveScore(MercSysWork* wk)
     if (!(wk->flags & MF_COMBO_OFF)) {
         if (wk->comboTimer > 0) {
             wk->comboTimer--;
-            if (wk->comboTimer > IRef(ComboTimerFlash)) {
+            if (wk->comboTimer > ComboTimerFlash) {
                 IdSetTrans(MID, 0x30, IDC_GAUGE, 1);
                 IdSetColInit(MID, 0x30, IDC_GAUGE);
                 IdSetColLoop(MID, 0x30, IDC_GAUGE, 0);
@@ -359,7 +359,7 @@ int MercSysMoveScore(MercSysWork* wk)
     if (!(wk->flags & MF_BONUS_OFF)) {
         if (wk->bonusTimer > 0) {
             wk->bonusTimer--;
-            if (wk->bonusTimer > IRef(BonusTimerFlash)) {
+            if (wk->bonusTimer > BonusTimerFlash) {
                 IdSetTrans(MID, 0x40, IDC_GAUGE, 1);
                 IdSetColInit(MID, 0x40, IDC_GAUGE);
                 IdSetColLoop(MID, 0x40, IDC_GAUGE, 0);
@@ -627,12 +627,12 @@ int MercSysResultMove(MercSysWork* wk)
                     FadeSetW(2, 0, 0, 0);
                     MercSysResultInit(wk);
                     disp_bak = pG->Disp_flg;
-                    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+                    pG->Disp_flg = 0xFFFFFFFF;
                     DpfFlagOff(pG, DPF_ID_SYSTEM);
                     DpfFlagOff(pG, DPF_MESSAGE);
                     DpfFlagOff(pG, DPF_COCKPIT);
                     stop_bak = pG->Stop_flg;
-                    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+                    pG->Stop_flg = 0xFFFFFFFF;
                     SpfFlagOff(pG, SPF_SCE);
                     SpfFlagOff(pG, SPF_ID_SYSTEM);
                     rs->cnt = 0;
@@ -699,7 +699,7 @@ void MercSysGetSaveWork(MercSaveWork* save)
     // written `SysRef(pSys)->x10[i]` neither operand is flagged, `i*4` becomes BASE_REGS and its
     // longer life drags the rank-pointer giv init to the block end (r8 instead of r12).
     for (i = 0; i < 4; i++) {
-        u32* tbl = SysRef(pSys)->MercSysRoom;
+        u32* tbl = pSys->MercSysRoom;
         u32 w = tbl[i];
 
         save->stage[i].score = (w & 0x0FFFFFFF) * 10;
@@ -708,13 +708,13 @@ void MercSysGetSaveWork(MercSaveWork* save)
         for (j = 0; j < 5; j++) {
             int r = 0;
 
-            if (FlagChkVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3))) {
+            if (FlagChkVar(pSys->MercSysRank, (u32) (i * 15 + j * 3))) {
                 r = 4;
             }
-            if (FlagChkVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 1))) {
+            if (FlagChkVar(pSys->MercSysRank, (u32) (i * 15 + j * 3 + 1))) {
                 r |= 2;
             }
-            if (FlagChkVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 2))) {
+            if (FlagChkVar(pSys->MercSysRank, (u32) (i * 15 + j * 3 + 2))) {
                 r |= 1;
             }
             save->rank[j][i] = r;
@@ -738,19 +738,19 @@ void MercSysSetSaveWork(MercSaveWork* save)
             u32 w;
             sc = (sc / 10) & 0x0FFFFFFF;
             w = (sc | ((save->stage[i].mode & 7) << 28)) | (save->stage[i].newFlag << 31);
-            SysRef(pSys)->MercSysRoom[i] = w;
+            pSys->MercSysRoom[i] = w;
         }
         for (j = 0; j < 5; j++) {
             int r = save->rank[j][i];
 
             if (r & 4) {
-                FlagOnVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3));
+                FlagOnVar(pSys->MercSysRank, (u32) (i * 15 + j * 3));
             }
             if (r & 2) {
-                FlagOnVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 1));
+                FlagOnVar(pSys->MercSysRank, (u32) (i * 15 + j * 3 + 1));
             }
             if (r & 1) {
-                FlagOnVar(SysRef(pSys)->MercSysRank, (u32) (i * 15 + j * 3 + 2));
+                FlagOnVar(pSys->MercSysRank, (u32) (i * 15 + j * 3 + 2));
             }
         }
     }

@@ -41,12 +41,8 @@ struct R223Work {
     u32 se[3];        // 0x120  SndCall handles
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R223WorkPtr {
-    R223Work* p;
-};
 
-static R223WorkPtr r223_work;
+static R223Work* r223_work;
 
 static f32 reva_rate = 0.008f;    // lever turn speed step
 static f32 reva_acc = 3.5f;       // lift speed step
@@ -119,7 +115,7 @@ void R223Init()
     f32 h;
 
 #line 67 "D:/Bio4/Prog/r223.cpp"
-    R223Work*& wp = r223_work.p;
+    R223Work*& wp = r223_work;
     wp = (R223Work*) MEM_CALLOC(sizeof(R223Work), 1, 0xD);
     DbgFlagOn(pG, DBG_EMW_ERR_NO_DISP);
     if (pG->JumpPoint == 1) {
@@ -137,22 +133,22 @@ void R223Init()
     SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r223_GanadoEscapeCheck, 0, 1);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    r223_work.p->toroko = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
+    r223_work->toroko = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
     void* bin;
     void* tpl;
     if (ItemGetBinTplAddr(0x8D, &bin, &tpl)) {
-        r223_work.p->dai = SetObjSmd(bin, tpl, &pos, &rot, 0x10, 1);
+        r223_work->dai = SetObjSmd(bin, tpl, &pos, &rot, 0x10, 1);
     }
-    r223_work.p->em[0].setEm(0xD4, 5, 0, 1, 1);
-    r223_work.p->em[2].setEm(0xD9, 5, 1, 1, 1);
-    r223_work.p->em[3].setEm(0xDB, 5, 1, 1, 1);
-    r223_work.p->em[4].setEm(0xD7, 5, 1, 1, 1);
-    r223_work.p->em[5].setEm(0xDA, 5, 1, 1, 1);
-    r223_work.p->em[7].setEm(0xD2, 5, 1, 1, 1);
-    r223_work.p->em[8].setEm(0xD3, 5, 1, 1, 1);
+    r223_work->em[0].setEm(0xD4, 5, 0, 1, 1);
+    r223_work->em[2].setEm(0xD9, 5, 1, 1, 1);
+    r223_work->em[3].setEm(0xDB, 5, 1, 1, 1);
+    r223_work->em[4].setEm(0xD7, 5, 1, 1, 1);
+    r223_work->em[5].setEm(0xDA, 5, 1, 1, 1);
+    r223_work->em[7].setEm(0xD2, 5, 1, 1, 1);
+    r223_work->em[8].setEm(0xD3, 5, 1, 1, 1);
     if (setChange(1, 4, 3, 0x10, 0xCF) == 1) {
         AreaGetCenterPos(&pos, &SceAtPtr(0xB)->area);
-        r223_work.p->em[16].setGoto(&pos, 7);
+        r223_work->em[16].setGoto(&pos, 7);
     }
     SceExec(0x12, (TaskFunc) r223_EmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
@@ -174,8 +170,8 @@ void R223Init()
         SET_ANG_XYZ(SmdGetObjPtr(0x16), pos, 0.0f, -0.121f, 0.0f);
         SmdGetObjPtr(0x16)->be_flag |= 0x20;
         SmdGetObjPtr(0x16)->be_flag |= 2;
-        r223_work.p->toroko->be_flag &= ~2;
-        SET_POS_XYZ(r223_work.p->dai, pos, -7935.68f, 4376.0f, -37032.8f);
+        r223_work->toroko->be_flag &= ~2;
+        SET_POS_XYZ(r223_work->dai, pos, -7935.68f, 4376.0f, -37032.8f);
         if (RsfCheck(G_ROOM_ID, 9)) {
             h = 3600.0f;
             EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM01, 0, 0);
@@ -195,15 +191,15 @@ void R223Init()
             o5b->be_flag |= 0x20;
             o12->pos.y -= h;
             o5b->pos.y -= h;
-            r223_work.p->dai->pos.y -= h;
+            r223_work->dai->pos.y -= h;
             SmdGetObjPtr(0x16)->pos.y -= h;
         }
     } else {
         EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM01, 0, 0);
         EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     }
-    r223_work.p->em[21].setEm(0xE0, -1, 1, 1, 1);
-    r223_work.p->em[22].setEm(0xE1, -1, 1, 1, 1);
+    r223_work->em[21].setEm(0xE0, -1, 1, 1, 1);
+    r223_work->em[22].setEm(0xE1, -1, 1, 1, 1);
     PlRegistMotion(0, 0, 0, 0, 0, 0, 0, 0, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
                    ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25));
 }
@@ -286,13 +282,13 @@ static void reva2_use_after_reva3_exit()
     o5b->be_flag |= 0x20;
     o12->pos.y = -2607.0f;
     o5b->pos.y = -350.0f;
-    r223_work.p->toroko->pos.y = -3599.0f;
-    r223_work.p->dai->pos.y = 776.0f;
+    r223_work->toroko->pos.y = -3599.0f;
+    r223_work->dai->pos.y = 776.0f;
     SmdGetObjPtr(0x16)->pos.y = 715.0f;
-    SndStop(r223_work.p->se[0], 0);
-    SndStop(r223_work.p->se[1], 0);
-    SndStop(r223_work.p->se[2], 0);
-    r223_work.p->dai->be_flag &= ~2;
+    SndStop(r223_work->se[0], 0);
+    SndStop(r223_work->se[1], 0);
+    SndStop(r223_work->se[2], 0);
+    r223_work->dai->be_flag &= ~2;
     SceAtSetEnable(0x80, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -323,13 +319,13 @@ static void toroko_go_and_stop_exit()
     cObj* o12;
     cObj* o5b;
 
-    SndStrReq(r223_work.p->str, 8, 0, 0);
+    SndStrReq(r223_work->str, 8, 0, 0);
     SET_POS_XYZ(SmdGetObjPtr(0x16), pos, -7794.0f, 4315.0f, -37212.0f);
     SET_ANG_XYZ(SmdGetObjPtr(0x16), pos, 0.0f, -0.121f, 0.0f);
     SmdGetObjPtr(0x16)->be_flag |= 0x20;
     SmdGetObjPtr(0x16)->be_flag |= 2;
-    r223_work.p->toroko->be_flag &= ~2;
-    SET_POS_XYZ(r223_work.p->dai, pos, -7935.68f, 4376.0f, -37032.8f);
+    r223_work->toroko->be_flag &= ~2;
+    SET_POS_XYZ(r223_work->dai, pos, -7935.68f, 4376.0f, -37032.8f);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM02, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM02, 0);
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM02, 0);
@@ -341,20 +337,20 @@ static void toroko_go_and_stop_exit()
     o5b->be_flag |= 0x20;
     o12->pos.y = -207.0f;
     o5b->pos.y = 2050.0f;
-    r223_work.p->toroko->pos.y = -1200.0f;
-    r223_work.p->dai->pos.y = 3176.0f;
+    r223_work->toroko->pos.y = -1200.0f;
+    r223_work->dai->pos.y = 3176.0f;
     SmdGetObjPtr(0x16)->pos.y = 3115.0f;
     EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_ROOM01, 0, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM01, 0, 0);
-    SndStop(r223_work.p->se[0], 0);
-    SndStop(r223_work.p->se[1], 0);
-    SndStop(r223_work.p->se[2], 0);
+    SndStop(r223_work->se[0], 0);
+    SndStop(r223_work->se[1], 0);
+    SndStop(r223_work->se[2], 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    r223_work.p->em[18].setEm(0xD1, 5, 1, 1, 1);
+    r223_work->em[18].setEm(0xD1, 5, 1, 1, 1);
 }
 
 // Lever 2 the first time (bit 7): the cart rolls off (toroko_move1) and the lift drops to the middle stop.
@@ -428,7 +424,7 @@ static void reva3_move()
             EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
             EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
             EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
-            r223_work.p->se[0] = SndCall(6, 0, 0, 0, 0, 0);
+            r223_work->se[0] = SndCall(6, 0, 0, 0, 0, 0);
             EstSet(0, -1, 0, 0, EFF_ROOM, 0x16, 1, ESP_CORE_KIND_ROOM01, 0, 0);
             EstSet(0, -1, 0, 0, EFF_ROOM, 0x18, 1, ESP_CORE_KIND_ROOM01, 0, 0);
             SceSleep(15);
@@ -445,10 +441,10 @@ void toroko_move1()
 {
     Vec pos;
 
-    r223_work.p->str = SndStrReq(1, 1, 0x80000003, 0, 0, 0.0f);
+    r223_work->str = SndStrReq(1, 1, 0x80000003, 0, 0, 0.0f);
     SmdSetTrans(0x16, 0);
-    MotionSetCore(r223_work.p->toroko, &r223_work.p->toroko->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
-    EstSet(r223_work.p->toroko, -1, 0, 0, EFF_ROOM, 0x1C, 1, ESP_CORE_KIND_ROOM02, 0, 0);
+    MotionSetCore(r223_work->toroko, &r223_work->toroko->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
+    EstSet(r223_work->toroko, -1, 0, 0, EFF_ROOM, 0x1C, 1, ESP_CORE_KIND_ROOM02, 0, 0);
     CamCtrl.CutCall(8);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -461,8 +457,8 @@ void toroko_move1()
     SET_ANG_XYZ(SmdGetObjPtr(0x16), pos, 0.0f, -0.121f, 0.0f);
     SmdGetObjPtr(0x16)->be_flag |= 0x20;
     SmdGetObjPtr(0x16)->be_flag |= 2;
-    r223_work.p->toroko->be_flag &= ~2;
-    SET_POS_XYZ(r223_work.p->dai, pos, -7935.68f, 4376.0f, -37032.8f);
+    r223_work->toroko->be_flag &= ~2;
+    SET_POS_XYZ(r223_work->dai, pos, -7935.68f, 4376.0f, -37032.8f);
 }
 
 // Second cart move: empty in this build.
@@ -483,16 +479,16 @@ int isZouenGo()
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         return 0;
     }
-    if (r223_work.p->em[7].isActive() == 0) {
+    if (r223_work->em[7].isActive() == 0) {
         n = 1;
     }
-    if (r223_work.p->em[8].isActive() == 0) {
+    if (r223_work->em[8].isActive() == 0) {
         n++;
     }
-    if (r223_work.p->em[4].isActive() == 0) {
+    if (r223_work->em[4].isActive() == 0) {
         n++;
     }
-    if (r223_work.p->em[5].isActive() == 0) {
+    if (r223_work->em[5].isActive() == 0) {
         n++;
     }
     return n > 1;
@@ -518,12 +514,12 @@ void setFlagStart(cEmWrap* em)
 // Counts frames while em[no] may be reset; resets it after 105 of them.
 int execReset(int no, u16* cnt)
 {
-    if (r223_work.p->em[no].ckResetEnable() == 1) {
+    if (r223_work->em[no].ckResetEnable() == 1) {
         (*cnt)++;
         if (*cnt > 0x69) {
             *cnt = 0;
-            r223_work.p->em[no].setReset();
-            setFlagStart(&r223_work.p->em[no]);
+            r223_work->em[no].setReset();
+            setFlagStart(&r223_work->em[no]);
             return 1;
         }
     }
@@ -534,15 +530,15 @@ int execReset(int no, u16* cnt)
 int setChange(int mode, int flagNo, int oldNo, int newNo, int emId)
 {
     if (RsfCheck(G_ROOM_ID, flagNo) == 0) {
-        if (r223_work.p->em[oldNo].isActive() == 0) {
+        if (r223_work->em[oldNo].isActive() == 0) {
             RsfSet(G_ROOM_ID, flagNo);
-            r223_work.p->em[newNo].setEm(emId, 5, 1, 1, 1);
-            setFlagStart(&r223_work.p->em[newNo]);
+            r223_work->em[newNo].setEm(emId, 5, 1, 1, 1);
+            setFlagStart(&r223_work->em[newNo]);
             return 1;
         }
     } else if (mode == 1) {
-        r223_work.p->em[newNo].setEm(emId, 5, 1, 1, 1);
-        setFlagStart(&r223_work.p->em[newNo]);
+        r223_work->em[newNo].setEm(emId, 5, 1, 1, 1);
+        setFlagStart(&r223_work->em[newNo]);
         return 1;
     }
     return 0;
@@ -551,7 +547,7 @@ int setChange(int mode, int flagNo, int oldNo, int newNo, int emId)
 // End of the Ganado 0xCC entrance cutscene: it may suspend again, camera back, SceEventEnd, Status_flg[2] 0x02000000 off.
 static void r223_EmApper_exit()
 {
-    r223_work.p->em[13].setNoSuspend(0);
+    r223_work->em[13].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
@@ -562,9 +558,9 @@ static void r223_EmApper()
 {
     SceEventStart(1);
     StaFlagOn(pG, STA_ESP_COMPULSION_NOSUSPEND);
-    r223_work.p->em[13].setEm(0xCC, 5, 1, 1, 1);
-    setFlagStart(&r223_work.p->em[13]);
-    r223_work.p->em[13].setNoSuspend(1);
+    r223_work->em[13].setEm(0xCC, 5, 1, 1, 1);
+    setFlagStart(&r223_work->em[13]);
+    r223_work->em[13].setNoSuspend(1);
     SceSetEventCancel(1, (TaskFunc) r223_EmApper_exit, 0, -1, 1);
     CamCtrl.CutCall(0x12);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -598,36 +594,36 @@ static void r223_EmCheck()
     AreaGetCenterPos(&pt[7], &SceAtPtr(0xB)->area);
     for (i = 0; (u32) i < 4; i++) {
         flag[i] = 1;
-        r223_work.p->em[i].setGoto(&pt[i * 2 + 1], 6);
+        r223_work->em[i].setGoto(&pt[i * 2 + 1], 6);
     }
     timer = 0;
     for (;;) {
         for (i = 0; (u32) i < 4; i++) {
-            if (i == 3 || r223_work.p->em[i].ckFindPL() == 1) {
+            if (i == 3 || r223_work->em[i].ckFindPL() == 1) {
                 break;
             }
-            if (r223_work.p->em[i].ckGoto() == 0) {
+            if (r223_work->em[i].ckGoto() == 0) {
                 if (flag[i] == 0) {
                     flag[i] = 1;
-                    r223_work.p->em[i].setGoto(&pt[i * 2 + 1], 6);
+                    r223_work->em[i].setGoto(&pt[i * 2 + 1], 6);
                 } else {
                     flag[i] = 0;
-                    r223_work.p->em[i].setGoto(&pt[i * 2], 6);
+                    r223_work->em[i].setGoto(&pt[i * 2], 6);
                 }
             }
         }
         if (RsfCheck(G_ROOM_ID, 0) == 0 && (pG->Room_flg[2] & 0x80000000) && isZouenGo() == 1) {
             RsfSet(G_ROOM_ID, 0);
-            r223_work.p->em[9].setEm(0xDC, 5, 1, 1, 1);
-            r223_work.p->em[10].setEm(0xDD, 5, 1, 1, 1);
-            r223_work.p->em[11].setEm(0xDE, 5, 1, 1, 1);
-            r223_work.p->em[12].setEm(0xDF, 5, 1, 1, 1);
+            r223_work->em[9].setEm(0xDC, 5, 1, 1, 1);
+            r223_work->em[10].setEm(0xDD, 5, 1, 1, 1);
+            r223_work->em[11].setEm(0xDE, 5, 1, 1, 1);
+            r223_work->em[12].setEm(0xDF, 5, 1, 1, 1);
             AreaGetCenterPos(&c, &SceAtPtr(0xD)->area);
-            r223_work.p->em[9].setGoto(&c, 7);
-            r223_work.p->em[10].setGoto(&c, 7);
-            r223_work.p->em[11].setGoto(&c, 7);
-            r223_work.p->em[12].setGoto(&c, 7);
-            r223_work.p->em[13].setGoto(&c, 7);
+            r223_work->em[9].setGoto(&c, 7);
+            r223_work->em[10].setGoto(&c, 7);
+            r223_work->em[11].setGoto(&c, 7);
+            r223_work->em[12].setGoto(&c, 7);
+            r223_work->em[13].setGoto(&c, 7);
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0 && (pG->Room_flg[2] & 0x80000000) && isZouenGo2() == 1) {
             RsfSet(G_ROOM_ID, 1);
@@ -636,25 +632,25 @@ static void r223_EmCheck()
         timer++;
         if (timer > 100) {
             timer = 100;
-            if (r223_work.p->em[3].isActive() == 1 && (pG->Room_flg[2] & 0x80000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
+            if (r223_work->em[3].isActive() == 1 && (pG->Room_flg[2] & 0x80000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
                 RsfSet(G_ROOM_ID, 2);
-                r223_work.p->em[3].setGoto(&pPL->pos, 8);
-                r223_work.p->em[17].setEm(0xD0, 5, 1, 1, 1);
-                r223_work.p->em[20].setEm(0xD6, 5, 1, 1, 1);
-                setFlagStart(&r223_work.p->em[17]);
-                setFlagStart(&r223_work.p->em[20]);
+                r223_work->em[3].setGoto(&pPL->pos, 8);
+                r223_work->em[17].setEm(0xD0, 5, 1, 1, 1);
+                r223_work->em[20].setEm(0xD6, 5, 1, 1, 1);
+                setFlagStart(&r223_work->em[17]);
+                setFlagStart(&r223_work->em[20]);
                 AreaGetCenterPos(&c, &SceAtPtr(0xB)->area);
-                r223_work.p->em[17].setGoto(&c, 7);
+                r223_work->em[17].setGoto(&c, 7);
             }
         }
         if (setChange(0, 4, 3, 0x10, 0xCF) == 1) {
             AreaGetCenterPos(&c, &SceAtPtr(0xB)->area);
-            r223_work.p->em[16].setGoto(&c, 7);
+            r223_work->em[16].setGoto(&c, 7);
         }
         setChange(0, 5, 2, 0x13, 0xD5);
         if (setChange(0, 4, 3, 0x10, 0xCF) != 0) {
             AreaGetCenterPos(&c, &SceAtPtr(0xB)->area);
-            r223_work.p->em[16].setGoto(&c, 7);
+            r223_work->em[16].setGoto(&c, 7);
         }
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             if (execReset(0x14, cnt) == 1) {
@@ -684,13 +680,13 @@ void dai_down_stop()
     SmdGetObjPtr(0xC)->be_flag |= 0x20;
     SmdGetObjPtr(0xD)->be_flag |= 0x20;
     CamCtrl.CutCall(0xE);
-    r223_work.p->se[1] = SndCall(6, 5, &r223_work.p->toroko->pos, 0, 0, 0);
+    r223_work->se[1] = SndCall(6, 5, &r223_work->toroko->pos, 0, 0, 0);
     for (i = 0; i < 120; i++) {
         o12->pos.y -= 10.0f;
         o5b->pos.y -= 10.0f;
-        r223_work.p->toroko->pos.y -= 10.0f;
+        r223_work->toroko->pos.y -= 10.0f;
         SmdGetObjPtr(0x16)->pos.y -= 10.0f;
-        r223_work.p->dai->pos.y -= 10.0f;
+        r223_work->dai->pos.y -= 10.0f;
         SmdGetObjPtr(0xA)->pParts->ang.z += 0.035f;
         SmdGetObjPtr(0xB)->pParts->ang.z -= 0.035f;
         SmdGetObjPtr(0xC)->pParts->ang.y += 0.035f;
@@ -711,7 +707,7 @@ void dai_down_stop()
                 EffectEspDelete(1, ESP_CORE_KIND_ROOM01, 0, 0);
                 EffectEspgenDelete(1, ESP_CORE_KIND_ROOM01, 0);
                 EffectEfmDelete(1, ESP_CORE_KIND_ROOM01, 0);
-                r223_work.p->se[0] = SndCall(6, 0, 0, 0, 0, 0);
+                r223_work->se[0] = SndCall(6, 0, 0, 0, 0, 0);
                 EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, ESP_CORE_KIND_ROOM01, 0, 0);
                 EstSet(0, -1, 0, 0, EFF_ROOM, 0x19, 1, ESP_CORE_KIND_ROOM01, 0, 0);
                 SceSleep(35);
@@ -720,7 +716,7 @@ void dai_down_stop()
             SceSleep(1);
         }
     }
-    r223_work.p->se[2] = SndCall(6, 6, &r223_work.p->toroko->pos, 0, 0, 0);
+    r223_work->se[2] = SndCall(6, 6, &r223_work->toroko->pos, 0, 0, 0);
     SceSleep(15);
     SceSleep(30);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -745,21 +741,21 @@ void dai_down_end()
     SmdGetObjPtr(0xD)->be_flag |= 0x20;
     CamCtrl.CutCall(0x10);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0x1A, 1, ESP_CORE_KIND_ROOM02, 0, 0);
-    r223_work.p->se[1] = SndCall(6, 5, &r223_work.p->toroko->pos, 0, 0, 0);
+    r223_work->se[1] = SndCall(6, 5, &r223_work->toroko->pos, 0, 0, 0);
     spd = 13.333333f;
     while (o5b->pos.y > -350.0f) {
         o12->pos.y -= spd;
         o5b->pos.y -= spd;
-        r223_work.p->toroko->pos.y -= spd;
+        r223_work->toroko->pos.y -= spd;
         SmdGetObjPtr(0x16)->pos.y -= spd;
-        r223_work.p->dai->pos.y -= spd;
+        r223_work->dai->pos.y -= spd;
         SmdGetObjPtr(0xA)->pParts->ang.z += 0.035f;
         SmdGetObjPtr(0xB)->pParts->ang.z -= 0.035f;
         SmdGetObjPtr(0xC)->pParts->ang.y += 0.035f;
         SmdGetObjPtr(0xD)->pParts->ang.x += 0.035f;
         SceSleep(1);
     }
-    r223_work.p->se[2] = SndCall(6, 6, &r223_work.p->toroko->pos, 0, 0, 0);
+    r223_work->se[2] = SndCall(6, 6, &r223_work->toroko->pos, 0, 0, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -785,8 +781,8 @@ static void r223_ItemUse_exec()
     while (ItemMgr.check(0x8D) != 1) {
         SceSleep(1);
     }
-    SET_POS_XYZ(r223_work.p->dai, pos, -650.0f, 800.0f, -32100.0f);
-    BitOn(r223_work.p->dai->be_flag, 2);
+    SET_POS_XYZ(r223_work->dai, pos, -650.0f, 800.0f, -32100.0f);
+    r223_work->dai->be_flag |= 2;
     RsfSet(G_ROOM_ID, 10);
     SceExec(0x12, (TaskFunc) r223_Bomb, 0, 0, SCE_PRIO_DEF_2, 0);
 }
@@ -815,18 +811,18 @@ static void r223_Bomb()
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0x1F, 0, ESP_CORE_KIND_NONE, 0, 0);
-    r223_work.p->dai->be_flag &= ~2;
+    r223_work->dai->be_flag &= ~2;
     SndCall(6, 8, &pos, 0, 0, 0);
     PlWepHitCheck2(0, &pos, &pos, 0x12, 2, 6000.0f);
     SceAtSetEnable(0x12, 0);
     SceAtSetEnable(0x13, 0);
-    r223_work.p->em[21].setFindPL();
-    r223_work.p->em[22].setFindPL();
-    if (r223_work.p->em[21].isActive()) {
-        r223_work.p->em[21].getPtr()->Character = 0;
+    r223_work->em[21].setFindPL();
+    r223_work->em[22].setFindPL();
+    if (r223_work->em[21].isActive()) {
+        r223_work->em[21].getPtr()->Character = 0;
     }
-    if (r223_work.p->em[22].isActive()) {
-        r223_work.p->em[22].getPtr()->Character = 0;
+    if (r223_work->em[22].isActive()) {
+        r223_work->em[22].getPtr()->Character = 0;
     }
 }
 

@@ -137,7 +137,7 @@ static void r118_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 0);
-    r118_work->strId = SndStrReq(1, 0xE0, 0x80000003, 0, 0, FCRef(vol));
+    r118_work->strId = SndStrReq(1, 0xE0, 0x80000003, 0, 0, *(const f32*) &vol);
     SceSetEventCancel(1, (TaskFunc) r118_execShowView_end, 0, -1, 1);
     SceEventStart(0);
     StaFlagOff(pG, STA_SUSPEND);

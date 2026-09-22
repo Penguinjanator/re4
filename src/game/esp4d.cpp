@@ -52,7 +52,7 @@ void cEsp4d::move()
                 p = m_Pos;
                 p.x = SINF(ang) * r + p.x;
                 p.z = COSF(ang) * r + p.z;
-                AddWaterPower(&p, m_Col_a * 0.001f * fade * sign);
+                AddWaterPower(p, m_Col_a * 0.001f * fade * sign);
                 ang += 6.2831855f / (f32)n;
             }
             fade -= 1.0f / (f32)nRing;

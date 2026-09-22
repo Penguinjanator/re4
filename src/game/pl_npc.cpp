@@ -124,7 +124,7 @@ cSubChar::~cSubChar()
         LightMgr.destroy(m_pLiF);
     }
     // Stored through the struct view: keeps the base destructor's be_flag load below the store.
-    pSUBS = 0;
+    pSUB = 0;
 }
 
 // Set up after creation (EmMgr.createBack): cloth, a 1000-unit light and a back light, the 300 x
@@ -840,10 +840,10 @@ void cSubChar::moveBehind()
     if (r_no_2 <= 0x13 && (plStat & 0x10)) {
         target = *ap;
         // reference stores: the following pPL loads stay below them
-        FSet(target.z, target.z - pPL->Wep->getAngle() * 0.31830987f * 300.0f);
+        (target.z = target.z - pPL->Wep->getAngle() * 0.31830987f * 300.0f);
         PSMTXMultVec(pPL->mat, &target, &target);
-        FSet(pos.x, pos.x * 0.7f + target.x * 0.3f);
-        FSet(pos.z, pos.z * 0.7f + target.z * 0.3f);
+        pos.x = pos.x * 0.7f + target.x * 0.3f;
+        pos.z = pos.z * 0.7f + target.z * 0.3f;
         ang.y += Muku2(ang.y, pPL->ang.y, 0.31415927f);
     }
     if (!(plStat & 0x10)) {
@@ -1171,8 +1171,8 @@ void cSubChar::moveFall()
     switch (r_no_2) {
     case 0:
         getFallPos(this, &pPL->pos, &pPL->ang);
-        FSet(pPL->ang.y, pPL->ang.y + 4.712389f);
-        FSet(pPL->ang.y, LIMIT_ANGLE(pPL->ang.y));
+        pPL->ang.y = pPL->ang.y + 4.712389f;
+        pPL->ang.y = LIMIT_ANGLE(pPL->ang.y);
         pPL->cCoord::matUpdate();
         SetPlDamage(this, (void (*)(cPlayer*)) pl_fall_ok0);
         pPL->dmg.set(0, 0x80);
@@ -1200,7 +1200,7 @@ void cSubChar::moveFall()
         AtariOff(&atari, 0xFEFF);
         atari.setPriority(PRI_LV3);
         ang.y = pPL->ang.y - 4.712389f;
-        FSet(ang.y, LIMIT_ANGLE(ang.y));
+        ang.y = LIMIT_ANGLE(ang.y);
         PSMTXMultVec(pPL->mat, &v_ok, &pos);
         setPos(&pos);
         SetPlDamage(this, pl_fall_ok);
@@ -2034,8 +2034,7 @@ void cSubChar::moveDamage()
     case 2:
         if (MotionMove(pEm, 0)) {
             if (m_Work0 == 7 || m_Work0 == 9) {
-                hp = 0;
-                pG->ashley_life = 0;
+                pG->ashley_life = hp = 0;
             }
         }
         break;
@@ -2215,7 +2214,7 @@ void cSubChar::neckCtrl()
     int on = 1;
     f32 ang;
 
-    BitOn(MOTION_PARTS(p)->flags, 0x40000000);
+    MOTION_PARTS(p)->flags |= 0x40000000;
     if (!(pPL->stat & 2)) {
         on = 0;
     }
@@ -2846,7 +2845,7 @@ void cSubChar::analyze()
         BitOff16(status, 2);
     }
     n = EmMgr.getArrayNum();
-    BitOff16(status, 0x201);
+    status &= ~0x201;
     if (!SUBFLAG(this)->check(3)) {
         for (i = 0; i < n; i++) {
             cEm* em = EmMgr.fastAt(i);
@@ -2873,7 +2872,7 @@ void cSubChar::analyze()
                 continue;
             }
             if (GetDistance(pos, em->pos) < 16000000.0f) {
-                BitOn16(status, 0x200);
+                status |= 0x200;
                 if (subNear2) {
                     Draw_pos(&em->pos, 1000);
                 }

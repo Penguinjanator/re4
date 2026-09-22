@@ -76,7 +76,7 @@ void cObjMauser::init(cModel* parent)
     wep.shotFrame[0] = mauser_tbl[0];
     wep.shotFrame[1] = mauser_tbl[1];
     wep.shotFrame[2] = mauser_tbl[2];
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
+    wep.motReset[0] = WEP_ARC_PTR(0x34);
     wep.motReset[1] = WEP_ARC_PTR(0x38);
     resetMotion();
 }

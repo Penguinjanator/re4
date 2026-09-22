@@ -120,16 +120,16 @@ void R101Init()
 #line 81 "D:/Bio4/Prog/r101.cpp"
     r101_work = (R101Work*) MEM_CALLOC(sizeof(R101Work), 1, 0xd);
 
-    PSet(r101_work->pEm[0], &r101_work->em[0]);
-    PSet(r101_work->pEm[1], &r101_work->em[1]);
-    PSet(r101_work->pEm[2], &r101_work->em[2]);
-    PSet(r101_work->pEm[3], &r101_work->em[3]);
-    PSet(r101_work->pEm[4], &r101_work->em[4]);
-    PSet(r101_work->pEm[5], &r101_work->em[5]);
-    PSet(r101_work->pEm[6], &r101_work->em[6]);
-    PSet(r101_work->pEm[7], &r101_work->em[7]);
-    PSet(r101_work->pEm[8], &r101_work->em[8]);
-    PSet(r101_work->pEm[9], &r101_work->em[9]);
+    r101_work->pEm[0] = &r101_work->em[0];
+    r101_work->pEm[1] = &r101_work->em[1];
+    r101_work->pEm[2] = &r101_work->em[2];
+    r101_work->pEm[3] = &r101_work->em[3];
+    r101_work->pEm[4] = &r101_work->em[4];
+    r101_work->pEm[5] = &r101_work->em[5];
+    r101_work->pEm[6] = &r101_work->em[6];
+    r101_work->pEm[7] = &r101_work->em[7];
+    r101_work->pEm[8] = &r101_work->em[8];
+    r101_work->pEm[9] = &r101_work->em[9];
     if (!ScfFlagChk(pG, SCF_R101_ENTER)) {
         ScfFlagOn(pG, SCF_R101_ENTER);
         SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -147,9 +147,9 @@ void R101Init()
         ((cEmRack*) rack)->setRange(2000.0f, 2000.0f, 0.0f, 2600.0f);
     }
     if (getRoomEtcRack(0x11, &rack, 1)) {
-        FSet(rack->pos.x, 6656.0f);
-        FSet(rack->pos.y, 902.0f);
-        FSet(rack->pos.z, 8925.0f);
+        rack->pos.x = 6656.0f;
+        rack->pos.y = 902.0f;
+        rack->pos.z = 8925.0f;
         ((cEmRack*) rack)->setRange(2000.0f, 800.0f, 0.0f, 4400.0f);
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
@@ -175,7 +175,7 @@ void R101Init()
         rot.x = 0.0f;
         rot.y = -1.5707964f;
         rot.z = 0.0f;
-        PSet(r101_work->obj00, SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot));
+        r101_work->obj00 = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot);
         r101_work->obj00->setNoSuspend(1);
         EstSet(0, -1, 0, 0, EFF_ROOM, 0, 0x801, ESP_CORE_KIND_NONE, 0, 0);
         pos.y += 1500.0f;
@@ -185,7 +185,7 @@ void R101Init()
         if (RsfCheck(G_ROOM_ID, 6) == 0) {
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 0, 0, SCE_PRIO_DEF_2, 0);
             SceAtDataSet_exec(0x13, SCE_LEVEL10, 0, (TaskFunc) r101_callGanadoVoice, 0, 1);
-            PSet(r101_work->evt00, DC.setData(EvtMgr.NameChange("evd/r101s00.evd")));
+            r101_work->evt00 = DC.setData(EvtMgr.NameChange("evd/r101s00.evd"));
             r101_work->evt00->setCommand(CMND_ARAM_LOAD, 0, 0);
             EmReadSearch(0x26, 0, r101_work->evt00->m_size);
             SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r101_Event00, 0, 1);
@@ -194,9 +194,9 @@ void R101Init()
             SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen100, 0, 1);
             SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen103, 0, 1);
         }
-        PSet(r101_work->evt30, DC.setData(EvtMgr.NameChange("evd/r101s30.evd")));
+        r101_work->evt30 = DC.setData(EvtMgr.NameChange("evd/r101s30.evd"));
         if (RsfCheck(G_ROOM_ID, 8) == 0) {
-            PSet(r101_work->evt21, DC.setData(EvtMgr.NameChange("evd/r101s21.evd")));
+            r101_work->evt21 = DC.setData(EvtMgr.NameChange("evd/r101s21.evd"));
             r101_work->evt21->setCommand(CMND_ARAM_LOAD, 0, 0);
             if (r101_work->evt21->m_size > r101_work->evt30->m_size) {
                 EmReadSearch(0x15, 0, r101_work->evt21->m_size);
@@ -237,9 +237,9 @@ void R101Init()
                 r101_emDeadClear(0x19);
                 r101_emDeadClear(0x1E);
                 r101_emDeadClear(0x1F);
-                pGS->Em_list[0x48].be_flag |= 1;
-                pGS->Em_list[0x49].be_flag |= 1;
-                pGS->Em_list[0x4A].be_flag |= 1;
+                pG->Em_list[0x48].be_flag |= 1;
+                pG->Em_list[0x49].be_flag |= 1;
+                pG->Em_list[0x4A].be_flag |= 1;
             }
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -487,7 +487,7 @@ static void r101_Event30()
             SysFlagOff(pG, SYS_SCREEN_STOP);
         }
     }
-    BitOn(pG->Room_flg[0], 0x20000000);
+    pG->Room_flg[0] |= 0x20000000;
     r101_work->evt30->setCommand(CMND_DEL_DATA, 0, 0);
     SceEventEnd(0);
     SceAtDataReset(0);
@@ -623,8 +623,8 @@ static void r101_Event20()
     }
     if (getRoomEtcRack(0xF, &rack, 1)) {
         rack->setNoSuspend(0);
-        FSet(rack->pos.x, 7201.0f);
-        FSet(rack->pos.z, -7280.0f);
+        rack->pos.x = 7201.0f;
+        rack->pos.z = -7280.0f;
         r = rack;
         {
             Vec* pp = &r->pos;
@@ -700,7 +700,7 @@ static void r101_Event20()
         // block are emitted in hash-table (first-occurrence) order, and the LAST one shares sched1's
         // cycle with `li r3,0x15`; it must be high(pPL), not `&ang` (sched2 then keeps addi before li).
         Vec* pa = &ang;
-        pl = pPLS;
+        pl = pPL;
         pl->setPos(&pos);
         ang.x = 0.0f;
         pa->y = ry;
@@ -983,7 +983,7 @@ static void r101_Event00()
         cPlayer* pl;
 
         pos = r101_plPos00;
-        pl = pPLS;
+        pl = pPL;
         pl->setPos(&pos);
         Vec* pa = &ang;
         ang.x = 0.0f;
@@ -993,7 +993,7 @@ static void r101_Event00()
     }
     pPL->dmg.set(0, 0x80);
     ang = pPL->pos;
-    if (pSysS->eff_country == 0) {   // struct view: the pSys load stays below the `ang` copy stores
+    if (pSys->eff_country == 0) {   // struct view: the pSys load stays below the `ang` copy stores
         at.x = 3492.0f;
         at.y = 1100.0f;
         at.z = 3695.0f;

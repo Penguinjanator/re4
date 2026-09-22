@@ -18,7 +18,6 @@
 #include "cam_ctrl.h"
 #include "rnd.h"
 #include "math_sub.h"
-#include "ref_access.h"
 #include "game.h"
 #include "est.h"
 #include "read.h"
@@ -389,14 +388,14 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
                 EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
                 StaFlagOn(pG, STA_SE_BURST);
                 pG->SeInfo.pos = hit;
-                pGS->SeInfo.type = 0;
+                pG->SeInfo.type = 0;
             }
         }
     }
     if (pl != 0 && !(flag & 1)) {
         if (pl->Wep->m_pWep != 0) {
             wepSetWaterShot(pPos, pPos2, type);
-            pGS->SeInfo.pos = pl->Wep->m_pWep->wep.m_ShotPos;
+            pG->SeInfo.pos = pl->Wep->m_pWep->wep.m_ShotPos;
             switch (type) {
             case 0xD:
             case 0x12:
@@ -474,10 +473,10 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
         default:
             if (!(flag & 2)) {
                 if (n != 0) {
-                    U32Inc(pG->c_hit_cnt);
+                    pG->c_hit_cnt++;
                     pG->g_hit_cnt++;
                 }
-                U32Inc(pG->c_shot_cnt);
+                pG->c_shot_cnt++;
                 pG->g_shot_cnt++;
             }
             break;
@@ -777,11 +776,9 @@ cEm* SearchTargetEm(Vec* pos, cEm* skip, f32 range)
 // again when nothing else qualifies).
 cEm* searchLockEm(Vec* pos, cEm* skip_, f32 range_)
 {
-    // COMPILER-DIFF: candidate (global-alloc order): skip r30 / range f30 pins; a plain `skip` copy
-    // ranks below `i`/`pos` here (ours r28, target r30). `best`/`i` cannot be pinned: a hard-reg
-    // `best` stops cse from reusing its zero for the loop entry test (`cmplw best,nArray`).
-    register cEm* skip asm("r30") = skip_;
-    register f32 range asm("fr30") = range_;
+    Vec* p;
+    cEm* skip = skip_;
+    f32 range = range_;
     cEm* best = 0;
     f32 bestD = 1000000000000.0f;
     u32 i;
@@ -803,13 +800,14 @@ cEm* searchLockEm(Vec* pos, cEm* skip_, f32 range_)
         }
     }
     if (best == 0 && skip != 0) {
-        if (lockEmCk(skip, pos)) {
-            best = skip;
-        }
+        // A local for pos, in its own scope: without it best/EmMgr loses its register tie.
+        do {
+            p = pos;
+            if (lockEmCk(skip, p)) {
+                best = skip;
+            }
+        } while (0);
     }
-    // COMPILER-DIFF: candidate (global-alloc priority): one more ref of `best` (7 -> 8, floor_log2 2 -> 3)
-    // ranks it above the hoisted `&EmMgr` pointer (target best r27, EmMgr r26).
-    asm("" : : "r"(best));
     return best;
 }
 
@@ -1206,7 +1204,7 @@ void wepSetWaterShot(Vec* p0, Vec* p1, u8 type)
 void setWaterShot(Vec* pos)
 {
     EspSetWaterHitmark(pos);
-    AddWaterPower(pos, 0.6f);
+    AddWaterPower(*pos, 0.6f);
     SndCall(2, 0xB, pos, 0, 0, 0);
 }
 

@@ -76,16 +76,10 @@ struct SeAtWork {
 };
 
 static int seAtSaveNum;
-struct SeAtWorkPtr {
-    SeAtWork* p;
-};
-static SeAtWorkPtr seAtWk;
-#define pW (seAtWk.p)
-struct TSeAtPtr {
-    TSeAt* p;
-};
-static TSeAtPtr seAtCur;
-#define pCur (seAtCur.p)
+static SeAtWork* seAtWk;
+#define pW (seAtWk)
+static TSeAt* seAtCur;
+#define pCur (seAtCur)
 static SeAtHead* seAtSaveHead;
 static SeAt* seAtSaveList;
 
@@ -121,7 +115,7 @@ void ToolSeAt()
         // reference view of the work pointer: the memclr argument is then a re-read of the just-stored
         // member (not the forwarded result copy), so the result copy carries the r3 death and sched2 issues
         // `lis seAtWk@ha` before it (the plain member form kept a `mr r3,r0` arg copy through sched2)
-        SeAtWork*& wp = seAtWk.p;
+        SeAtWork*& wp = seAtWk;
         wp = (SeAtWork*) Debug_alloc(sizeof(SeAtWork), 1);
         memclr_asm(wp, sizeof(SeAtWork));
     }
@@ -147,18 +141,18 @@ void seAtInit()
     Camera* cam = &g->Camera;
 
     TutilInitDefault();
-    BitSet(pW->saveStop, pG->Stop_flg);
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitSet(pW->saveDisp, pG->Disp_flg);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
-    BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->Disp_flg, 0x100000);
+    pW->saveStop = pG->Stop_flg;
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pW->saveDisp = pG->Disp_flg;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
+    pG->Disp_flg |= 0x2000000;
+    pG->Disp_flg |= 0x100000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     SetToolLight(1);
     pW->head.magic[0] = 'E';
@@ -180,10 +174,10 @@ void seAtInit()
         // alias.c separates the symbol bases); codeless memory-input anchors give the load that
         // dependence, one per store so the two save highs keep equal live lengths (r10/r8)
         seAtSaveHead = head;
-        asm("" : "=m"(seAtWk.p) : "m"(seAtSaveHead)); // COMPILER-DIFF: #13 (memory anchor)
+        asm("" : "=m"(seAtWk) : "m"(seAtSaveHead)); // COMPILER-DIFF: #13 (memory anchor)
         seAtSaveList = list;
-        asm("" : "=m"(seAtWk.p) : "m"(seAtSaveList)); // COMPILER-DIFF: #13 (memory anchor)
-        asm("" : "=m"(seAtWk.p) : "m"(Snd.se_at), "m"(Snd.se_at_list)); // COMPILER-DIFF: #13 (memory anchor)
+        asm("" : "=m"(seAtWk) : "m"(seAtSaveList)); // COMPILER-DIFF: #13 (memory anchor)
+        asm("" : "=m"(seAtWk) : "m"(Snd.se_at), "m"(Snd.se_at_list)); // COMPILER-DIFF: #13 (memory anchor)
     }
     pW->camPos = g->Camera.param.pos;
     pW->camAt = g->Camera.param.at;
@@ -196,8 +190,8 @@ void seAtInit()
 // EXIT: restores the se_at list, camera and flags, frees the work, ends the task.
 static void seAtExit()
 {
-    BitSet(pG->Disp_flg, pW->saveDisp);
-    BitSet(pG->Stop_flg, pW->saveStop);
+    pG->Disp_flg = pW->saveDisp;
+    pG->Stop_flg = pW->saveStop;
     DbgFlagOff(pG, DBG_DBG_CAM);
     SetToolLight(-1);
     Snd.se_at = seAtSaveHead;
@@ -903,8 +897,8 @@ static void seAtDataSave()
 
     eprintf(pW->x, pW->y, 4, 0, "[DATA SAVE]");
     pW->y += 0x10;
-    sprintf(pathX, "x:\\soft\\room\\st%1x\\r%03x\\r%03x.ese", pGS->stage_no, pGS->room_id, pGS->room_id);
-    sprintf(pathD, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.ese", pGS->stage_no, pGS->room_id, pGS->room_id);
+    sprintf(pathX, "x:\\soft\\room\\st%1x\\r%03x\\r%03x.ese", pG->stage_no, pG->room_id, pG->room_id);
+    sprintf(pathD, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.ese", pG->stage_no, pG->room_id, pG->room_id);
     switch (pW->sub) {
     case 0:
         seAtSaveNum = 0;
@@ -997,8 +991,8 @@ static void preview_init()
     u32 i;
     int n = 0;
 
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Disp_flg, 0x40000000);
+    pG->Stop_flg &= ~0x10000000;
+    pG->Disp_flg &= ~0x40000000;
     DbgFlagOff(pG, DBG_DBG_CAM);
     for (i = 0; i < 64; i++) {
         if (pW->area[i].flags & 1) {
@@ -1033,14 +1027,14 @@ static void preview_main()
 // Re-pauses the game, back to the main menu.
 static void preview_exit()
 {
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     Snd.se_at = NULL;
     Snd.se_at_list = NULL;

@@ -102,7 +102,7 @@ void R11fInit()
         SmdSetTrans(0x16, 0);
         if (!StaFlagChk(pG, STA_SUB_ASHLEY)) {
             StaFlagOn(pG, STA_SUB_ASHLEY);
-            SubCharInit(1, &pPLS->pos, pPLS->ang.y);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(SCC_CHASE, 0);
         }
         SceAtSetEnable(8, 0);
@@ -116,7 +116,7 @@ void R11fInit()
         r11f_work->win->SetEnableDamage(0);
         r11f_work->win->SetEtcFlag(3, 1);
         r11f_work->win->SetEnableFence(0, 0);
-        BitOff(r11f_work->win->be_flag, 2);
+        r11f_work->win->be_flag &= ~2;
         r11f_work->win->hp = 0;
     }
     if (getRoomEtcDram(9, &r11f_work->dram, 1) == 0) {
@@ -146,16 +146,16 @@ extern "C" void r11f_DoorReplace()
     SmdSetTrans(2, 0);
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &zero, &zero, 0x10, 1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);
-    BitOn(obj->be_flag, 0x1000);
+    obj->be_flag |= 0x1000;
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &zero, &zero, 0x10, 1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 3, 0, 1, 0);
-    BitOn(obj->be_flag, 0x1000);
+    obj->be_flag |= 0x1000;
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), &zero, &zero, 0x10, 1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 3, 0, 1, 0);
-    BitOn(obj->be_flag, 0x1000);
+    obj->be_flag |= 0x1000;
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29), &zero, &zero, 0x10, 1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 1, 0);
-    BitOn(obj->be_flag, 0x1000);
+    obj->be_flag |= 0x1000;
 }
 
 // Per frame: item area 7 (on the dram) is disabled once the dram is broken (hp <= 0) or missing.
@@ -193,7 +193,7 @@ static void r11f_EventS00()
             Vec pos = {37520.0f, -8000.0f, -63991.0f};
             Vec ang;
             f32 ry = -0.25f;
-            cPlayer* pl = pPLS;
+            cPlayer* pl = pPL;
             Vec* pa = &ang;
 
             pl->setPos(&pos);
@@ -495,7 +495,7 @@ static void r11f_EventS10()
     CamCtrl.SetAreaAttr(7, 0, 3);
     CamCtrl.SetAreaAttr(8, 0, 3);
     CamCtrl.CutCall(5);
-    U32Set(r11f_work->strId, SndStrReq(1, 0x2C, 0x80000003, 0, 0, 0.0f));
+    r11f_work->strId = SndStrReq(1, 0x2C, 0x80000003, 0, 0, 0.0f);
     pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, r11f_EventS10CancelEndProc, 0, 2, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -524,7 +524,7 @@ static void r11f_EventS10EndProc()
     Vec pos = {36459.0f, -8000.0f, -63991.0f};
 
     // struct-member view: the pG load stays below the three template-copy stores of `pos`
-    if (pGS->Room_flg[0] & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         SndStrReq(r11f_work->strId, 8, 0, 0);
     }
     CamCtrl.Comeback(0);
@@ -533,7 +533,7 @@ static void r11f_EventS10EndProc()
     {
         Vec ang;
         f32 ry = -0.25f;
-        cPlayer* pl = pPLS;
+        cPlayer* pl = pPL;
         Vec* pa = &ang;
 
         pl->setPos(&pos);
@@ -581,7 +581,7 @@ static void r11f_EventS11()
     {
         Vec ang;
         f32 ry = 1.33f;
-        cPlayer* pl = pPLS;
+        cPlayer* pl = pPL;
         Vec* pa = &ang;
 
         pl->setPos(&pos);

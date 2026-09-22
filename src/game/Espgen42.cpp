@@ -15,7 +15,6 @@
 #include "db_log.h"
 #include "main_sub.h"
 #include "joy.h"
-#include "ref_access.h"
 #include <dolphin/base/PPCArch.h>
 #include "trans_lit.h"
 
@@ -144,7 +143,7 @@ static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
 }
 
 // The 0x45 branch is a hand-written second copy, not the same inline: its `pw` assignments go through a
-// temporary (`FSet(pw, 0.8f)` = a f32 parameter), which the loop optimiser hoists as `lfs f11`/`fmr f10,f12`
+// temporary (a f32 parameter), which the loop optimiser hoists as `lfs f11`/`fmr f10,f12`
 // with `fmr f12,fN` in the cases; the 0x42 copy keeps `lfs` in the cases with only the `lis` hoisted.
 static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
 {
@@ -188,23 +187,23 @@ static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
         switch (i) {
         case 0:
             k = idx - 1;
-            FSet(pw, 0.8f);
+            pw = 0.8f;
             break;
         case 1:
             k = idx + 1;
-            FSet(pw, 0.8f);
+            pw = 0.8f;
             break;
         case 2:
             k = idx;
-            FSet(pw, 1.0f);
+            pw = 1.0f;
             break;
         case 3:
             k = idx - p->nx;
-            FSet(pw, 0.8f);
+            pw = 0.8f;
             break;
         case 4:
             k = idx + p->nx;
-            FSet(pw, 0.8f);
+            *(f32*) &pw = 0.8f;  // COMPILER-DIFF: store through a pointer cast (a plain store schedules differently)
             break;
         }
         if (k < (u32) (p->nx * p->ny)) {
@@ -232,18 +231,28 @@ void AddWaterPowerSub(EspgenWork* w)
 // Public splash entry (footsteps, bullets, bodies): pushes the water height field down by
 // power x 5 at `pos` on every live water surface. No-op unless a water surface exists this frame
 // (Status_flg[0] 0x200).
-void AddWaterPower(Vec* pos, f32 power)
+void AddWaterPower(Vec& pos, f32 power)
 {
+    // A local for the zero, declared before the flag check: without it pos loses its register tie
+    // with g_pWater and gets copied to a second register.
+    u32 n = 0;
     if (StaFlagChk(pG, STA_WATER_ALIVE)) {
-        Height_find = 0;
-        FSet(Add_power, power * 5.0f);
-        Chk_pos = *pos;
-        EspgenWork* w = g_pWater;
-        if (w != NULL && (w->flag & 1) && !(w->flag & 2)) {
-            AddWaterPowerSub(w);
+        Height_find = n;
+        Add_power = power * 5.0f;
+        Chk_pos = pos;
+        if (g_pWater != NULL) {
+            u8 flg = g_pWater->flag;
+
+            if ((flg & 1) && !(flg & 2)) {
+                AddWaterPowerSub(g_pWater);
+            }
         }
-        if (g_pWater45 != NULL && (g_pWater45->flag & 1) && !(g_pWater45->flag & 2)) {
-            AddWaterPowerSub(g_pWater45);
+        if (g_pWater45 != NULL) {
+            u8 flg = g_pWater45->flag;
+
+            if ((flg & 1) && !(flg & 2)) {
+                AddWaterPowerSub(g_pWater45);
+            }
         }
     }
 }
@@ -303,7 +312,7 @@ int GetWaterHeight(Vec* pos, f32* height)
         return 0;
     }
     Height_find = 0;
-    FSet(Height_ret, -100000000.0f);
+    Height_ret = -100000000.0f;
     Chk_pos = *pos;
     if (g_pWater != NULL) {
         if (!(g_pWater->flag & 1) || (g_pWater->flag & 2)) {
@@ -414,7 +423,7 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
     if (dir->x == 0.0f && dir->y == 0.0f && dir->z == 0.0f) {
         return 0;
     }
-    ISet(Cross_find, 0);
+    Cross_find = 0;
     Cross_Chk_pos = *pos;
     PSVECAdd(pos, dir, &Cross_Chk_dest);
     if (g_pWater != NULL) {
@@ -433,7 +442,7 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
         GetWaterCrossPosSub(g_pWater45);
     }
     *out = Cross_Ret_pos;
-    return IGet(Cross_find);
+    return Cross_find;
 }
 
 // Bump texture (I8, 8x4 tiles) index of grid point (x, y). x/8 before y/4 (the two signed divisions are
@@ -1077,23 +1086,23 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
         static f32 g42_init_y = 0.0f;
         static f32 g42_init_y2 = 0.0f;
         for (jj = 0; jj < p->nx + 1; jj++) {
-            p->pos[jj].y = FGet(g42_init_y);
+            p->pos[jj].y = g42_init_y;
         }
         i2 = p->ny;
         idx = i2 * (p->nx + 1);
         for (jj = 0; jj < p->nx + 1; jj++) {
-            p->pos[idx + jj].y = FGet(g42_init_y);
+            p->pos[idx + jj].y = g42_init_y;
         }
         // The y edges also go through `idx` (one pseudo across all four loops = the target's r8 in every
         // loop), and the far edge is `idx = row; idx += nx` (the product lands in idx's register, not a temp).
         for (i2 = 0; i2 < p->ny + 1; i2++) {
             idx = i2 * (p->nx + 1);
-            p->pos[idx].y = FGet(g42_init_y2);
+            p->pos[idx].y = g42_init_y2;
         }
         for (i2 = 0; i2 < p->ny + 1; i2++) {
             idx = i2 * (p->nx + 1);
             idx += p->nx;
-            p->pos[idx].y = FGet(g42_init_y2);
+            p->pos[idx].y = g42_init_y2;
         }
     }
     // Block-local sizes at the tail: local-alloc ties the `nx + 1` temp into them (`addi r30; mullw r30`);

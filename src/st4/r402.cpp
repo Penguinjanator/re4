@@ -48,13 +48,9 @@ struct R402Work {
     int timer;           // 0x588  em_destroy every 300 frames
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R402WorkPtr {
-    R402Work* p;
-};
 
 
-static R402WorkPtr r402_work;
+static R402Work* r402_work;
 
 
 Vec r402_gotoPos0 = {14140.0f, 14313.0f, -55300.0f};
@@ -100,7 +96,7 @@ void R402Init()
     cEmDoor* door1;
     cObjLadder* ladder;
 
-    R402Work*& wp = r402_work.p;
+    R402Work*& wp = r402_work;
 #line 45 "D:/Bio4/Prog/r402.cpp"
     wp = (R402Work*) MEM_CALLOC(sizeof(R402Work), 1, 0xd);
     SceSetItemEvent(0x14, 0x80, 2, -1, OpenBoxTreasure, OpenedBoxTreasure, 0x80, 0);
@@ -169,9 +165,9 @@ void R402Main()
     SceDebugDisp("");
     SceDebugDisp("");
     SceDebugDisp("");
-    r402_work.p->timer++;
-    if (r402_work.p->timer > 300) {
-        r402_work.p->timer = 1;
+    r402_work->timer++;
+    if (r402_work->timer > 300) {
+        r402_work->timer = 1;
         em_destroy();
     }
 }
@@ -198,7 +194,7 @@ static void setLadderMotion(int no)
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x25);
+                mot[9] = ROOM_ARC_PTR(pG->pRoom, 0x25);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
@@ -260,9 +256,9 @@ static void R402ExecEvent01Main()
     R402EmSetSub(0x5C, 0xE6, 1);
     R402EmSetSub(0x39, 0xB4, 1);
     R402EmSetSub(0x3A, 0xB5, 1);
-    r402_work.p->em[0x5A].setNoSuspend(1);
-    r402_work.p->em[0x5B].setNoSuspend(1);
-    r402_work.p->em[0x5C].setNoSuspend(1);
+    r402_work->em[0x5A].setNoSuspend(1);
+    r402_work->em[0x5B].setNoSuspend(1);
+    r402_work->em[0x5C].setNoSuspend(1);
     if (getRoomEtcLadder(0x15, &ladder, 1)) {
         ladder->setOn();
         ladder->setDowned();
@@ -278,9 +274,9 @@ static void R402ExecEvent01Main()
     for (i = 0; i < 20; i++) {
         SceSleep(1);
     }
-    r402_work.p->em[0x5A].setGoto(&r402_gotoPos0, 2);
-    r402_work.p->em[0x5B].setGoto(&r402_gotoPos1, 1);
-    r402_work.p->em[0x5C].setGoto(&r402_gotoPos2, 1);
+    r402_work->em[0x5A].setGoto(&r402_gotoPos0, 2);
+    r402_work->em[0x5B].setGoto(&r402_gotoPos1, 1);
+    r402_work->em[0x5C].setGoto(&r402_gotoPos2, 1);
     for (i = 0; i < 60; i++) {
         SceSleep(1);
     }
@@ -293,14 +289,14 @@ static void R402ExecEvent01Main()
 static void R402ExecEvent01End()
 {
     SceExec(0x12, (TaskFunc) R402MoveDoor02, 0, 2, SCE_PRIO_DEF_2, 0);
-    r402_work.p->em[0x5A].setPos(&r402_gotoPos0);
-    r402_work.p->em[0x5B].setPos(&r402_gotoPos1);
-    r402_work.p->em[0x5C].setPos(&r402_gotoPos2);
-    r402_work.p->em[0x5A].setNoSuspend(0);
-    r402_work.p->em[0x5B].setNoSuspend(0);
-    r402_work.p->em[0x5C].setNoSuspend(0);
-    r402_work.p->em[0x39].setNoSuspend(0);
-    r402_work.p->em[0x3A].setNoSuspend(0);
+    r402_work->em[0x5A].setPos(&r402_gotoPos0);
+    r402_work->em[0x5B].setPos(&r402_gotoPos1);
+    r402_work->em[0x5C].setPos(&r402_gotoPos2);
+    r402_work->em[0x5A].setNoSuspend(0);
+    r402_work->em[0x5B].setNoSuspend(0);
+    r402_work->em[0x5C].setNoSuspend(0);
+    r402_work->em[0x39].setNoSuspend(0);
+    r402_work->em[0x3A].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -340,8 +336,8 @@ void R402InitDoor02()
         cObj* obj = SmdGetObjPtr(id[i]);
 
         if (obj) {
-            r402_work.p->sat[i] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
-            r402_work.p->eat[i] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+            r402_work->sat[i] = SatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+            r402_work->eat[i] = EatMgr.create(&obj->pos, &obj->ang, poly, h, 0x40, 0x100);
         }
     }
 }
@@ -386,11 +382,11 @@ top:
                 v.y = y;
                 v.z = z;
                 obj->setPos(&v);
-                if (r402_work.p->sat[i]) {
-                    r402_work.p->sat[i]->setCoord(&obj->pos, &obj->ang);
+                if (r402_work->sat[i]) {
+                    r402_work->sat[i]->setCoord(&obj->pos, &obj->ang);
                 }
-                if (r402_work.p->eat[i]) {
-                    r402_work.p->eat[i]->setCoord(&obj->pos, &obj->ang);
+                if (r402_work->eat[i]) {
+                    r402_work->eat[i]->setCoord(&obj->pos, &obj->ang);
                     asm("" : "=r"(obj) : "0"(obj) : "r31"); // COMPILER-DIFF: 3
                 }
             }
@@ -422,7 +418,7 @@ static void R402ExecEvent03Main00()
     if (obj) {
         SndCall(6, 1, &obj->pos, 0, 0, 0);
     }
-    r402_work.p->em[0x2F].setNoSuspend(1);
+    r402_work->em[0x2F].setNoSuspend(1);
     for (t = 0; t <= 30; t++) {
         for (i = 0; i < r402_boatNum; i++) {
             obj = SmdGetObjPtr(r402_boatObj0[i]);
@@ -468,7 +464,7 @@ static void R402ExecEvent03End00()
             obj->setPos(&v);
         }
     }
-    r402_work.p->em[0x2F].setNoSuspend(0);
+    r402_work->em[0x2F].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -494,7 +490,7 @@ static void R402ExecEvent03Main01()
     if (obj) {
         SndCall(6, 1, &obj->pos, 0, 0, 0);
     }
-    r402_work.p->em[0x30].setNoSuspend(1);
+    r402_work->em[0x30].setNoSuspend(1);
     for (t = 0; t <= 30; t++) {
         for (i = 0; i < r402_boatNum; i++) {
             obj = SmdGetObjPtr(r402_boatObj1[i]);
@@ -540,7 +536,7 @@ static void R402ExecEvent03End01()
             obj->setPos(&v);
         }
     }
-    r402_work.p->em[0x30].setNoSuspend(0);
+    r402_work->em[0x30].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -552,8 +548,8 @@ static void em_destroy()
     int i;
 
     for (i = 0; i < 0x70; i++) {
-        if (r402_work.p->em[i].isAlive() == 1 && r402_work.p->em[i].isActive() == 0) {
-            r402_work.p->em[i].destroy();
+        if (r402_work->em[i].isAlive() == 1 && r402_work->em[i].isActive() == 0) {
+            r402_work->em[i].destroy();
         }
     }
 }
@@ -562,7 +558,7 @@ static void em_destroy()
 int R402EmSetSubMugen(int no, int list, int* cnt, int max, int findPl)
 {
     if (*cnt < max) {
-        if (r402_work.p->em[no].isAlive() == 0) {
+        if (r402_work->em[no].isAlive() == 0) {
             R402EmSetSub(no, list, findPl);
             (*cnt)++;
             return 1;
@@ -579,12 +575,12 @@ void R402EmSetSub(int no, int list, int findPl)
     if (em == errEm) {
         pLog->err(0, 0, "R402EmSetSub : EmSetEvent error");
     } else {
-        r402_work.p->em[no].setPtr(em, 1);
-        r402_work.p->em[no].setFlag(1);
+        r402_work->em[no].setPtr(em, 1);
+        r402_work->em[no].setFlag(1);
         if (findPl == 1) {
-            r402_work.p->em[no].setGoto(&pPL->pos, 0xC);
+            r402_work->em[no].setGoto(&pPL->pos, 0xC);
         } else {
-            r402_work.p->em[no].setFindPL();
+            r402_work->em[no].setFindPL();
         }
     }
 }
@@ -595,38 +591,38 @@ static void R402EmSetMain()
 {
     int n = 0;
 
-    r402_work.p->c550 = 0;
-    r402_work.p->c554 = 0;
-    r402_work.p->c558 = 0;
-    r402_work.p->c55C = 0;
-    r402_work.p->c560 = 0;
-    r402_work.p->c564 = 0;
-    r402_work.p->c568 = 0;
-    r402_work.p->c584 = 0;
-    r402_work.p->c56C = 0;
-    r402_work.p->c570 = 0;
-    r402_work.p->c574 = 0;
-    r402_work.p->c578 = 0;
-    r402_work.p->c57C = 0;
-    r402_work.p->c580 = 0;
+    r402_work->c550 = 0;
+    r402_work->c554 = 0;
+    r402_work->c558 = 0;
+    r402_work->c55C = 0;
+    r402_work->c560 = 0;
+    r402_work->c564 = 0;
+    r402_work->c568 = 0;
+    r402_work->c584 = 0;
+    r402_work->c56C = 0;
+    r402_work->c570 = 0;
+    r402_work->c574 = 0;
+    r402_work->c578 = 0;
+    r402_work->c57C = 0;
+    r402_work->c580 = 0;
     SceSleep(1);
     for (;;) {
         n = R402CalcActiveEmWarp();
         SceDebugDisp("LiveNum:[%d]", n);
         if (n <= 8) {
             if (!(pG->Room_flg[1] & 0x20000)) {
-                if (r402_work.p->em[0x27].isActive() == 0 && r402_work.p->em[0x28].isActive() == 0) {
+                if (r402_work->em[0x27].isActive() == 0 && r402_work->em[0x28].isActive() == 0) {
                     pG->Room_flg[1] |= 0x20000;
                 }
             } else {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c578);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c578);
                 Vec p0 = {11320.0f, 12295.0f, -46200.0f};
                 Vec p1 = {9240.0f, 12295.0f, -46200.0f};
-                if (R402EmSetSubMugen(0x31, 0xAB, &r402_work.p->c578, 5, 1)) {
-                    r402_work.p->em[0x31].setGoto(&p0, 0xC);
+                if (R402EmSetSubMugen(0x31, 0xAB, &r402_work->c578, 5, 1)) {
+                    r402_work->em[0x31].setGoto(&p0, 0xC);
                 }
-                if (R402EmSetSubMugen(0x32, 0xAC, &r402_work.p->c578, 5, 1)) {
-                    r402_work.p->em[0x32].setGoto(&p1, 0xC);
+                if (R402EmSetSubMugen(0x32, 0xAC, &r402_work->c578, 5, 1)) {
+                    r402_work->em[0x32].setGoto(&p1, 0xC);
                 }
             }
         }
@@ -688,18 +684,18 @@ static void R402EmSetMain()
                 pG->Room_flg[1] |= 0x800000;
                 R402EmSetSub(0x26, 0x9F, 1);
             } else {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c564);
-                R402EmSetSubMugen(0xF, 0x85, &r402_work.p->c564, 10, 1);
-                R402EmSetSubMugen(0x10, 0x86, &r402_work.p->c564, 10, 1);
-                R402EmSetSubMugen(0x11, 0x87, &r402_work.p->c564, 10, 1);
-                R402EmSetSubMugen(0x12, 0x88, &r402_work.p->c564, 10, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c564);
+                R402EmSetSubMugen(0xF, 0x85, &r402_work->c564, 10, 1);
+                R402EmSetSubMugen(0x10, 0x86, &r402_work->c564, 10, 1);
+                R402EmSetSubMugen(0x11, 0x87, &r402_work->c564, 10, 1);
+                R402EmSetSubMugen(0x12, 0x88, &r402_work->c564, 10, 1);
             }
         }
         if ((pG->Room_flg[2] & 0x40000) && n <= 6) {
-            SceDebugDisp("DeadCount:[%d]", r402_work.p->c568);
-            R402EmSetSubMugen(0xC, 0x81, &r402_work.p->c568, 20, 1);
-            R402EmSetSubMugen(0xD, 0x82, &r402_work.p->c568, 20, 1);
-            R402EmSetSubMugen(0xE, 0x83, &r402_work.p->c568, 20, 1);
+            SceDebugDisp("DeadCount:[%d]", r402_work->c568);
+            R402EmSetSubMugen(0xC, 0x81, &r402_work->c568, 20, 1);
+            R402EmSetSubMugen(0xD, 0x82, &r402_work->c568, 20, 1);
+            R402EmSetSubMugen(0xE, 0x83, &r402_work->c568, 20, 1);
         }
         if ((pG->Room_flg[2] & 0x80000000) && n <= 8) {
             if (!(pG->Room_flg[0] & 0x800000)) {
@@ -720,10 +716,10 @@ static void R402EmSetMain()
                 R402EmSetSub(0x4C, 0xD3, 1);
                 R402EmSetSub(0x4A, 0xDA, 1);
             } else {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c554);
-                R402EmSetSubMugen(0x15, 0x8C, &r402_work.p->c554, 30, 1);
-                R402EmSetSubMugen(0x16, 0x8D, &r402_work.p->c554, 30, 1);
-                R402EmSetSubMugen(0x17, 0x8E, &r402_work.p->c554, 30, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c554);
+                R402EmSetSubMugen(0x15, 0x8C, &r402_work->c554, 30, 1);
+                R402EmSetSubMugen(0x16, 0x8D, &r402_work->c554, 30, 1);
+                R402EmSetSubMugen(0x17, 0x8E, &r402_work->c554, 30, 1);
             }
         }
         if ((pG->Room_flg[2] & 0x40000000) && n <= 7) {
@@ -737,9 +733,9 @@ static void R402EmSetMain()
                 R402EmSetSub(0x46, 0xCB, 1);
                 R402EmSetSub(0x47, 0xCC, 1);
             } else {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c558);
-                R402EmSetSubMugen(0x61, 0xED, &r402_work.p->c558, 18, 1);
-                R402EmSetSubMugen(0x62, 0xEE, &r402_work.p->c558, 18, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c558);
+                R402EmSetSubMugen(0x61, 0xED, &r402_work->c558, 18, 1);
+                R402EmSetSubMugen(0x62, 0xEE, &r402_work->c558, 18, 1);
             }
         }
         if ((pG->Room_flg[2] & 0x2000000) && n <= 8) {
@@ -755,11 +751,11 @@ static void R402EmSetMain()
                 R402EmSetSub(0x4F, 0xD8, 1);
                 R402EmSetSub(0x50, 0xD9, 1);
             } else {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c55C);
-                R402EmSetSubMugen(0x18, 0x90, &r402_work.p->c55C, 25, 1);
-                R402EmSetSubMugen(0x19, 0x91, &r402_work.p->c55C, 25, 1);
-                R402EmSetSubMugen(0x13, 0x8A, &r402_work.p->c55C, 25, 1);
-                R402EmSetSubMugen(0x14, 0x8B, &r402_work.p->c55C, 25, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c55C);
+                R402EmSetSubMugen(0x18, 0x90, &r402_work->c55C, 25, 1);
+                R402EmSetSubMugen(0x19, 0x91, &r402_work->c55C, 25, 1);
+                R402EmSetSubMugen(0x13, 0x8A, &r402_work->c55C, 25, 1);
+                R402EmSetSubMugen(0x14, 0x8B, &r402_work->c55C, 25, 1);
             }
         }
         if ((pG->Room_flg[2] & 0x800000) && n <= 8) {
@@ -775,17 +771,17 @@ static void R402EmSetMain()
             }
         }
         if ((pG->Room_flg[2] & 0x10000000) && n <= 8) {
-            SceDebugDisp("DeadCount:[%d]", r402_work.p->c560);
-            R402EmSetSubMugen(0x58, 0xE1, &r402_work.p->c560, 10, 1);
-            R402EmSetSubMugen(0x59, 0xE2, &r402_work.p->c560, 10, 1);
+            SceDebugDisp("DeadCount:[%d]", r402_work->c560);
+            R402EmSetSubMugen(0x58, 0xE1, &r402_work->c560, 10, 1);
+            R402EmSetSubMugen(0x59, 0xE2, &r402_work->c560, 10, 1);
         }
         if ((pG->Room_flg[2] & 0x8000000) && n <= 5) {
-            SceDebugDisp("DeadCount:[%d]", r402_work.p->c550);
-            R402EmSetSubMugen(0x33, 0xAD, &r402_work.p->c550, 45, 1);
-            R402EmSetSubMugen(0x34, 0xAE, &r402_work.p->c550, 45, 0);
-            R402EmSetSubMugen(0x35, 0xAF, &r402_work.p->c550, 45, 1);
-            R402EmSetSubMugen(0x36, 0xB0, &r402_work.p->c550, 45, 1);
-            R402EmSetSubMugen(0x37, 0xB1, &r402_work.p->c550, 45, 1);
+            SceDebugDisp("DeadCount:[%d]", r402_work->c550);
+            R402EmSetSubMugen(0x33, 0xAD, &r402_work->c550, 45, 1);
+            R402EmSetSubMugen(0x34, 0xAE, &r402_work->c550, 45, 0);
+            R402EmSetSubMugen(0x35, 0xAF, &r402_work->c550, 45, 1);
+            R402EmSetSubMugen(0x36, 0xB0, &r402_work->c550, 45, 1);
+            R402EmSetSubMugen(0x37, 0xB1, &r402_work->c550, 45, 1);
         }
         if ((pG->Room_flg[2] & 0x8000) && n <= 9) {
             if (!(pG->Room_flg[1] & 0x10000) && MercSysWk.kill > 24) {
@@ -797,56 +793,56 @@ static void R402EmSetMain()
             if (n <= 6) {
                 if (!(pG->Room_flg[0] & 0x200)) {
                     if (MercSysWk.kill > 19) {
-                        if (r402_work.p->em[0x38].isActive() != 1 || !(pG->Room_flg[1] & 0x10000)) {
+                        if (r402_work->em[0x38].isActive() != 1 || !(pG->Room_flg[1] & 0x10000)) {
                             pG->Room_flg[0] |= 0x200;
                             SceExec(0x12, (TaskFunc) R402ExecEvent03Main00, 0, 0, SCE_PRIO_DEF_2, 0);
                         }
                     }
                 } else if (!(pG->Room_flg[0] & 0x100)) {
-                    if (r402_work.p->c584 > 149) {
+                    if (r402_work->c584 > 149) {
                         if (MercSysWk.kill > 89) {
                             pG->Room_flg[0] |= 0x100;
                             SceExec(0x12, (TaskFunc) R402ExecEvent03Main01, 0, 0, SCE_PRIO_DEF_2, 0);
                         }
                     } else {
-                        r402_work.p->c584++;
+                        r402_work->c584++;
                     }
                 }
             }
             if (n <= 6) {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c574);
-                R402EmSetSubMugen(0, 0x78, &r402_work.p->c574, 30, 1);
-                R402EmSetSubMugen(1, 0x79, &r402_work.p->c574, 30, 1);
-                R402EmSetSubMugen(2, 0x7A, &r402_work.p->c574, 30, 1);
-                R402EmSetSubMugen(3, 0x7B, &r402_work.p->c574, 30, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c574);
+                R402EmSetSubMugen(0, 0x78, &r402_work->c574, 30, 1);
+                R402EmSetSubMugen(1, 0x79, &r402_work->c574, 30, 1);
+                R402EmSetSubMugen(2, 0x7A, &r402_work->c574, 30, 1);
+                R402EmSetSubMugen(3, 0x7B, &r402_work->c574, 30, 1);
             }
         }
         if ((pG->Room_flg[2] & 0x20000) && n <= 6) {
             if (!(pG->Room_flg[0] & 0x40000000)) {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c56C);
-                R402EmSetSubMugen(4, 0xB7, &r402_work.p->c56C, 20, 1);
-                R402EmSetSubMugen(5, 0xB8, &r402_work.p->c56C, 20, 1);
-                R402EmSetSubMugen(6, 0xB9, &r402_work.p->c56C, 20, 1);
-                R402EmSetSubMugen(7, 0xBA, &r402_work.p->c56C, 20, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c56C);
+                R402EmSetSubMugen(4, 0xB7, &r402_work->c56C, 20, 1);
+                R402EmSetSubMugen(5, 0xB8, &r402_work->c56C, 20, 1);
+                R402EmSetSubMugen(6, 0xB9, &r402_work->c56C, 20, 1);
+                R402EmSetSubMugen(7, 0xBA, &r402_work->c56C, 20, 1);
             } else {
-                SceDebugDisp("DeadCount:[%d]", r402_work.p->c570);
-                R402EmSetSubMugen(8, 0x7C, &r402_work.p->c570, 25, 1);
-                R402EmSetSubMugen(9, 0x7D, &r402_work.p->c570, 25, 1);
-                R402EmSetSubMugen(0xA, 0x7E, &r402_work.p->c570, 25, 1);
-                R402EmSetSubMugen(0xB, 0x7F, &r402_work.p->c570, 25, 1);
+                SceDebugDisp("DeadCount:[%d]", r402_work->c570);
+                R402EmSetSubMugen(8, 0x7C, &r402_work->c570, 25, 1);
+                R402EmSetSubMugen(9, 0x7D, &r402_work->c570, 25, 1);
+                R402EmSetSubMugen(0xA, 0x7E, &r402_work->c570, 25, 1);
+                R402EmSetSubMugen(0xB, 0x7F, &r402_work->c570, 25, 1);
             }
         }
         if ((pG->Room_flg[2] & 0x10000) && n <= 7) {
-            SceDebugDisp("DeadCount:[%d]", r402_work.p->c57C);
-            R402EmSetSubMugen(0x5D, 0xE8, &r402_work.p->c57C, 15, 1);
-            R402EmSetSubMugen(0x5E, 0xE9, &r402_work.p->c57C, 15, 1);
-            R402EmSetSubMugen(0x5F, 0xEA, &r402_work.p->c57C, 15, 1);
+            SceDebugDisp("DeadCount:[%d]", r402_work->c57C);
+            R402EmSetSubMugen(0x5D, 0xE8, &r402_work->c57C, 15, 1);
+            R402EmSetSubMugen(0x5E, 0xE9, &r402_work->c57C, 15, 1);
+            R402EmSetSubMugen(0x5F, 0xEA, &r402_work->c57C, 15, 1);
         }
         if ((pG->Room_flg[2] & 0x4000) && n <= 7) {
-            SceDebugDisp("DeadCount:[%d]", r402_work.p->c580);
-            R402EmSetSubMugen(0x55, 0xDE, &r402_work.p->c580, 20, 1);
-            R402EmSetSubMugen(0x56, 0xDF, &r402_work.p->c580, 20, 1);
-            R402EmSetSubMugen(0x57, 0xE0, &r402_work.p->c580, 20, 1);
+            SceDebugDisp("DeadCount:[%d]", r402_work->c580);
+            R402EmSetSubMugen(0x55, 0xDE, &r402_work->c580, 20, 1);
+            R402EmSetSubMugen(0x56, 0xDF, &r402_work->c580, 20, 1);
+            R402EmSetSubMugen(0x57, 0xE0, &r402_work->c580, 20, 1);
         }
         SceSleep(1);
     }
@@ -859,7 +855,7 @@ int R402CalcActiveEmWarp()
     int i;
 
     for (i = 0; i < 0x70; i++) {
-        if (r402_work.p->em[i].isActive() == 1) {
+        if (r402_work->em[i].isActive() == 1) {
             n++;
         }
     }

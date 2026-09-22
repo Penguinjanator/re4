@@ -21,7 +21,6 @@
 #include "player.h"
 #include "motion.h"
 #include "objRobo.h"
-#include "ref_access.h"
 #include <string.h>
 
 
@@ -142,10 +141,10 @@ void cObjRobo::R0Init(cObjRobo* robo)
         w->pSat[i] = 0;
         w->pEat[i] = 0;
     }
-    PSet(w->pSat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
-    PSet(w->pSat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3));
-    PSet(w->pEat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 6));
-    PSet(w->pEat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 7));
+    w->pSat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
+    w->pSat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
+    w->pEat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 6);
+    w->pEat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 7);
     w->pEatBody = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &robo->pos, &rot, 2);
     for (int i = 0; i < 2; i++) {
         Vec pos2 = { 0.0f, 0.0f, 0.0f };
@@ -193,7 +192,7 @@ void cObjRobo::R0Init(cObjRobo* robo)
 
     for (i = 0; i < HitNoMax; i++) {
         w->pEmHitTbl[i] = 0;
-        hit = SetEmHit((void*) (GRef(pG)->pCore->ofs_20 + (u32) GRef(pG)->pCore), (void*) (GRef(pG)->pCore->ofs_24 + (u32) GRef(pG)->pCore), 0, 0, 1);
+        hit = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 0, 1);
         if (hit) {
             hit->setParent(robo, tbl[i].parts, 0);
             if (tbl[i].parts == 0x15 || tbl[i].parts == 0x16) {
@@ -402,7 +401,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
             MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x63), 0, 0xA, 1, 0);
             EstSet(robo, -1, 0, 0, EFF_ROOM, 0x20, 1, ESP_CORE_KIND_NONE, 0, 0);
             w->BridgeFallPos = robo->pos.x;
-            w->FallSpdY = FRef(RoboFallSpdY);
+            w->FallSpdY = RoboFallSpdY;
         }
         if (w->FallTimer == 90) {
             SndCall(6, 9, &robo->pos, 0, 0, 0);
@@ -561,7 +560,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
             parts->ang.y = range * (f32) j / max + from;
             SceSleep(1);
         }
-        FSet(parts->ang.y, to);
+        parts->ang.y = to;
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x61), ROOM_ARC_PTR(pG->pRoom, 0x66), 0xF0, 4, 0);
     } else {
         RmfFlagOff(pG, RMF_BOBO_SWITCH_FRONT);
@@ -571,7 +570,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
             parts->ang.y = range2 * (f32) j / max + to;
             SceSleep(1);
         }
-        FSet(parts->ang.y, from);
+        parts->ang.y = from;
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
     RmfFlagOff(pG, RMF_BOBO_SWITCH_BACK);
@@ -613,7 +612,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
             parts->ang.x = range * (f32) j / max + from;
             SceSleep(1);
         }
-        FSet(parts->ang.x, to);
+        parts->ang.x = to;
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x45), 0xF0, 4, 0);
     } else {
         RmfFlagOff(pG, RMF_BOBO_SWITCH_BACK);
@@ -623,7 +622,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
             parts->ang.x = range2 * (f32) j / max + to;
             SceSleep(1);
         }
-        FSet(parts->ang.x, from);
+        parts->ang.x = from;
         MotionSetCore(robo, &robo->Motion, ROOM_ARC_PTR(pG->pRoom, 0x62), ROOM_ARC_PTR(pG->pRoom, 0x67), 0xF0, 4, 0);
     }
     RmfFlagOff(pG, RMF_BOBO_SWITCH_FRONT);

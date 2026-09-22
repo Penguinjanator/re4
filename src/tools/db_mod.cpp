@@ -227,15 +227,10 @@ struct DbModState {
 
 DB_EM dbModSlot[SLOT_NUM];
 DB_EM dbModSlotSub[SLOT_NUM];
-// One-member structs: the original reloads both pointers after every store through them
-// (word and float stores included), which only a struct-typed global reproduces.
-struct DbModStatePtr { DbModState* p; };
-struct MotTblPtr { MotTbl* p; };
-DbModStatePtr pDbModState;
-MotTblPtr m_MotTbl;
+DbModState* pDbModState;
+MotTbl* m_MotTbl;
 
-struct VoidPtr { void* p; };
-static VoidPtr dbmodMotTblImage = {0};
+static void* dbmodMotTblImage = {0};
 static int dbmodLoopNum = 0;
 
 typedef int (*DbModFunc)();
@@ -326,19 +321,19 @@ int SetToolLight(int no);  // db_light_tools.cpp / db_light_esp.cpp
 // position wrap, bit3 wrap the model position at +-50000 instead of +-10000 units).
 void dbModSetViewFlag(u32 flag)
 {
-    pDbModState.p->viewFlag |= flag;
+    pDbModState->viewFlag |= flag;
 }
 
 // The viewer flag word.
 u32 dbModGetViewFlag()
 {
-    return pDbModState.p->viewFlag;
+    return pDbModState->viewFlag;
 }
 
 // Clears viewer flag bits.
 void dbModUnsetViewFlag(u32 flag)
 {
-    pDbModState.p->viewFlag &= ~flag;
+    pDbModState->viewFlag &= ~flag;
 }
 
 // Resets viewer slots start..end: frees their model / texture / motion buffers, clears the motion
@@ -373,7 +368,7 @@ void init_dbEm(DB_EM* em, int start, int end)
         em->mot_cnt = 0;
         em->mot[0].flags = 0x15;
         em->mot[0].cam = (AttachCamera*) mem_alloc(sizeof(AttachCamera), __FILE__, 0xEB, 1, 13);
-        dbModelSetCamera(n, &pGS->Camera);
+        dbModelSetCamera(n, &pG->Camera);
         em->mot[0].speedRate = 1.0f;
         em->parentNo = n;
         // parent (the SI zero) before the name byte: the QI store then takes the wider zero's lowpart
@@ -394,28 +389,28 @@ void dbModelInit()
 {
     int size;
 
-    pDbModState.p = (DbModState*) Debug_alloc(sizeof(DbModState), 1);
-    memclr_asm(pDbModState.p, sizeof(DbModState));
-    size = HDReadDebugAlloc("Room/Em/mot_tbl.txt", &dbmodMotTblImage.p, 1);
+    pDbModState = (DbModState*) Debug_alloc(sizeof(DbModState), 1);
+    memclr_asm(pDbModState, sizeof(DbModState));
+    size = HDReadDebugAlloc("Room/Em/mot_tbl.txt", &dbmodMotTblImage, 1);
     if (size == 0) {
-        pDbModState.p->loadFail = 1;
+        pDbModState->loadFail = 1;
         return;
     }
     init_dbEm(dbModSlot, 0, SLOT_NUM - 1);
     init_dbEm(dbModSlotSub, SLOT_NUM, SLOT_NUM * 2 - 1);
-    pDbModState.p->no = 0;
-    pDbModState.p->blendMode = 2;
-    pDbModState.p->loopFlag = 1;
-    pDbModState.p->scale = 1.0f;
-    pDbModState.p->type = 0;
-    pDbModState.p->lightMode = 0;
-    m_MotTbl.p = (MotTbl*) Debug_alloc(sizeof(MotTbl), 1);
-    m_MotTbl.p->data = (char*) dbmodMotTblImage.p;
-    m_MotTbl.p->end = (char*) dbmodMotTblImage.p + (size - 1);
-    m_MotTbl.p->cur = m_MotTbl.p->data;
-    mottblInit(m_MotTbl.p);
-    if (m_MotTbl.p->unitNum[0]) {
-        pDbModState.p->curSetNo = -1;
+    pDbModState->no = 0;
+    pDbModState->blendMode = 2;
+    pDbModState->loopFlag = 1;
+    pDbModState->scale = 1.0f;
+    pDbModState->type = 0;
+    pDbModState->lightMode = 0;
+    m_MotTbl = (MotTbl*) Debug_alloc(sizeof(MotTbl), 1);
+    m_MotTbl->data = (char*) dbmodMotTblImage;
+    m_MotTbl->end = (char*) dbmodMotTblImage + (size - 1);
+    m_MotTbl->cur = m_MotTbl->data;
+    mottblInit(m_MotTbl);
+    if (m_MotTbl->unitNum[0]) {
+        pDbModState->curSetNo = -1;
         dbmodGetSet();
     }
 }
@@ -425,7 +420,7 @@ void dbModelQuit()
 {
     int i;
 
-    memclr_asm(pDbModState.p, sizeof(DbModState));
+    memclr_asm(pDbModState, sizeof(DbModState));
     for (i = 0; i < SLOT_NUM; i++) {
         if (dbModSlot[i].pEm && dbModSlot[i].pEm->isAlive()) {
             EmMgr.destroy(dbModSlot[i].pEm);
@@ -434,17 +429,17 @@ void dbModelQuit()
             EmMgr.destroy(dbModSlotSub[i].pEm);
         }
     }
-    if (dbmodMotTblImage.p) {
-        Debug_free(dbmodMotTblImage.p);
-        dbmodMotTblImage.p = 0;
+    if (dbmodMotTblImage) {
+        Debug_free(dbmodMotTblImage);
+        dbmodMotTblImage = 0;
     }
-    if (m_MotTbl.p) {
-        Debug_free(m_MotTbl.p);
-        m_MotTbl.p = 0;
+    if (m_MotTbl) {
+        Debug_free(m_MotTbl);
+        m_MotTbl = 0;
     }
-    if (pDbModState.p) {
-        Debug_free(pDbModState.p);
-        pDbModState.p = 0;
+    if (pDbModState) {
+        Debug_free(pDbModState);
+        pDbModState = 0;
     }
 }
 
@@ -453,7 +448,7 @@ void dbmodGetLabel(int no, char* dst)
 {
     char line[0x100];
 
-    mottblGetLine(line, 0x100, mottblUnitPtr(m_MotTbl.p->unit[0], no));
+    mottblGetLine(line, 0x100, mottblUnitPtr(m_MotTbl->unit[0], no));
     sscanf(line, "%s", dst);
 }
 
@@ -462,7 +457,7 @@ void dbmodGetLabel(int no, char* dst)
 // motion numbers reset to 0 (or -1 without motions).
 void dbmodGetSet()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     char line[0x100];
     s16 dummy;
     char* p;
@@ -471,23 +466,23 @@ void dbmodGetSet()
     s16* pNo = 0;
     int t = 0;
 
-    if (pDbModState.p->curSetNo == (u16) pDbModState.p->setNo) {
+    if (pDbModState->curSetNo == (u16) pDbModState->setNo) {
         return;
     }
-    em->setNo = pDbModState.p->setNo;
-    p = mottblUnitPtr(m_MotTbl.p->unit[0], pDbModState.p->setNo);
+    em->setNo = pDbModState->setNo;
+    p = mottblUnitPtr(m_MotTbl->unit[0], pDbModState->setNo);
     p = mottblGetLine(line, 0x100, p);
-    sscanf(line, "%s", m_MotTbl.p->name[0]);
-    strcpy(pDbModState.p->setName, m_MotTbl.p->name[0]);
+    sscanf(line, "%s", m_MotTbl->name[0]);
+    strcpy(pDbModState->setName, m_MotTbl->name[0]);
     p = mottblUnitPtr(p, 0);
     p = mottblGetLine(line, 0x100, p);
-    m_MotTbl.p->name[1][0] = 0;
-    m_MotTbl.p->name[2][0] = 0;
-    m_MotTbl.p->name[3][0] = 0;
-    m_MotTbl.p->name[4][0] = 0;
-    sscanf(line, "%s%s%s%s", m_MotTbl.p->name[1], m_MotTbl.p->name[2], m_MotTbl.p->name[3], m_MotTbl.p->name[4]);
+    m_MotTbl->name[1][0] = 0;
+    m_MotTbl->name[2][0] = 0;
+    m_MotTbl->name[3][0] = 0;
+    m_MotTbl->name[4][0] = 0;
+    sscanf(line, "%s%s%s%s", m_MotTbl->name[1], m_MotTbl->name[2], m_MotTbl->name[3], m_MotTbl->name[4]);
     for (i = 1; i <= 4; i++) {
-        c = strchr(m_MotTbl.p->name[i], ',');
+        c = strchr(m_MotTbl->name[i], ',');
         if (c) {
             *c = 0;
         }
@@ -496,44 +491,44 @@ void dbmodGetSet()
         switch (i) {
         case 0:
             t = 1;
-            pNo = &pDbModState.p->binNo;
+            pNo = &pDbModState->binNo;
             break;
         case 1:
             t = 2;
-            pNo = &pDbModState.p->texNo;
+            pNo = &pDbModState->texNo;
             break;
         case 2:
             t = 3;
-            pNo = &pDbModState.p->motNo[0];
+            pNo = &pDbModState->motNo[0];
             break;
         case 3:
             t = 4;
-            pNo = &pDbModState.p->locNo;
-            if (strlen(m_MotTbl.p->name[4]) == 0) {
-                pDbModState.p->locNo = -1;
+            pNo = &pDbModState->locNo;
+            if (strlen(m_MotTbl->name[4]) == 0) {
+                pDbModState->locNo = -1;
                 pNo = &dummy;
             }
             break;
         }
         if (i == 2) {
-            if (strncmp(m_MotTbl.p->name[t], "null", 4) == 0 || strncmp(m_MotTbl.p->name[t], "NULL", 4) == 0) {
-                pDbModState.p->motNo[0] = -1;
-                pDbModState.p->motSub[0] = 0;
-                pDbModState.p->motNum[0] = -1;
-                pDbModState.p->motFileNum = 0;
+            if (strncmp(m_MotTbl->name[t], "null", 4) == 0 || strncmp(m_MotTbl->name[t], "NULL", 4) == 0) {
+                pDbModState->motNo[0] = -1;
+                pDbModState->motSub[0] = 0;
+                pDbModState->motNum[0] = -1;
+                pDbModState->motFileNum = 0;
                 break;
             }
-            pDbModState.p->motSub[0] = 0;
-            pDbModState.p->motNum[0] = 0;
-            pDbModState.p->motFileNum = 1;
+            pDbModState->motSub[0] = 0;
+            pDbModState->motNum[0] = 0;
+            pDbModState->motFileNum = 1;
         }
-        *pNo = mottblUnitNum(m_MotTbl.p->unit[t], m_MotTbl.p->name[t]);
-        mottblNextLine(mottblUnitPtr(m_MotTbl.p->unit[t], *pNo));
+        *pNo = mottblUnitNum(m_MotTbl->unit[t], m_MotTbl->name[t]);
+        mottblNextLine(mottblUnitPtr(m_MotTbl->unit[t], *pNo));
     }
     for (i = 1; i < FILE_NUM; i++) {
-        pDbModState.p->motNo[i] = pDbModState.p->motNo[0];
-        pDbModState.p->motSub[i] = pDbModState.p->motSub[0];
-        pDbModState.p->motNum[i] = -1;
+        pDbModState->motNo[i] = pDbModState->motNo[0];
+        pDbModState->motSub[i] = pDbModState->motSub[0];
+        pDbModState->motNum[i] = -1;
     }
     dbmodGetFilenames();
 }
@@ -697,72 +692,72 @@ void dbmodGetFilenames()
         switch (i) {
         case 0:
             t = 1;
-            pNo = &pDbModState.p->binNo;
-            pNum = &pDbModState.p->binNum;
-            dir = pDbModState.p->binDir;
+            pNo = &pDbModState->binNo;
+            pNum = &pDbModState->binNum;
+            dir = pDbModState->binDir;
             break;
         case 1:
             t = 2;
-            pNo = &pDbModState.p->texNo;
-            pNum = &pDbModState.p->texNum;
-            dir = pDbModState.p->texDir;
+            pNo = &pDbModState->texNo;
+            pNum = &pDbModState->texNum;
+            dir = pDbModState->texDir;
             break;
         }
-        p = mottblUnitPtr(m_MotTbl.p->unit[t], *pNo);
+        p = mottblUnitPtr(m_MotTbl->unit[t], *pNo);
         sscanf(p, "%s", dir);
         p = mottblNextLine(p);
-        m_MotTbl.p->count[t] = mottblUnitCount(p);
-        *pNum = m_MotTbl.p->count[t];
+        m_MotTbl->count[t] = mottblUnitCount(p);
+        *pNum = m_MotTbl->count[t];
         for (k = 0; k < *pNum; k++) {
             q = mottblUnitPtr(p, k);
             mottblGetLine(line, 0x100, q);
             skip = strspn(line, "\t ");
-            strcpy(pDbModState.p->name[i][k], line + skip);
+            strcpy(pDbModState->name[i][k], line + skip);
         }
     }
-    pDbModState.p->motFileNum = i = 0;
+    pDbModState->motFileNum = i = 0;
     for (; i < FILE_NUM; i++) {
-        if (pDbModState.p->motNo[i] == -1) {
-            pDbModState.p->motName[i][0] = 0;
+        if (pDbModState->motNo[i] == -1) {
+            pDbModState->motName[i][0] = 0;
         } else {
-            p = mottblUnitPtr(m_MotTbl.p->unit[3], pDbModState.p->motNo[i]);
-            sscanf(p, "%s", pDbModState.p->motDir[i]);
+            p = mottblUnitPtr(m_MotTbl->unit[3], pDbModState->motNo[i]);
+            sscanf(p, "%s", pDbModState->motDir[i]);
             p = mottblNextLine(p);
-            m_MotTbl.p->count[3] = mottblUnitCount(p);
-            q = mottblUnitPtr(p, pDbModState.p->motSub[i]);
+            m_MotTbl->count[3] = mottblUnitCount(p);
+            q = mottblUnitPtr(p, pDbModState->motSub[i]);
             mottblGetLine(line, 0x100, q);
             skip = strspn(line, "\t ");
-            strcpy(pDbModState.p->motName[i], line + skip);
-            s = strstr(pDbModState.p->motName[i], "#");
-            pDbModState.p->hashOfs[i] = s - pDbModState.p->motName[i];
+            strcpy(pDbModState->motName[i], line + skip);
+            s = strstr(pDbModState->motName[i], "#");
+            pDbModState->hashOfs[i] = s - pDbModState->motName[i];
             if (s) {
-                pDbModState.p->digits[i] = strspn(s, "#");
+                pDbModState->digits[i] = strspn(s, "#");
             } else {
-                pDbModState.p->digits[i] = (s8) (int) s;
+                pDbModState->digits[i] = (s8) (int) s;
             }
-            if (pDbModState.p->digits[i] != 0) {
-                if (pDbModState.p->motNum[i] > 0) {
-                    digits = (int) log10((f64) pDbModState.p->motNum[i]) + 1;
+            if (pDbModState->digits[i] != 0) {
+                if (pDbModState->motNum[i] > 0) {
+                    digits = (int) log10((f64) pDbModState->motNum[i]) + 1;
                 } else {
                     digits = 1;
                 }
-                sprintf(num, "%d", pDbModState.p->motNum[i]);
-                for (k = 0; k < pDbModState.p->digits[i]; k++) {
-                    if (k < pDbModState.p->digits[i] - digits) {
+                sprintf(num, "%d", pDbModState->motNum[i]);
+                for (k = 0; k < pDbModState->digits[i]; k++) {
+                    if (k < pDbModState->digits[i] - digits) {
                         s[k] = '0';
                     } else {
-                        s[k] = num[k - (pDbModState.p->digits[i] - digits)];
+                        s[k] = num[k - (pDbModState->digits[i] - digits)];
                     }
                 }
             }
-            if (pDbModState.p->motNum[i] == -1) {
-                pDbModState.p->motName[i][0] = 0;
+            if (pDbModState->motNum[i] == -1) {
+                pDbModState->motName[i][0] = 0;
             }
         }
-        pDbModState.p->motFileNum++;
+        pDbModState->motFileNum++;
     }
-    if (pDbModState.p->locNo != -1) {
-        q = mottblUnitPtr(m_MotTbl.p->unit[4], pDbModState.p->locNo);
+    if (pDbModState->locNo != -1) {
+        q = mottblUnitPtr(m_MotTbl->unit[4], pDbModState->locNo);
         q = mottblNextLine(q);
         q = mottblGetLine(line, 0x100, q);
         sscanf(line, "%s", name[0]);
@@ -771,16 +766,16 @@ void dbmodGetFilenames()
             *c = 0;
         }
         q = mottblGetLine(line, 0x100, q);
-        sscanf(line, "%ld", &pDbModState.p->locParts);
+        sscanf(line, "%ld", &pDbModState->locParts);
         q = mottblGetLine(line, 0x100, q);
-        sscanf(line, "%f,%f,%f", &pDbModState.p->locPos.x, &pDbModState.p->locPos.y, &pDbModState.p->locPos.z);
+        sscanf(line, "%f,%f,%f", &pDbModState->locPos.x, &pDbModState->locPos.y, &pDbModState->locPos.z);
         mottblGetLine(line, 0x100, q);
-        sscanf(line, "%f,%f,%f", &pDbModState.p->locRot.x, &pDbModState.p->locRot.y, &pDbModState.p->locRot.z);
-        pDbModState.p->locRot.x *= DEG2RAD;
-        pDbModState.p->locRot.y *= DEG2RAD;
-        pDbModState.p->locRot.z *= DEG2RAD;
-        no = mottblUnitNum(m_MotTbl.p->unit[0], name[0]);
-        q = mottblUnitPtr(m_MotTbl.p->unit[0], no);
+        sscanf(line, "%f,%f,%f", &pDbModState->locRot.x, &pDbModState->locRot.y, &pDbModState->locRot.z);
+        pDbModState->locRot.x *= DEG2RAD;
+        pDbModState->locRot.y *= DEG2RAD;
+        pDbModState->locRot.z *= DEG2RAD;
+        no = mottblUnitNum(m_MotTbl->unit[0], name[0]);
+        q = mottblUnitPtr(m_MotTbl->unit[0], no);
         q = mottblUnitPtr(mottblGetLine(line, 0x100, q), 0);
         mottblGetLine(line, 0x100, q);
         sscanf(line, "%s%s%s", name[1], name[2], name[3]);
@@ -794,35 +789,35 @@ void dbmodGetFilenames()
             switch (i) {
             case 0:
                 t = 1;
-                pNum = &pDbModState.p->locBinNum;
+                pNum = &pDbModState->locBinNum;
                 break;
             case 1:
                 t = 2;
-                pNum = &pDbModState.p->locTexNum;
+                pNum = &pDbModState->locTexNum;
                 break;
             }
-            no = mottblUnitNum(m_MotTbl.p->unit[t], name[t]);
-            p = mottblUnitPtr(m_MotTbl.p->unit[t], no);
+            no = mottblUnitNum(m_MotTbl->unit[t], name[t]);
+            p = mottblUnitPtr(m_MotTbl->unit[t], no);
             p = mottblNextLine(p);
             *pNum = mottblUnitCount(p);
             for (k = 0; k < *pNum; k++) {
                 q = mottblUnitPtr(p, k);
                 mottblGetLine(line, 0x100, q);
                 skip = strspn(line, "\t ");
-                strcpy(pDbModState.p->locName[i][k], line + skip);
+                strcpy(pDbModState->locName[i][k], line + skip);
             }
         }
     } else {
-        pDbModState.p->locBinNum = 0;
-        pDbModState.p->locTexNum = 0;
+        pDbModState->locBinNum = 0;
+        pDbModState->locTexNum = 0;
     }
-    pDbModState.p->curSetNo = pDbModState.p->setNo;
-    pDbModState.p->curBinNo = pDbModState.p->binNo;
-    pDbModState.p->curTexNo = pDbModState.p->texNo;
+    pDbModState->curSetNo = pDbModState->setNo;
+    pDbModState->curBinNo = pDbModState->binNo;
+    pDbModState->curTexNo = pDbModState->texNo;
     for (i = 0; i < FILE_NUM; i++) {
-        pDbModState.p->curMotNo[i] = pDbModState.p->motNo[i];
-        pDbModState.p->curMotSub[i] = pDbModState.p->motSub[i];
-        pDbModState.p->curMotNum[i] = pDbModState.p->motNum[i];
+        pDbModState->curMotNo[i] = pDbModState->motNo[i];
+        pDbModState->curMotSub[i] = pDbModState->motSub[i];
+        pDbModState->curMotNum[i] = pDbModState->motNum[i];
     }
 }
 
@@ -837,41 +832,41 @@ int dbModel(int mode)
     int color;
     int size;
 
-    switch (pDbModState.p->mode) {
+    switch (pDbModState->mode) {
     case 0:
         if (mode == 0) {
             if (joy->trg & 0x200) {
                 return 2;
             }
             if (joy->trg & 0x100) {
-                pDbModState.p->mode = 1;
-                pDbModState.p->step = 0;
+                pDbModState->mode = 1;
+                pDbModState->step = 0;
                 break;
             }
             if (joy->trg & 0x60) {
-                pDbModState.p->timer = 8;
+                pDbModState->timer = 8;
             }
             if (joy->trg & 0x40) {
-                pDbModState.p->page--;
+                pDbModState->page--;
             }
             if (joy->trg & 0x20) {
-                pDbModState.p->page++;
+                pDbModState->page++;
             }
-            pDbModState.p->page = LOOP(pDbModState.p->page, 0, 1);
+            pDbModState->page = LOOP(pDbModState->page, 0, 1);
             if (joy->rep & 0x000C000C) {
-                pDbModState.p->timer = 8;
+                pDbModState->timer = 8;
             }
             if (joy->rep & 0x00080008) {
-                pDbModState.p->cursor--;
+                pDbModState->cursor--;
             }
             if (joy->rep & 0x00040004) {
-                pDbModState.p->cursor++;
+                pDbModState->cursor++;
             }
-            pDbModState.p->cursor = CLAMP(pDbModState.p->cursor, 0, dbmodMenuNum[pDbModState.p->page] - 1);
+            pDbModState->cursor = CLAMP(pDbModState->cursor, 0, dbmodMenuNum[pDbModState->page] - 1);
             if (joy->trg & 0x10) {
-                pDbModState.p->mode = 2;
-                pDbModState.p->step = 0;
-                pDbModState.p->pathCursor = 0;
+                pDbModState->mode = 2;
+                pDbModState->step = 0;
+                pDbModState->pathCursor = 0;
                 break;
             }
         }
@@ -879,64 +874,64 @@ int dbModel(int mode)
             int i;
             int x = 5;
             for (i = 0; i < dbmodMenuNum[2]; i++) {
-                if (dbmodMenu[pDbModState.p->page][i].flag && dbModSlot[pDbModState.p->no].pEm == 0) {
-                    color = (i == pDbModState.p->cursor) ? 4 : 7;
+                if (dbmodMenu[pDbModState->page][i].flag && dbModSlot[pDbModState->no].pEm == 0) {
+                    color = (i == pDbModState->cursor) ? 4 : 7;
                 } else {
-                    color = (i == pDbModState.p->cursor) ? 4 : 0;
+                    color = (i == pDbModState->cursor) ? 4 : 0;
                 }
-                if (i < dbmodMenuNum[pDbModState.p->page]) {
-                    eprintf(x * 8, (i + 3) * 14, color, 0, "%s", dbmodMenu[pDbModState.p->page][i].name);
+                if (i < dbmodMenuNum[pDbModState->page]) {
+                    eprintf(x * 8, (i + 3) * 14, color, 0, "%s", dbmodMenu[pDbModState->page][i].name);
                 } else {
                     eprintf(x * 8, (i + 3) * 14, color, 0, "______");
                 }
-                if (i == pDbModState.p->cursor && (pDbModState.p->timer & 0x18)) {
+                if (i == pDbModState->cursor && (pDbModState->timer & 0x18)) {
                     eprintf((x - 1) * 8, (i + 3) * 14, 0x16, 0, ">");
                 }
             }
-            eprintf(4 * 8, (dbmodMenuNum[2] + 3) * 14, 0, 0, "[Page:%1d/%1d]", pDbModState.p->page + 1, 2);
+            eprintf(4 * 8, (dbmodMenuNum[2] + 3) * 14, 0, 0, "[Page:%1d/%1d]", pDbModState->page + 1, 2);
             dbmodInfoDisp();
         }
         break;
     case 1:
-        ret = dbmodFunc[dbmodMenu[pDbModState.p->page][pDbModState.p->cursor].id]();
+        ret = dbmodFunc[dbmodMenu[pDbModState->page][pDbModState->cursor].id]();
         break;
     case 2:
         if (joy->rep & 0x000C000C) {
-            pDbModState.p->timer = 8;
+            pDbModState->timer = 8;
         }
         if (joy->trg & 0x00010001) {
-            pDbModState.p->pathCursor--;
+            pDbModState->pathCursor--;
         }
         if (joy->trg & 0x00020002) {
-            pDbModState.p->pathCursor++;
+            pDbModState->pathCursor++;
         }
-        pDbModState.p->pathCursor = LOOP(pDbModState.p->pathCursor, 0, 0);
-        if (pDbModState.p->pathCursor == 0) {
+        pDbModState->pathCursor = LOOP(pDbModState->pathCursor, 0, 0);
+        if (pDbModState->pathCursor == 0) {
             if (joy->trg & 0x00010001) {
-                pDbModState.p->path--;
+                pDbModState->path--;
             }
             if (joy->trg & 0x00020002) {
-                pDbModState.p->path++;
+                pDbModState->path++;
             }
-            pDbModState.p->path = CLAMP(pDbModState.p->path, 0, 2);
+            pDbModState->path = CLAMP(pDbModState->path, 0, 2);
             if (joy->trg & 0x200) {
-                pDbModState.p->mode = 0;
-                pDbModState.p->path = pDbModState.p->curPath;
+                pDbModState->mode = 0;
+                pDbModState->path = pDbModState->curPath;
             } else if (joy->trg & 0x100) {
-                if (pDbModState.p->curPath != pDbModState.p->path) {
-                    pDbModState.p->curPath = pDbModState.p->path;
-                    dbmodFilePath(pDbModState.p->path);
-                    if (dbmodMotTblImage.p) {
-                        Debug_free(dbmodMotTblImage.p);
-                        dbmodMotTblImage.p = 0;
+                if (pDbModState->curPath != pDbModState->path) {
+                    pDbModState->curPath = pDbModState->path;
+                    dbmodFilePath(pDbModState->path);
+                    if (dbmodMotTblImage) {
+                        Debug_free(dbmodMotTblImage);
+                        dbmodMotTblImage = 0;
                     }
-                    size = HDReadDebugAlloc("Room/Em/mot_tbl.txt", &dbmodMotTblImage.p, 1);
-                    m_MotTbl.p->data = (char*) dbmodMotTblImage.p;
-                    m_MotTbl.p->end = (char*) dbmodMotTblImage.p + (size - 1);
-                    m_MotTbl.p->cur = m_MotTbl.p->data;
-                    mottblInit(m_MotTbl.p);
+                    size = HDReadDebugAlloc("Room/Em/mot_tbl.txt", &dbmodMotTblImage, 1);
+                    m_MotTbl->data = (char*) dbmodMotTblImage;
+                    m_MotTbl->end = (char*) dbmodMotTblImage + (size - 1);
+                    m_MotTbl->cur = m_MotTbl->data;
+                    mottblInit(m_MotTbl);
                 }
-                pDbModState.p->mode = 0;
+                pDbModState->mode = 0;
             }
         }
         {
@@ -946,11 +941,11 @@ int dbModel(int mode)
             int x = 10;
             eprintf(x * 8, 10 * 14, 6, 0, "----- TOOL MENU -----");
             for (i = 0; i < 1; i++) {
-                eprintf(x * 8, (i + 11) * 14, (i == pDbModState.p->pathCursor) ? 4 : 0, 0, "%s", item[i]);
+                eprintf(x * 8, (i + 11) * 14, (i == pDbModState->pathCursor) ? 4 : 0, 0, "%s", item[i]);
                 if (i == 0) {
                     for (k = 0; k < 3; k++) {
                         color = 7;
-                        if (k == pDbModState.p->path) {
+                        if (k == pDbModState->path) {
                             color = 0;
                         }
                         eprintf((16 + k * 6) * 8, (i + 11) * 14, color, 0, "%s", pathName[k]);
@@ -960,7 +955,7 @@ int dbModel(int mode)
         }
         break;
     }
-    pDbModState.p->timer++;
+    pDbModState->timer++;
     return ret;
 }
 
@@ -974,21 +969,21 @@ static int dbmod_no()
     int color;
     int x, y;
 
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->prevNo = pDbModState.p->no;
-        noY = pDbModState.p->no / 8;
-        noX = pDbModState.p->no % 8;
-        pDbModState.p->step++;
+        pDbModState->prevNo = pDbModState->no;
+        noY = pDbModState->no / 8;
+        noX = pDbModState->no % 8;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->trg & 0x100) {
-            int no = pDbModState.p->no;
-            if (pDbModState.p->prevNo != (u8) no) {
-                pDbModState.p->setNo = dbModSlot[no].setNo;
+            int no = pDbModState->no;
+            if (pDbModState->prevNo != (u8) no) {
+                pDbModState->setNo = dbModSlot[no].setNo;
                 dbmodGetSet();
             }
         }
@@ -1006,12 +1001,12 @@ static int dbmod_no()
             noY++;
         }
         noY = CLAMP(noY, 0, 7);
-        pDbModState.p->no = noY * 8 + noX;
+        pDbModState->no = noY * 8 + noX;
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "------ NO ------");
     for (i = 0; i < SLOT_NUM; i++) {
-        if (i == pDbModState.p->no) {
+        if (i == pDbModState->no) {
             color = 4;
         } else if (dbModSlot[i].alive) {
             color = 0;
@@ -1021,7 +1016,7 @@ static int dbmod_no()
         x = (i % 8) * 3 + 6;
         y = (i / 8 + 4) * 14;
         eprintf(x * 8, y, color, 0, "%02d", i);
-        if (i == pDbModState.p->no) {
+        if (i == pDbModState->no) {
             eprintf((x - 1) * 8, y, 0, 0, "[");
             eprintf((x + 2) * 8, y, 0, 0, "]");
         }
@@ -1043,14 +1038,14 @@ static int dbmod_model()
     s8 len;
     char label[0x100];
 
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->prevSetNo = pDbModState.p->setNo;
-        pDbModState.p->step++;
+        pDbModState->prevSetNo = pDbModState->setNo;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
-            pDbModState.p->setNo = pDbModState.p->prevSetNo;
+            pDbModState->mode--;
+            pDbModState->setNo = pDbModState->prevSetNo;
             break;
         }
         if (joy->trg & 0x100) {
@@ -1059,103 +1054,103 @@ static int dbmod_model()
             DB_MODEL_FILES mot;
 
             bin.init();
-            bin.set(pDbModState.p->binNum, pDbModState.p->name[0][0]);
+            bin.set(pDbModState->binNum, pDbModState->name[0][0]);
             tpl.init();
-            tpl.set(pDbModState.p->texNum, pDbModState.p->name[1][0]);
-            dbModSlot[pDbModState.p->no].loadModelSet(&bin, &tpl);
+            tpl.set(pDbModState->texNum, pDbModState->name[1][0]);
+            dbModSlot[pDbModState->no].loadModelSet(&bin, &tpl);
             bin.init();
-            bin.set(pDbModState.p->locBinNum, pDbModState.p->locName[0][0]);
+            bin.set(pDbModState->locBinNum, pDbModState->locName[0][0]);
             tpl.init();
-            tpl.set(pDbModState.p->locTexNum, pDbModState.p->locName[1][0]);
-            dbModSlotSub[pDbModState.p->no].loadModelSet(&bin, &tpl);
+            tpl.set(pDbModState->locTexNum, pDbModState->locName[1][0]);
+            dbModSlotSub[pDbModState->no].loadModelSet(&bin, &tpl);
             mot.init();
-            mot.set(pDbModState.p->motFileNum, pDbModState.p->motName[0]);
-            dbModSlot[pDbModState.p->no].loadMotionSet(&mot);
-            pDbModState.p->step++;
-            pDbModState.p->x2 = 0;
+            mot.set(pDbModState->motFileNum, pDbModState->motName[0]);
+            dbModSlot[pDbModState->no].loadMotionSet(&mot);
+            pDbModState->step++;
+            pDbModState->x2 = 0;
             break;
         }
         if (!(joy->on & 0x800)) {
             if (joy->trg & 0x000C000C) {
-                pDbModState.p->timer = 8;
+                pDbModState->timer = 8;
             }
             if (joy->trg & 0x00080008) {
-                pDbModState.p->sub--;
+                pDbModState->sub--;
             }
             if (joy->trg & 0x00040004) {
-                pDbModState.p->sub++;
+                pDbModState->sub++;
             }
-            pDbModState.p->sub = CLAMP(pDbModState.p->sub, 0, 1);
+            pDbModState->sub = CLAMP(pDbModState->sub, 0, 1);
         }
-        switch (pDbModState.p->sub) {
+        switch (pDbModState->sub) {
         case 0:
             if (joy->rep & 0x40) {
-                pDbModState.p->type--;
+                pDbModState->type--;
             }
             if (joy->rep & 0x20) {
-                pDbModState.p->type++;
+                pDbModState->type++;
             }
-            pDbModState.p->type = LOOP(pDbModState.p->type, 0, 7);
+            pDbModState->type = LOOP(pDbModState->type, 0, 7);
             if (joy->trg & 0x60) {
-                len = strlen(dbmodTypeName[pDbModState.p->type]);
-                pDbModState.p->setNo = -1;
+                len = strlen(dbmodTypeName[pDbModState->type]);
+                pDbModState->setNo = -1;
                 do {
-                    pDbModState.p->setNo++;
-                    pDbModState.p->setNo = LOOP(pDbModState.p->setNo, 0, m_MotTbl.p->unitNum[0] - 1);
-                    dbmodGetLabel(pDbModState.p->setNo, label);
-                } while (strncmp(label, dbmodTypeName[pDbModState.p->type], len) != 0);
+                    pDbModState->setNo++;
+                    pDbModState->setNo = LOOP(pDbModState->setNo, 0, m_MotTbl->unitNum[0] - 1);
+                    dbmodGetLabel(pDbModState->setNo, label);
+                } while (strncmp(label, dbmodTypeName[pDbModState->type], len) != 0);
             }
             if ((joy->rep & 0x1) || (joy->on & 0x10000)) {
-                pDbModState.p->setNo--;
+                pDbModState->setNo--;
             }
             if ((joy->rep & 0x2) || (joy->on & 0x20000)) {
-                pDbModState.p->setNo++;
+                pDbModState->setNo++;
             }
-            pDbModState.p->setNo = LOOP(pDbModState.p->setNo, 0, m_MotTbl.p->unitNum[0] - 1);
+            pDbModState->setNo = LOOP(pDbModState->setNo, 0, m_MotTbl->unitNum[0] - 1);
             dbmodGetSet();
             break;
         case 1:
-            if (pDbModState.p->motNo[0] == -1) {
+            if (pDbModState->motNo[0] == -1) {
             } else if (joy->trg & 0x10) {
-                pDbModState.p->motNum[0] = 0;
+                pDbModState->motNum[0] = 0;
                 break;
             } else if (joy->on & 0x800) {
-                old = pDbModState.p->motSub[0];
+                old = pDbModState->motSub[0];
                 if (joy->trg & 0x00080008) {
-                    pDbModState.p->motSub[0]++;
+                    pDbModState->motSub[0]++;
                 }
                 if (joy->trg & 0x00040004) {
-                    pDbModState.p->motSub[0]--;
+                    pDbModState->motSub[0]--;
                 }
-                pDbModState.p->motSub[0] = LOOP(pDbModState.p->motSub[0], 0, m_MotTbl.p->count[3] - 1);
-                if (old != pDbModState.p->motSub[0]) {
-                    pDbModState.p->motNum[0] = 0;
-                    pDbModState.p->digit = 0;
+                pDbModState->motSub[0] = LOOP(pDbModState->motSub[0], 0, m_MotTbl->count[3] - 1);
+                if (old != pDbModState->motSub[0]) {
+                    pDbModState->motNum[0] = 0;
+                    pDbModState->digit = 0;
                 }
             } else {
-                pDbModState.p->digit = 0;
+                pDbModState->digit = 0;
                 if (joy->on & 0x20) {
-                    pDbModState.p->digit = 1;
+                    pDbModState->digit = 1;
                 }
                 if (joy->on & 0x40) {
-                    pDbModState.p->digit = 2;
+                    pDbModState->digit = 2;
                 }
-                pDbModState.p->digit = CLAMP(pDbModState.p->digit, 0, pDbModState.p->digits[0] - 1);
-                step = (int) IPOW(10.0f, pDbModState.p->digit);
-                max = (int) IPOW(10.0f, pDbModState.p->digits[0]) - 1;
+                pDbModState->digit = CLAMP(pDbModState->digit, 0, pDbModState->digits[0] - 1);
+                step = (int) IPOW(10.0f, pDbModState->digit);
+                max = (int) IPOW(10.0f, pDbModState->digits[0]) - 1;
                 if (joy->rep2 & 0x00010001) {
-                    pDbModState.p->motNum[0] -= step;
+                    pDbModState->motNum[0] -= step;
                 }
                 if (joy->rep2 & 0x00020002) {
-                    pDbModState.p->motNum[0] += step;
+                    pDbModState->motNum[0] += step;
                 }
                 if (dbmodLoopNum) {
-                    pDbModState.p->motNum[0] = LOOP(pDbModState.p->motNum[0], -1, max);
+                    pDbModState->motNum[0] = LOOP(pDbModState->motNum[0], -1, max);
                 } else {
-                    pDbModState.p->motNum[0] = CLAMP(pDbModState.p->motNum[0], -1, max);
+                    pDbModState->motNum[0] = CLAMP(pDbModState->motNum[0], -1, max);
                 }
-                if (pDbModState.p->motNum[0] == -1) {
-                    pDbModState.p->digit = 0;
+                if (pDbModState->motNum[0] == -1) {
+                    pDbModState->digit = 0;
                 }
             }
             dbmodGetFilenames();
@@ -1163,59 +1158,59 @@ static int dbmod_model()
         }
         break;
     case 2:
-        r = dbModSlot[pDbModState.p->no].loadModel();
+        r = dbModSlot[pDbModState->no].loadModel();
         switch (r) {
         case 0:
             break;
         case 1:
-            pDbModState.p->step++;
-            pDbModState.p->x2 = 0;
+            pDbModState->step++;
+            pDbModState->x2 = 0;
             break;
         case -1:
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             break;
         }
         break;
     case 3:
-        r = dbModSlotSub[pDbModState.p->no].loadModel();
+        r = dbModSlotSub[pDbModState->no].loadModel();
         switch (r) {
         case 0:
             break;
         case 1:
-            pDbModState.p->step++;
-            pDbModState.p->x2 = 0;
-            if (pDbModState.p->locNo != -1) {
-                dbModSlotSub[pDbModState.p->no].parentNo = pDbModState.p->no;
-                dbModSlotSub[pDbModState.p->no].parentParts = pDbModState.p->locParts;
-                dbModSlotSub[pDbModState.p->no].pos0 = pDbModState.p->locPos;
-                dbModSlotSub[pDbModState.p->no].ang0 = pDbModState.p->locRot;
-                dbModSlotSub[pDbModState.p->no].alive = 1;
+            pDbModState->step++;
+            pDbModState->x2 = 0;
+            if (pDbModState->locNo != -1) {
+                dbModSlotSub[pDbModState->no].parentNo = pDbModState->no;
+                dbModSlotSub[pDbModState->no].parentParts = pDbModState->locParts;
+                dbModSlotSub[pDbModState->no].pos0 = pDbModState->locPos;
+                dbModSlotSub[pDbModState->no].ang0 = pDbModState->locRot;
+                dbModSlotSub[pDbModState->no].alive = 1;
             } else {
-                dbModSlotSub[pDbModState.p->no].alive = 0;
+                dbModSlotSub[pDbModState->no].alive = 0;
             }
             break;
         case -1:
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             break;
         }
         break;
     case 4:
-        r = dbModSlot[pDbModState.p->no].loadMotion();
+        r = dbModSlot[pDbModState->no].loadMotion();
         switch (r) {
         case 0:
             break;
         case 1:
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             ret = 1;
             break;
         case -1:
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             break;
         }
         break;
     }
     dbmodDispModelName();
-    switch (pDbModState.p->sub) {
+    switch (pDbModState->sub) {
     case 0:
         model_usage();
         break;
@@ -1244,28 +1239,28 @@ void dbmodDispModelName()
 
     eprintf(5 * 8, 3 * 14, 5, 0, "---- MODEL -----");
     for (i = 2; i >= 0; i--) {
-        eprintf(x * 8, (i + 4) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodModelLabel[i]);
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        eprintf(x * 8, (i + 4) * 14, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodModelLabel[i]);
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf((x - 1) * 8, (i + 4) * 14, 0x16, 0, ">");
         }
         switch (i) {
         case 0:
-            eprintf((x + 8) * 8, y * 14, 0, 0, "%s", pDbModState.p->setName);
+            eprintf((x + 8) * 8, y * 14, 0, 0, "%s", pDbModState->setName);
             break;
         case 1:
-            if (pDbModState.p->motNo[0] == -1) {
+            if (pDbModState->motNo[0] == -1) {
                 eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", "null");
                 break;
             }
-            no = pDbModState.p->motNum[0];
+            no = pDbModState->motNum[0];
             if (no == -1) {
-                eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[0]);
+                eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s] --------.---", pDbModState->motDir[0]);
                 break;
             }
             // the surplus `no` argument is in the original: it is passed in r9 (unused by the format), which is
             // why motNum lands in r9 and why reload's "[%6s]"/"%s" highs use r11 (r9 is live at the lo_sum)
-            eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0], no);
-            switch (pDbModState.p->motType[0]) {
+            eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", pDbModState->motDir[0], no);
+            switch (pDbModState->motType[0]) {
             case 0:
                 color = 0;
                 break;
@@ -1275,28 +1270,28 @@ void dbmodDispModelName()
                 color = 2;
                 break;
             }
-            hs = strlen(pDbModState.p->motName[0]) - pDbModState.p->hashOfs[0];
-            name = dbmodSkipPath(pDbModState.p->motName[0]);
+            hs = strlen(pDbModState->motName[0]) - pDbModState->hashOfs[0];
+            name = dbmodSkipPath(pDbModState->motName[0]);
             nlen = strlen(name);
             hs = nlen - hs;
-            he = hs + pDbModState.p->digits[0] - 1;
+            he = hs + pDbModState->digits[0] - 1;
             for (k = 0; k < nlen; k++) {
                 f = 0;  // COMPILER-DIFF: candidate (loop.c insn_count): two dead sets, deleted by flow, keep
                 no = k; // the "^" high out of loop pass 1 (58 -> 60 real insns, its threshold 59 < 60)
                 if (k >= hs && k <= he) {
-                    color = (i == pDbModState.p->sub) ? 4 : 0;
+                    color = (i == pDbModState->sub) ? 4 : 0;
                 } else {
                     color = 0;
                 }
                 eprintf((23 + k) * 8, (i + 4) * 14, color, 0, "%c", name[k]);
-                if (i == pDbModState.p->sub && k == hs + (pDbModState.p->digits[0] - pDbModState.p->digit - 1)) {
+                if (i == pDbModState->sub && k == hs + (pDbModState->digits[0] - pDbModState->digit - 1)) {
                     eprintf((23 + k) * 8, (i + 5) * 14, 0x16, 0, "^");
                 }
             }
             break;
         case 2:
             for (k = 0; k < 8; k++) {
-                if (k == pDbModState.p->type) {
+                if (k == pDbModState->type) {
                     color = 0;
                 } else {
                     color = 7;
@@ -1306,13 +1301,13 @@ void dbmodDispModelName()
             break;
         }
     }
-    eprintf(6 * 8, 8 * 14, 0, 0, "BIN:[%6s]", pDbModState.p->binDir);
+    eprintf(6 * 8, 8 * 14, 0, 0, "BIN:[%6s]", pDbModState->binDir);
     x = 6;
     y = 8;
     color = 0;
-    f = &dbModSlot[pDbModState.p->no].m_files[0];
-    for (i = 0; i < pDbModState.p->binNum; i++) {
-        if (i < f->m_num && strcmp(pDbModState.p->name[0][i], f->m_name[i]) == 0) {
+    f = &dbModSlot[pDbModState->no].m_files[0];
+    for (i = 0; i < pDbModState->binNum; i++) {
+        if (i < f->m_num && strcmp(pDbModState->name[0][i], f->m_name[i]) == 0) {
             switch (f->m_read_state[i]) {
             case 3:
                 color = 0;
@@ -1327,15 +1322,15 @@ void dbmodDispModelName()
         } else {
             color = 0;
         }
-        name = dbmodSkipPath(pDbModState.p->name[0][i]);
+        name = dbmodSkipPath(pDbModState->name[0][i]);
         eprintf(x * 8, (9 + i) * 14, color, 0, "%s", name);
     }
-    eprintf(20 * 8, y * 14, 0, 0, "TEX:[%6s]", pDbModState.p->texDir);
+    eprintf(20 * 8, y * 14, 0, 0, "TEX:[%6s]", pDbModState->texDir);
     x = 20;
     color = 0;
-    f = &dbModSlot[pDbModState.p->no].m_files[1];
-    for (i = 0; i < pDbModState.p->texNum; i++) {
-        if (i < f->m_num && strcmp(pDbModState.p->name[1][i], f->m_name[i]) == 0) {
+    f = &dbModSlot[pDbModState->no].m_files[1];
+    for (i = 0; i < pDbModState->texNum; i++) {
+        if (i < f->m_num && strcmp(pDbModState->name[1][i], f->m_name[i]) == 0) {
             switch (f->m_read_state[i]) {
             case 3:
                 color = 0;
@@ -1350,7 +1345,7 @@ void dbmodDispModelName()
         } else {
             color = 0;
         }
-        name = dbmodSkipPath(pDbModState.p->name[1][i]);
+        name = dbmodSkipPath(pDbModState->name[1][i]);
         eprintf(x * 8, (9 + i) * 14, color, 0, "%s", name);
     }
 }
@@ -1374,105 +1369,105 @@ static int dbmod_motion()
     char* name;
     int no;
 
-    if (dbModSlot[pDbModState.p->no].pEm == 0) {
-        pDbModState.p->mode--;
+    if (dbModSlot[pDbModState->no].pEm == 0) {
+        pDbModState->mode--;
         return 0;
     }
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->prevSetNo = pDbModState.p->setNo;
-        pDbModState.p->step++;
+        pDbModState->prevSetNo = pDbModState->setNo;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
-            pDbModState.p->setNo = pDbModState.p->prevSetNo;
+            pDbModState->mode--;
+            pDbModState->setNo = pDbModState->prevSetNo;
             break;
         }
         if (joy->trg & 0x100) {
             DB_MODEL_FILES mot;
 
             mot.init();
-            mot.set(pDbModState.p->motFileNum, pDbModState.p->motName[0]);
-            dbModSlot[pDbModState.p->no].loadMotionSet(&mot);
-            pDbModState.p->step++;
-            pDbModState.p->x2 = 0;
+            mot.set(pDbModState->motFileNum, pDbModState->motName[0]);
+            dbModSlot[pDbModState->no].loadMotionSet(&mot);
+            pDbModState->step++;
+            pDbModState->x2 = 0;
             break;
         }
         if (!(joy->on & 0x800)) {
-            old = pDbModState.p->sub;
+            old = pDbModState->sub;
             if (joy->trg & 0x000C000C) {
-                pDbModState.p->timer = 8;
+                pDbModState->timer = 8;
             }
             if (joy->trg & 0x00080008) {
-                pDbModState.p->sub--;
+                pDbModState->sub--;
             }
             if (joy->trg & 0x00040004) {
-                pDbModState.p->sub++;
+                pDbModState->sub++;
             }
-            pDbModState.p->sub = CLAMP(pDbModState.p->sub, 0, 1);
-            if (old != pDbModState.p->sub) {
-                pDbModState.p->digit = 0;
+            pDbModState->sub = CLAMP(pDbModState->sub, 0, 1);
+            if (old != pDbModState->sub) {
+                pDbModState->digit = 0;
             }
         }
-        k = pDbModState.p->sub;
-        if (pDbModState.p->motNo[k] != -1) {
+        k = pDbModState->sub;
+        if (pDbModState->motNo[k] != -1) {
             if (joy->trg & 0x10) {
-                pDbModState.p->motNum[k] = 0;
+                pDbModState->motNum[k] = 0;
                 break;
             }
             if (joy->on & 0x800) {
-                int oldSub = pDbModState.p->motSub[k];
+                int oldSub = pDbModState->motSub[k];
                 if (joy->trg & 0x00080008) {
-                    pDbModState.p->motSub[k]++;
+                    pDbModState->motSub[k]++;
                 }
                 if (joy->trg & 0x00040004) {
-                    pDbModState.p->motSub[k]--;
+                    pDbModState->motSub[k]--;
                 }
-                pDbModState.p->motSub[k] = LOOP(pDbModState.p->motSub[k], 0, m_MotTbl.p->count[3] - 1);
-                if (oldSub != pDbModState.p->motSub[k]) {
-                    pDbModState.p->motNum[k] = 0;
-                    pDbModState.p->digit = 0;
+                pDbModState->motSub[k] = LOOP(pDbModState->motSub[k], 0, m_MotTbl->count[3] - 1);
+                if (oldSub != pDbModState->motSub[k]) {
+                    pDbModState->motNum[k] = 0;
+                    pDbModState->digit = 0;
                 }
             } else {
-                pDbModState.p->digit = 0;
+                pDbModState->digit = 0;
                 if (joy->on & 0x20) {
-                    pDbModState.p->digit = 1;
+                    pDbModState->digit = 1;
                 }
                 if (joy->on & 0x40) {
-                    pDbModState.p->digit = 2;
+                    pDbModState->digit = 2;
                 }
-                pDbModState.p->digit = CLAMP(pDbModState.p->digit, 0, pDbModState.p->digits[k] - 1);
-                step = (int) IPOW(10.0f, pDbModState.p->digit);
-                max = (int) IPOW(10.0f, pDbModState.p->digits[k]) - 1;
+                pDbModState->digit = CLAMP(pDbModState->digit, 0, pDbModState->digits[k] - 1);
+                step = (int) IPOW(10.0f, pDbModState->digit);
+                max = (int) IPOW(10.0f, pDbModState->digits[k]) - 1;
                 if (joy->rep2 & 0x00010001) {
-                    pDbModState.p->motNum[k] -= step;
+                    pDbModState->motNum[k] -= step;
                 }
                 if (joy->rep2 & 0x00020002) {
-                    pDbModState.p->motNum[k] += step;
+                    pDbModState->motNum[k] += step;
                 }
                 if (dbmodLoopNum) {
-                    pDbModState.p->motNum[k] = LOOP(pDbModState.p->motNum[k], -1, max);
+                    pDbModState->motNum[k] = LOOP(pDbModState->motNum[k], -1, max);
                 } else {
-                    pDbModState.p->motNum[k] = CLAMP(pDbModState.p->motNum[k], -1, max);
+                    pDbModState->motNum[k] = CLAMP(pDbModState->motNum[k], -1, max);
                 }
-                if (pDbModState.p->motNum[k] == -1) {
-                    pDbModState.p->digit = 0;
+                if (pDbModState->motNum[k] == -1) {
+                    pDbModState->digit = 0;
                 }
             }
         }
         dbmodGetFilenames();
         break;
     case 2:
-        r = dbModSlot[pDbModState.p->no].loadMotion();
+        r = dbModSlot[pDbModState->no].loadMotion();
         switch (r) {
         case 0:
             break;
         case 1:
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             ret = 1;
             break;
         case -1:
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             break;
         }
         break;
@@ -1480,23 +1475,23 @@ static int dbmod_motion()
     eprintf(5 * 8, 3 * 14, 5, 0, "---- MOTION ----");
     x = 6;
     for (i = 0; i <= 1; i++) {
-        eprintf(x * 8, (i + 4) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodMotionLabel[i]);
+        eprintf(x * 8, (i + 4) * 14, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodMotionLabel[i]);
         nx = 16;
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf(5 * 8, (i + 4) * 14, 0x16, 0, ">");
         }
-        if (pDbModState.p->motNo[i] == -1) {
+        if (pDbModState->motNo[i] == -1) {
             eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", "null");
             continue;
         }
-        no = pDbModState.p->motNum[i];
+        no = pDbModState->motNum[i];
         if (no == -1) {
-            eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[i]);
+            eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s] --------.---", pDbModState->motDir[i]);
             continue;
         }
         // surplus `no` argument (r9) as in dbmodDispModelName: it is what puts motNum[i] into r9 (`lhax r9,r9,r11`)
-        eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[i], no);
-        switch (pDbModState.p->motType[i]) {
+        eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", pDbModState->motDir[i], no);
+        switch (pDbModState->motType[i]) {
         case 0:
             color = 0;
             break;
@@ -1506,13 +1501,13 @@ static int dbmod_motion()
             color = 2;
             break;
         }
-        hs = strlen(pDbModState.p->motName[i]) - pDbModState.p->hashOfs[i];
-        name = dbmodSkipPath(pDbModState.p->motName[i]);
+        hs = strlen(pDbModState->motName[i]) - pDbModState->hashOfs[i];
+        name = dbmodSkipPath(pDbModState->motName[i]);
         nlen = strlen(name);
         hs = nlen - hs;
-        he = hs + pDbModState.p->digits[i] - 1;
+        he = hs + pDbModState->digits[i] - 1;
         for (j = 0; j < nlen; j++) {
-            if (i == pDbModState.p->sub) {
+            if (i == pDbModState->sub) {
                 color = (j >= hs && j <= he) ? 4 : 0;
             } else {
                 color = 0;
@@ -1520,9 +1515,9 @@ static int dbmod_motion()
             eprintf((25 + j) * 8, (i + 4) * 14, color, 0, "%c", name[j]);
         }
     }
-    len = strlen(pDbModState.p->motName[pDbModState.p->sub]) - pDbModState.p->hashOfs[pDbModState.p->sub];
-    len = strlen(dbmodSkipPath(pDbModState.p->motName[pDbModState.p->sub])) - len;
-    len += pDbModState.p->digits[pDbModState.p->sub] - pDbModState.p->digit;
+    len = strlen(pDbModState->motName[pDbModState->sub]) - pDbModState->hashOfs[pDbModState->sub];
+    len = strlen(dbmodSkipPath(pDbModState->motName[pDbModState->sub])) - len;
+    len += pDbModState->digits[pDbModState->sub] - pDbModState->digit;
     eprintf((len - 1 + 25) * 8, 6 * 14, 0x16, 0, "^");
     motion_usage();
     return ret;
@@ -1533,7 +1528,7 @@ static int dbmod_motion()
 // _ONTO unit (locate bin/tex names, parts); B back.
 static int dbmod_locate()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     int dir = 0;
     int changed = 0;
@@ -1552,31 +1547,31 @@ static int dbmod_locate()
     Vec* pax;
     Vec* pos;
 
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->sub = 0;
-        pDbModState.p->x7 = 0;
-        pDbModState.p->step++;
+        pDbModState->sub = 0;
+        pDbModState->x7 = 0;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->trg & 0x000C000C) {
-            pDbModState.p->timer = 8;
+            pDbModState->timer = 8;
         }
         if (joy->trg & 0x00080008) {
-            pDbModState.p->sub--;
+            pDbModState->sub--;
         }
         if (joy->trg & 0x00040004) {
-            pDbModState.p->sub++;
+            pDbModState->sub++;
         }
-        pDbModState.p->sub = CLAMP(pDbModState.p->sub, 0, 4);
-        switch (pDbModState.p->sub) {
+        pDbModState->sub = CLAMP(pDbModState->sub, 0, 4);
+        switch (pDbModState->sub) {
         case 0:
         case 1:
             if (joy->trg & 0x100) {
-                pDbModState.p->step++;
+                pDbModState->step++;
             }
             break;
         case 2:
@@ -1630,15 +1625,15 @@ static int dbmod_locate()
         break;
     case 2:
         if (joy->trg & 0x200) {
-            pDbModState.p->step--;
+            pDbModState->step--;
             break;
         }
         changed = 1;
-        switch (pDbModState.p->sub) {
+        switch (pDbModState->sub) {
         case 0:
             pos = &em->pos0;
             if (joy->trg & 0x400) {
-                pDbModState.p->step++;
+                pDbModState->step++;
                 break;
             }
             if (joy->trg & 0x10) {
@@ -1690,16 +1685,16 @@ static int dbmod_locate()
             break;
         case 1:
             if (joy->trg & 0x00010001) {
-                pDbModState.p->x7--;
+                pDbModState->x7--;
             }
             if (joy->trg & 0x00020002) {
-                pDbModState.p->x7++;
+                pDbModState->x7++;
             }
-            pDbModState.p->x7 = CLAMP(pDbModState.p->x7, 0, 2);
+            pDbModState->x7 = CLAMP(pDbModState->x7, 0, 2);
             axis = (f32*) &em->ang0;
-            deg = axis[pDbModState.p->x7] * 57.29578f;
+            deg = axis[pDbModState->x7] * 57.29578f;
             if (joy->trg & 0x10) {
-                axis[pDbModState.p->x7] = 0.0f;
+                axis[pDbModState->x7] = 0.0f;
                 break;
             }
             speed = 10.0f;
@@ -1714,34 +1709,34 @@ static int dbmod_locate()
             if (joy->rep2 & 0x00040004) {
                 deg -= speed;
             }
-            axis[pDbModState.p->x7] = deg * DEG2RAD;
+            axis[pDbModState->x7] = deg * DEG2RAD;
             VecRadLimit((Vec*) axis);
             break;
         }
         break;
     case 3:
         changed = 1;
-        if (pDbModState.p->sub != 0) {
+        if (pDbModState->sub != 0) {
             break;
         }
         if (joy->trg & 0x200) {
-            pDbModState.p->step = 0;
+            pDbModState->step = 0;
             break;
         }
         if (joy->trg & 0x400) {
-            pDbModState.p->step--;
+            pDbModState->step--;
             break;
         }
         if (joy->trg & 0x00010001) {
-            pDbModState.p->x7--;
+            pDbModState->x7--;
         }
         if (joy->trg & 0x00020002) {
-            pDbModState.p->x7++;
+            pDbModState->x7++;
         }
-        pDbModState.p->x7 = CLAMP(pDbModState.p->x7, 0, 2);
+        pDbModState->x7 = CLAMP(pDbModState->x7, 0, 2);
         axis = (f32*) &em->pos0;
         if (joy->trg & 0x10) {
-            axis[pDbModState.p->x7] = 0.0f;
+            axis[pDbModState->x7] = 0.0f;
             break;
         }
         speed = 100.0f;
@@ -1751,14 +1746,14 @@ static int dbmod_locate()
             speed *= 0.1f;
         }
         if (joy->rep2 & 0x00080008) {
-            axis[pDbModState.p->x7] += speed;
+            axis[pDbModState->x7] += speed;
         }
         if (joy->rep2 & 0x00040004) {
-            axis[pDbModState.p->x7] -= speed;
+            axis[pDbModState->x7] -= speed;
         }
         break;
     }
-    if (pDbModState.p->no != em->parentNo) {
+    if (pDbModState->no != em->parentNo) {
         em->pEm_parent = dbModSlot[em->parentNo].pEm;
     } else {
         em->pEm_parent = 0;
@@ -1779,8 +1774,8 @@ static int dbmod_locate()
     x = 6;
     y = 4;
     for (i = 0; i <= 4; y++, i++) {
-        eprintf(x * 8, y * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodLocateLabel[i]);
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        eprintf(x * 8, y * 14, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodLocateLabel[i]);
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             if (changed) {
                 eprintf(15 * 8, y * 14, 0x16, 0, ">");
             } else {
@@ -1805,8 +1800,8 @@ static int dbmod_locate()
                 } else {
                     eprintf((x + 11 + k * 8) * 8, y * 14, 0, 0, "%5.1f)", p[k]);
                 }
-                if (i == pDbModState.p->sub && changed) {
-                    if (pDbModState.p->step == 2) {
+                if (i == pDbModState->sub && changed) {
+                    if (pDbModState->step == 2) {
                         if (joy->on & 0x800) {
                             if (k == 1) {
                                 eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
@@ -1816,8 +1811,8 @@ static int dbmod_locate()
                                 eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
                             }
                         }
-                    } else if (pDbModState.p->step == 3) {
-                        if (k == pDbModState.p->x7) {
+                    } else if (pDbModState->step == 3) {
+                        if (k == pDbModState->x7) {
                             eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
                         }
                     }
@@ -1833,7 +1828,7 @@ static int dbmod_locate()
                 } else {
                     eprintf((x + 11 + k * 8) * 8, y * 14, 0, 0, "%5.1f)", p[k] * 57.29578f);
                 }
-                if (i == pDbModState.p->sub && changed && k == pDbModState.p->x7) {
+                if (i == pDbModState->sub && changed && k == pDbModState->x7) {
                     eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k] * 57.29578f);
                 }
             }
@@ -1856,7 +1851,7 @@ static int dbmod_locate()
             eprintf(17 * 8, y * 14, 0, 0, "%02d", em->parentParts);
             break;
         }
-        if (pDbModState.p->no == em->parentNo) {
+        if (pDbModState->no == em->parentNo) {
             ab[0] = em->pos0;
             ab[0].y = 0.0f;
             ab[1] = ab[0];
@@ -1889,8 +1884,8 @@ static int dbmod_locate()
             Draw_line3d(&em->pos0, &az, 0xFF2020FF, 0);
         }
     }
-    if (pDbModState.p->step == 2) {
-        switch (pDbModState.p->sub) {
+    if (pDbModState->step == 2) {
+        switch (pDbModState->sub) {
         case 0:
             position_usage(0);
             break;
@@ -1898,8 +1893,8 @@ static int dbmod_locate()
             rotation_usage();
             break;
         }
-    } else if (pDbModState.p->step == 3) {
-        if (pDbModState.p->sub == 0) {
+    } else if (pDbModState->step == 3) {
+        if (pDbModState->sub == 0) {
             position_usage(1);
         }
     }
@@ -1912,7 +1907,7 @@ static const char* dbmodTransLabel[4] = {"ON-", "OFF", "ADD", "INF"};
 // 0x11 / 0x4000).
 static int dbmod_trans()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     u16* flag;
     int i;
@@ -1920,34 +1915,34 @@ static int dbmod_trans()
     int color;
 
     if (em->pEm == 0) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
         return 0;
     }
     flag = &em->mot[0].flags;
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
         if (em->mot[0].flags & 1) {
             if (em->mot[0].flags & 0x10) {
-                pDbModState.p->transMode = 0;
+                pDbModState->transMode = 0;
             } else {
-                pDbModState.p->transMode = 2;
+                pDbModState->transMode = 2;
             }
         } else {
-            pDbModState.p->transMode = 1;
+            pDbModState->transMode = 1;
         }
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
         }
         if (joy->rep & 0x00010001) {
-            pDbModState.p->transMode--;
+            pDbModState->transMode--;
         }
         if (joy->rep & 0x00020002) {
-            pDbModState.p->transMode++;
+            pDbModState->transMode++;
         }
-        pDbModState.p->transMode = CLAMP(pDbModState.p->transMode, 0, 3);
-        switch (pDbModState.p->transMode) {
+        pDbModState->transMode = CLAMP(pDbModState->transMode, 0, 3);
+        switch (pDbModState->transMode) {
         case 0:
             *flag = (*flag | 0x11) & ~0x4000;
             break;
@@ -1967,7 +1962,7 @@ static int dbmod_trans()
     eprintf(5 * 8, 3 * 14, 5, 0, "---- TRANS -----");
     y = 4;
     for (i = 0; i <= 3; i++) {
-        if (i == pDbModState.p->transMode) {
+        if (i == pDbModState->transMode) {
             color = 0;
         } else {
             color = 7;
@@ -1983,35 +1978,35 @@ static int dbmod_trans()
 // LOOP page: motion loop flag (flags bit 2) on / off.
 static int dbmod_loop()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     u16* flag;
 
     if (em->pEm == 0) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
         return 0;
     }
     flag = &em->mot[0].flags;
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
         if (em->mot[0].flags & 4) {
-            pDbModState.p->loopFlag = 1;
+            pDbModState->loopFlag = 1;
         } else {
-            pDbModState.p->loopFlag = 0;
+            pDbModState->loopFlag = 0;
         }
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->rep & 0x00010001) {
-            pDbModState.p->loopFlag = 1;
+            pDbModState->loopFlag = 1;
         }
         if (joy->rep & 0x00020002) {
-            pDbModState.p->loopFlag = 0;
+            pDbModState->loopFlag = 0;
         }
-        if (pDbModState.p->loopFlag) {
+        if (pDbModState->loopFlag) {
             *flag |= 4;
         } else {
             *flag &= ~4;
@@ -2020,7 +2015,7 @@ static int dbmod_loop()
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "----- LOOP -----");
-    if (pDbModState.p->loopFlag) {
+    if (pDbModState->loopFlag) {
         eprintf(6 * 8, 4 * 14, 0, 0, "ON-/---");
     } else {
         eprintf(6 * 8, 4 * 14, 0, 0, "---/OFF");
@@ -2033,28 +2028,28 @@ static int dbmod_play()
 {
     JOY* joy = &Joy[0];
 
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->on & 0x400) {
             break;
         }
         if (joy->rep & 0x00010001) {
-            pDbModState.p->playMode--;
+            pDbModState->playMode--;
         }
         if (joy->rep & 0x00020002) {
-            pDbModState.p->playMode++;
+            pDbModState->playMode++;
         }
-        pDbModState.p->playMode = LOOP(pDbModState.p->playMode, 0, 2);
+        pDbModState->playMode = LOOP(pDbModState->playMode, 0, 2);
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "----- PLAY -----");
-    switch (pDbModState.p->playMode) {
+    switch (pDbModState->playMode) {
     case 0:
         eprintf(6 * 8, 4 * 14, 0, 0, "PLAY/----/----");
         break;
@@ -2071,34 +2066,34 @@ static int dbmod_play()
 // FLIP page: x-mirror flag (flags 0x40) on / off.
 static int dbmod_flip()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     u16* flag;
 
     if (em->pEm == 0) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
         return 0;
     }
     flag = &em->mot[0].flags;
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
         if (em->mot[0].flags & 0x40) {
-            pDbModState.p->flipFlag = 1;
+            pDbModState->flipFlag = 1;
         } else {
-            pDbModState.p->flipFlag = 0;
+            pDbModState->flipFlag = 0;
         }
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
         }
         if (joy->rep & 0x00010001) {
-            pDbModState.p->flipFlag = 1;
+            pDbModState->flipFlag = 1;
         }
         if (joy->rep & 0x00020002) {
-            pDbModState.p->flipFlag = 0;
+            pDbModState->flipFlag = 0;
         }
-        if (pDbModState.p->flipFlag) {
+        if (pDbModState->flipFlag) {
             *flag |= 0x40;
         } else {
             *flag &= ~0x40;
@@ -2107,7 +2102,7 @@ static int dbmod_flip()
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "----- FLIP -----");
-    if (pDbModState.p->flipFlag) {
+    if (pDbModState->flipFlag) {
         eprintf(6 * 8, 4 * 14, 0, 0, "ON-/---");
     } else {
         eprintf(6 * 8, 4 * 14, 0, 0, "---/OFF");
@@ -2121,7 +2116,7 @@ static const char* dbmodBlendLabel[3] = {"MOTION 0:", "MOTION 1:", "METHOD  :"};
 // mode BLEND / ADD / NONE.
 static int dbmod_blend()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     f32 speed = 0.01f;
     f32 rate;
@@ -2131,33 +2126,33 @@ static int dbmod_blend()
     int i, color;
 
     if (em->pEm == 0) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
         return 0;
     }
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->sub = 1;
-        pDbModState.p->step++;
+        pDbModState->sub = 1;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
         }
         if (joy->trg & 0x000C000C) {
-            pDbModState.p->timer = 8;
+            pDbModState->timer = 8;
         }
         if (joy->trg & 0x00080008) {
-            pDbModState.p->sub--;
+            pDbModState->sub--;
         }
         if (joy->trg & 0x00040004) {
-            pDbModState.p->sub++;
+            pDbModState->sub++;
         }
-        pDbModState.p->sub = CLAMP(pDbModState.p->sub, 1, 2);
-        switch (pDbModState.p->sub) {
+        pDbModState->sub = CLAMP(pDbModState->sub, 1, 2);
+        switch (pDbModState->sub) {
         case 0:
             break;
         case 1:
             if (joy->trg & 0x10) {
-                pDbModState.p->blendRate = 0.0f;
+                pDbModState->blendRate = 0.0f;
                 break;
             }
             if (joy->on & 0x40) {
@@ -2166,15 +2161,15 @@ static int dbmod_blend()
                 speed *= 10.0f;
             }
             if ((joy->rep & 0x1) || (joy->on & 0x10000)) {
-                pDbModState.p->blendRate -= speed;
+                pDbModState->blendRate -= speed;
             }
             if ((joy->rep & 0x2) || (joy->on & 0x20000)) {
-                pDbModState.p->blendRate += speed;
+                pDbModState->blendRate += speed;
             }
-            pDbModState.p->blendRate = CLAMP(pDbModState.p->blendRate, 0.0f, 1.0f);
+            pDbModState->blendRate = CLAMP(pDbModState->blendRate, 0.0f, 1.0f);
             break;
         case 2:
-            old = pDbModState.p->blendMode;
+            old = pDbModState->blendMode;
             method = old;
             if (joy->rep & 0x00010001) {
                 method = old - 1;
@@ -2183,9 +2178,9 @@ static int dbmod_blend()
                 method++;
             }
             method = CLAMP(method, 0, 2);
-            pDbModState.p->blendMode = method;
+            pDbModState->blendMode = method;
             if (em->pMotBuff[1] && old != method) {
-                switch (pDbModState.p->blendMode) {
+                switch (pDbModState->blendMode) {
                 case 0:
                     MotionSetCore(em->pEm, &em->pEm->Motion, em->pMotBuff[0], 0, 0, em->mot[0].flags | 0x200, 0);
                     em->pEm->Motion.blend = (MotionWork*) &em->mot[1];
@@ -2207,15 +2202,15 @@ static int dbmod_blend()
         break;
     }
     if (em->pEm->Motion.blend) {
-        em->pEm->Motion.blend->Brate = pDbModState.p->blendRate;
+        em->pEm->Motion.blend->Brate = pDbModState->blendRate;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- BLEND ----");
     x = 6;
     y = 4;
     for (i = 0; i <= 2; i++) {
         int row = (i + 4) * 14;
-        eprintf(x * 8, row, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodBlendLabel[i]);
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        eprintf(x * 8, row, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodBlendLabel[i]);
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf((x - 1) * 8, row, 0x16, 0, ">");
         }
         color = 0;
@@ -2225,8 +2220,8 @@ static int dbmod_blend()
         asm("" : "+r"(color));
         switch (i) {
         case 0:
-            if (pDbModState.p->blendMode == 0) {
-                rate = 1.0f - pDbModState.p->blendRate;
+            if (pDbModState->blendMode == 0) {
+                rate = 1.0f - pDbModState->blendRate;
             } else {
                 rate = 1.0f;
             }
@@ -2236,10 +2231,10 @@ static int dbmod_blend()
             if (em->pEm->Motion.blend == 0) {
                 color = 7;
             }
-            eprintf((x + 10) * 8, (x - 1) * 14, color, 0, "%.2f", pDbModState.p->blendRate);
+            eprintf((x + 10) * 8, (x - 1) * 14, color, 0, "%.2f", pDbModState->blendRate);
             break;
         case 2:
-            switch (pDbModState.p->blendMode) {
+            switch (pDbModState->blendMode) {
             case 1:
                 eprintf((x + 10) * 8, (y + 2) * 14, 0, 0, "-----/ADD--/-----");
                 break;
@@ -2253,7 +2248,7 @@ static int dbmod_blend()
             break;
         }
     }
-    if (pDbModState.p->sub == 1) {
+    if (pDbModState->sub == 1) {
         blend_usage();
     }
     return 0;
@@ -2263,7 +2258,7 @@ static int dbmod_blend()
 static int dbmod_except()
 {
     if (Joy[0].trg & 0x200) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
     }
     return 0;
 }
@@ -2281,33 +2276,33 @@ static int dbmod_light()
     int x;
     int y;
 
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->rep & 0x80008) {
-            pDbModState.p->sub--;
+            pDbModState->sub--;
         }
         if (joy->rep & 0x40004) {
-            pDbModState.p->sub++;
+            pDbModState->sub++;
         }
-        pDbModState.p->sub = CLAMP(pDbModState.p->sub, 0, 1);
-        switch (pDbModState.p->sub) {
+        pDbModState->sub = CLAMP(pDbModState->sub, 0, 1);
+        switch (pDbModState->sub) {
         case 0:
-            old = pDbModState.p->lightMode;
+            old = pDbModState->lightMode;
             if (joy->trg & 0x10001) {
-                pDbModState.p->lightMode--;
+                pDbModState->lightMode--;
             }
             if (joy->trg & 0x20002) {
-                pDbModState.p->lightMode++;
+                pDbModState->lightMode++;
             }
-            pDbModState.p->lightMode = LOOP(pDbModState.p->lightMode, 0, 5);
-            if (old != pDbModState.p->lightMode) {
-                switch (pDbModState.p->lightMode) {
+            pDbModState->lightMode = LOOP(pDbModState->lightMode, 0, 5);
+            if (old != pDbModState->lightMode) {
+                switch (pDbModState->lightMode) {
                 case 0:
                     SetToolLight(2);
                     break;
@@ -2331,21 +2326,21 @@ static int dbmod_light()
             break;
         case 1:
             if (joy->trg & 0x100) {
-                pDbModState.p->x2 = 0;
-                pDbModState.p->step++;
+                pDbModState->x2 = 0;
+                pDbModState->step++;
             }
             break;
         }
         break;
     case 2:
-        switch (pDbModState.p->x2) {
+        switch (pDbModState->x2) {
         case 0:
             pLightTool = new cLightTool;
-            pDbModState.p->x2++;
+            pDbModState->x2++;
         case 1:
             if (pLightTool->move() == 0) {
                 delete pLightTool;
-                pDbModState.p->step--;
+                pDbModState->step--;
             }
             return 4;
         }
@@ -2356,13 +2351,13 @@ static int dbmod_light()
     x = 6;
     y = 4;
     for (i = 0; i <= 1; i++) {
-        eprintf(x * 8, (y + i) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodLightLabel[i]);
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        eprintf(x * 8, (y + i) * 14, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodLightLabel[i]);
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf((x - 1) * 8, (y + i) * 14, 0x16, 0, ">");
         }
         if (i == 0) {
             eprintf((x + 5) * 8, y * 14, 7, 0, "DFLT/ROOM/ST1D/ST1N/ST2-/ST3-");
-            switch (pDbModState.p->lightMode) {
+            switch (pDbModState->lightMode) {
             case 0:
                 eprintf((x + 5) * 8, y * 14, 0, 0, "DFLT/    /    /    /    /    ");
                 break;
@@ -2393,29 +2388,29 @@ static const char* dbmodOptionLabel[5] = {"SKELETON:", "SYNCHRO :", "LIT TYPE:",
 // (PL / EM / OBJ / SCR / ITM -> lit_type), LARGE / SMALL info text and the info display.
 static int dbmod_option()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     int old;
     int i;
     int x;
     int y;
 
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->rep & 0x80008) {
-            pDbModState.p->sub--;
+            pDbModState->sub--;
         }
         if (joy->rep & 0x40004) {
-            pDbModState.p->sub++;
+            pDbModState->sub++;
         }
-        pDbModState.p->sub = CLAMP(pDbModState.p->sub, 0, 4);
-        switch (pDbModState.p->sub) {
+        pDbModState->sub = CLAMP(pDbModState->sub, 0, 4);
+        switch (pDbModState->sub) {
         case 0:
             if (joy->trg & 0x10001) {
                 em->opt_flag |= 1;
@@ -2426,10 +2421,10 @@ static int dbmod_option()
             break;
         case 1:
             if (joy->trg & 0x10001) {
-                pDbModState.p->viewFlag |= 1;
+                pDbModState->viewFlag |= 1;
             }
             if (joy->trg & 0x20002) {
-                pDbModState.p->viewFlag &= ~1;
+                pDbModState->viewFlag &= ~1;
             }
             break;
         case 2:
@@ -2447,10 +2442,10 @@ static int dbmod_option()
             break;
         case 3:
             if (joy->trg & 0x10001) {
-                pDbModState.p->viewFlag |= 8;
+                pDbModState->viewFlag |= 8;
             }
             if (joy->trg & 0x20002) {
-                pDbModState.p->viewFlag &= ~8;
+                pDbModState->viewFlag &= ~8;
             }
             break;
         case 4:
@@ -2469,8 +2464,8 @@ static int dbmod_option()
     x = 6;
     y = 4;
     for (i = 0; i <= 4; i++) {
-        eprintf(x * 8, (y + i) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodOptionLabel[i]);
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        eprintf(x * 8, (y + i) * 14, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodOptionLabel[i]);
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf((x - 1) * 8, (y + i) * 14, 0x16, 0, ">");
         }
         switch (i) {
@@ -2482,7 +2477,7 @@ static int dbmod_option()
             }
             break;
         case 1:
-            if (pDbModState.p->viewFlag & 1) {
+            if (pDbModState->viewFlag & 1) {
                 eprintf((x + 10) * 8, (y + 1) * 14, 0, 0, "ON-/---");
             } else {
                 eprintf((x + 10) * 8, (y + 1) * 14, 0, 0, "---/OFF");
@@ -2508,7 +2503,7 @@ static int dbmod_option()
             }
             break;
         case 3:
-            if (pDbModState.p->viewFlag & 8) {
+            if (pDbModState->viewFlag & 8) {
                 eprintf((x + 10) * 8, (y + 3) * 14, 0, 0, "LARGE/-----");
             } else {
                 eprintf((x + 10) * 8, (y + 3) * 14, 0, 0, "-----/SMALL");
@@ -2531,7 +2526,7 @@ static const char* dbmodScaleLabel[1] = {"X Y Z:"};
 // SCALE page: uniform model scale (left/right, R x10, L x100, Z reset to 1).
 static int dbmod_scale()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     JOY* joy = &Joy[0];
     f32 speed = 0.01f;
     int i;
@@ -2539,19 +2534,19 @@ static int dbmod_scale()
     int y;
 
     if (em->pEm == 0) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
         return 0;
     }
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->trg & 0x10) {
-            pDbModState.p->scale = 1.0f;
+            pDbModState->scale = 1.0f;
             break;
         }
         if (joy->on & 0x40) {
@@ -2560,15 +2555,15 @@ static int dbmod_scale()
             speed *= 10.0f;
         }
         if (joy->rep & 0x10001) {
-            pDbModState.p->scale -= speed;
+            pDbModState->scale -= speed;
         }
         if (joy->rep & 0x20002) {
-            pDbModState.p->scale += speed;
+            pDbModState->scale += speed;
         }
-        pDbModState.p->scale = CLAMP(pDbModState.p->scale, 0.01f, 10.0f);
-        em->pEm->scale.x = pDbModState.p->scale;
-        em->pEm->scale.y = pDbModState.p->scale;
-        em->pEm->scale.z = pDbModState.p->scale;
+        pDbModState->scale = CLAMP(pDbModState->scale, 0.01f, 10.0f);
+        em->pEm->scale.x = pDbModState->scale;
+        em->pEm->scale.y = pDbModState->scale;
+        em->pEm->scale.z = pDbModState->scale;
         break;
     }
 
@@ -2581,12 +2576,12 @@ static int dbmod_scale()
         // (`li r30,56; li r24,5`); the original's loop had two more insns here that are gone by final.
         asm("" : : "r"(i));
         asm("" : : "r"(i));
-        eprintf(x * 8, (y + i) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodScaleLabel[i]);
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        eprintf(x * 8, (y + i) * 14, (i == pDbModState->sub) ? 4 : 0, 0, "%s", dbmodScaleLabel[i]);
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf((x - 1) * 8, (y + i) * 14, 0x16, 0, ">");
         }
         if (i == 0) {
-            eprintf((x + 10) * 8, y * 14, 0, 0, "%f", pDbModState.p->scale);
+            eprintf((x + 10) * 8, y * 14, 0, 0, "%f", pDbModState->scale);
         }
     }
     scale_usage();
@@ -2693,7 +2688,7 @@ static int dbmod_p_info()
     static int pinfoNum;
     static u16 pinfoParts[FILE_NUM];
     static u8 pinfoType[FILE_NUM];
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     u32 em2 = (u32) em; // COMPILER-DIFF: the p-info zero colour (see the j-loop below)
     cEm* model = em->pEm;
     JOY* joy = &Joy[0];
@@ -2707,11 +2702,11 @@ static int dbmod_p_info()
     Vec* v;
 
     if (model == 0) {
-        pDbModState.p->mode--;
+        pDbModState->mode--;
         return 0;
     }
     mw = &model->Motion;
-    switch (pDbModState.p->step) {
+    switch (pDbModState->step) {
     case 0:
         for (k = 0; k < mw->Joint_num; k++) {
             int info = mw->pJoint_kind[k] & 0xFF;
@@ -2734,20 +2729,20 @@ static int dbmod_p_info()
             }
         }
         pinfoNum = n + 1;
-        pDbModState.p->step++;
+        pDbModState->step++;
     case 1:
         if (joy->trg & 0x200) {
-            pDbModState.p->mode--;
+            pDbModState->mode--;
             break;
         }
         if (joy->rep & 0x80008) {
-            pDbModState.p->sub--;
+            pDbModState->sub--;
         }
         if (joy->rep & 0x40004) {
-            pDbModState.p->sub++;
+            pDbModState->sub++;
         }
-        pDbModState.p->sub = CLAMP(pDbModState.p->sub, 0, pinfoNum - 1);
-        if (pDbModState.p->sub == pinfoNum - 1) {
+        pDbModState->sub = CLAMP(pDbModState->sub, 0, pinfoNum - 1);
+        if (pDbModState->sub == pinfoNum - 1) {
             if (!(joy->on & 0x400)) {
                 if (joy->rep & 0x10001) {
                     em->info_parts_no--;
@@ -2758,7 +2753,7 @@ static int dbmod_p_info()
             }
             em->info_parts_no = LOOP(em->info_parts_no, 0, model->nParts - 1);
         } else {
-            p = (cParts*) model->getPartsPtr(pinfoParts[pDbModState.p->sub]);
+            p = (cParts*) model->getPartsPtr(pinfoParts[pDbModState->sub]);
             if (!(joy->on & 0x400)) {
                 if (joy->trg & 0x10001) {
                     p->motParts.flags |= 0x1000;
@@ -2775,8 +2770,8 @@ static int dbmod_p_info()
     v = 0;
     x = 6;
     for (i = 0; i < pinfoNum; i++) {
-        int color = (i == pDbModState.p->sub) ? 4 : 0;
-        if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
+        int color = (i == pDbModState->sub) ? 4 : 0;
+        if (i == pDbModState->sub && (pDbModState->timer & 0x18)) {
             eprintf((x - 1) * 8, (y + i) * 14, 0x16, 0, ">");
         }
         if (i < pinfoNum - 1) {
@@ -2834,7 +2829,7 @@ static int dbmod_p_info()
 // Placeholder page (id 14): does nothing and returns.
 static int dbmod_null()
 {
-    pDbModState.p->mode--;
+    pDbModState->mode--;
     return 0;
 }
 
@@ -2843,7 +2838,7 @@ static const char* dbmodInfoLabel[6] = {"NO   :", "MOT 0:", "MOT 1:", "TRANS:", 
 // Status lines of the current slot: slot number, motion 0 / 1 numbers, trans / loop / play modes.
 void dbmodInfoDisp()
 {
-    DB_EM* em = &dbModSlot[pDbModState.p->no];
+    DB_EM* em = &dbModSlot[pDbModState->no];
     int x = 0;
     int y = 3;
     int i;
@@ -2857,13 +2852,13 @@ void dbmodInfoDisp()
     for (i = 0; i <= 5; i++) {
         switch (i) {
         case 0:
-            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%02d", pDbModState.p->no);
+            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%02d", pDbModState->no);
             break;
         case 1:
-            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState.p->motName[0]));
+            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState->motName[0]));
             break;
         case 2:
-            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState.p->motName[0]));
+            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState->motName[0]));
             break;
         case 3:
             if (em->mot[0].flags & 1) {
@@ -2884,7 +2879,7 @@ void dbmodInfoDisp()
             }
             break;
         case 5:
-            switch (pDbModState.p->playMode) {
+            switch (pDbModState->playMode) {
             case 0:
                 eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "PLAY");
                 break;
@@ -2950,7 +2945,7 @@ void dbModPlayMode(u16* flag)
 {
     JOY* joy = &Joy[0];
 
-    switch (pDbModState.p->playMode) {
+    switch (pDbModState->playMode) {
     case 0:
         *flag &= ~0xA;
         break;
@@ -3025,14 +3020,14 @@ void dbModMotionMove()
             if (em->pMotBuff[i]) {
                 noMotion = 0;
                 if (i == 0) {
-                    if (!(pDbModState.p->viewFlag & 2)) {
+                    if (!(pDbModState->viewFlag & 2)) {
                         dbModPlayMode(&em->mot[0].flags);
                     }
                     if (em->em_flag & 1) {
                         em->mot[0].flags |= 8;
                     }
                 } else {
-                    if (!(pDbModState.p->viewFlag & 2)) {
+                    if (!(pDbModState->viewFlag & 2)) {
                         dbModPlayMode(&em->mot[i].flags);
                     }
                 }
@@ -3049,7 +3044,7 @@ void dbModMotionMove()
                 MotionSetCore(model, &model->Motion, em->pMotBuff[em->mot_cnt], 0, em->motFlag[em->mot_cnt], em->mot[0].flags | 0x200,
                               (u16) em->motStat[em->mot_cnt]);
             }
-            if ((pDbModState.p->viewFlag & 1) && (em->em_flag & 1) == 0) {
+            if ((pDbModState->viewFlag & 1) && (em->em_flag & 1) == 0) {
                 if (model->Motion.Mot_state != 0) {
                     em->em_flag |= 1;
                 } else {
@@ -3112,8 +3107,8 @@ void dbModMotionMove()
                 model->partsWorldCalc();
             }
         }
-        if (!(pDbModState.p->viewFlag & 4) && !(em->mot[0].flags & 0x4000)) {
-            if (pDbModState.p->viewFlag & 8) {
+        if (!(pDbModState->viewFlag & 4) && !(em->mot[0].flags & 0x4000)) {
+            if (pDbModState->viewFlag & 8) {
                 lim = 50000.0f;
             } else {
                 lim = 10000.0f;
@@ -3206,7 +3201,7 @@ void dbModMotionMove()
 // Copies the motion file name of slot `no`.
 void dbModGetMotFilename(int no, char* dst)
 {
-    strcpy(dst, pDbModState.p->motName[no]);
+    strcpy(dst, pDbModState->motName[no]);
 }
 
 static const char* dbmodTblUnit[5] = {"_SET", "_BIN", "_TPL", "_FCV", "_ONTO"};
@@ -3239,7 +3234,7 @@ char* mottblGetLine(char* dst, int max, char* src)
         dst[i] = src[0];
     }
     dst[i] = 0;
-    if (src > m_MotTbl.p->end) {
+    if (src > m_MotTbl->end) {
         return 0;
     }
     return src;
@@ -3258,7 +3253,7 @@ char* mottblNextLine(char* p)
             skip = 1;
         }
     } while (skip);
-    if (p > m_MotTbl.p->end) {
+    if (p > m_MotTbl->end) {
         return 0;
     }
     return p;
@@ -3564,7 +3559,7 @@ int DB_EM::loadModel()
         }
         break;
     case 2:
-        strcpy(label, pDbModState.p->setName);
+        strcpy(label, pDbModState->setName);
         for (i = 0; i < m_files[0].m_num; i++) {
             if (i == 0) {
                 if (pEm == 0) {
@@ -3723,7 +3718,7 @@ int DB_EM::loadMotion()
         for (i = 0; i < m_files[2].m_num; i++) {
             if (pMotBuff[i]) {
                 mot[i].flags2 |= 0x20000000;
-                if (pDbModState.p->blendMode == 0 && i > 0) {
+                if (pDbModState->blendMode == 0 && i > 0) {
                     mot[i].flags2 |= 0x10000000;
                 }
                 MotionSetCore(pEm, &mot[i], pMotBuff[i], 0, 0, mot[0].flags | 0x200, 0);
@@ -3802,8 +3797,8 @@ int GetSlctSetNo(char* name)
     char* p;
     int i;
 
-    for (i = 0; i < m_MotTbl.p->unitNum[0]; i++) {
-        mottblGetLine(line, 0x100, mottblUnitPtr(m_MotTbl.p->unit[0], i));
+    for (i = 0; i < m_MotTbl->unitNum[0]; i++) {
+        mottblGetLine(line, 0x100, mottblUnitPtr(m_MotTbl->unit[0], i));
         for (p = line; *p != ' ' && *p != '{'; p++) {
         }
         *p = 0;
@@ -3823,22 +3818,22 @@ int LoadModelSetName(char* name, int motNum, int no)
     if (setNo == -1) {
         return 0;
     }
-    pDbModState.p->no = no;
-    pDbModState.p->setNo = setNo;
+    pDbModState->no = no;
+    pDbModState->setNo = setNo;
     dbmodGetSet();
-    pDbModState.p->motSub[0] = 0;
-    pDbModState.p->motNum[0] = motNum;
+    pDbModState->motSub[0] = 0;
+    pDbModState->motNum[0] = motNum;
     dbmodGetFilenames();
     {
     DB_MODEL_FILES bin;
     DB_MODEL_FILES tex;
     DB_MODEL_FILES mot;
     bin.init();
-    bin.set(pDbModState.p->binNum, pDbModState.p->name[0][0]);
+    bin.set(pDbModState->binNum, pDbModState->name[0][0]);
     tex.init();
-    tex.set(pDbModState.p->texNum, pDbModState.p->name[1][0]);
+    tex.set(pDbModState->texNum, pDbModState->name[1][0]);
     mot.init();
-    mot.set(pDbModState.p->motFileNum, pDbModState.p->motName[0]);
+    mot.set(pDbModState->motFileNum, pDbModState->motName[0]);
     return dbModelLoad(no, &bin, &tex, &mot);
     }
 }
@@ -3920,7 +3915,7 @@ void DB_EM::setParent(s8 parentNo, s16 parts, Vec* p, Vec* r)
 void dbModelParentChild(s8 no, s8 parentNo, s8 parts, Vec* pos, Vec* rot)
 {
     dbModSlot[no].setParent(parentNo, parts, pos, rot);
-    pDbModState.p->viewFlag |= 1;
+    pDbModState->viewFlag |= 1;
 }
 
 // Loads a model (bin/tex lists) and its motions into slot `no` synchronously (runs the load steps

@@ -49,14 +49,10 @@ struct R404Work {
     u32 cnt15;           // 0x2C
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R404WorkPtr {
-    R404Work* p;
-};
 
 
 static u8 r404_texTbl[0x20];
-static R404WorkPtr r404_work;
+static R404Work* r404_work;
 
 static u32 r404_seFrame = 80;
 // The split object's .data is 8-aligned (4 -> 8 bytes).
@@ -114,23 +110,23 @@ static void slide_move();
 void R404Init()
 {
 #line 45 "D:/Bio4/Prog/r404.cpp"
-    r404_work.p = (R404Work*) MEM_CALLOC(sizeof(R404Work), 1, 0xd);
-    r404_work.p->emId = 0;
+    r404_work = (R404Work*) MEM_CALLOC(sizeof(R404Work), 1, 0xd);
+    r404_work->emId = 0;
     SceExec(0x12, (TaskFunc) r404_execEmSetCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     setTexRender();
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     {
-        PSet(r404_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1));
+        r404_work->slide = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
     }
     if (pG->pl_type == 2) {
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
+        r404_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
     } else {
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
+        r404_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
     }
-    r404_work.p->slide->Motion.Seq_speed = 0.0f;
-    r404_work.p->slide->be_flag |= 0x1000;
-    r404_work.p->slide->setNoSuspend(0);
+    r404_work->slide->Motion.Seq_speed = 0.0f;
+    r404_work->slide->be_flag |= 0x1000;
+    r404_work->slide->setNoSuspend(0);
     SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) slide_move, 0, 1);
     {
         u8 n = r404_initEmSet();
@@ -228,7 +224,7 @@ u8 r404_initEmSet()
     t += (u32) &pos;
     t += 0x28;
     Vec* r = (Vec*) t;
-    cPlayer* pl = pPLS;
+    cPlayer* pl = pPL;
 
     pl->setPos(b);
     pl->setAng(r);
@@ -276,7 +272,7 @@ u8 r404_initEmSet()
 // Sets (or resets) list entry `no`; force 0: only while fewer than 10 are alive. 1 when it was set.
 int r404_setEm(u32 no, int force)
 {
-    if (force == 0 && r404_work.p->cnt > 9) {
+    if (force == 0 && r404_work->cnt > 9) {
         return 0;
     }
     cEmWrap em;
@@ -292,8 +288,8 @@ int r404_setEm(u32 no, int force)
     if (no % 5 != 0) {
         em.setGoto(&pPL->pos, 0xC);
     }
-    r404_work.p->total++;
-    r404_work.p->cnt++;
+    r404_work->total++;
+    r404_work->cnt++;
     return 1;
 }
 
@@ -301,19 +297,19 @@ int r404_setEm(u32 no, int force)
 void r404_setEm1_4()
 {
     if (r404_setEm(0xF0, 0) == 1) {
-        r404_work.p->cnt1_4++;
+        r404_work->cnt1_4++;
     }
     if (r404_setEm(0xF1, 0) == 1) {
-        r404_work.p->cnt1_4++;
+        r404_work->cnt1_4++;
     }
     if (r404_setEm(0xF2, 0) == 1) {
-        r404_work.p->cnt1_4++;
+        r404_work->cnt1_4++;
     }
     if (r404_setEm(0xE6, 0) == 1) {
-        r404_work.p->cnt1_4++;
+        r404_work->cnt1_4++;
     }
     if (r404_setEm(0xE7, 0) == 1) {
-        r404_work.p->cnt1_4++;
+        r404_work->cnt1_4++;
     }
 }
 
@@ -321,19 +317,19 @@ void r404_setEm1_4()
 void r404_setEm2_5()
 {
     if (r404_setEm(0xDC, 0) == 1) {
-        r404_work.p->cnt2_5++;
+        r404_work->cnt2_5++;
     }
     if (r404_setEm(0xDD, 0) == 1) {
-        r404_work.p->cnt2_5++;
+        r404_work->cnt2_5++;
     }
     if (r404_setEm(0xDE, 0) == 1) {
-        r404_work.p->cnt2_5++;
+        r404_work->cnt2_5++;
     }
     if (r404_setEm(0xEB, 0) == 1) {
-        r404_work.p->cnt2_5++;
+        r404_work->cnt2_5++;
     }
     if (r404_setEm(0xEC, 0) == 1) {
-        r404_work.p->cnt2_5++;
+        r404_work->cnt2_5++;
     }
 }
 
@@ -341,19 +337,19 @@ void r404_setEm2_5()
 void r404_setEm3()
 {
     if (r404_setEm(0xF6, 0) == 1) {
-        r404_work.p->cnt3++;
+        r404_work->cnt3++;
     }
     if (r404_setEm(0xF7, 0) == 1) {
-        r404_work.p->cnt3++;
+        r404_work->cnt3++;
     }
     if (r404_setEm(0xF8, 0) == 1) {
-        r404_work.p->cnt3++;
+        r404_work->cnt3++;
     }
     if (r404_setEm(0xF9, 0) == 1) {
-        r404_work.p->cnt3++;
+        r404_work->cnt3++;
     }
     if (r404_setEm(0xFA, 0) == 1) {
-        r404_work.p->cnt3++;
+        r404_work->cnt3++;
     }
 }
 
@@ -361,19 +357,19 @@ void r404_setEm3()
 void r404_setEm6()
 {
     if (r404_setEm(0xE1, 0) == 1) {
-        r404_work.p->cnt6++;
+        r404_work->cnt6++;
     }
     if (r404_setEm(0xE2, 0) == 1) {
-        r404_work.p->cnt6++;
+        r404_work->cnt6++;
     }
     if (r404_setEm(0xE3, 0) == 1) {
-        r404_work.p->cnt6++;
+        r404_work->cnt6++;
     }
     if (r404_setEm(0xE4, 0) == 1) {
-        r404_work.p->cnt6++;
+        r404_work->cnt6++;
     }
     if (r404_setEm(0xE5, 0) == 1) {
-        r404_work.p->cnt6++;
+        r404_work->cnt6++;
     }
 }
 
@@ -381,19 +377,19 @@ void r404_setEm6()
 void r404_setEm13()
 {
     if (r404_setEm(0xAF, 0) == 1) {
-        r404_work.p->cnt13++;
+        r404_work->cnt13++;
     }
     if (r404_setEm(0xB0, 0) == 1) {
-        r404_work.p->cnt13++;
+        r404_work->cnt13++;
     }
     if (r404_setEm(0xB1, 0) == 1) {
-        r404_work.p->cnt13++;
+        r404_work->cnt13++;
     }
     if (r404_setEm(0xB2, 0) == 1) {
-        r404_work.p->cnt13++;
+        r404_work->cnt13++;
     }
     if (r404_setEm(0xB3, 0) == 1) {
-        r404_work.p->cnt13++;
+        r404_work->cnt13++;
     }
 }
 
@@ -401,19 +397,19 @@ void r404_setEm13()
 void r404_setEm14()
 {
     if (r404_setEm(0xD3, 0) == 1) {
-        r404_work.p->cnt14++;
+        r404_work->cnt14++;
     }
     if (r404_setEm(0xD4, 0) == 1) {
-        r404_work.p->cnt14++;
+        r404_work->cnt14++;
     }
     if (r404_setEm(0xD5, 0) == 1) {
-        r404_work.p->cnt14++;
+        r404_work->cnt14++;
     }
     if (r404_setEm(0xD6, 0) == 1) {
-        r404_work.p->cnt14++;
+        r404_work->cnt14++;
     }
     if (r404_setEm(0xD7, 0) == 1) {
-        r404_work.p->cnt14++;
+        r404_work->cnt14++;
     }
 }
 
@@ -421,19 +417,19 @@ void r404_setEm14()
 void r404_setEm15()
 {
     if (r404_setEm(0xD2, 0) == 1) {
-        r404_work.p->cnt15++;
+        r404_work->cnt15++;
     }
     if (r404_setEm(0xD8, 0) == 1) {
-        r404_work.p->cnt15++;
+        r404_work->cnt15++;
     }
     if (r404_setEm(0xD9, 0) == 1) {
-        r404_work.p->cnt15++;
+        r404_work->cnt15++;
     }
     if (r404_setEm(0xDA, 0) == 1) {
-        r404_work.p->cnt15++;
+        r404_work->cnt15++;
     }
     if (r404_setEm(0xDB, 0) == 1) {
-        r404_work.p->cnt15++;
+        r404_work->cnt15++;
     }
 }
 
@@ -527,7 +523,7 @@ static void r404_checkEmSetA()
     for (;;) {
         if (SceAtHitCheck(8) == 1) {
             r404_setEm6();
-            if (r404_work.p->cnt6 > 0xE) {
+            if (r404_work->cnt6 > 0xE) {
                 break;
             }
         }
@@ -541,7 +537,7 @@ static void r404_checkEmSetB()
     for (;;) {
         if (SceAtHitCheck(9) == 1) {
             r404_setEm1_4();
-            if (r404_work.p->cnt1_4 > 0xE) {
+            if (r404_work->cnt1_4 > 0xE) {
                 break;
             }
         }
@@ -555,7 +551,7 @@ static void r404_checkEmSetC()
     for (;;) {
         if (SceAtHitCheck(0xA) == 1) {
             r404_setEm2_5();
-            if (r404_work.p->cnt2_5 > 0xE) {
+            if (r404_work->cnt2_5 > 0xE) {
                 break;
             }
         }
@@ -569,7 +565,7 @@ static void r404_checkEmSetD()
     for (;;) {
         if (SceAtHitCheck(0xC) == 1) {
             r404_setEm3();
-            if (r404_work.p->cnt3 > 0xE) {
+            if (r404_work->cnt3 > 0xE) {
                 break;
             }
         }
@@ -583,7 +579,7 @@ static void r404_checkEmSetK()
     for (;;) {
         if (SceAtHitCheck(0x17) == 1) {
             r404_setEm13();
-            if (r404_work.p->cnt13 > 9) {
+            if (r404_work->cnt13 > 9) {
                 break;
             }
         }
@@ -597,7 +593,7 @@ static void r404_checkEmSetL()
     for (;;) {
         if (SceAtHitCheck(0x16) == 1) {
             r404_setEm14();
-            if (r404_work.p->cnt14 > 0xE) {
+            if (r404_work->cnt14 > 0xE) {
                 break;
             }
         }
@@ -611,7 +607,7 @@ static void r404_checkEmSetM()
     for (;;) {
         if (SceAtHitCheck(0x18) == 1) {
             r404_setEm15();
-            if (r404_work.p->cnt15 > 0xE) {
+            if (r404_work->cnt15 > 0xE) {
                 break;
             }
         }
@@ -622,7 +618,7 @@ static void r404_checkEmSetM()
 // Area poll: one-shot wave 7 when in area 0xF with 10 or fewer alive.
 void r404_checkEmSetE()
 {
-    if (r404_work.p->cnt <= 0xA && SceAtHitCheck(0xF) == 1) {
+    if (r404_work->cnt <= 0xA && SceAtHitCheck(0xF) == 1) {
         r404_setEm7();
     }
 }
@@ -630,7 +626,7 @@ void r404_checkEmSetE()
 // Area poll: one-shot wave 8 when in area 0x10 with 10 or fewer alive.
 void r404_checkEmSetF()
 {
-    if (r404_work.p->cnt <= 0xA && SceAtHitCheck(0x10) == 1) {
+    if (r404_work->cnt <= 0xA && SceAtHitCheck(0x10) == 1) {
         r404_setEm8();
     }
 }
@@ -641,7 +637,7 @@ void r404_checkEmSetG()
     cEmDoor* door;
 
     getRoomEtcDoor(0x11, &door, 1);
-    if (door != 0 && r404_work.p->cnt <= 0xF) {
+    if (door != 0 && r404_work->cnt <= 0xF) {
         if (SceAtHitCheck(0x11) == 1 || (SceAtHitCheck(0x15) == 1 && door->ckOpen() == 1)) {
             r404_setEm9();
         }
@@ -651,7 +647,7 @@ void r404_checkEmSetG()
 // Area poll: one-shot wave 10 when in area 0x12 with 10 or fewer alive.
 void r404_checkEmSetH()
 {
-    if (r404_work.p->cnt <= 0xA && SceAtHitCheck(0x12) == 1) {
+    if (r404_work->cnt <= 0xA && SceAtHitCheck(0x12) == 1) {
         r404_setEm10();
     }
 }
@@ -659,7 +655,7 @@ void r404_checkEmSetH()
 // Area poll: one-shot wave 11 when in area 0x13 with 15 or fewer alive.
 void r404_checkEmSetI()
 {
-    if (r404_work.p->cnt <= 0xF && SceAtHitCheck(0x13) == 1) {
+    if (r404_work->cnt <= 0xF && SceAtHitCheck(0x13) == 1) {
         r404_setEm11();
     }
 }
@@ -667,7 +663,7 @@ void r404_checkEmSetI()
 // Area poll: one-shot wave 12 when in area 0x14 with 15 or fewer alive.
 void r404_checkEmSetJ()
 {
-    if (r404_work.p->cnt <= 0xF && SceAtHitCheck(0x14) == 1) {
+    if (r404_work->cnt <= 0xF && SceAtHitCheck(0x14) == 1) {
         r404_setEm12();
     }
 }
@@ -679,7 +675,7 @@ static void r404_checkEmSetChainSaw()
 sleep:
     SceSleep(1);
 test:
-    if (r404_work.p->total - r404_work.p->cnt <= 0x1D) {
+    if (r404_work->total - r404_work->cnt <= 0x1D) {
         goto sleep;
     }
     r404_setEmChainSaw();
@@ -689,15 +685,15 @@ test:
 static void r404_execEmSetCheck()
 {
     SceSleep(1);
-    r404_work.p->emId = GetEmIdFromList(0xF5);
-    r404_work.p->cnt = r404_work.p->total = SceCountEmAlive(r404_work.p->emId, -1);   // chain: total stored first
-    r404_work.p->cnt1_4 = 0;
-    r404_work.p->cnt2_5 = 0;
-    r404_work.p->cnt3 = 0;
-    r404_work.p->cnt6 = 0;
-    r404_work.p->cnt13 = 0;
-    r404_work.p->cnt14 = 0;
-    r404_work.p->cnt15 = 0;
+    r404_work->emId = GetEmIdFromList(0xF5);
+    r404_work->cnt = r404_work->total = SceCountEmAlive(r404_work->emId, -1);   // chain: total stored first
+    r404_work->cnt1_4 = 0;
+    r404_work->cnt2_5 = 0;
+    r404_work->cnt3 = 0;
+    r404_work->cnt6 = 0;
+    r404_work->cnt13 = 0;
+    r404_work->cnt14 = 0;
+    r404_work->cnt15 = 0;
     SceExec(0x12, (TaskFunc) r404_checkEmSetA, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r404_checkEmSetB, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r404_checkEmSetC, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -707,9 +703,9 @@ static void r404_execEmSetCheck()
     SceExec(0x12, (TaskFunc) r404_checkEmSetM, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) r404_checkEmSetChainSaw, 0, 0, SCE_PRIO_DEF_2, 0);
     for (;;) {
-        r404_work.p->cnt = SceCountEmAlive(r404_work.p->emId, -1);
-        eprintf(0x1E, 0x8C, 0, 0, "em_num:%d", r404_work.p->cnt);
-        eprintf(0x1E, 0x9C, 0, 0, "total :%d", r404_work.p->total);
+        r404_work->cnt = SceCountEmAlive(r404_work->emId, -1);
+        eprintf(0x1E, 0x8C, 0, 0, "em_num:%d", r404_work->cnt);
+        eprintf(0x1E, 0x9C, 0, 0, "total :%d", r404_work->total);
         r404_checkEmSetE();
         r404_checkEmSetF();
         r404_checkEmSetG();
@@ -726,13 +722,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r404_texTbl;
 
-    if (GetTexRenderMgr(&r404_work.p->tex)) {
+    if (GetTexRenderMgr(&r404_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r404_work.p->tex->texId;
-        r404_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r404_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r404_work->tex->texId;
+        r404_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r404_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
@@ -752,9 +748,9 @@ static void slide_move()
     u32 i;
 
     pl->beginAction();
-    pPLS->atari.clrFlag100();
-    pPLS->atari.clrFlag200();
-    pPLS->atari.setPriority(PRI_LV1);
+    pPL->atari.clrFlag100();
+    pPL->atari.clrFlag200();
+    pPL->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);
@@ -772,7 +768,7 @@ static void slide_move()
         v.z = 0.0f;
         pPL->setAng(&v);
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0x201, 0);
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
+        r404_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
     } else {
         cModel* m = pPL;
 
@@ -785,9 +781,9 @@ static void slide_move()
         v.z = 0.0f;
         pPL->setAng(&v);
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 0x201, 0);
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
+        r404_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
     }
-    r404_work.p->slide->Motion.Seq_speed = 1.0f;
+    r404_work->slide->Motion.Seq_speed = 1.0f;
     SndCall(6, 0, 0, 0, 0, 0);
     max = (u32) MotionGetMaxFrame(&pPL->Motion);
     for (i = 0; i < max; i++) {
@@ -801,8 +797,8 @@ static void slide_move()
     pl->Wep->setTrans(1, 0);
     pl->endAction(5);
     pPL->dmg.clear();
-    pPLS->atari.setFlag100();
-    pPLS->atari.setFlag200();
-    pPLS->atari.setPriority(0);
+    pPL->atari.setFlag100();
+    pPL->atari.setFlag200();
+    pPL->atari.setPriority(0);
     pl->be_flag |= 0x10;
 }

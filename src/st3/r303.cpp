@@ -24,13 +24,9 @@ struct R303Work {
     TexRenderMng* tex;   // 0x00
 };
 
-// One-member struct: every store through the work reloads the pointer (setTexRender).
-struct R303WorkPtr {
-    R303Work* p;
-};
 
 static u8 r303_texTbl[0x20];
-static R303WorkPtr r303_work;
+static R303Work* r303_work;
 
 Vec r303_doorPos = {-15576.0f, 156.0f, 12168.0f};
 Vec r303_doorAng = {-0.0644f, 0.1753f, 1.57095f};
@@ -52,7 +48,7 @@ void setTexRender();
 void R303Init()
 {
 #line 52 "D:/Bio4/Prog/r303.cpp"
-    r303_work.p = (R303Work*) MEM_CALLOC(sizeof(R303Work), 1, 0xd);
+    r303_work = (R303Work*) MEM_CALLOC(sizeof(R303Work), 1, 0xd);
     setTexRender();
     Espgen42SetNoWater(1);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -147,7 +143,7 @@ static void oneshot_bgm()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 3);
-    SndStrReq(0, 0x34, 0x80000003, 0, 0, FCRef(vol));
+    SndStrReq(0, 0x34, 0x80000003, 0, 0, *(const f32*) &vol);
 }
 
 // Area 3: the door falls over while a Ganado steps through it.
@@ -199,13 +195,13 @@ void setTexRender()
     cObj* obj;
     u8* tbl = r303_texTbl;
 
-    if (GetTexRenderMgr(&r303_work.p->tex)) {
+    if (GetTexRenderMgr(&r303_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r303_work.p->tex->texId;
-        r303_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r303_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r303_work->tex->texId;
+        r303_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r303_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexrender() : Manager alloc failed!!");
     }

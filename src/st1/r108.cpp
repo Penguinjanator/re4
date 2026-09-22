@@ -57,15 +57,15 @@ static R108Symbol r108_symbol[8] = {
 static inline void r108_setObj(cObj*& o, u32 id)
 {
     o = SmdGetObjPtr(id);
-    BitOn(o->be_flag, 0x20);
+    o->be_flag |= 0x20;
 }
 // Fetch two scroll objects and mark both script-moved (be_flag 0x20), all pointer loads before the stores.
 static inline void r108_setObj2(cObj*& a, cObj*& b, u32 idA, u32 idB)
 {
     a = SmdGetObjPtr(idA);
     b = SmdGetObjPtr(idB);
-    BitOn(a->be_flag, 0x20);
-    BitOn(b->be_flag, 0x20);
+    a->be_flag |= 0x20;
+    b->be_flag |= 0x20;
 }
 
 static void r108_execShowView_end();
@@ -131,7 +131,7 @@ static void r108_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 1);
-    r108_work->strId = SndStrReq(0, 0x33, 0x80000003, 0, 0, FCRef(vol));
+    r108_work->strId = SndStrReq(0, 0x33, 0x80000003, 0, 0, *(const f32*) &vol);
     SceSetEventCancel(1, (TaskFunc) r108_execShowView_end, 0, -1, 1);
     SceEventStart(1);
     CamCtrl.CutCall(0xB);
@@ -287,8 +287,8 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     if (!ScfFlagChk(pG, SCF_R108_PUZZLE_CLEAR)) {
         SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_execPuzzle, 0, 1);
     } else {
-        FAdd(r108_coverL->pos.x, 220.0f);
-        FSub(r108_coverR->pos.x, 220.0f);
+        r108_coverL->pos.x += 220.0f;
+        r108_coverR->pos.x -= 220.0f;
         if (!ItfFlagChk(pG, ITF_R108_ITEM)) {
             SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_getItem, 0, 1);
             SceAtPtr(0xA)->actBtnKind = 0x28;
@@ -351,8 +351,8 @@ extern "C" void r108_openCover()
     SndCall(6, 4, 0, 0, 0, 0);
     do {
         t += step;
-        FSet(r108_coverL->pos.x, x0 + t);
-        FSet(r108_coverR->pos.x, x1 - t);
+        r108_coverL->pos.x = x0 + t;
+        r108_coverR->pos.x = x1 - t;
         if (t >= 220.0f) {
             break;
         }
@@ -361,8 +361,8 @@ extern "C" void r108_openCover()
     // COMPILER-DIFF: candidate #12 (loop-exit form). The dead loop's notes end cse1's AROUND path over the
     // poll loop's exit, so the block below re-materialises the cover highs and 220.0 like the original.
     do { } while (0);
-    FSet(r108_coverL->pos.x, x0 + 220.0f);
-    FSet(r108_coverR->pos.x, x1 - 220.0f);
+    r108_coverL->pos.x = x0 + 220.0f;
+    r108_coverR->pos.x = x1 - 220.0f;
     SceSleep(15);
 }
 

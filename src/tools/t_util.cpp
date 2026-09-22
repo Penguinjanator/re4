@@ -8,7 +8,6 @@
 #include "main_sub.h"
 #include "t_prim.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include "game.h"
 
 // Debug tool helpers for the tool modules (D:/Bio4/Prog/t_util.cpp, the same object in every t_*/Tools
@@ -43,16 +42,16 @@ void TutilInitDefault()
     TprimInitEnv2D3D(&view, pG->Camera.ProjMat, pG->Camera.v_mat);
     globalCamera = pG->Camera;
     system_flg_bak = pG->System_flg;
-    stop_flg_bak = U32Ref(pG->Stop_flg);
-    disp_flg_bak = U32Ref(pG->Disp_flg);
+    stop_flg_bak = pG->Stop_flg;
+    disp_flg_bak = pG->Disp_flg;
     {
         u32* debug = (u32*) &pG->Debug_flg[0];
 
         memcpy(debug_flg_bak, debug, sizeof(debug_flg_bak));
     }
     memcpy(status_flg_bak, &pG->Status_flg[0], sizeof(status_flg_bak));
-    BitOn(pG->Stop_flg, 0x200);
-    BitOn(pG->Stop_flg, 0x80);
+    pG->Stop_flg |= 0x200;
+    pG->Stop_flg |= 0x80;
     DbgFlagOn(pG, DBG_CINESCO_OFF);
     DbgFlagOn(pG, DBG_NO_DEATH);
     DbgFlagOff(pG, DBG_FOG_FAR_GREEN);
@@ -67,9 +66,9 @@ void TutilQuitDefault()
 
         memcpy(cam, &globalCamera, sizeof(Camera));
     }
-    BitSet(pG->System_flg, system_flg_bak);
-    BitSet(pG->Stop_flg, stop_flg_bak);
-    BitSet(pG->Disp_flg, disp_flg_bak);
+    pG->System_flg = system_flg_bak;
+    pG->Stop_flg = stop_flg_bak;
+    pG->Disp_flg = disp_flg_bak;
     if (DbgFlagChk(pG, DBG_ESPTOOL_MEM_USE)) {
         debug_flg_bak[0] |= 0x100;
     }
@@ -78,7 +77,7 @@ void TutilQuitDefault()
 
         memcpy(debug, debug_flg_bak, sizeof(debug_flg_bak));
     }
-    memcpy(&pGS->Status_flg[0], status_flg_bak, sizeof(status_flg_bak));
+    memcpy(&pG->Status_flg[0], status_flg_bak, sizeof(status_flg_bak));
     DbgFlagOff(pG, DBG_TEST_MODE);
     DbgFlagOn(pG, DBG_FOG_FAR_GREEN);
 }

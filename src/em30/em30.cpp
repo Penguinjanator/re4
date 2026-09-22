@@ -425,7 +425,7 @@ void em30RouteCk(cEm30* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->flags &= ~4;
     if (w->flags & 2) {
         if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
@@ -433,7 +433,7 @@ void em30RouteCk(cEm30* em)
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;
             w->targetDist = em->l_sub;
-            w->pTarget = pSUBS;
+            w->pTarget = pSUB;
             w->flags |= 4;
         }
     }

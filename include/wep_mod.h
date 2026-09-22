@@ -35,10 +35,6 @@ public:
 cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);
 void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
-// Store through a scalar reference: the following global load stays below it (pl_leon PSet).
-#include "ref_access.h"
-static inline void PSet(cObjWep*& d, cObjWep* v) { d = v; }
-static inline void U16Set(u16& d, int v) { d = v; }
 // Collision flag bits changed through the info's address (`addi rX, obj, 0x2b4; lhz 0x1a(rX)`).
 static inline void AtariFlagsAnd(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 // wep17 ready00: the following pG load stays below the store and the info address is kept in a

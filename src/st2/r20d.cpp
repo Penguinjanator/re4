@@ -105,12 +105,8 @@ struct R20dThroughData {
     int cut;       // 0x14
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R20dWorkPtr {
-    R20dWork* p;
-};
 
-static R20dWorkPtr r20d_work;
+static R20dWork* r20d_work;
 
 static R20dFenceData r20d_fenceData[3] = {
     {0x18, 3000.0f, 300.0f, {0.0f, 2000.0f, 0.0f}},
@@ -160,9 +156,9 @@ static void r20d_execThrough(int no);
 void R20dInit()
 {
 #line 55 "D:/Bio4/Prog/r20d.cpp"
-    r20d_work.p = (R20dWork*) MEM_CALLOC(sizeof(R20dWork), 1, 0xd);
+    r20d_work = (R20dWork*) MEM_CALLOC(sizeof(R20dWork), 1, 0xd);
     if (pG->pl_type == 1) {
-        r20d_work.p->lantern.initLantern(ROOM_ARC_PTR(pG->pRoom, 0xE), ROOM_ARC_PTR(pG->pRoom, 0x3D),
+        r20d_work->lantern.initLantern(ROOM_ARC_PTR(pG->pRoom, 0xE), ROOM_ARC_PTR(pG->pRoom, 0x3D),
                                          ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x3E),
                                          ROOM_ARC_PTR(pG->pRoom, 0x3F), ROOM_ARC_PTR(pG->pRoom, 0x40));
         r20d_initFence();
@@ -192,9 +188,9 @@ void R20dInit()
             o->pos.y += 2100.0f;
         }
         r20d_initFence();
-        r20d_work.p->fence[0].move(1.0f);
-        r20d_work.p->fence[1].move(1.0f);
-        r20d_work.p->fence[2].move(1.0f);
+        r20d_work->fence[0].move(1.0f);
+        r20d_work->fence[1].move(1.0f);
+        r20d_work->fence[2].move(1.0f);
     }
     r20d_initRoundSwitch();
     SceSetItemEvent(0x14, 0x81, 4, 6, r20d_openShelf, r20d_openedShelf, 0, 0);
@@ -382,7 +378,7 @@ static void r20d_checkSwitch(int opened)
         ((cEmSwitch*) sw)->setOpened();
     }
     for (;;) {
-        f32 t = r20d_work.p->fence[0].t;
+        f32 t = r20d_work->fence[0].t;
         f32 z0 = 0.0f;
 
         if (open == 0) {
@@ -398,11 +394,11 @@ static void r20d_checkSwitch(int opened)
                 open = 1;
                 for (;;) {
                     t += 0.02f;
-                    r20d_work.p->fence[0].move(t);
+                    r20d_work->fence[0].move(t);
                     if (t >= 1.0f) {
                         SndCall(6, 0x25, 0, 0, 0, 0);
                         SceAtSetEnable(0, 0);
-                        r20d_work.p->fence[0].move(1.0f);
+                        r20d_work->fence[0].move(1.0f);
                         goto sleep;
                     }
                     if (((cEmSwitch*) sw)->ckOpen() == 0) {
@@ -421,7 +417,7 @@ static void r20d_checkSwitch(int opened)
                 zero = spd;
                 SceAtSetEnable(0, 1);
                 for (;;) {
-                    r20d_work.p->fence[0].move(t);
+                    r20d_work->fence[0].move(t);
                     t -= spd;
                     spd += 0.005f;
                     if (!(t < zero)) {
@@ -434,7 +430,7 @@ static void r20d_checkSwitch(int opened)
                     }
                 }
                 SndCall(6, 0x27, 0, 0, 0, 0);
-                r20d_work.p->fence[0].move(0.0f);
+                r20d_work->fence[0].move(0.0f);
             }
         }
     sleep:
@@ -451,23 +447,23 @@ void r20d_initCrank()
     Vec p1 = {-1630.0f, 1000.0f, 18360.0f};
     Vec p2 = {-1630.0f, 1000.0f, 24914.0f};
 
-    PSet(r20d_work.p->crank[0], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p0, &rot, 0x10, 1));
-    PSet(r20d_work.p->crank[1], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p1, &rot, 0x10, 1));
-    PSet(r20d_work.p->crank[2], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p2, &rot, 0x10, 1));
+    r20d_work->crank[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p0, &rot, 0x10, 1);
+    r20d_work->crank[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p1, &rot, 0x10, 1);
+    r20d_work->crank[2] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p2, &rot, 0x10, 1);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 0, 1);
     } else {
-        r20d_work.p->fence[0].move(1.0f);
+        r20d_work->fence[0].move(1.0f);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 1, 1);
     } else {
-        r20d_work.p->fence[1].move(1.0f);
+        r20d_work->fence[1].move(1.0f);
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 2, 1);
     } else {
-        r20d_work.p->fence[2].move(1.0f);
+        r20d_work->fence[2].move(1.0f);
     }
 }
 
@@ -486,18 +482,18 @@ static void r20d_operateCrank(int no)
     switch ((u32) no) {
     case 0:
         SceAtSetEnable(0, 0);
-        crank = r20d_work.p->crank[0];
+        crank = r20d_work->crank[0];
         CamCtrl.CutCall(2);
         break;
     case 1:
         SceAtSetEnable(1, 0);
         idx = 1;
-        crank = r20d_work.p->crank[1];
+        crank = r20d_work->crank[1];
         CamCtrl.CutCall(3);
         break;
     case 2:
         SceAtSetEnable(0xE, 0);
-        crank = r20d_work.p->crank[2];
+        crank = r20d_work->crank[2];
         idx = 2;
         CamCtrl.CutCall(0xE);
         break;
@@ -505,7 +501,7 @@ static void r20d_operateCrank(int no)
     // `idx*36 + work + 0x2c` (mult first): the target adds the scaled index to the work pointer and
     // keeps 0x2c as the displacement (`add r11,r28,r11; lfs f31,0x2c(r11)`); the zero-inits of the
     // loop state follow the switch (issued in the block before the beginEvent calls).
-    t = *(f32*) (idx * sizeof(cFence) + (u32) r20d_work.p + 0x2c);
+    t = *(f32*) (idx * sizeof(cFence) + (u32) r20d_work + 0x2c);
     spd = 0;
     lastMot = 0;
     accel = 0;
@@ -521,7 +517,7 @@ static void r20d_operateCrank(int no)
 
         PSMTXMultVec(crank->mat, &v, &v);
         v.y = pPL->pos.y;
-        FSet(pPL->ang.y, crank->ang.y - 1.5707964f);
+        pPL->ang.y = crank->ang.y - 1.5707964f;
         pl = pPL;
         pr = &pl->ang;
         pl->setPos(&v);
@@ -597,21 +593,21 @@ static void r20d_operateCrank(int no)
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
-            seId = SndCall(6, 2, &r20d_work.p->fence[idx].obj->pos, 0, 0, 0);
+            seId = SndCall(6, 2, &r20d_work->fence[idx].obj->pos, 0, 0, 0);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 50.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
-            seId = SndCall(6, 2, &r20d_work.p->fence[idx].obj->pos, 0, 0, 0);
+            seId = SndCall(6, 2, &r20d_work->fence[idx].obj->pos, 0, 0, 0);
         }
         if (MotionCheckCrossFrame(&pPL->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
-            seId = SndCall(6, 2, &r20d_work.p->fence[idx].obj->pos, 0, 0, 0);
+            seId = SndCall(6, 2, &r20d_work->fence[idx].obj->pos, 0, 0, 0);
         }
         t += (f32) (mot + 1) * 0.0005f;
-        r20d_work.p->fence[idx].move(t);
+        r20d_work->fence[idx].move(t);
         if (t >= 1.0f) {   // `>=` (not `!(t < 1.0f)`): the GE code prints the `cror un,eq,gt; bso` pair
             t = 1.0f;
-            r20d_work.p->fence[idx].move(t);
+            r20d_work->fence[idx].move(t);
             break;
         }
         if (Key.trg & 0x00080000) {
@@ -632,7 +628,7 @@ static void r20d_operateCrank(int no)
         if (seId != 0) {
             SndStop(seId, 0);
         }
-        SndCall(6, 3, &r20d_work.p->fence[idx].obj->pos, 0, 0, 0);
+        SndCall(6, 3, &r20d_work->fence[idx].obj->pos, 0, 0, 0);
     } else {
         switch ((u32) no) {
         case 0:
@@ -697,9 +693,9 @@ void r20d_initFence()
 {
     u32 i;
 
-    r20d_work.p->nFence = 3;
-    for (i = 0; i < r20d_work.p->nFence; i++) {
-        r20d_work.p->fence[i].init(&r20d_fenceData[i]);
+    r20d_work->nFence = 3;
+    for (i = 0; i < r20d_work->nFence; i++) {
+        r20d_work->fence[i].init(&r20d_fenceData[i]);
     }
     SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r20d_execFlagOn, 0, 1);
 }
@@ -830,7 +826,7 @@ yes:
         pPL->setNoSuspend(1);
         Vec d = {287.49002f, 0.0f, -544.75f};
         SndCall(6, 5, 0, 0, 0, 0);
-        if (r20d_work.p->rsFlip == 0) {
+        if (r20d_work->rsFlip == 0) {
             ang = -1.5707964f;
         } else {
             d.x = -d.x;
@@ -838,13 +834,13 @@ yes:
             ang = 1.5707964f;
         }
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
-        r20d_work.p->roundSwitch->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
-        r20d_work.p->rsFlip ^= 1;
+        r20d_work->roundSwitch->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
+        r20d_work->rsFlip ^= 1;
         CamCtrl.CutCall(4);
-        FSet(pPL->pos.x, r20d_work.p->roundSwitch->pos.x + d.x);
-        FSet(pPL->pos.z, r20d_work.p->roundSwitch->pos.z + d.z);
-        FSet(pPL->ang.y, ang);
-        FSet(r20d_work.p->roundSwitch->ang.y, ang);
+        pPL->pos.x = r20d_work->roundSwitch->pos.x + d.x;
+        pPL->pos.z = r20d_work->roundSwitch->pos.z + d.z;
+        pPL->ang.y = ang;
+        r20d_work->roundSwitch->ang.y = ang;
         pl = pPL;
         pl->setPos(&pl->pos);
         pl->setAng(&pl->ang);
@@ -871,11 +867,11 @@ void r20d_initRoundSwitch()
     Vec rot = {0.0f, 0.0f, 0.0f};
     cModel* m;
 
-    r20d_work.p->roundSwitch = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot, 0x10, 1);
-    r20d_work.p->rsFlip = 0;
-    r20d_work.p->x8C = 0;
-    r20d_work.p->x90 = 0;
-    r20d_work.p->wallY = SmdGetObjPtr(0x19)->pos.y;
+    r20d_work->roundSwitch = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot, 0x10, 1);
+    r20d_work->rsFlip = 0;
+    r20d_work->x8C = 0;
+    r20d_work->x90 = 0;
+    r20d_work->wallY = SmdGetObjPtr(0x19)->pos.y;
     SceAtSetEnable(0x12, 0);
     SceAtSetEnable(0x85, 1);
     m = SceAtItemModelPtr(0x85);
@@ -917,10 +913,10 @@ static void r20d_execThrough(int no)
     const f32 frame = 10.0f;   // pool order: 10 before 0.1/PI/0.0
 
     pl->beginAction();
-    // pPLS (struct view) on both sides of the `sth atari.flags` store: cse1 then invalidates the first
+    // pPL (struct view) on both sides of the `sth atari.flags` store: cse1 then invalidates the first
     // pPL load and setPriority reloads pPL (target: `lwz r3,pPL@l; addi r3,r3,0x2b4`).
-    AtariOff(&pPLS->atari, 0xFEFF);
-    pPLS->atari.setPriority(PRI_LV1);
+    AtariOff(&pPL->atari, 0xFEFF);
+    pPL->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     d = &r20d_throughData[no];
     if (d->cut >= 0) {
@@ -939,7 +935,7 @@ static void r20d_execThrough(int no)
         Vec a;
 
         PSVECAdd(&pPL->pos, &step, &pPL->pos);
-        FAdd(pPL->ang.y, da);
+        pPL->ang.y += da;
         p = pPL;
         ry = p->ang.y;
         p->setPos(&p->pos);
@@ -990,8 +986,8 @@ static void r20d_execThrough(int no)
     CamCtrl.Comeback(0);
     pl->endAction(8);
     pPL->dmg.clear();
-    AtariOn(&pPLS->atari, 0x100);
-    pPLS->atari.setPriority(0);
+    AtariOn(&pPL->atari, 0x100);
+    pPL->atari.setPriority(0);
 }
 
 // Every torch / lamp of the room (etc types 0xB and 0x10) becomes a lantern unit.
@@ -1138,13 +1134,13 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
     // COMPILER-DIFF: #12 (companion of the `st` launder): the launder gives `li r29,0` one priority level
     // over the `mr r31,r3` parameter copy; the same codeless copy on `u` restores the tie (the copy leads).
     asm("" : "+r"(u));
-    IntSet(u->step, st);
-    U32Set(u->state, 1);
+    u->step = st;
+    u->state = 1;
     pPL->beginEvent(0);
-    // pPLS (struct view) for the pPL read that precedes the `sth atari.flags` store: the store then
+    // pPL (struct view) for the pPL read that precedes the `sth atari.flags` store: the store then
     // invalidates it in cse1 and `dmg.set` reloads pPL (target: two `lwz pPL@l`).
-    AtariOn(&pPLS->atari, 0x100);
-    pPLS->dmg.set(0, 0x80);
+    AtariOn(&pPL->atari, 0x100);
+    pPL->dmg.set(0, 0x80);
     u->target = u->getTargetPos(&pos);
     // `u + st + 0x18` (not `u->mot + st + 4`): the target adds `u` first (`add r29,u,st`).
     pPL->motionSet(*(void**) ((u8*) u + st + 0x18), 0xA, 0, 1, 0);
@@ -1168,10 +1164,10 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
 
                 u->em->pos = ofs;
                 u->em->ang = rot;
-                ((cEmTorch*) u->em)->setParent(pPLS, 0xA, 0);
+                ((cEmTorch*) u->em)->setParent(pPL, 0xA, 0);
                 u->step++;
                 cnt = 0;
-                f32 a = LIMIT_ANGLE(pPLS->ang.y + zero);
+                f32 a = LIMIT_ANGLE(pPL->ang.y + zero);
                 turn = Muku(&pPL->pos, &pos, a, 3.1415927f) / 15.0f;
                 pos2 = pos;
             }

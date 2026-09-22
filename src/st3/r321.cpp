@@ -173,7 +173,7 @@ void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r321_work->tex->texId;
-        IntSet(r321_work->tex->m_Rep_type, 1);
+        r321_work->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, EFF_ROOM, 0, r321_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");

@@ -789,7 +789,7 @@ void emBarred_R1_Break(cEmBarred* em)
         em->be_flag &= ~2;
         em->clearStatus(EM_STATUS_ACTIVE);
         em->atari.throughOn();
-        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }

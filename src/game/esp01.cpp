@@ -51,7 +51,7 @@ void cEsp01::move()
     if (parent != pEffParentWorld && m_Release_time != 0xFF && m_Release_time <= m_Life_time) {
         ApplyMatrix(parent->mat);
         w->pos0 = m_Pos;
-        parent = pEffParentWorldS;
+        parent = pEffParentWorld;
     }
     if (m_Size_start_cnt <= m_Life_time) {
         m_Size_mul += m_Size_plus;

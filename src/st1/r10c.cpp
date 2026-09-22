@@ -63,13 +63,9 @@ struct R10cWork {
     cSat* crate[3];      // 0x78  crate collision (follows the crate objects)
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R10cWorkPtr {
-    R10cWork* p;
-};
 
 u8 r10c_texTbl[0x20];
-static R10cWorkPtr r10c_work;
+static R10cWork* r10c_work;
 
 Vec r10c_wheelPosA = {88502.0f, -13247.0f, 26126.0f};
 static Vec r10c_wheelPosA2 = {86965.0f, -13247.0f, 26126.0f};
@@ -112,7 +108,7 @@ extern "C" void eat_swap();
 void R10cInit()
 {
 #line 113 "D:/Bio4/Prog/r10c.cpp"
-    r10c_work.p = (R10cWork*) MEM_CALLOC(sizeof(R10cWork), 1, 0xd);
+    r10c_work = (R10cWork*) MEM_CALLOC(sizeof(R10cWork), 1, 0xd);
     EmReadSearch(0x12, 0, 0);
     if (pG->JumpPoint == 1) {
         pG->Room_flg[0] |= 0x04000000;
@@ -120,7 +116,7 @@ void R10cInit()
     {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        PSet(r10c_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6));
+        r10c_work->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6);
     }
     EstSet(pPL, -1, 0, 0, EFF_PL00, 2, 0x800, ESP_CORE_KIND_NONE, 0, 0);
     EstSet(pPL, -1, 0, 0, EFF_ROOM, 3, 0x800, ESP_CORE_KIND_NONE, 0, 0);
@@ -155,7 +151,7 @@ void R10cInit()
     }
     if (RsfCheck(G_ROOM_ID, 5)) {
         SetSstDispFlag(9, 1);
-        BitOff(pG->Room_flg[0], 0x04000000);
+        pG->Room_flg[0] &= ~0x04000000;
         RsfSet(G_ROOM_ID, 7);
         SetSstDispFlag(0, 0);
         EffectEspDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0, 0);
@@ -184,9 +180,9 @@ void R10cInit()
         SetSstDispFlag(9, 0);
         SmdSetTrans(0x58, 0);
         SmdSetTrans(0x59, 0);
-        r10c_work.p->se[0] = SeAtSndCall(0);
-        r10c_work.p->se[1] = SeAtSndCall(1);
-        r10c_work.p->se[2] = SeAtSndCall(2);
+        r10c_work->se[0] = SeAtSndCall(0);
+        r10c_work->se[1] = SeAtSndCall(1);
+        r10c_work->se[2] = SeAtSndCall(2);
         SceAtSetEnable(0xE, 1);
         SceAtSetEnable(0xF, 0);
     }
@@ -206,9 +202,9 @@ void R10cInit()
         if (RsfCheck(G_ROOM_ID, 13)) {
             SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
         }
-        PSet(r10c_work.p->crate[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
-        PSet(r10c_work.p->crate[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
-        PSet(r10c_work.p->crate[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+        r10c_work->crate[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+        r10c_work->crate[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+        r10c_work->crate[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
     }
     if (pSys->language != 0) {
         SceAtSetEnable(0xC, 0);
@@ -220,13 +216,13 @@ void R10cInit()
 // and keeps the three crate collision pieces on their swinging scroll objects 0x61..0x63.
 void R10cMain()
 {
-    U32Set(r10c_work.p->cnt, r10c_work.p->cnt + 1);
+    r10c_work->cnt = r10c_work->cnt + 1;
     if (ItfFlagChk(pG, ITF_R11C_ITEM)) {
         ScfFlagOn(pG, SCF_R10C_GET_CREST);
     }
-    r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang);
-    r10c_work.p->crate[1]->setCoord(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->ang);
-    r10c_work.p->crate[2]->setCoord(&SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->ang);
+    r10c_work->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang);
+    r10c_work->crate[1]->setCoord(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->ang);
+    r10c_work->crate[2]->setCoord(&SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->ang);
 }
 
 // Areas 3 / 4: Leon climbs down (side 0) or up (side 1) the ladder to the other bank.
@@ -236,14 +232,14 @@ static void r10c_TestPosMove(int side)
     Vec ang = {0.0f, -1.5707964f, 0.0f};
     Vec out;
     cPlayer* pl = pPL;
-    // `pGS`: the struct-view pG load is not a fixed scalar, so sched1 keeps it behind the two
+    // `pG`: the struct-view pG load is not a fixed scalar, so sched1 keeps it behind the two
     // template copies and their word 4/8 loads and stores come out in source order (the plain
     // `pG` load is hoisted above them and the 8/4 pair flips).
-    u32 flags = pGS->Stop_flg;
+    u32 flags = pG->Stop_flg;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);
-    U32Set(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg = 0xFFFFFFFF;
     SpfFlagOff(pG, SPF_SCE);
     FadeSetW(2, 10, 0, 0);
     SceSleep(10);
@@ -360,7 +356,7 @@ static void r10c_TestPosMove(int side)
 // foot and clears Room_flg[0] 0x08000000.
 static void r10c_EmEvent_exit()
 {
-    EmMgr.destroy(r10c_work.p->em);
+    EmMgr.destroy(r10c_work->em);
     pPL->setNoSuspend(0);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -391,7 +387,7 @@ static void r10c_EmEvent()
         cEm* em;
 
         RsfSet(G_ROOM_ID, 1);
-        BitOff(pG->Room_flg[0], 0x04000000);
+        pG->Room_flg[0] &= ~0x04000000;
         {
             EmListData* l = &pG->Em_list[2];
 
@@ -399,9 +395,9 @@ static void r10c_EmEvent()
             l->set = 0;
         }
         em->setNoSuspend(1);
-        r10c_work.p->em = em;
+        r10c_work->em = em;
         EstSet(em, -1, 0, 0, EFF_ROOM, 0x1F, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        BitOn(em->flag, 1);
+        em->flag |= 1;
         MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
         SndStrReq(1, 0x23, 0x80000003, 0, 0, 0.0f);
         SceEventStart(0);
@@ -415,8 +411,8 @@ static void r10c_EmEvent()
         CamCtrl.CutCall(0x12);
         while (CamCtrl.IsMotionEnd() == 0) {
             if (cnt++ == 219) {
-                BitOn(pG->Room_flg[0], 0x10000000);
-                BitOn(pG->Room_flg[0], 0x08000000);
+                pG->Room_flg[0] |= 0x10000000;
+                pG->Room_flg[0] |= 0x08000000;
             }
             SceSleep(1);
         }
@@ -504,14 +500,14 @@ extern "C" void setTexRender()
     cObj* obj;
     u8* tbl = r10c_texTbl;
 
-    if (GetTexRenderMgr(&r10c_work.p->tex)) {
+    if (GetTexRenderMgr(&r10c_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r10c_work.p->tex->texId;
-        r10c_work.p->tex->m_Rep_type = 1;
-        r10c_work.p->tex->m_H_size = r10c_work.p->tex->m_W_size = 0x40;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r10c_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r10c_work->tex->texId;
+        r10c_work->tex->m_Rep_type = 1;
+        r10c_work->tex->m_H_size = r10c_work->tex->m_W_size = 0x40;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r10c_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "R10cInit() : Manager alloc failed!!");
     }
@@ -560,18 +556,18 @@ extern "C" int SwitchExec(cObj* obj, f32* spd, int no, f32 lim, f32 cur)
 // drained layout.
 static void chkSwitchA_exit()
 {
-    SndStop(r10c_work.p->seWheelB[0], 0);
-    SndStop(r10c_work.p->seWheelB[1], 0);
-    SndStop(r10c_work.p->se[0], 0);
-    SndStop(r10c_work.p->se[1], 0);
-    SndStop(r10c_work.p->seGate, 0);
-    SndStop(r10c_work.p->se[2], 0);
-    SndStop(r10c_work.p->seSwitch, 0);
-    SndStop(r10c_work.p->seWheelA[0], 0);
-    SndStop(r10c_work.p->seWheelA[1], 0);
+    SndStop(r10c_work->seWheelB[0], 0);
+    SndStop(r10c_work->seWheelB[1], 0);
+    SndStop(r10c_work->se[0], 0);
+    SndStop(r10c_work->se[1], 0);
+    SndStop(r10c_work->seGate, 0);
+    SndStop(r10c_work->se[2], 0);
+    SndStop(r10c_work->seSwitch, 0);
+    SndStop(r10c_work->seWheelA[0], 0);
+    SndStop(r10c_work->seWheelA[1], 0);
     SceAtSetEnable(0x11, 0);
     SceAtSetEnable(0x12, 0);
-    r10c_work.p->cnt = 0;
+    r10c_work->cnt = 0;
     SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10c_EmSet, 0, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -593,9 +589,9 @@ static void chkSwitchA_exit()
     EffectEfmDelete(0, ESP_CORE_KIND_ROOM_AREA01, 0);
     SceAtSetEnable(0x11, 0);
     SceAtSetEnable(0x12, 0);
-    SndStop(r10c_work.p->se[0], 0);
-    SndStop(r10c_work.p->se[1], 0);
-    SndStop(r10c_work.p->se[2], 0);
+    SndStop(r10c_work->se[0], 0);
+    SndStop(r10c_work->se[1], 0);
+    SndStop(r10c_work->se[2], 0);
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(0xE)->be_flag |= 2;
     SmdSetTrans(0x55, 0);
@@ -639,7 +635,7 @@ static void chkSwitchA()
         SceSetEventCancel(1, (TaskFunc) chkSwitchA_exit, 0, -1, 1);
         RsfSet(G_ROOM_ID, 5);
         EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
-        r10c_work.p->seSwitch = SndCall(6, 0xF, &SmdGetGroupObjPtr(4)->pos, 0, 0, 0);
+        r10c_work->seSwitch = SndCall(6, 0xF, &SmdGetGroupObjPtr(4)->pos, 0, 0, 0);
         CamCtrl.CutCall(0x15);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -673,9 +669,9 @@ static void chkSwitchA()
         SceAtSetEnable(0xC, 0);
         SceAtSetEnable(0xD, 0);
         eat_swap();
-        SndStop(r10c_work.p->se[0], 0);
-        SndStop(r10c_work.p->se[1], 0);
-        SndStop(r10c_work.p->se[2], 0);
+        SndStop(r10c_work->se[0], 0);
+        SndStop(r10c_work->se[1], 0);
+        SndStop(r10c_work->se[2], 0);
         SmdGetObjPtr(0)->be_flag &= ~2;
         SmdGetObjPtr(0xE)->be_flag |= 2;
         SetSstDispFlag(0, 0);
@@ -703,13 +699,13 @@ static void r10c_EmSet_exit()
 {
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    r10c_work.p->ems[0]->setNoSuspend(0);
-    r10c_work.p->ems[1]->setNoSuspend(0);
-    r10c_work.p->ems[2]->setNoSuspend(0);
-    r10c_work.p->ems[3]->setNoSuspend(0);
-    r10c_work.p->ems[4]->setNoSuspend(0);
-    r10c_work.p->ems[5]->setNoSuspend(0);
-    r10c_work.p->ems[6]->setNoSuspend(0);
+    r10c_work->ems[0]->setNoSuspend(0);
+    r10c_work->ems[1]->setNoSuspend(0);
+    r10c_work->ems[2]->setNoSuspend(0);
+    r10c_work->ems[3]->setNoSuspend(0);
+    r10c_work->ems[4]->setNoSuspend(0);
+    r10c_work->ems[5]->setNoSuspend(0);
+    r10c_work->ems[6]->setNoSuspend(0);
 }
 
 // Area 8: the ambush on the drained pool floor (camera cut 0x1B).
@@ -726,23 +722,23 @@ static void r10c_EmSet()
         RsfSet(G_ROOM_ID, 9);
         SceSleep(30);
         pG->Room_flg[0] &= ~0x04000000;
-        SndStrReq(1, 7, 3, 0, 0, FCRef(vol));
+        SndStrReq(1, 7, 3, 0, 0, *(const f32*) &vol);
         SceEventStart(1);
         CamCtrl.CutCall(0x1B);
-        r10c_work.p->ems[0] = setEm(6, -1, 1, 1, 1);
-        r10c_work.p->ems[1] = setEm(7, -1, 1, 1, 1);
-        r10c_work.p->ems[2] = setEm(8, -1, 1, 1, 1);
-        r10c_work.p->ems[3] = setEm(9, -1, 1, 1, 1);
-        r10c_work.p->ems[4] = setEm(0xA, -1, 1, 1, 1);
-        r10c_work.p->ems[5] = setEm(0xB, -1, 1, 1, 1);
-        r10c_work.p->ems[6] = setEm(0xC, -1, 1, 1, 1);
-        r10c_work.p->ems[0]->setNoSuspend(1);
-        r10c_work.p->ems[1]->setNoSuspend(1);
-        r10c_work.p->ems[2]->setNoSuspend(1);
-        r10c_work.p->ems[3]->setNoSuspend(1);
-        r10c_work.p->ems[4]->setNoSuspend(1);
-        r10c_work.p->ems[5]->setNoSuspend(1);
-        r10c_work.p->ems[6]->setNoSuspend(1);
+        r10c_work->ems[0] = setEm(6, -1, 1, 1, 1);
+        r10c_work->ems[1] = setEm(7, -1, 1, 1, 1);
+        r10c_work->ems[2] = setEm(8, -1, 1, 1, 1);
+        r10c_work->ems[3] = setEm(9, -1, 1, 1, 1);
+        r10c_work->ems[4] = setEm(0xA, -1, 1, 1, 1);
+        r10c_work->ems[5] = setEm(0xB, -1, 1, 1, 1);
+        r10c_work->ems[6] = setEm(0xC, -1, 1, 1, 1);
+        r10c_work->ems[0]->setNoSuspend(1);
+        r10c_work->ems[1]->setNoSuspend(1);
+        r10c_work->ems[2]->setNoSuspend(1);
+        r10c_work->ems[3]->setNoSuspend(1);
+        r10c_work->ems[4]->setNoSuspend(1);
+        r10c_work->ems[5]->setNoSuspend(1);
+        r10c_work->ems[6]->setNoSuspend(1);
         SceSetEventCancel(1, (TaskFunc) r10c_EmSet_exit, 0, -1, 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -787,7 +783,7 @@ static void moveWheel()
     pool2->be_flag |= 0x20;
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 5)) {
-            if (r10c_work.p->cnt < 100) {
+            if (r10c_work->cnt < 100) {
                 gate->ang.y = -1.2f;
             }
             if (gate->ang.y > -1.2f) {
@@ -810,9 +806,9 @@ static void moveWheel()
             }
         }
         if (RsfCheck(G_ROOM_ID, 7)) {
-            if (r10c_work.p->cnt > 100 && poolSpd == 30.0f) {
-                r10c_work.p->seGate = SndCall(6, 0xA, &pool->pos, 0, 0, 0);
-                SndStop(r10c_work.p->se[1], 0);
+            if (r10c_work->cnt > 100 && poolSpd == 30.0f) {
+                r10c_work->seGate = SndCall(6, 0xA, &pool->pos, 0, 0, 0);
+                SndStop(r10c_work->se[1], 0);
             }
             poolSpd -= 20.0f;
             if (pool->pos.y > 300.0f) {
@@ -836,8 +832,8 @@ static void moveWheel()
                 EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
                 EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM02, 0);
                 EstSet(0, -1, 0, 0, EFF_ROOM, 5, 0x2001, ESP_CORE_KIND_ROOM02, 0, 0);
-                r10c_work.p->seWheelA[0] = SndCall(6, 0x56, &r10c_wheelPosA, 0, 0, 0);
-                r10c_work.p->seWheelA[1] = SndCall(6, 0x59, &r10c_wheelPosA2, 0, 0, 0);
+                r10c_work->seWheelA[0] = SndCall(6, 0x56, &r10c_wheelPosA, 0, 0, 0);
+                r10c_work->seWheelA[1] = SndCall(6, 0x59, &r10c_wheelPosA2, 0, 0, 0);
             }
             spdA += spdAcc;
             if (spdA > spdMax) {
@@ -854,9 +850,9 @@ static void moveWheel()
                 SndCall(6, 0x61, &r10c_wheelPosA2, 0, 0, 0);
             }
         }
-        FSet(wheelA->rotSpd.z, spdA);
-        FSet(wheelA2->rotSpd.z, -spdA);
-        FSet(wheelA3->rotSpd.y, -spdA);
+        wheelA->rotSpd.z = spdA;
+        wheelA2->rotSpd.z = -spdA;
+        wheelA3->rotSpd.y = -spdA;
         if (RsfCheck(G_ROOM_ID, 6)) {
             if (RsfCheck(G_ROOM_ID, 7)) {
                 if (spdB != 0.0f) {
@@ -864,8 +860,8 @@ static void moveWheel()
                     EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
                     EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
                     EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
-                    SndStop(r10c_work.p->seWheelB[0], 0);
-                    SndStop(r10c_work.p->seWheelB[1], 0);
+                    SndStop(r10c_work->seWheelB[0], 0);
+                    SndStop(r10c_work->seWheelB[1], 0);
                 }
             } else {
                 if (spdB == 0.0f) {
@@ -873,8 +869,8 @@ static void moveWheel()
                     EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
                     EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
                     EstSet(0, -1, 0, 0, EFF_ROOM, 6, 0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
-                    r10c_work.p->seWheelB[0] = SndCall(6, 0x56, &r10c_wheelPosB, 0, 0, 0);
-                    r10c_work.p->seWheelB[1] = SndCall(6, 0x59, &r10c_wheelPosB, 0, 0, 0);
+                    r10c_work->seWheelB[0] = SndCall(6, 0x56, &r10c_wheelPosB, 0, 0, 0);
+                    r10c_work->seWheelB[1] = SndCall(6, 0x59, &r10c_wheelPosB, 0, 0, 0);
                 }
                 spdB += spdAcc;
                 if (spdB > spdMax) {
@@ -888,8 +884,8 @@ static void moveWheel()
                 EffectEspDelete(0x2001, ESP_CORE_KIND_ROOM03, 0, 0);
                 EffectEspgenDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
                 EffectEfmDelete(0x2001, ESP_CORE_KIND_ROOM03, 0);
-                SndStop(r10c_work.p->seWheelB[0], 0);
-                SndStop(r10c_work.p->seWheelB[1], 0);
+                SndStop(r10c_work->seWheelB[0], 0);
+                SndStop(r10c_work->seWheelB[1], 0);
             }
         }
         wheelB->rotSpd.z = spdB;
@@ -930,7 +926,7 @@ static void SetEmHitAtari()
     // high here: cse1 forwards the high (a constant) to the later load, the hard-register value
     // itself is invalidated by the calls (no `fmr` forwarding), and the dead set is deleted.
     {
-        register f32 z asm("fr0");
+        f32 z;
         z = 0.0f;
     }
     PSVECSubtract(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x5E)->pos, &ofsA);
@@ -946,7 +942,7 @@ static void SetEmHitAtari()
     SmdGetObjPtr(0x6B)->be_flag |= 0x20;
     // Reference store: the RsfCheck `lwz pG`/`lhz room_id` must stay below this store (the
     // scalar-reference rule), which puts them behind the 0.0 load like the original.
-    BitOn(SmdGetObjPtr(0x6C)->be_flag, 0x20);
+    (SmdGetObjPtr(0x6C)->be_flag |= 0x20);
     angA = 0.0f;
     angB = 0.0f;
     angC = 0.0f;
@@ -965,15 +961,15 @@ static void SetEmHitAtari()
     spdB = 0.05f;
     spdC = 0.06f;
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
-        r10c_work.p->hit[0][0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        r10c_work->hit[0][0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[0][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, YAT_FLAG_ON);
-        r10c_work.p->hit[0][1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        YarareInitCube(r10c_work->hit[0][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, YAT_FLAG_ON);
+        r10c_work->hit[0][1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[0][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, YAT_FLAG_ON);
-        r10c_work.p->hit[0][2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        YarareInitCube(r10c_work->hit[0][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, YAT_FLAG_ON);
+        r10c_work->hit[0][2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[0][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, YAT_FLAG_ON);
+        YarareInitCube(r10c_work->hit[0][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, YAT_FLAG_ON);
     } else {
         cObj* obj;
 
@@ -985,15 +981,15 @@ static void SetEmHitAtari()
         obj->pos.z = 32568.0f;
     }
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
-        r10c_work.p->hit[1][0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        r10c_work->hit[1][0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[1][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, YAT_FLAG_ON);
-        r10c_work.p->hit[1][1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        YarareInitCube(r10c_work->hit[1][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, YAT_FLAG_ON);
+        r10c_work->hit[1][1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[1][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, YAT_FLAG_ON);
-        r10c_work.p->hit[1][2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        YarareInitCube(r10c_work->hit[1][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, YAT_FLAG_ON);
+        r10c_work->hit[1][2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[1][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, YAT_FLAG_ON);
+        YarareInitCube(r10c_work->hit[1][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, YAT_FLAG_ON);
     } else {
         cObj* obj;
 
@@ -1005,15 +1001,15 @@ static void SetEmHitAtari()
         obj->pos.z = 42216.0f;
     }
     if (RsfCheck(G_ROOM_ID, 16) == 0) {
-        r10c_work.p->hit[2][0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        r10c_work->hit[2][0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[2][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, YAT_FLAG_ON);
-        r10c_work.p->hit[2][1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        YarareInitCube(r10c_work->hit[2][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, YAT_FLAG_ON);
+        r10c_work->hit[2][1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[2][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, YAT_FLAG_ON);
-        r10c_work.p->hit[2][2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+        YarareInitCube(r10c_work->hit[2][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, YAT_FLAG_ON);
+        r10c_work->hit[2][2] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                           &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x61)->ang, 0);
-        YarareInitCube(r10c_work.p->hit[2][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, YAT_FLAG_ON);
+        YarareInitCube(r10c_work->hit[2][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, YAT_FLAG_ON);
     } else {
         cObj* obj;
 
@@ -1053,15 +1049,15 @@ static void SetEmHitAtari()
             SmdGetObjPtr(0x61)->pos = tmp;
             SmdGetObjPtr(0x6A)->pos.x = tmp.x;
             SmdGetObjPtr(0x6A)->pos.z = tmp.z;
-            r10c_work.p->hit[0][0]->pos = tmp;
-            r10c_work.p->hit[0][1]->pos = tmp;
-            r10c_work.p->hit[0][2]->pos = tmp;
-            r10c_work.p->hit[0][0]->ang.y = angA;
-            r10c_work.p->hit[0][1]->ang.y = angA;
-            r10c_work.p->hit[0][2]->ang.y = angA;
-            EmHitUpdate(r10c_work.p->hit[0][0]);
-            EmHitUpdate(r10c_work.p->hit[0][1]);
-            EmHitUpdate(r10c_work.p->hit[0][2]);
+            r10c_work->hit[0][0]->pos = tmp;
+            r10c_work->hit[0][1]->pos = tmp;
+            r10c_work->hit[0][2]->pos = tmp;
+            r10c_work->hit[0][0]->ang.y = angA;
+            r10c_work->hit[0][1]->ang.y = angA;
+            r10c_work->hit[0][2]->ang.y = angA;
+            EmHitUpdate(r10c_work->hit[0][0]);
+            EmHitUpdate(r10c_work->hit[0][1]);
+            EmHitUpdate(r10c_work->hit[0][2]);
         }
         if (RsfCheck(G_ROOM_ID, 15) == 0) {
             SmdGetObjPtr(0x5F)->ang.y = angB;
@@ -1073,15 +1069,15 @@ static void SetEmHitAtari()
             SmdGetObjPtr(0x62)->pos = tmp;
             SmdGetObjPtr(0x6B)->pos.x = tmp.x;
             SmdGetObjPtr(0x6B)->pos.z = tmp.z;
-            r10c_work.p->hit[1][0]->pos = tmp;
-            r10c_work.p->hit[1][1]->pos = tmp;
-            r10c_work.p->hit[1][2]->pos = tmp;
-            r10c_work.p->hit[1][0]->ang.y = angB;
-            r10c_work.p->hit[1][1]->ang.y = angB;
-            r10c_work.p->hit[1][2]->ang.y = angB;
-            EmHitUpdate(r10c_work.p->hit[1][0]);
-            EmHitUpdate(r10c_work.p->hit[1][1]);
-            EmHitUpdate(r10c_work.p->hit[1][2]);
+            r10c_work->hit[1][0]->pos = tmp;
+            r10c_work->hit[1][1]->pos = tmp;
+            r10c_work->hit[1][2]->pos = tmp;
+            r10c_work->hit[1][0]->ang.y = angB;
+            r10c_work->hit[1][1]->ang.y = angB;
+            r10c_work->hit[1][2]->ang.y = angB;
+            EmHitUpdate(r10c_work->hit[1][0]);
+            EmHitUpdate(r10c_work->hit[1][1]);
+            EmHitUpdate(r10c_work->hit[1][2]);
         }
         if (RsfCheck(G_ROOM_ID, 16) == 0) {
             SmdGetObjPtr(0x60)->ang.y = angC;
@@ -1093,22 +1089,22 @@ static void SetEmHitAtari()
             SmdGetObjPtr(0x63)->pos = tmp;
             SmdGetObjPtr(0x6C)->pos.x = tmp.x;
             SmdGetObjPtr(0x6C)->pos.z = tmp.z;
-            r10c_work.p->hit[2][0]->pos = tmp;
-            r10c_work.p->hit[2][1]->pos = tmp;
-            r10c_work.p->hit[2][2]->pos = tmp;
-            r10c_work.p->hit[2][0]->ang.y = angC;
-            r10c_work.p->hit[2][1]->ang.y = angC;
-            r10c_work.p->hit[2][2]->ang.y = angC;
-            EmHitUpdate(r10c_work.p->hit[2][0]);
-            EmHitUpdate(r10c_work.p->hit[2][1]);
-            EmHitUpdate(r10c_work.p->hit[2][2]);
+            r10c_work->hit[2][0]->pos = tmp;
+            r10c_work->hit[2][1]->pos = tmp;
+            r10c_work->hit[2][2]->pos = tmp;
+            r10c_work->hit[2][0]->ang.y = angC;
+            r10c_work->hit[2][1]->ang.y = angC;
+            r10c_work->hit[2][2]->ang.y = angC;
+            EmHitUpdate(r10c_work->hit[2][0]);
+            EmHitUpdate(r10c_work->hit[2][1]);
+            EmHitUpdate(r10c_work->hit[2][2]);
         }
         if (RsfCheck(G_ROOM_ID, 14) == 0) {
-            if (r10c_work.p->hit[0][0]->ckStatus() == 1 || r10c_work.p->hit[0][1]->ckStatus() == 1 ||
-                r10c_work.p->hit[0][2]->ckStatus() == 1) {
-                r10c_work.p->hit[0][0]->hp = 0;
-                r10c_work.p->hit[0][1]->hp = 0;
-                r10c_work.p->hit[0][2]->hp = 0;
+            if (r10c_work->hit[0][0]->ckStatus() == 1 || r10c_work->hit[0][1]->ckStatus() == 1 ||
+                r10c_work->hit[0][2]->ckStatus() == 1) {
+                r10c_work->hit[0][0]->hp = 0;
+                r10c_work->hit[0][1]->hp = 0;
+                r10c_work->hit[0][2]->hp = 0;
                 SmdSetTrans(0x6A, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x61)->pos, 0, 0, 0);
                 EstSet(0, -1, &SmdGetObjPtr(0x61)->pos, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -1117,11 +1113,11 @@ static void SetEmHitAtari()
             }
         }
         if (RsfCheck(G_ROOM_ID, 15) == 0) {
-            if (r10c_work.p->hit[1][0]->ckStatus() == 1 || r10c_work.p->hit[1][1]->ckStatus() == 1 ||
-                r10c_work.p->hit[1][2]->ckStatus() == 1) {
-                r10c_work.p->hit[1][0]->hp = 0;
-                r10c_work.p->hit[1][1]->hp = 0;
-                r10c_work.p->hit[1][2]->hp = 0;
+            if (r10c_work->hit[1][0]->ckStatus() == 1 || r10c_work->hit[1][1]->ckStatus() == 1 ||
+                r10c_work->hit[1][2]->ckStatus() == 1) {
+                r10c_work->hit[1][0]->hp = 0;
+                r10c_work->hit[1][1]->hp = 0;
+                r10c_work->hit[1][2]->hp = 0;
                 SmdSetTrans(0x6B, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x62)->pos, 0, 0, 0);
                 EstSet(0, -1, &SmdGetObjPtr(0x62)->pos, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -1130,11 +1126,11 @@ static void SetEmHitAtari()
             }
         }
         if (RsfCheck(G_ROOM_ID, 16) == 0) {
-            if (r10c_work.p->hit[2][0]->ckStatus() == 1 || r10c_work.p->hit[2][1]->ckStatus() == 1 ||
-                r10c_work.p->hit[2][2]->ckStatus() == 1) {
-                r10c_work.p->hit[2][0]->hp = 0;
-                r10c_work.p->hit[2][1]->hp = 0;
-                r10c_work.p->hit[2][2]->hp = 0;
+            if (r10c_work->hit[2][0]->ckStatus() == 1 || r10c_work->hit[2][1]->ckStatus() == 1 ||
+                r10c_work->hit[2][2]->ckStatus() == 1) {
+                r10c_work->hit[2][0]->hp = 0;
+                r10c_work->hit[2][1]->hp = 0;
+                r10c_work->hit[2][2]->hp = 0;
                 SmdSetTrans(0x6C, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x63)->pos, 0, 0, 0);
                 EstSet(0, -1, &SmdGetObjPtr(0x63)->pos, 0, EFF_ROOM, 0xA, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -1196,7 +1192,7 @@ static void hako_down(cObj* obj)
             spdX = 0.0f;
             if (landed == 0) {
                 landed = 1;
-                if (r10c_work.p->cnt > 100) {
+                if (r10c_work->cnt > 100) {
                     SndCall(6, 0xE, &obj->pos, 0, 0, 0);
                 }
                 Vec pos = {0.0f, 0.0f, 0.0f};
@@ -1280,8 +1276,8 @@ static void r10c_ItemGet()
         Vec pos = {40147.0f, -14349.0f, 36583.0f};
         Vec ang = {0.0f, -1.4f, 0.0f};
 
-        pPLS->setPos(&pos);
-        pPLS->setAng(&ang);
+        pPL->setPos(&pos);
+        pPL->setAng(&ang);
     }
     OpeSetOpenTerm(9, 0.0f, 0.0f, 0.0f, 0.0f);
 }
@@ -1293,7 +1289,7 @@ extern "C" void eat_swap()
         pG->Room_flg[0] |= 0x02000000;
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        r10c_work.p->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);
-        EatMgr.destroy(r10c_work.p->eat);
+        r10c_work->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);
+        EatMgr.destroy(r10c_work->eat);
     }
 }

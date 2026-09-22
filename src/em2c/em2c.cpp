@@ -377,8 +377,8 @@ void em2cDmCk(cEm2c* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->SeInfo.pos = em->pos;
-    pGS->SeInfo.type = 0;
+    pG->SeInfo.pos = em->pos;
+    pG->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -781,8 +781,8 @@ void em2cTailDmCk(cEm2c* em)
     }
     em->dmg.m_Flag = 0;
     StaFlagOn(pG, STA_SE_BURST);
-    pGS->SeInfo.pos = em->pos;
-    pGS->SeInfo.type = 0;
+    pG->SeInfo.pos = em->pos;
+    pG->SeInfo.type = 0;
     em->dmg.m_Timer = 1;
     if (em->dmg.m_Wep == 0x10) {
         em->dmg.m_Timer = 0x11;
@@ -1995,7 +1995,7 @@ static void em2c_R1_Atk(cEm2c* em)
     case 1:
         if (em->r_no_3 == 0 && w->timer) {
             w->timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.157079637f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.157079637f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2107,7 +2107,7 @@ static void em2c_R1_JumpAtk(cEm2c* em)
             hit = w->atkHit;
             if (hit == 0) {
                 w->timer8--;
-                if (fabsf(Muku(&pPLS->pos, &em->pos, pPLS->ang.y, 3.14159274f)) < 1.04719758f) {
+                if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 1.04719758f) {
                     ActBtn.set(ACT_GUARD, 0xB, (void*) em2cEscapeAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, hit);
                 } else {
                     ActBtn.set(ACT_STOOP, 0xB, (void*) em2cSitAction, em, ACTCTR_WEP_SET_IGNORE, DISP_L_R, ACT_FUNC_NORMAL, hit);
@@ -2116,7 +2116,7 @@ static void em2c_R1_JumpAtk(cEm2c* em)
         }
         if (w->timer) {
             w->timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.157079637f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.157079637f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2649,8 +2649,8 @@ static void em2c_R1_HideWait(cEm2c* em)
         w->timer8 = fe;
     case 1:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
         MotionMove(em, 0);
@@ -2706,8 +2706,8 @@ static void em2c_R1_HideAtk(cEm2c* em)
         em->r_no_3 = fe;
     case 1:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
         MotionMove(em, 0);
@@ -2729,8 +2729,8 @@ static void em2c_R1_HideAtk(cEm2c* em)
             } else {
                 GetPlPos(&w->pTail->pos, 10.0f, 0);
             }
-            w->pTail->pos.y = pPLS->pos.y + 4000.0f;
-            w->pTail->ang.y += pPLS->ang.y + 3.14159274f;
+            w->pTail->pos.y = pPL->pos.y + 4000.0f;
+            w->pTail->ang.y += pPL->ang.y + 3.14159274f;
             w->pTail->ang.y = LIMIT_ANGLE(em->ang.y);
             w->pTail->flag |= 1;
             w->pTail->flag &= ~4;
@@ -2759,8 +2759,8 @@ static void em2c_R1_HideAtk(cEm2c* em)
     case 2:
         if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
-            em->pos.y = pPLS->pos.y + 4000.0f;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 3.14159274f) + 3.14159274f;
+            em->pos.y = pPL->pos.y + 4000.0f;
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f) + 3.14159274f;
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         MotionSetCore(em, &em->Motion, ARC(0x8A), ARC(0x8B), 0, 5, 0);
@@ -3168,7 +3168,7 @@ static void em2c_R1_F_Atk(cEm2c* em)
     case 1:
         if (em->r_no_3 == 0 && w->timer) {
             w->timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.157079637f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.157079637f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -3616,8 +3616,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->r_no_3 = 1;
     case 1:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
         MotionMove(em, 0);
@@ -3647,8 +3647,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
         break;
     case 2:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
         w->timer = 70;
@@ -3658,7 +3658,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y += 4000.0f;
-            em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+            em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
@@ -3684,15 +3684,15 @@ static void em2c_R1_C_Wait(cEm2c* em)
     case 4:
         if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
-            em->pos.y = pPLS->pos.y + 4000.0f;
-            em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+            em->pos.y = pPL->pos.y + 4000.0f;
+            em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         MotionSetCore(em, &em->Motion, ARC(0x8A), ARC(0x8B), 0, 5, 0);
         w->timer = 10;
         w->atkHit = 0;
         em->flag &= ~4;
-        pGS->Room_flg[0] |= 0x40000000;  // struct view: the pG load stays below the flags_3C8 store
+        pG->Room_flg[0] |= 0x40000000;  // struct view: the pG load stays below the flags_3C8 store
         em->r_no_2++;
     case 5:
         if (MotionMove(em, 0)) {
@@ -3717,8 +3717,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
         w->timer = 120;
     case 7:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8A), 0, 0, 5, 0);
         MotionMove(em, 0);
@@ -3901,8 +3901,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
         w->actDone = fe;
     case 1:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
         MotionMove(em, 0);
@@ -3918,8 +3918,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
         break;
     case 2:
         GetPlPos(&em->pos, 10.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
         if (Rnd() % 10 > 4 || em2cFloorTypeCk(em) == 0) {
@@ -3936,8 +3936,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
             MotionSetCore(em, &em->Motion, ARC(0x8C), 0, 0, 5, 0);
             if (w->actDone == 0) {
                 GetPlPos(&em->pos, 10.0f, 0);
-                em->pos.y = pPLS->pos.y - 500.0f;
-                em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+                em->pos.y = pPL->pos.y - 500.0f;
+                em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
                 em->ang.y = LIMIT_ANGLE(em->ang.y);
             }
             if (w->timer % 3) {
@@ -3947,7 +3947,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
             MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
             GetPlPos(&em->pos, 10.0f, 0);
             em->pos.y += 4000.0f;
-            em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+            em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             if (w->timer % 3) {
                 EstSet(0, -1, &em->pos, 0, EFF_EM2C, 0xC, 0, ESP_CORE_KIND_NONE, 0, 0);
@@ -3978,8 +3978,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
     case 4:
         if (w->actDone == 0) {
             GetPlPos(&em->pos, 10.0f, 0);
-            em->pos.y = pPLS->pos.y + 4000.0f;
-            em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+            em->pos.y = pPL->pos.y + 4000.0f;
+            em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (em->r_no_3) {
@@ -4002,7 +4002,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         w->atkHit = 0;
         em->flag &= ~4;
         em->flag |= 0x40000000;
-        pGS->Room_flg[0] |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
         em->r_no_2++;
     case 5:
         if (MotionMove(em, 0)) {
@@ -4040,8 +4040,8 @@ static void em2c_R1_T_Hide(cEm2c* em)
         w->actDone = fe;
     case 1:
         GetPlPos(&em->pos, 3.0f, 0);
-        em->pos.y = pPLS->pos.y + 4000.0f;
-        em->ang.y = em->ang.y + (pPLS->ang.y + 3.14159274f);
+        em->pos.y = pPL->pos.y + 4000.0f;
+        em->ang.y = em->ang.y + (pPL->ang.y + 3.14159274f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x8E), 0, 0, 5, 0);
         MotionMove(em, 0);
@@ -4497,9 +4497,9 @@ static void em2c_R1_Dm_C_Freeze(cEm2c* em)
     switch (fe) {
     case 0:
         PSVECScale(&w->wallNrm, &w->spd, 100.0f);
-        em->pos = pPLS->pos;
+        em->pos = pPL->pos;
         em->pos.y += 6000.0f;
-        em->ang.y = pPLS->ang.y + 3.14159274f;
+        em->ang.y = pPL->ang.y + 3.14159274f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->Motion, ARC(0x68), 0, 0, 5, 0);
         em->invisible_factor = 1.0f;
@@ -4913,20 +4913,20 @@ void em2cRouteCk(cEm2c* em)
     w->flags &= ~1;
     if (em->r_no_0 != 0) {
         a = em->getPartsPtr(0)->world;
-        b.x = pPLS->pos.x;  // struct view: the pPL load stays below the `a` copy's stores
-        b.y = pPLS->pos.y + 1500.0f;
-        b.z = pPLS->pos.z;
+        b.x = pPL->pos.x;  // struct view: the pPL load stays below the `a` copy's stores
+        b.y = pPL->pos.y + 1500.0f;
+        b.z = pPL->pos.z;
         if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
             w->flags |= 1;
         }
     }
     w->plDist = RouteCkPosToPosDis(&em->pos, &pPL->pos);
-    w->homeDist = RouteCkPosToPosDis(&w->homePos, &pPLS->pos);
+    w->homeDist = RouteCkPosToPosDis(&w->homePos, &pPL->pos);
     w->targetPos = w->routePos;
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->flags &= ~4;
 }
 
@@ -4980,11 +4980,11 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
                 if ((s16) pG->pl_life > 0) {
                     SetPlDamage(em, plemDmSide);
                     if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) < 1.57079637f) {
-                        pPLS->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f);
-                        pPLS->r_no_3 = 0;
+                        pPL->ang.y += Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f);
+                        pPL->r_no_3 = 0;
                     } else {
-                        pPLS->ang.y += Muku(&em->pos, &pPL->pos, pPL->ang.y, 3.14159274f);
-                        pPLS->r_no_3 = 1;
+                        pPL->ang.y += Muku(&em->pos, &pPL->pos, pPL->ang.y, 3.14159274f);
+                        pPL->r_no_3 = 1;
                     }
                     if (em->Motion.Mot_attr & 0x40) {
                         if (pPL->r_no_3) {
@@ -6018,8 +6018,8 @@ void em2cEscapeCamMove(cEm2c* em)
     at.x = -244.0f;
     at.y = 809.0f;
     at.z = 52.5999985f;
-    PSMTXMultVec(pPLS->mat, &pos, &pos);
-    PSMTXMultVec(pPLS->mat, &at, &at);
+    PSMTXMultVec(pPL->mat, &pos, &pos);
+    PSMTXMultVec(pPL->mat, &at, &at);
     PosToPos(&cam->param.at, &at, &w->cam.param.at, 1.0f);
     PosToPos(&cam->param.pos, &pos, &w->cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &hit, 0, 0x8000, 0)) {
@@ -6229,7 +6229,7 @@ void em2cSetFreeze(cEm2c* em)
 
     w->flags |= 0x800;
     w->guardCnt = 900;
-    pGS->Room_flg[0] |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     if (w->pTex) {
         em->pModelInfo->setTexBlendTbl(tbl);
         em->pModelInfo->setBlendRatio(0xFF);
@@ -6392,22 +6392,22 @@ void em2cGetFallPos(cEm2c* em)
     f32 d;
     u32 i;
 
-    em->pos = pPLS->pos;
+    em->pos = pPL->pos;
     em->pos.y = 4330.0f;
-    em->ang.y = pPLS->ang.y + 3.14159274f;
+    em->ang.y = pPL->ang.y + 3.14159274f;
     em->ang.y = LIMIT_ANGLE(em->ang.y);
-    emi = pGS->pEmi;
+    emi = pG->pEmi;
     if (emi == 0) {
         return;
     }
     best = 10000000000.0f;
-    for (i = 0; i < (pGS->pEmi)->n; i++) {
-        EmiEntry* e = &(pGS->pEmi)->entry[i];
+    for (i = 0; i < (pG->pEmi)->n; i++) {
+        EmiEntry* e = &(pG->pEmi)->entry[i];
 
         if (e->type != 0x12) {
             continue;
         }
-        d = (pPLS->pos.x - e->pos.x) * (pPLS->pos.x - e->pos.x) + (pPLS->pos.z - e->pos.z) * (pPLS->pos.z - e->pos.z);
+        d = (pPL->pos.x - e->pos.x) * (pPL->pos.x - e->pos.x) + (pPL->pos.z - e->pos.z) * (pPL->pos.z - e->pos.z);
         if (d < 1000000.0f) {
             continue;
         }

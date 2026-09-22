@@ -308,7 +308,7 @@ void cFence20e::init(const R20eFenceData* d)
         camNo = d->camNo;
         force = 0;
         flagNo = d->flagNo;
-        if (RsfCheck(pGS->room_id, flagNo)) {
+        if (RsfCheck(pG->room_id, flagNo)) {
             set(1, 1);
         } else {
             set(0, 1);
@@ -378,7 +378,7 @@ static void r20e_checkSwitch(int sw)
 
             CamCtrl.CutCall((s8) r20e_work->fence[up].getCamNo());
             SceSleep(15);
-            U32Set(r20e_work->snd, SndCall(6, 3, 0, 0, 0, 0));
+            r20e_work->snd = SndCall(6, 3, 0, 0, 0, 0);
             r20e_work->fence[up].set(1, 0);
             while (r20e_work->fence[up].move(), (act = r20e_work->fence[up].checkActive()) != 0) {
                 SceSleep(1);
@@ -397,13 +397,13 @@ static void r20e_checkSwitch(int sw)
             CamCtrl.CutCall((s8) r20e_work->fence[down].getCamNo());
             if (sw == 1) {
                 if (pPL->pos.z < 25200.0f) {
-                    FSetP(pPL->pos.z, 25200.0f);
+                    pPL->pos.z = 25200.0f;
                     pPL->setPos(&pPL->pos);
                     pPL->be_flag |= 0x200000;
                 }
             }
             SceSleep(15);
-            U32Set(r20e_work->snd, SndCall(6, 5, 0, 0, 0, 0));
+            r20e_work->snd = SndCall(6, 5, 0, 0, 0, 0);
             r20e_work->fence[down].set(0, 0);
             while (r20e_work->fence[down].move(), (act = r20e_work->fence[down].checkActive()) != 0) {
                 SceSleep(1);
@@ -476,8 +476,8 @@ static void r20e_execThrough(int no)
     u32 i;
 
     pl->beginAction();
-    AtariOff(&pPLS->atari, 0xFEFF);
-    pPLS->atari.setPriority(PRI_LV1);
+    AtariOff(&pPL->atari, 0xFEFF);
+    pPL->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     t = &r20e_throughTbl[no];
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 10, 0, 0x201, 0);
@@ -489,7 +489,7 @@ static void r20e_execThrough(int no)
         f32 ry;
 
         PSVECAdd(&pPL->pos, &d, &pPL->pos);
-        FAdd(pPL->ang.y, step);
+        pPL->ang.y += step;
         p = pPL;
         ry = p->ang.y;
         p->setPos(&p->pos);
@@ -548,8 +548,8 @@ static void r20e_execThrough(int no)
     }
     pl->endAction(8);
     pPL->dmg.clear();
-    AtariOn(&pPLS->atari, 0x100);
-    pPLS->atari.setPriority(0);
+    AtariOn(&pPL->atari, 0x100);
+    pPL->atari.setPriority(0);
 }
 
 // The crest door of the puzzle room: `open` 1 lifts it, `init` 1 places it without animation.
@@ -599,7 +599,7 @@ static void r20e_moveCrestDoor(int open, int init)
                 // the work-pointer load below the pos.y store (a plain member store is a varying
                 // struct store that never conflicts with the fixed scalar load)
                 while (1) {
-                    FSub(obj->pos.y, spd);
+                    obj->pos.y -= spd;
                     spd += add;
                     if (obj->pos.y < r20e_work->crestDoorY) {
                         obj->pos.y = r20e_work->crestDoorY;

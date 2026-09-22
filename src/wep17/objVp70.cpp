@@ -57,7 +57,7 @@ void cObjVp70::init(cModel* parent)
     }
     wep.parent = parent;
     wep.itemId = 3;
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x36));
+    wep.motReset[0] = WEP_ARC_PTR(0x36);
     wep.motReset[1] = WEP_ARC_PTR(0x38);
     resetMotion();
     wep.shotFrame[0] = vp70_tbl[0];

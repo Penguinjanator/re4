@@ -79,15 +79,11 @@ struct R208Work {
     u32 footBSe;          // 0x2D0  SndCall handle of footing B
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R208WorkPtr {
-    R208Work* p;
-};
 static u8 r208_texTbl[0x20];
-static R208WorkPtr r208_work;
-#define W r208_work.p
+static R208Work* r208_work;
+#define W r208_work
 // EM_LIST through the struct view of pG: the load stays below a preceding work-struct store.
-#define EM_LIST_S(no) (&pGS->Em_list[no])
+#define EM_LIST_S(no) (&pG->Em_list[no])
 // Hit effects of attribute types 4 and 5
 static const AtEffInfo r208_eff_info4 = {
     1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
@@ -240,7 +236,7 @@ static void incResetNum()
 void R208Init()
 {
 #line 157 "D:/Bio4/Prog/r208.cpp"
-    r208_work.p = (R208Work*) MEM_CALLOC(sizeof(R208Work), 1, 0xd);
+    r208_work = (R208Work*) MEM_CALLOC(sizeof(R208Work), 1, 0xd);
     W->gotoWait = 900;
     EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r208_eff_info4);
     EatMgr.registEffInfo(EAT_ET_ROOM1, (AtEffInfo*) &r208_eff_info5);
@@ -290,7 +286,7 @@ void R208Init()
     }
     setTexRender();
     W->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_satPos, &r208_zeroVec, 3);
-    if (RsfCheck(pGS->room_id, 5)) {   // struct view: the pG load stays below the sat store
+    if (RsfCheck(pG->room_id, 5)) {   // struct view: the pG load stays below the sat store
         SmdSetTrans(0x4E, 1);
         SmdSetTrans(0x4F, 1);
         SceAtSetEnable(0xD, 1);
@@ -318,7 +314,7 @@ void R208Init()
     }
     SmdGetObjPtr(0x57)->be_flag |= 0x20;
     SmdGetObjPtr(0x58)->be_flag |= 0x20;
-    if (RsfCheck(pGS->room_id, 10) == 0) {   // struct view: the pG load stays below the be_flag store
+    if (RsfCheck(pG->room_id, 10) == 0) {   // struct view: the pG load stays below the be_flag store
         SmdGetObjPtr(0x57)->pos.y = 2900.0f;
     } else {
         SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_zeroVec, &r208_zeroVec, 1);
@@ -370,7 +366,14 @@ void R208Main()
 
     r208_StrCheck();
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        if (((pG->Room_flg[0] & 0x02000000) && (pGS->Room_flg[0] & 0x01000000)) || DebugTrg(0) != 0) {
+        // two flag tests: separate ifs keep fold from merging them
+        if (pG->Room_flg[0] & 0x02000000) {
+            if (pG->Room_flg[0] & 0x01000000) {
+                goto crank;
+            }
+        }
+        if (DebugTrg(0) != 0) {
+        crank:
             RsfSet(G_ROOM_ID, 5);
             SceExec(0x12, (TaskFunc) crank_set, 0, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -504,7 +507,7 @@ void R208Main()
     if ((pG->Room_flg[0] & 0x04000000) == 0 && (SubCharGetStatus() & 0x01000000) == 0) {
         SmdGetObjPtr(0x4E)->Motion.Mot_attr |= 8;
         SmdGetObjPtr(0x50)->Motion.Mot_attr |= 8;
-        BitOn16(SmdGetObjPtr(0x52)->Motion.Mot_attr, 8);
+        SmdGetObjPtr(0x52)->Motion.Mot_attr |= 8;
         if (pSUB != NULL) {
             pSUB->atari.setPriority(0);
         }
@@ -629,7 +632,7 @@ static void funcAshley(cEm* p)
     u32 limit;
     int mot;
 
-    PSet(W->crank, NULL);   // the pSUB load stays below the store
+    W->crank = NULL;   // the pSUB load stays below the store
     if (pSUB == NULL) {
         return;
     }
@@ -664,7 +667,10 @@ static void funcAshley(cEm* p)
             || MotionCheckCrossFrame(&p->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, &p->pos, 0, 0, 0);
         }
-        if ((pG->Room_flg[0] & 0x20000000) || (pGS->Room_flg[0] & 0x40000000)) {   // two tests: not folded
+        // two tests: separate ifs keep fold from merging them
+        if (pG->Room_flg[0] & 0x20000000) {
+            limit = r208_footTime2;
+        } else if (pG->Room_flg[0] & 0x40000000) {
             limit = r208_footTime2;
         } else {
             limit = r208_footTime1;
@@ -809,9 +815,9 @@ static void asl_yubisasi()
         pos.z = 0.0f;
         pSUB->setAng(&pos);
     }
-    BitOn(pPL->be_flag, 0x00200000);   // the pSUB load stays below the store
+    pPL->be_flag |= 0x00200000;   // the pSUB load stays below the store
     if (pSUB != NULL) {
-        BitOn(pSUB->be_flag, 0x00200000);
+        pSUB->be_flag |= 0x00200000;
     }
     SetSubAux(funcAshley3, 0);
     CamCtrl.CutCall(0xF);
@@ -1212,7 +1218,7 @@ static void r208_operateCrank()
 
     pG->Room_flg[0] |= 0x04000000;
     SmdGetObjPtr(0x4E)->be_flag |= 0x20;
-    PSet(W->crank, SmdGetObjPtr(0x4E));   // the pPL load stays below the store
+    W->crank = SmdGetObjPtr(0x4E);   // the pPL load stays below the store
     pPL->beginEvent(0);
     PlSetHand(1, 0);
     W->crank->beginEvent(0);
@@ -1223,8 +1229,8 @@ static void r208_operateCrank()
         Vec v = {500.0f, 4000.0f, -29300.0f};
         cPlayer* pl;
 
-        v.y = pPLS->pos.y;   // struct view: the pPL load is issued after the W load (target order)
-        FSet(pPL->ang.y, W->crank->ang.y - 1.5707964f);
+        v.y = pPL->pos.y;   // struct view: the pPL load is issued after the W load (target order)
+        (pPL->ang.y = W->crank->ang.y - 1.5707964f);
         pl = pPL;
         SetPosAng(pl, &v, &pl->ang);
     }
@@ -1468,10 +1474,13 @@ static void r208_snipe()
                 SubCharMoveTo(pos.x, pos.y, pos.z, 193.0f, 0);
             }
         }
-        if ((pG->Room_flg[0] & 0x20000000) && (pGS->Room_flg[0] & 0x40000000)) {   // two tests: not folded
-            SceAtSetEnable(0x1D, 0);
-            SceAtSetEnable(0x1E, 0);
-            return;
+        // two tests: separate ifs keep fold from merging them
+        if (pG->Room_flg[0] & 0x20000000) {
+            if (pG->Room_flg[0] & 0x40000000) {
+                SceAtSetEnable(0x1D, 0);
+                SceAtSetEnable(0x1E, 0);
+                return;
+            }
         }
         if (W->footACnt == 1) {
             cEm* em = R208_EmSetEvent(&pG->Em_list[0x19]);
@@ -1742,7 +1751,7 @@ static void SubUnderCrankExec()
         Vec pos = {447.0f, 4000.0f, -29225.0f};
         Vec d;
 
-        pGS->Room_flg[0] |= 0x08000000;   // struct view: the template copy's three loads precede its first frame store
+        pG->Room_flg[0] |= 0x08000000;   // struct view: the template copy's three loads precede its first frame store
         while (1) {
             f32 dist;
 

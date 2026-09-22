@@ -45,9 +45,9 @@ void R111Init()
         ((cEmRack*) rack)->setRange(2000.0f, 2000.0f, 0.0f, 2600.0f);
     }
     if (getRoomEtcRack(0x11, &rack, 1)) {
-        FSet(rack->pos.x, 6656.0f);
-        FSet(rack->pos.y, 902.0f);
-        FSet(rack->pos.z, 8925.0f);
+        rack->pos.x = 6656.0f;
+        rack->pos.y = 902.0f;
+        rack->pos.z = 8925.0f;
         ((cEmRack*) rack)->setRange(2000.0f, 800.0f, 0.0f, 4400.0f);
     }
     SceExec(0x12, (TaskFunc) r111_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);

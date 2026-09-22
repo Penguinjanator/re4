@@ -701,7 +701,7 @@ static void em29_R1_AtkRush(cEm29* em)
         }
         w->escTimer = 0;
         w->timer = Rnd() % 20 + 20;
-        if ((s16) pGS->pl_life > 0) {
+        if ((s16) pG->pl_life > 0) {
             LifeDownSet2(pPL, 20, 0, 0);
             if (!(Rnd() & 1)) {
                 cModel* p = GetPartsAddr(em->pParts, 2);
@@ -1078,7 +1078,7 @@ void em29RouteCk(cEm29* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     if ((em->pos.x - w->initPos.x) * (em->pos.x - w->initPos.x) + (em->pos.z - w->initPos.z) * (em->pos.z - w->initPos.z)
         > em->Guard_r * em->Guard_r) {
         RouteCkToPos(em, &w->initPos, &w->targetPos, 0, 0);
@@ -1191,8 +1191,8 @@ void em29ObaHitCk(cEm29* em)
 #line 1691 "D:/Bio4/Prog/em29.cpp"
     VECNormalizeP(&d, &d);
     PSVECScale(&d, &d, r);
-    FSet(em->pos.x, pPL->pos.x + d.x);
-    FSet(em->pos.z, pPL->pos.z + d.z);
+    em->pos.x = pPL->pos.x + d.x;
+    em->pos.z = pPL->pos.z + d.z;
 }
 
 // 1 when this is the last alive bat (id 0x29) in the room (Die_Normal then respawns it).

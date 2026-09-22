@@ -14,7 +14,6 @@
 #include "t_util.h"
 #include "file.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include <stdio.h>
 
 
@@ -80,12 +79,8 @@ struct SndVolWork {
     u8 pad_336F7;
 };
 
-// the work pointer is a struct member: every store through it reloads it
-struct SndVolWorkPtr {
-    SndVolWork* p;
-};
-static SndVolWorkPtr sndVolWork = {NULL};
-#define work sndVolWork.p
+static SndVolWork* sndVolWork = {NULL};
+#define work sndVolWork
 
 static u32 cursorCol[16] = {0x808080FF, 0x909090FF, 0xA0A0A0FF, 0xB0B0B0FF, 0xC0C0C0FF, 0xD0D0D0FF, 0xE0E0E0FF, 0xF0F0F0FF,
                             0xF0F0F0FF, 0xE0E0E0FF, 0xD0D0D0FF, 0xC0C0C0FF, 0xB0B0B0FF, 0xA0A0A0FF, 0x909090FF, 0x808080FF};
@@ -161,7 +156,7 @@ void getInfoData(SndRoomHdr* hdr)
 void init()
 {
     u8 i;
-    SndVolWork*& wp = sndVolWork.p;
+    SndVolWork*& wp = sndVolWork;
 
     TaskSuspend(0);
     TutilInitDefault();
@@ -767,7 +762,7 @@ static s8 blink_dir = 1;
 void markDraw(f32 dist, s16 val, u32 col, int kind)
 {
     S16Vec pt[4];
-    int x = (int) dist - IRef(work->left);
+    int x = (int) dist - work->left;
     s16 px;
     s16 py = 0;
 
@@ -887,7 +882,7 @@ void editDataLineDraw(TblEnt* e, u32 col)
     int x;
     f32 d0 = e[0].dist;
     f32 d1 = e[1].dist;
-    int left = IRef(work->left);
+    int left = work->left;
 
     if (d0 >= (f32) (left + 13)) {
         return;

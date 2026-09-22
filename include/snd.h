@@ -166,6 +166,18 @@ struct SndWork {
     u8 play_str_no[2];            // 0xAE0
     s16 bgm_at[2];           // 0xAE2  floor attribute BGM control applied per slot
     u8 pad_AE6[2];
+
+    // debugDisp() reads these fields through the getters below instead of directly. GCC 2.95's first
+    // CSE pass shares the pSnd load across debugDisp's many independent if/for blocks when the read
+    // is a direct field access, freeing a register the target keeps pinned there; routing it through
+    // an inline call keeps it opaque to that pass (it's still resolved away by a later one, so there's
+    // no real call in the output). Every other function's pSnd reads already match without it. Each
+    // getter has to be a plain field return with no work of its own; BlkFlag() hands back the bitmap
+    // itself rather than testing a bit, or the computation inside breaks the same trick.
+    u32* BlkFlag() { return blk_flag; }
+    u8 EmId(int i) { return snd_em_id[i]; }
+    u8 BgmId(int i) { return snd_bgm_id[i]; }
+    SndRoomHdr* Hdr() { return hdr; }
 };
 
 // "ESE" room file header (game/se_at.cpp), followed by the SeAt records at 0x10.
@@ -241,16 +253,7 @@ extern SndRoomHdr DefEffTbl;
 extern u16 StrFileTbl[2];
 extern int str_flag;
 extern u32 ARAM_FREE_BASE;
-// pSnd is loaded as a struct member (the pLog trick, db_log.h): a store through it makes GCC 2.95
-// reload the pointer before the next use and keep the stores in source order, which is what most of
-// snd.cpp shows. `pSndRaw` is the same symbol seen as a plain pointer (scalar load, no reloads) for
-// the few functions whose code only matches that way.
-struct SndWorkPtr {
-    SndWork* p;
-    SndWork* operator->() { return p; }
-};
-extern SndWorkPtr pSnd;
-extern SndWork* pSndRaw __asm__("pSnd");
+extern SndWork* pSnd;
 extern u32 SndStrAramAddr[4];
 
 void SndInit();

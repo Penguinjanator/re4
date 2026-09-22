@@ -12,7 +12,6 @@
 #include "joy.h"
 #include "pl_cloth.h"
 #include "math_sub.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "esp.h"
 #include "pl_mod.h"
@@ -68,8 +67,8 @@ void cPlAshley::setModel()
         return;
     }
     addModel(info);
-    PSet(Body->pShape, info);
-    PSet(Body->pHeadData, PL_ARC_PTR(pG->pPlayer, 7));
+    Body->pShape = info;
+    Body->pHeadData = PL_ARC_PTR(pG->pPlayer, 7);
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 6), PL_ARC_PTR(pG->pPlayer, 0xB));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlAshley::setModel() failed.");
@@ -243,7 +242,7 @@ void cPlAshley::setLeftHand(u32 no)
     }
     Body->oldLhandNo = Body->nowLhandNo;
     Body->nowLhandNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 5));
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pG->pPlayer, 5));
     if (info == 0) {
         pLog->err(0, 0, "cLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {

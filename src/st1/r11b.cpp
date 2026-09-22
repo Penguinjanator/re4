@@ -39,20 +39,16 @@ struct R11bWork {
     u8 texTbl[2][0x80];   // 0x30  their blend tables (TexRenderModSet)
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R11bWorkPtr {
-    R11bWork* p;
-};
 
-static R11bWorkPtr r11b_work;
+static R11bWork* r11b_work;
 
 // Pointer store through a reference: the pG load that follows stays below it.
 // Scale set through references: the pG load of the following setMotion stays below the stores.
 static inline void r11b_setScale(cObj* obj, f32 s)
 {
-    FSet(obj->scale.x, s);
-    FSet(obj->scale.y, s);
-    FSet(obj->scale.z, s);
+    obj->scale.x = s;
+    obj->scale.y = s;
+    obj->scale.z = s;
 }
 
 // Hit effects of attribute type 2 (water)
@@ -93,7 +89,7 @@ void R11bInit()
     if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 0);
     }
-    R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
+    R11bWork*& wp = r11b_work;   // the store's `lis` sits before the SceExec call (r30)
     SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, SCE_PRIO_DEF_2, 0);
     ScfFlagOn(pG, SCF_R11B_END_SALAMANDER);
     // COMPILER-DIFF: candidate (sched1 issue-slot filler): the codeless asm depends on the flags
@@ -129,12 +125,12 @@ void R11bInit()
         new (&pos) Vec(r11b_boatPos0);
         new (&rot) Vec(r11b_boatRot0);
         l->set = one;
-        PSet(r11b_work.p->boat, EmSetFromList2(0x3C, 0));
+        r11b_work->boat = EmSetFromList2(0x3C, 0);
         pG->room_id_prev = 0x11B;
-        r11b_work.p->boat->setPos(&pos);
-        r11b_work.p->boat->setAng(&rot);
+        r11b_work->boat->setPos(&pos);
+        r11b_work->boat->setAng(&rot);
     } else {
-        r11b_work.p->boat = EmSetFromList2(0x3C, 0);
+        r11b_work->boat = EmSetFromList2(0x3C, 0);
         l->set = 1;
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             static const Vec r11b_boatPos1 = {127560.0f, -1300.0f, 149100.0f};
@@ -142,8 +138,8 @@ void R11bInit()
 
             pos = r11b_boatPos1;
             rot2 = r11b_boatRot1;
-            r11b_work.p->boat->setPos(&pos);
-            r11b_work.p->boat->setAng(&rot2);
+            r11b_work->boat->setPos(&pos);
+            r11b_work->boat->setAng(&rot2);
             if (RsfCheck(G_ROOM_ID, 0) == 0) {
                 RsfSet(G_ROOM_ID, 0);
                 SceExec(0x12, (TaskFunc) R11b_Event, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -218,8 +214,8 @@ void R11bInit()
                                       ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
-    TexRenderInit(&r11b_work.p->tex[0], 0xE0, 2);
-    TexRenderInit(&r11b_work.p->tex[1], 0xE0, 2);
+    TexRenderInit(&r11b_work->tex[0], 0xE0, 2);
+    TexRenderInit(&r11b_work->tex[1], 0xE0, 2);
     FlrAtSetDefVal(0, 0, 3);
 }
 
@@ -276,7 +272,7 @@ static void r11b_ThunderMove()
 }
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
-#define EM_LIST_S(no) (&pGS->Em_list[no])
+#define EM_LIST_S(no) (&pG->Em_list[no])
 // Rewrite ESL entries 0x40/0x41/0x3E/0x3F (the shore Ganados) to their post-event positions near the
 // pier, un-set and alive, so they spawn there on later visits.
 extern "C" void EmSetChange()
@@ -315,17 +311,17 @@ extern "C" void EmSetChange()
 static void r11b_EmEvent_exit()
 {
     EmSetChange();
-    EmMgr.destroy(r11b_work.p->em[0]);
-    EmMgr.destroy(r11b_work.p->em[1]);
-    EmMgr.destroy(r11b_work.p->em[2]);
-    EmMgr.destroy(r11b_work.p->em[3]);
-    EmMgr.destroy(r11b_work.p->em[4]);
-    EmMgr.destroy(r11b_work.p->em[5]);
-    EmMgr.destroy(r11b_work.p->em[6]);
-    r11b_work.p->em[0] = EmSetFromList2(0x40, 1);
-    r11b_work.p->em[1] = EmSetFromList2(0x41, 1);
-    r11b_work.p->em[7] = EmSetFromList2(0x3E, 1);
-    r11b_work.p->em[8] = EmSetFromList2(0x3F, 1);
+    EmMgr.destroy(r11b_work->em[0]);
+    EmMgr.destroy(r11b_work->em[1]);
+    EmMgr.destroy(r11b_work->em[2]);
+    EmMgr.destroy(r11b_work->em[3]);
+    EmMgr.destroy(r11b_work->em[4]);
+    EmMgr.destroy(r11b_work->em[5]);
+    EmMgr.destroy(r11b_work->em[6]);
+    r11b_work->em[0] = EmSetFromList2(0x40, 1);
+    r11b_work->em[1] = EmSetFromList2(0x41, 1);
+    r11b_work->em[7] = EmSetFromList2(0x3E, 1);
+    r11b_work->em[8] = EmSetFromList2(0x3F, 1);
     EffectEspDelete(1, ESP_CORE_KIND_ROOM00, 0, 0);
     EffectEspgenDelete(1, ESP_CORE_KIND_ROOM00, 0);
     EffectEfmDelete(1, ESP_CORE_KIND_ROOM00, 0);
@@ -340,32 +336,32 @@ static void r11b_EmEvent()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         RsfSet(G_ROOM_ID, 1);
-        r11b_work.p->em[0] = EmSetFromList2(0x40, 1);
-        r11b_work.p->em[1] = EmSetFromList2(0x41, 1);
-        r11b_work.p->em[2] = EmSetFromList2(0x42, 1);
-        r11b_work.p->em[3] = EmSetFromList2(0x43, 1);
-        r11b_work.p->em[4] = EmSetFromList2(0x44, 1);
-        r11b_work.p->em[5] = EmSetFromList2(0x45, 1);
-        r11b_work.p->em[6] = EmSetFromList2(0x46, 1);
-        r11b_work.p->em[0]->setNoSuspend(1);
-        r11b_work.p->em[1]->setNoSuspend(1);
-        r11b_work.p->em[2]->setNoSuspend(1);
-        r11b_work.p->em[3]->setNoSuspend(1);
-        r11b_work.p->em[4]->setNoSuspend(1);
-        r11b_work.p->em[5]->setNoSuspend(1);
-        r11b_work.p->em[6]->setNoSuspend(1);
+        r11b_work->em[0] = EmSetFromList2(0x40, 1);
+        r11b_work->em[1] = EmSetFromList2(0x41, 1);
+        r11b_work->em[2] = EmSetFromList2(0x42, 1);
+        r11b_work->em[3] = EmSetFromList2(0x43, 1);
+        r11b_work->em[4] = EmSetFromList2(0x44, 1);
+        r11b_work->em[5] = EmSetFromList2(0x45, 1);
+        r11b_work->em[6] = EmSetFromList2(0x46, 1);
+        r11b_work->em[0]->setNoSuspend(1);
+        r11b_work->em[1]->setNoSuspend(1);
+        r11b_work->em[2]->setNoSuspend(1);
+        r11b_work->em[3]->setNoSuspend(1);
+        r11b_work->em[4]->setNoSuspend(1);
+        r11b_work->em[5]->setNoSuspend(1);
+        r11b_work->em[6]->setNoSuspend(1);
         SceEventStart(0);
         SndStrReq(1, 0x24, 0x80000003, 0, 0, 0.0f);
         pPL->setNoSuspend(1);
         pPL->setPos(-60735.0f, 2008.0f, -8455.0f);
         pPL->setAng(0.0f, 2.64f, 0.0f);
-        EstSet(r11b_work.p->em[0], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        EstSet(r11b_work.p->em[1], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        EstSet(r11b_work.p->em[2], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        EstSet(r11b_work.p->em[3], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        EstSet(r11b_work.p->em[4], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        EstSet(r11b_work.p->em[5], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
-        EstSet(r11b_work.p->em[6], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[0], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[1], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[2], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[3], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[4], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[5], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
+        EstSet(r11b_work->em[6], -1, 0, 0, EFF_ROOM, 0xA, 1, ESP_CORE_KIND_ROOM00, 0, 0);
         SceSetEventCancel(1, (TaskFunc) r11b_EmEvent_exit, 0, -1, 1);
         CamCtrl.CutCall(3);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -456,9 +452,9 @@ static void r11b_str_check()
 static inline void r11b_evtTexRenderSet(Event* e, void*& mod, int a, int b)
 {
     if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-        TexRenderModSet((cModel*) mod, 6, r11b_work.p->texTbl[0], r11b_work.p->tex[0], 0, 0, 1, 1, 1.0f);
-        TexRenderModSet((cModel*) mod, 7, r11b_work.p->texTbl[1], r11b_work.p->tex[1], 0, 0, 1, 1, 1.0f);
-        TexRenderModSet((cModel*) mod, 8, r11b_work.p->texTbl[1], r11b_work.p->tex[1], 0, 0, 1, 1, 1.0f);
+        TexRenderModSet((cModel*) mod, 6, r11b_work->texTbl[0], r11b_work->tex[0], 0, 0, 1, 1, 1.0f);
+        TexRenderModSet((cModel*) mod, 7, r11b_work->texTbl[1], r11b_work->tex[1], 0, 0, 1, 1, 1.0f);
+        TexRenderModSet((cModel*) mod, 8, r11b_work->texTbl[1], r11b_work->tex[1], 0, 0, 1, 1, 1.0f);
         ModelInfoRefrectOn((cModel*) mod, 6);
         ModelInfoRefrectOn((cModel*) mod, 7);
         ModelInfoRefrectOn((cModel*) mod, 8);
@@ -470,12 +466,12 @@ static inline void r11b_evtTexRenderSet(Event* e, void*& mod, int a, int b)
 // Drop the event's water effects bound to the two render targets' masks.
 static inline void r11b_evtEffDelete()
 {
-    EffectEspDelete(r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-    EffectEspgenDelete(r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-    EffectEfmDelete(r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-    EffectEspDelete(r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-    EffectEspgenDelete(r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
-    EffectEfmDelete(r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEspDelete(r11b_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+    EffectEspgenDelete(r11b_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEfmDelete(r11b_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEspDelete(r11b_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+    EffectEspgenDelete(r11b_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
+    EffectEfmDelete(r11b_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0);
 }
 
 // Event r11bs00 callback (two Ganados dump the officer's body in the lake; Del Lago takes them): hides
@@ -561,22 +557,22 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
-                EstSet(0, -1, 0, 0, EFF_ROOM, 6, r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 6, r11b_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         case 7:
             if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 0, 1);
                 r11b_evtEffDelete();
-                EstSet(0, -1, 0, 0, EFF_ROOM, 7, r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 7, r11b_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         case 8:
             if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
-                EstSet(0, -1, 0, 0, EFF_ROOM, 8, r11b_work.p->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 9, r11b_work.p->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 8, r11b_work->tex[1]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 9, r11b_work->tex[0]->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
             }
             break;
         default:
@@ -615,7 +611,7 @@ static void r11b_bort_pos_chk()
     for (;;) {
         if (riding) {
             if (!StaFlagChk(pG, STA_PL_BOAT)) {
-                Vec pos = r11b_work.p->boat->pos;
+                Vec pos = r11b_work->boat->pos;
                 Vec pierA = {-49902.0f, -700.0f, 22743.0f};
                 Vec pierB = {126064.0f, -700.0f, 148628.0f};
                 f32 dA;

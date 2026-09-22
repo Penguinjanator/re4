@@ -95,12 +95,8 @@ struct R214Work {
     cEmWrap em2[2];          // 0x6B0
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R214WorkPtr {
-    R214Work* p;
-};
 
-static R214WorkPtr r214_work;
+static R214Work* r214_work;
 static u8 r214_debugMode;
 
 static int r214_emTbl0[5] = {0xE4, 0xEC, 0xED, 0xEE, 0xEF};
@@ -152,7 +148,7 @@ void R214Init()
     cEm* barred;
 
 #line 98 "D:/Bio4/Prog/r214.cpp"
-    R214Work*& wp = r214_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    R214Work*& wp = r214_work;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R214Work*) MEM_CALLOC(sizeof(R214Work), 1, 0xD);
     if (pG->JumpPoint == 1) {
         ScfFlagOn(pG, SCF_R217_PUZZLE_CLEAR);
@@ -160,14 +156,14 @@ void R214Init()
         RsfSet(G_ROOM_ID, 5);
     }
     EvtMgr.SetFunc("evt_r214s00_func", (void*) Evt_R214S00_Func);
-    if (getRoomEtcBarred(0x11, &r214_work.p->barred[0], 1)) {
-        ((cEmBarred*) r214_work.p->barred[0])->setClosed();
+    if (getRoomEtcBarred(0x11, &r214_work->barred[0], 1)) {
+        ((cEmBarred*) r214_work->barred[0])->setClosed();
     }
-    if (getRoomEtcBarred(0x12, &r214_work.p->barred[1], 1)) {
-        ((cEmBarred*) r214_work.p->barred[1])->setClosed();
+    if (getRoomEtcBarred(0x12, &r214_work->barred[1], 1)) {
+        ((cEmBarred*) r214_work->barred[1])->setClosed();
     }
     if (pG->Part == 2) {
-        r214_work.p->bridgeFlag = 1;
+        r214_work->bridgeFlag = 1;
         SceExec(0x12, (TaskFunc) r214_BridgeRotate, 0, 0, SCE_PRIO_DEF_2, 0);
     } else if (!ScfFlagChk(pG, SCF_R217_PUZZLE_CLEAR)) {
         u32 i;
@@ -201,13 +197,13 @@ void R214Init()
         AreaGetCenterPos(&pt[0], &SceAtPtr(0xF)->area);
         AreaGetCenterPos(&pt[1], &SceAtPtr(0x10)->area);
         AreaGetCenterPos(&pt[2], &SceAtPtr(0x11)->area);
-        r214_work.p->patrol[0].SetPatrol(0xEC, pt, 3, 0, 0);
+        r214_work->patrol[0].SetPatrol(0xEC, pt, 3, 0, 0);
         w.setPtr(0xEC, -1, 0);
         w.setPos(&pt[0]);
         AreaGetCenterPos(&pt[0], &SceAtPtr(0x10)->area);
         AreaGetCenterPos(&pt[1], &SceAtPtr(0x11)->area);
         AreaGetCenterPos(&pt[2], &SceAtPtr(0xF)->area);
-        r214_work.p->patrol[1].SetPatrol(0xED, pt, 3, 0, 0);
+        r214_work->patrol[1].SetPatrol(0xED, pt, 3, 0, 0);
         w.setPtr(0xED, -1, 0);
         w.setPos(&pt[0]);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -299,11 +295,11 @@ static void r214_checkEmReset()
     u32 lim;
     u32 i;
 
-    if (r214_work.p->barred[0]) {
-        ((cEmBarred*) r214_work.p->barred[0])->setOpened();
+    if (r214_work->barred[0]) {
+        ((cEmBarred*) r214_work->barred[0])->setOpened();
     }
-    if (r214_work.p->barred[1]) {
-        ((cEmBarred*) r214_work.p->barred[1])->setOpened();
+    if (r214_work->barred[1]) {
+        ((cEmBarred*) r214_work->barred[1])->setOpened();
     }
     int emNo[4] = {0xFB, 0xFC, 0xFD, 0xFE};
     int done[4];
@@ -353,62 +349,62 @@ static void r214_exec3rdEmSet_end()
 {
     Vec ang;
 
-    r214_work.p->em2[0].setNoSuspend(0);
-    r214_work.p->em2[1].setNoSuspend(0);
-    r214_work.p->em5[0].setNoSuspend(0);
-    r214_work.p->em5[1].setNoSuspend(0);
-    r214_work.p->em5[2].setNoSuspend(0);
-    r214_work.p->em5[3].setNoSuspend(0);
-    r214_work.p->em5[4].setNoSuspend(0);
-    r214_work.p->em3b[0].setNoSuspend(0);
-    r214_work.p->em3b[1].setNoSuspend(0);
-    r214_work.p->em3b[2].setNoSuspend(0);
+    r214_work->em2[0].setNoSuspend(0);
+    r214_work->em2[1].setNoSuspend(0);
+    r214_work->em5[0].setNoSuspend(0);
+    r214_work->em5[1].setNoSuspend(0);
+    r214_work->em5[2].setNoSuspend(0);
+    r214_work->em5[3].setNoSuspend(0);
+    r214_work->em5[4].setNoSuspend(0);
+    r214_work->em3b[0].setNoSuspend(0);
+    r214_work->em3b[1].setNoSuspend(0);
+    r214_work->em3b[2].setNoSuspend(0);
     pPL->setNoSuspend(0);
     {
-        cEmWrap* w = &r214_work.p->em5[0];
-        f32 y = r214_work.p->angY5[0];
+        cEmWrap* w = &r214_work->em5[0];
+        f32 y = r214_work->angY5[0];
 
-        w->setPos(&r214_work.p->pos5[0]);
+        w->setPos(&r214_work->pos5[0]);
         ang.x = 0.0f;
         ang.y = y;
         ang.z = 0.0f;
         w->setAng(&ang);
     }
     {
-        cEmWrap* w = &r214_work.p->em5[1];
-        f32 y = r214_work.p->angY5[1];
+        cEmWrap* w = &r214_work->em5[1];
+        f32 y = r214_work->angY5[1];
 
-        w->setPos(&r214_work.p->pos5[1]);
+        w->setPos(&r214_work->pos5[1]);
         ang.x = 0.0f;
         ang.y = y;
         ang.z = 0.0f;
         w->setAng(&ang);
     }
     {
-        cEmWrap* w = &r214_work.p->em5[2];
-        f32 y = r214_work.p->angY5[2];
+        cEmWrap* w = &r214_work->em5[2];
+        f32 y = r214_work->angY5[2];
 
-        w->setPos(&r214_work.p->pos5[2]);
+        w->setPos(&r214_work->pos5[2]);
         ang.x = 0.0f;
         ang.y = y;
         ang.z = 0.0f;
         w->setAng(&ang);
     }
     {
-        cEmWrap* w = &r214_work.p->em5[3];
-        f32 y = r214_work.p->angY5[3];
+        cEmWrap* w = &r214_work->em5[3];
+        f32 y = r214_work->angY5[3];
 
-        w->setPos(&r214_work.p->pos5[3]);
+        w->setPos(&r214_work->pos5[3]);
         ang.x = 0.0f;
         ang.y = y;
         ang.z = 0.0f;
         w->setAng(&ang);
     }
     {
-        cEmWrap* w = &r214_work.p->em5[4];
-        f32 y = r214_work.p->angY5[4];
+        cEmWrap* w = &r214_work->em5[4];
+        f32 y = r214_work->angY5[4];
 
-        w->setPos(&r214_work.p->pos5[4]);
+        w->setPos(&r214_work->pos5[4]);
         ang.x = 0.0f;
         ang.y = y;
         ang.z = 0.0f;
@@ -456,79 +452,79 @@ static inline void r214_emRestore(cEmWrap* w, Vec* pos, f32 y)
 static void r214_exec3rdEmSet()
 {
     RsfSet(G_ROOM_ID, 1);
-    if (r214_work.p->barred[0]) {
-        r214_work.p->barred[0]->setNoSuspend(1);
-        ((cEmBarred*) r214_work.p->barred[0])->setOpen(0);
+    if (r214_work->barred[0]) {
+        r214_work->barred[0]->setNoSuspend(1);
+        ((cEmBarred*) r214_work->barred[0])->setOpen(0);
     }
-    if (r214_work.p->barred[1]) {
-        r214_work.p->barred[1]->setNoSuspend(1);
-        ((cEmBarred*) r214_work.p->barred[1])->setOpen(0);
+    if (r214_work->barred[1]) {
+        r214_work->barred[1]->setNoSuspend(1);
+        ((cEmBarred*) r214_work->barred[1])->setOpen(0);
     }
-    r214_work.p->em5[0].setEm(0xF0, 4, 1, 1, 0);
-    r214_work.p->em5[1].setEm(0xF1, 4, 1, 1, 0);
-    r214_work.p->em5[2].setEm(0xF2, 4, 1, 1, 0);
-    r214_work.p->em5[3].setEm(0xF8, 4, 1, 1, 0);
-    r214_work.p->em5[4].setEm(0xF9, 4, 1, 1, 0);
-    r214_work.p->em5[0].getPos(&r214_work.p->pos5[0]);
-    r214_work.p->em5[1].getPos(&r214_work.p->pos5[1]);
-    r214_work.p->em5[2].getPos(&r214_work.p->pos5[2]);
-    r214_work.p->em5[3].getPos(&r214_work.p->pos5[3]);
-    r214_work.p->em5[4].getPos(&r214_work.p->pos5[4]);
-    r214_work.p->angY5[0] = r214_work.p->em5[0].getAngY();
-    r214_work.p->angY5[1] = r214_work.p->em5[1].getAngY();
-    r214_work.p->angY5[2] = r214_work.p->em5[2].getAngY();
-    r214_work.p->angY5[3] = r214_work.p->em5[3].getAngY();
-    r214_work.p->angY5[4] = r214_work.p->em5[4].getAngY();
-    r214_work.p->em3b[0].setEm(0xF5, 4, 1, 1, 0);
-    r214_work.p->em3b[1].setEm(0xF6, 4, 1, 1, 0);
-    r214_work.p->em3b[2].setEm(0xF7, 4, 1, 1, 0);
+    r214_work->em5[0].setEm(0xF0, 4, 1, 1, 0);
+    r214_work->em5[1].setEm(0xF1, 4, 1, 1, 0);
+    r214_work->em5[2].setEm(0xF2, 4, 1, 1, 0);
+    r214_work->em5[3].setEm(0xF8, 4, 1, 1, 0);
+    r214_work->em5[4].setEm(0xF9, 4, 1, 1, 0);
+    r214_work->em5[0].getPos(&r214_work->pos5[0]);
+    r214_work->em5[1].getPos(&r214_work->pos5[1]);
+    r214_work->em5[2].getPos(&r214_work->pos5[2]);
+    r214_work->em5[3].getPos(&r214_work->pos5[3]);
+    r214_work->em5[4].getPos(&r214_work->pos5[4]);
+    r214_work->angY5[0] = r214_work->em5[0].getAngY();
+    r214_work->angY5[1] = r214_work->em5[1].getAngY();
+    r214_work->angY5[2] = r214_work->em5[2].getAngY();
+    r214_work->angY5[3] = r214_work->em5[3].getAngY();
+    r214_work->angY5[4] = r214_work->em5[4].getAngY();
+    r214_work->em3b[0].setEm(0xF5, 4, 1, 1, 0);
+    r214_work->em3b[1].setEm(0xF6, 4, 1, 1, 0);
+    r214_work->em3b[2].setEm(0xF7, 4, 1, 1, 0);
     SceSetEventCancel(1, (TaskFunc) r214_exec3rdEmSet_end, 0, -1, 1);
     SceEventStart(0);
     CamCtrl.CutCall(0xA);
-    r214_work.p->em2[0].setEm(0xF3, 4, 1, 1, 0);
-    r214_work.p->em2[1].setEm(0xF4, 4, 1, 1, 0);
-    r214_work.p->em2[0].setNoSuspend(1);
-    r214_work.p->em2[1].setNoSuspend(1);
-    r214_work.p->em2[0].setFlag(1);
-    r214_work.p->em2[1].setFlag(1);
+    r214_work->em2[0].setEm(0xF3, 4, 1, 1, 0);
+    r214_work->em2[1].setEm(0xF4, 4, 1, 1, 0);
+    r214_work->em2[0].setNoSuspend(1);
+    r214_work->em2[1].setNoSuspend(1);
+    r214_work->em2[0].setFlag(1);
+    r214_work->em2[1].setFlag(1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    r214_work.p->em2[0].setNoSuspend(0);
-    r214_work.p->em2[1].setNoSuspend(0);
+    r214_work->em2[0].setNoSuspend(0);
+    r214_work->em2[1].setNoSuspend(0);
     CamCtrl.CutCall(8);
-    r214_work.p->em5[0].setNoSuspend(1);
-    r214_work.p->em5[1].setNoSuspend(1);
-    r214_work.p->em5[2].setNoSuspend(1);
-    r214_work.p->em5[3].setNoSuspend(1);
-    r214_work.p->em5[4].setNoSuspend(1);
-    r214_emPosAng(&r214_work.p->em5[0], 28427.0f, 0.0f, -30253.0f, 0.0f, -0.05f, 0.0f);
-    r214_emPosAng(&r214_work.p->em5[1], 28320.0f, 0.0f, -31210.0f, 0.0f, -0.05f, 0.0f);
-    r214_emPosAng(&r214_work.p->em5[2], 29250.0f, 0.0f, -15550.0f, 0.0f, -3.14f, 0.0f);
-    r214_emPosAng(&r214_work.p->em5[3], 28427.0f, 0.0f, -30253.0f, 0.0f, -0.05f, 0.0f);
-    r214_emPosAng(&r214_work.p->em5[4], 28590.0f, 0.0f, -13870.0f, 0.0f, -3.14f, 0.0f);
-    r214_work.p->em5[0].setGoto(&r214_work.p->pos5[0], 1);
-    r214_work.p->em5[1].setGoto(&r214_work.p->pos5[1], 1);
-    r214_work.p->em5[2].setGoto(&r214_work.p->pos5[2], 1);
-    r214_work.p->em5[3].setGoto(&r214_work.p->pos5[3], 1);
-    r214_work.p->em5[4].setGoto(&r214_work.p->pos5[4], 1);
+    r214_work->em5[0].setNoSuspend(1);
+    r214_work->em5[1].setNoSuspend(1);
+    r214_work->em5[2].setNoSuspend(1);
+    r214_work->em5[3].setNoSuspend(1);
+    r214_work->em5[4].setNoSuspend(1);
+    r214_emPosAng(&r214_work->em5[0], 28427.0f, 0.0f, -30253.0f, 0.0f, -0.05f, 0.0f);
+    r214_emPosAng(&r214_work->em5[1], 28320.0f, 0.0f, -31210.0f, 0.0f, -0.05f, 0.0f);
+    r214_emPosAng(&r214_work->em5[2], 29250.0f, 0.0f, -15550.0f, 0.0f, -3.14f, 0.0f);
+    r214_emPosAng(&r214_work->em5[3], 28427.0f, 0.0f, -30253.0f, 0.0f, -0.05f, 0.0f);
+    r214_emPosAng(&r214_work->em5[4], 28590.0f, 0.0f, -13870.0f, 0.0f, -3.14f, 0.0f);
+    r214_work->em5[0].setGoto(&r214_work->pos5[0], 1);
+    r214_work->em5[1].setGoto(&r214_work->pos5[1], 1);
+    r214_work->em5[2].setGoto(&r214_work->pos5[2], 1);
+    r214_work->em5[3].setGoto(&r214_work->pos5[3], 1);
+    r214_work->em5[4].setGoto(&r214_work->pos5[4], 1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    r214_work.p->em5[0].setNoSuspend(0);
-    r214_work.p->em5[1].setNoSuspend(0);
-    r214_work.p->em5[2].setNoSuspend(0);
-    r214_work.p->em5[3].setNoSuspend(0);
-    r214_work.p->em5[4].setNoSuspend(0);
-    r214_emRestore(&r214_work.p->em5[0], &r214_work.p->pos5[0], r214_work.p->angY5[0]);
-    r214_emRestore(&r214_work.p->em5[1], &r214_work.p->pos5[1], r214_work.p->angY5[1]);
-    r214_emRestore(&r214_work.p->em5[2], &r214_work.p->pos5[2], r214_work.p->angY5[2]);
-    r214_emRestore(&r214_work.p->em5[3], &r214_work.p->pos5[3], r214_work.p->angY5[3]);
-    r214_emRestore(&r214_work.p->em5[4], &r214_work.p->pos5[4], r214_work.p->angY5[4]);
+    r214_work->em5[0].setNoSuspend(0);
+    r214_work->em5[1].setNoSuspend(0);
+    r214_work->em5[2].setNoSuspend(0);
+    r214_work->em5[3].setNoSuspend(0);
+    r214_work->em5[4].setNoSuspend(0);
+    r214_emRestore(&r214_work->em5[0], &r214_work->pos5[0], r214_work->angY5[0]);
+    r214_emRestore(&r214_work->em5[1], &r214_work->pos5[1], r214_work->angY5[1]);
+    r214_emRestore(&r214_work->em5[2], &r214_work->pos5[2], r214_work->angY5[2]);
+    r214_emRestore(&r214_work->em5[3], &r214_work->pos5[3], r214_work->angY5[3]);
+    r214_emRestore(&r214_work->em5[4], &r214_work->pos5[4], r214_work->angY5[4]);
     CamCtrl.CutCall(9);
-    r214_work.p->em3b[0].setNoSuspend(1);
-    r214_work.p->em3b[1].setNoSuspend(1);
-    r214_work.p->em3b[2].setNoSuspend(1);
+    r214_work->em3b[0].setNoSuspend(1);
+    r214_work->em3b[1].setNoSuspend(1);
+    r214_work->em3b[2].setNoSuspend(1);
     pPL->setNoSuspend(1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -543,21 +539,21 @@ static void r214_execCatapult_end()
 {
     Vec pos;
 
-    r214_work.p->em3[0].setPos(&r214_work.p->pos5[0]);
-    r214_work.p->em3[1].setPos(&r214_work.p->pos5[1]);
-    r214_work.p->em3[2].setPos(&r214_work.p->pos5[2]);
-    r214_work.p->em3[0].setAng(&r214_work.p->ang3[0]);
-    r214_work.p->em3[1].setAng(&r214_work.p->ang3[1]);
-    r214_work.p->em3[2].setAng(&r214_work.p->ang3[2]);
-    r214_work.p->em3[0].setNoSuspend(0);
-    r214_work.p->em3[1].setNoSuspend(0);
-    r214_work.p->em3[2].setNoSuspend(0);
+    r214_work->em3[0].setPos(&r214_work->pos5[0]);
+    r214_work->em3[1].setPos(&r214_work->pos5[1]);
+    r214_work->em3[2].setPos(&r214_work->pos5[2]);
+    r214_work->em3[0].setAng(&r214_work->ang3[0]);
+    r214_work->em3[1].setAng(&r214_work->ang3[1]);
+    r214_work->em3[2].setAng(&r214_work->ang3[2]);
+    r214_work->em3[0].setNoSuspend(0);
+    r214_work->em3[1].setNoSuspend(0);
+    r214_work->em3[2].setNoSuspend(0);
     SceEventEnd(0);
     r214_initCatapult((R214CatapultData*) r214_catTbl);
     SceSleep(10);
     AreaGetCenterPos(&pos, &SceAtPtr(0xF)->area);
-    r214_work.p->emCat.setGoto(&pos, 1);
-    r214_work.p->emCat.setNoSuspend(0);
+    r214_work->emCat.setGoto(&pos, 1);
+    r214_work->emCat.setNoSuspend(0);
 }
 
 // The catapult event: the crews arrive and the catapults start.
@@ -601,58 +597,58 @@ static void r214_execCatapult()
     w0.setPtr(0xEC, -1, 1);
     w1.setPtr(0xED, -1, 1);
     if (w0.getHp() > 0) {
-        r214_work.p->emCat.setEm(0xE0, -1, 1, 1, 0);
-        r214_work.p->emCat.setPtr(0xE0, -1, 1);
-        r214_work.p->patrol[0].EndControl();
+        r214_work->emCat.setEm(0xE0, -1, 1, 1, 0);
+        r214_work->emCat.setPtr(0xE0, -1, 1);
+        r214_work->patrol[0].EndControl();
     } else if (w1.getHp() > 0) {
-        r214_work.p->emCat.setEm(0xE0, -1, 1, 1, 0);
-        r214_work.p->emCat.setPtr(0xE0, -1, 1);
-        r214_work.p->patrol[1].EndControl();
+        r214_work->emCat.setEm(0xE0, -1, 1, 1, 0);
+        r214_work->emCat.setPtr(0xE0, -1, 1);
+        r214_work->patrol[1].EndControl();
     } else {
         for (i = 0; i < 5; i++) {
             setEm(r214_emTbl0[i], 4, 1, 1, 0);
         }
         SceExit();
     }
-    r214_work.p->em3[0].setEm(0xE9, 4, 1, 1, 0);
-    r214_work.p->em3[1].setEm(0xEA, 4, 1, 1, 0);
-    r214_work.p->em3[2].setEm(0xEB, 4, 1, 1, 0);
-    r214_work.p->em3[0].getPos(&r214_work.p->pos5[0]);
-    r214_work.p->em3[1].getPos(&r214_work.p->pos5[1]);
-    r214_work.p->em3[2].getPos(&r214_work.p->pos5[2]);
-    r214_work.p->em3[0].getAng(&r214_work.p->ang3[0]);
-    r214_work.p->em3[1].getAng(&r214_work.p->ang3[1]);
-    r214_work.p->em3[2].getAng(&r214_work.p->ang3[2]);
+    r214_work->em3[0].setEm(0xE9, 4, 1, 1, 0);
+    r214_work->em3[1].setEm(0xEA, 4, 1, 1, 0);
+    r214_work->em3[2].setEm(0xEB, 4, 1, 1, 0);
+    r214_work->em3[0].getPos(&r214_work->pos5[0]);
+    r214_work->em3[1].getPos(&r214_work->pos5[1]);
+    r214_work->em3[2].getPos(&r214_work->pos5[2]);
+    r214_work->em3[0].getAng(&r214_work->ang3[0]);
+    r214_work->em3[1].getAng(&r214_work->ang3[1]);
+    r214_work->em3[2].getAng(&r214_work->ang3[2]);
     RsfSet(G_ROOM_ID, 0);
     SndRoomStrStart(1, 0, 1);
     SceSetEventCancel(1, (TaskFunc) r214_execCatapult_end, 0, -1, 1);
     SceEventStart(0);
     CamCtrl.CutCall(6);
-    r214_work.p->emCat.setNoSuspend(1);
-    r214_emPosAngY(&r214_work.p->emCat, &v, -18813.0f, 8021.0f, -17090.0f, 0.44f);
-    r214_work.p->emCat.setFindPL();
+    r214_work->emCat.setNoSuspend(1);
+    r214_emPosAngY(&r214_work->emCat, &v, -18813.0f, 8021.0f, -17090.0f, 0.44f);
+    r214_work->emCat.setFindPL();
     SceSleep(1);
     v = gotoPos;
-    r214_work.p->emCat.setGoto(&v, 1);
-    while (r214_work.p->emCat.ckGoto() != 0) {
+    r214_work->emCat.setGoto(&v, 1);
+    while (r214_work->emCat.ckGoto() != 0) {
         SceSleep(1);
     }
-    r214_work.p->emCat.setGoto(&pPL->pos, 8);
+    r214_work->emCat.setGoto(&pPL->pos, 8);
     SceSleep(60);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    r214_work.p->emCat.setNoSuspend(0);
+    r214_work->emCat.setNoSuspend(0);
     CamCtrl.CutCall(7);
-    r214_work.p->em3[0].setNoSuspend(1);
-    r214_work.p->em3[1].setNoSuspend(1);
-    r214_work.p->em3[2].setNoSuspend(1);
-    r214_emPosV(&r214_work.p->em3[1], &v2, 51170.0f, 10500.0f, 6130.0f);
-    r214_emPosV(&r214_work.p->em3[2], &v2, 51720.0f, 10500.0f, 2360.0f);
-    r214_emPosV(&r214_work.p->em3[0], &v2, 52000.0f, 10500.0f, -1300.0f);
-    r214_work.p->em3[0].setGoto(&r214_work.p->pos5[0], 1);
-    r214_work.p->em3[1].setGoto(&r214_work.p->pos5[1], 1);
-    r214_work.p->em3[2].setGoto(&r214_work.p->pos5[2], 1);
+    r214_work->em3[0].setNoSuspend(1);
+    r214_work->em3[1].setNoSuspend(1);
+    r214_work->em3[2].setNoSuspend(1);
+    r214_emPosV(&r214_work->em3[1], &v2, 51170.0f, 10500.0f, 6130.0f);
+    r214_emPosV(&r214_work->em3[2], &v2, 51720.0f, 10500.0f, 2360.0f);
+    r214_emPosV(&r214_work->em3[0], &v2, 52000.0f, 10500.0f, -1300.0f);
+    r214_work->em3[0].setGoto(&r214_work->pos5[0], 1);
+    r214_work->em3[1].setGoto(&r214_work->pos5[1], 1);
+    r214_work->em3[2].setGoto(&r214_work->pos5[2], 1);
     SceSleep(80);
     SceSetEventCancel(0, 0, 0, -1, 1);
     r214_execCatapult_end();
@@ -664,7 +660,7 @@ void r214_setFireAll()
     u32 i;
 
     for (i = 0; i < 3; i++) {
-        r214_work.p->cat[i].fire = 1;
+        r214_work->cat[i].fire = 1;
     }
     pG->Room_flg[0] |= 0x40000000;
 }
@@ -676,23 +672,23 @@ void r214_initCatapult(R214CatapultData* tbl)
     int i;
 
     for (i = 0; i < 3; i++) {
-        r214_work.p->cat[i].active = 1;
-        r214_work.p->cat[i].x31 = 1;
-        r214_work.p->cat[i].obj = SmdGetObjPtr(tbl[i].objId);
-        r214_work.p->cat[i].obj->be_flag |= 0x20;
-        r214_work.p->cat[i].obj->ang.y = LIMIT_ANGLE(tbl[i].ang);
-        r214_work.p->cat[i].step = 0;
-        r214_work.p->cat[i].timer = 0;
-        r214_work.p->cat[i].thrown = 0;
-        r214_work.p->cat[i].nArea = 0;
-        r214_work.p->cat[i].height = 8000.0f;
-        r214_work.p->cat[i].emNo = tbl[i].emNo;
-        r214_work.p->cat[i].setNewArea(0xE, 0xA);
-        r214_work.p->cat[i].setNewArea(0xB, 0xB);
-        r214_work.p->cat[i].setNewArea(0xC, 0xC);
+        r214_work->cat[i].active = 1;
+        r214_work->cat[i].x31 = 1;
+        r214_work->cat[i].obj = SmdGetObjPtr(tbl[i].objId);
+        r214_work->cat[i].obj->be_flag |= 0x20;
+        r214_work->cat[i].obj->ang.y = LIMIT_ANGLE(tbl[i].ang);
+        r214_work->cat[i].step = 0;
+        r214_work->cat[i].timer = 0;
+        r214_work->cat[i].thrown = 0;
+        r214_work->cat[i].nArea = 0;
+        r214_work->cat[i].height = 8000.0f;
+        r214_work->cat[i].emNo = tbl[i].emNo;
+        r214_work->cat[i].setNewArea(0xE, 0xA);
+        r214_work->cat[i].setNewArea(0xB, 0xB);
+        r214_work->cat[i].setNewArea(0xC, 0xC);
     }
     r214_setFireAll();
-    r214_work.p->catTask = SceExec(0x12, (TaskFunc) r214_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
+    r214_work->catTask = SceExec(0x12, (TaskFunc) r214_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Add a (player area -> target area) pair to the catapult's fire table (max 4).
@@ -713,14 +709,14 @@ static void r214_checkCatapult()
 
     SceSleep(1);
     for (i = 0; i < 3; i++) {
-        r214_work.p->cat[i].em.setPtr(r214_work.p->cat[i].emNo, 4, 0);
+        r214_work->cat[i].em.setPtr(r214_work->cat[i].emNo, 4, 0);
     }
     for (;;) {
         for (i = 0; i < 3; i++) {
-            r214_work.p->cat[i].fireAll = 1;
-            r214_work.p->cat[i].move();
+            r214_work->cat[i].fireAll = 1;
+            r214_work->cat[i].move();
         }
-        r214_work.p->hitWait--;
+        r214_work->hitWait--;
         SceSleep(1);
     }
 }
@@ -759,9 +755,9 @@ void cCatapult214::move()
         timer = 60;
         break;
     case 4:
-        if (timer <= 0 && r214_work.p->hitWait <= 0 && checkHitArea() == 1 && (fireAll == 1 || fire == 1)) {
+        if (timer <= 0 && r214_work->hitWait <= 0 && checkHitArea() == 1 && (fireAll == 1 || fire == 1)) {
             fire = 0;
-            r214_work.p->hitWait = 15;
+            r214_work->hitWait = 15;
             step = 5;
         }
         timer--;
@@ -770,7 +766,7 @@ void cCatapult214::move()
         if (fireAll == 1) {
             r214_setFireAll();
         }
-        r214_work.p->hitWait = 15;
+        r214_work->hitWait = 15;
         timer = 30;
         step = 6;
         break;
@@ -993,7 +989,7 @@ static void r214_BridgeRotateEndProc()
         pG->debug_mode = r214_debugMode;
     }
     pG->Room_flg[1] &= ~0x40000000;
-    if (r214_work.p->bridgeFlag == 1) {
+    if (r214_work->bridgeFlag == 1) {
         SceAtExecute(8);
     }
 }
@@ -1033,8 +1029,8 @@ void Evt_R214S00_Func(Event* e)
         case 0:
             if (e->NowFrame == 0 && (StaFlagChk(pG, STA_BINOCULAR))) {
                 StaFlagOff(pG, STA_BINOCULAR);
-                r214_work.p->bino->quit(&pG->Camera);
-                r214_work.p->bino->~IdBinocular();
+                r214_work->bino->quit(&pG->Camera);
+                r214_work->bino->~IdBinocular();
             }
             break;
         case 1:
@@ -1043,15 +1039,15 @@ void Evt_R214S00_Func(Event* e)
         case 4:
             if (e->NowFrame == 0 && !StaFlagChk(pG, STA_BINOCULAR)) {
                 StaFlagOn(pG, STA_BINOCULAR);
-                r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
-                r214_work.p->bino->init(&pGS->Camera, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
+                r214_work->bino = new (&r214_work->binoObj) IdBinocular;
+                r214_work->bino->init(&pG->Camera, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
                 if (e->NowCut != 1) {
-                    r214_work.p->bino->cutin(0);
+                    r214_work->bino->cutin(0);
                 }
-                r214_work.p->focus = &r214_work.p->focusObj;
-                r214_work.p->focus->init(-1);
+                r214_work->focus = &r214_work->focusObj;
+                r214_work->focus->init(-1);
             }
-            r214_work.p->bino->move(&pG->Camera);
+            r214_work->bino->move(&pG->Camera);
             break;
         }
         break;
@@ -1059,8 +1055,8 @@ void Evt_R214S00_Func(Event* e)
         SmdSetTrans(0x18, 1);
         if (StaFlagChk(pG, STA_BINOCULAR)) {
             StaFlagOff(pG, STA_BINOCULAR);
-            r214_work.p->bino->quit(&pG->Camera);
-            r214_work.p->bino->~IdBinocular();
+            r214_work->bino->quit(&pG->Camera);
+            r214_work->bino->~IdBinocular();
         }
         break;
     }

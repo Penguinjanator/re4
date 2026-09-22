@@ -61,11 +61,7 @@ struct R30bWork {
     u32 se;                   // 0x2588  crane motor sound
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R30bWorkPtr {
-    R30bWork* p;
-};
-static R30bWorkPtr r30b_work;
+static R30bWork* r30b_work;
 
 // COMPILER-DIFF: 3 -- the varargs view of memset gives the `crclr; bl memset` of the rotation
 // clears; the crane work is cleared through the prototyped memset (no crclr).
@@ -121,7 +117,7 @@ static void SceBgmCheck();
 void R30bInit()
 {
 #line 63 "D:/Bio4/Prog/r30b.cpp"
-    r30b_work.p = (R30bWork*) MEM_CALLOC(sizeof(R30bWork), 1, 0xd);
+    r30b_work = (R30bWork*) MEM_CALLOC(sizeof(R30bWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r30bs00_func", (void*) Evt_R30BS00_Func);
     if (StaFlagChk(pG, STA_SUB_ASHLEY)) {
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -146,16 +142,16 @@ void R30bInit()
         Vec rot;
 
         r30b_memset(&rot, 0, sizeof(Vec));
-        r30b_work.p->crane = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
+        r30b_work->crane = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         {
-            cObj* crane = r30b_work.p->crane;
+            cObj* crane = r30b_work->crane;
 
             if (crane) {
                 MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                 crane->be_flag |= 0x1000;
-                r30b_work.p->cable = SetObjSmd(ROOM_ARC_PTR(pGS->pRoom, 0x1F), ROOM_ARC_PTR(pGS->pRoom, 0x20), &crane->pos, &crane->ang, 0x10, 1);
+                r30b_work->cable = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &crane->pos, &crane->ang, 0x10, 1);
                 {
-                    cObj* cable = r30b_work.p->cable;
+                    cObj* cable = r30b_work->cable;
 
                     if (cable) {
                         MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
@@ -166,19 +162,15 @@ void R30bInit()
                         // write_dependence_p: MEM_VOLATILE_P on both), so the be_flag store gains the pos.y store as a
                         // dependent (prio 6, tie broken by register weight in the store's favour). The loads stay
                         // plain (a volatile pos.y load would have to wait for the be_flag store).
-                        {
-                            volatile cObj* vc = cable;
-
-                            vc->be_flag = cable->be_flag | 0x1010;
-                            vc->pos.y = cable->pos.y + r30b_cableOfs;
-                        }
+                        cable->pos.y += r30b_cableOfs;
+                        cable->be_flag |= 0x1010;
                         Vec sca = {0.3f, 0.3f, 0.3f};
                         cable->setSca(&sca);
                     }
                 }
-                r30b_work.p->magnet = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x20), &crane->pos, &crane->ang, 0x10, 1);
+                r30b_work->magnet = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x20), &crane->pos, &crane->ang, 0x10, 1);
                 {
-                    cObj* magnet = r30b_work.p->magnet;
+                    cObj* magnet = r30b_work->magnet;
 
                     if (magnet) {
                         magnet->be_flag |= 0x1000;
@@ -194,13 +186,13 @@ void R30bInit()
             }
         }
     }
-    r30b_work.p->tryLeft = 3;
-    r30b_work.p->timer = 0;
-    if (StaFlagChk(pGS, STA_SUB_ASHLEY) == 0) {
-        r30b_work.p->em[0].setPtr(0x35, -1, 0);
-        r30b_work.p->em[1].setPtr(0x36, -1, 0);
-        r30b_work.p->em[2].setPtr(0x3F, -1, 0);
-        r30b_work.p->em[3].setPtr(0x43, -1, 0);
+    r30b_work->tryLeft = 3;
+    r30b_work->timer = 0;
+    if (StaFlagChk(pG, STA_SUB_ASHLEY) == 0) {
+        r30b_work->em[0].setPtr(0x35, -1, 0);
+        r30b_work->em[1].setPtr(0x36, -1, 0);
+        r30b_work->em[2].setPtr(0x3F, -1, 0);
+        r30b_work->em[3].setPtr(0x43, -1, 0);
         R30bEmWanderingSet();
     } else {
         SceExec(0x12, (TaskFunc) R30bEmReset, 0, 0, 2, 0);
@@ -245,9 +237,9 @@ void R30bDoorEventEmMove()
     Vec pos = {6630.0f, 0.0f, 3660.0f};
     int i;
 
-    r30b_work.p->em[9].setEm(0x61, -1, 0, 1, 1);
+    r30b_work->em[9].setEm(0x61, -1, 0, 1, 1);
     {
-        cEmWrap* em = &r30b_work.p->em[9];
+        cEmWrap* em = &r30b_work->em[9];
 
         em->setNoSuspend(1);
         em->setGoto(&pos, 4);
@@ -284,7 +276,7 @@ static void R30bDoorEvent00Main()
 static void R30bDoorEvent00End()
 {
     R30bDoorOpened(1);
-    r30b_work.p->em[9].setNoSuspend(0);
+    r30b_work->em[9].setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceExit();
@@ -306,12 +298,12 @@ static void R30bDoorSwitchMain()
             int i;
 
             if (RsfCheck(G_ROOM_ID, 6) == 0) {
-                r30b_work.p->em[4].setEm(0x37, -1, 0, 1, 1);
-                r30b_work.p->em[5].setEm(0x38, -1, 0, 1, 1);
-                r30b_work.p->em[6].setEm(0x5F, -1, 0, 1, 1);
-                r30b_work.p->em[4].setNoSuspend(1);
-                r30b_work.p->em[5].setNoSuspend(1);
-                r30b_work.p->em[6].setNoSuspend(1);
+                r30b_work->em[4].setEm(0x37, -1, 0, 1, 1);
+                r30b_work->em[5].setEm(0x38, -1, 0, 1, 1);
+                r30b_work->em[6].setEm(0x5F, -1, 0, 1, 1);
+                r30b_work->em[4].setNoSuspend(1);
+                r30b_work->em[5].setNoSuspend(1);
+                r30b_work->em[6].setNoSuspend(1);
             }
             SceSetEventCancel(1, (TaskFunc) R30bDoorSwitchEnd, 0, -1, 1);
             SndCall(6, 4, 0, 0, 0, 0);
@@ -338,12 +330,12 @@ static void R30bDoorSwitchEnd()
     R30bDoorOpened(0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         RsfSet(G_ROOM_ID, 6);
-        r30b_work.p->em[4].setFlag(1);
-        r30b_work.p->em[5].setFlag(1);
-        r30b_work.p->em[6].setFlag(1);
-        r30b_work.p->em[4].setNoSuspend(0);
-        r30b_work.p->em[5].setNoSuspend(0);
-        r30b_work.p->em[6].setNoSuspend(0);
+        r30b_work->em[4].setFlag(1);
+        r30b_work->em[5].setFlag(1);
+        r30b_work->em[6].setFlag(1);
+        r30b_work->em[4].setNoSuspend(0);
+        r30b_work->em[5].setNoSuspend(0);
+        r30b_work->em[6].setNoSuspend(0);
     }
     RsfSet(G_ROOM_ID, 6);
     CamCtrl.Comeback(0);
@@ -384,15 +376,15 @@ void R30bDoorOpen(int open, int emGoto)
             SndCall(6, 0, &door->pos, 0, 0, 0);
             for (i = 0; i < 20; i++) {
                 if (i == 0 && emGoto == 1) {
-                    r30b_work.p->em[4].setNoSuspend(1);
-                    r30b_work.p->em[5].setNoSuspend(1);
-                    r30b_work.p->em[6].setNoSuspend(1);
-                    r30b_work.p->em[4].setFlag(1);
-                    r30b_work.p->em[5].setFlag(1);
-                    r30b_work.p->em[6].setFlag(1);
-                    r30b_work.p->em[4].setGoto(&pPL->pos, 1);
-                    r30b_work.p->em[5].setGoto(&pPL->pos, 1);
-                    r30b_work.p->em[6].setGoto(&pPL->pos, 1);
+                    r30b_work->em[4].setNoSuspend(1);
+                    r30b_work->em[5].setNoSuspend(1);
+                    r30b_work->em[6].setNoSuspend(1);
+                    r30b_work->em[4].setFlag(1);
+                    r30b_work->em[5].setFlag(1);
+                    r30b_work->em[6].setFlag(1);
+                    r30b_work->em[4].setGoto(&pPL->pos, 1);
+                    r30b_work->em[5].setGoto(&pPL->pos, 1);
+                    r30b_work->em[6].setGoto(&pPL->pos, 1);
                 }
                 f32 x = door->pos.x;
                 f32 z = door->pos.z;
@@ -450,25 +442,25 @@ void R30bDoorOpened(int open)
 static void R30bEmReset()
 {
     SceSleep(2);
-    r30b_work.p->em[0].setEm(0x35, -1, 0, 1, 1);
-    r30b_work.p->em[1].setEm(0x36, -1, 0, 1, 1);
-    r30b_work.p->em[2].setEm(0x3F, -1, 0, 1, 1);
-    r30b_work.p->em[3].setEm(0x43, -1, 0, 1, 1);
-    r30b_work.p->em[0].destroy();
-    r30b_work.p->em[1].destroy();
-    r30b_work.p->em[2].destroy();
-    r30b_work.p->em[3].destroy();
+    r30b_work->em[0].setEm(0x35, -1, 0, 1, 1);
+    r30b_work->em[1].setEm(0x36, -1, 0, 1, 1);
+    r30b_work->em[2].setEm(0x3F, -1, 0, 1, 1);
+    r30b_work->em[3].setEm(0x43, -1, 0, 1, 1);
+    r30b_work->em[0].destroy();
+    r30b_work->em[1].destroy();
+    r30b_work->em[2].destroy();
+    r30b_work->em[3].destroy();
     SceSleep(1);
     if (RsfCheck(G_ROOM_ID, 6)) {
-        r30b_work.p->em[4].setEm(0x37, -1, 0, 1, 1);
-        r30b_work.p->em[5].setEm(0x38, -1, 0, 1, 1);
-        r30b_work.p->em[6].setEm(0x5F, -1, 0, 1, 1);
+        r30b_work->em[4].setEm(0x37, -1, 0, 1, 1);
+        r30b_work->em[5].setEm(0x38, -1, 0, 1, 1);
+        r30b_work->em[6].setEm(0x5F, -1, 0, 1, 1);
     }
-    r30b_work.p->em[7].setEm(0x5D, -1, 0, 1, 1);
-    r30b_work.p->em[8].setEm(0x60, -1, 0, 1, 1);
-    r30b_work.p->em[10].setEm(0x63, -1, 0, 1, 1);
+    r30b_work->em[7].setEm(0x5D, -1, 0, 1, 1);
+    r30b_work->em[8].setEm(0x60, -1, 0, 1, 1);
+    r30b_work->em[10].setEm(0x63, -1, 0, 1, 1);
     if (RsfCheck(G_ROOM_ID, 3)) {
-        r30b_work.p->em[9].setEm(0x61, -1, 0, 1, 1);
+        r30b_work->em[9].setEm(0x61, -1, 0, 1, 1);
     }
 }
 
@@ -534,7 +526,7 @@ static void R30bCraneEnd()
 // Area 4: the crane.
 static void R30bCrane()
 {
-    R30bCraneWork* c = &r30b_work.p->cr;
+    R30bCraneWork* c = &r30b_work->cr;
     cObj* crane;
     cObj* magnet;
     cObj* cable;
@@ -543,9 +535,9 @@ static void R30bCrane()
 
     memset(c, 0, sizeof(R30bCraneWork));
     int idx[4] = {0, 1, 2, 3};
-    crane = r30b_work.p->crane;
-    magnet = r30b_work.p->magnet;
-    cable = r30b_work.p->cable;
+    crane = r30b_work->crane;
+    magnet = r30b_work->magnet;
+    cable = r30b_work->cable;
     light = SmdGetObjPtr(0xD);
     if (crane && magnet && cable && light) {
         if (SceCkFindPL(0) == 1) {
@@ -571,8 +563,8 @@ static void R30bCrane()
             int n;
 
             for (n = 0; n < 4; n++) {
-                if (r30b_work.p->em[idx[n]].isActive()) {
-                    r30b_work.p->em[idx[n]].setNoSuspend(1);
+                if (r30b_work->em[idx[n]].isActive()) {
+                    r30b_work->em[idx[n]].setNoSuspend(1);
                 }
             }
         }
@@ -582,7 +574,7 @@ static void R30bCrane()
         c->vel.x = 0.0f;
         c->vel.y = 0.0f;
         c->vel.z = 0.0f;
-        r30b_work.p->se = 0;
+        r30b_work->se = 0;
         while (c->active != 0) {
             c->pos.x = crane->pos.x;
             c->pos.y = crane->pos.y;
@@ -592,16 +584,16 @@ static void R30bCrane()
                 ActBtn.set(ACT_OPERATION, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_STICK_A, ACT_FUNC_NORMAL, 0);
                 SpfFlagOff(pG, SPF_ACTBTN);
                 if (Key.trg & 0x00040000) {
-                    if (r30b_work.p->se) {
-                        SndStop(r30b_work.p->se, 0);
-                        r30b_work.p->se = 0;
+                    if (r30b_work->se) {
+                        SndStop(r30b_work->se, 0);
+                        r30b_work->se = 0;
                         SndCall(6, 6, 0, 0, 0, 0);
                     }
                     c->active = 0;
                 } else if (Key.trg & 0x00080000) {
-                    if (r30b_work.p->se) {
-                        SndStop(r30b_work.p->se, 0);
-                        r30b_work.p->se = 0;
+                    if (r30b_work->se) {
+                        SndStop(r30b_work->se, 0);
+                        r30b_work->se = 0;
                         SndCall(6, 6, 0, 0, 0, 0);
                     }
                     MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 1, 0);
@@ -632,14 +624,14 @@ static void R30bCrane()
                         moved = 1;
                     }
                     if (moved == 1) {
-                        if (r30b_work.p->se == 0) {
-                            r30b_work.p->se = SndCall(6, 5, 0, 0, 0, 0);
+                        if (r30b_work->se == 0) {
+                            r30b_work->se = SndCall(6, 5, 0, 0, 0, 0);
                         }
                         CalcMovePosDistAdd2(&c->pos, &target, &c->vel, r30b_spd, r30b_accel);
                     } else {
-                        if (r30b_work.p->se) {
-                            SndStop(r30b_work.p->se, 0);
-                            r30b_work.p->se = 0;
+                        if (r30b_work->se) {
+                            SndStop(r30b_work->se, 0);
+                            r30b_work->se = 0;
                             SndCall(6, 6, 0, 0, 0, 0);
                         }
                         CalcMovePosDistAdd2(&c->pos, &target, &c->vel, 0.0f, r30b_accel);
@@ -663,7 +655,7 @@ static void R30bCrane()
                 c->pos.y -= r30b_spd;
                 if (c->pos.y <= 1300.0f) {
                     c->pos.y = 1300.0f;
-                    MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pGS->pRoom, 0x21), 0, 0, 1, 0);
+                    MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                     MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                     c->step++;
                 }
@@ -676,12 +668,12 @@ static void R30bCrane()
                     int emNum = 4;
 
                     for (n = 0; n < emNum; n++) {
-                        if (r30b_work.p->em[idx[n]].isActive()) {
+                        if (r30b_work->em[idx[n]].isActive()) {
                             Vec p;
 
-                            r30b_work.p->em[idx[n]].getPos(&p);
+                            r30b_work->em[idx[n]].getPos(&p);
                             if (GetDistanceXZ(&p, &c->pos) <= 250000.0f) {
-                                cEm* em = r30b_work.p->em[n].getPtr();
+                                cEm* em = r30b_work->em[n].getPtr();
 
                                 if (em) {
                                     ((cEmGanado*) em)->setUFOCatch(ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
@@ -712,8 +704,8 @@ static void R30bCrane()
                 c->pos.y += fRand1_1() * 100.0f;
                 c->cnt++;
                 if (c->cnt > 10) {
-                    if (r30b_work.p->se == 0) {
-                        r30b_work.p->se = SndCall(6, 5, 0, 0, 0, 0);
+                    if (r30b_work->se == 0) {
+                        r30b_work->se = SndCall(6, 5, 0, 0, 0, 0);
                     }
                     c->pos.y = 3000.0f;
                     c->step++;
@@ -723,13 +715,13 @@ static void R30bCrane()
                 Vec target = {-16500.0f, 3000.0f, -1300.0f};
 
                 if (CalcMovePosDist(&c->pos, &target, r30b_spd) == 1) {
-                    if ((pG->Room_flg[0] & 0x40000000) == 0 && r30b_work.p->timer > 700) {
+                    if ((pG->Room_flg[0] & 0x40000000) == 0 && r30b_work->timer > 700) {
                         pG->Room_flg[0] |= 0x40000000;
                         SceExec(0x12, (TaskFunc) R30bEmGotoSet, 0, 0, 2, 0);
                     }
-                    if (r30b_work.p->se) {
-                        SndStop(r30b_work.p->se, 0);
-                        r30b_work.p->se = 0;
+                    if (r30b_work->se) {
+                        SndStop(r30b_work->se, 0);
+                        r30b_work->se = 0;
                         SndCall(6, 6, 0, 0, 0, 0);
                     }
                     MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 1, 0);
@@ -745,7 +737,7 @@ static void R30bCrane()
                     c->cnt++;
                     if (c->cnt == 10) {
                         c->cnt = 0;
-                        r30b_work.p->em[c->catchIdx[c->nCatch - 1]].setFlag(1);
+                        r30b_work->em[c->catchIdx[c->nCatch - 1]].setFlag(1);
                         c->nCatch--;
                     }
                 }
@@ -786,23 +778,23 @@ static void R30bCrane()
 
                         c->pos.x = -14000.0f;
                         c->pos.z = -5000.0f;
-                        r30b_work.p->tryLeft--;
-                        if ((pGS->Room_flg[0] & 0x40000000) || (CkCatchEm(0) && CkCatchEm(1) && CkCatchEm(2) && CkCatchEm(3))) {
+                        r30b_work->tryLeft--;
+                        if ((pG->Room_flg[0] & 0x40000000) || (CkCatchEm(0) && CkCatchEm(1) && CkCatchEm(2) && CkCatchEm(3))) {
                             RsfSet(G_ROOM_ID, 2);
                             c->active = off;
                             SceAtSetEnable(4, 0);
                             SceAtSetEnable(6, 1);
                             if (CkCatchEm(0) == 0) {
-                                r30b_work.p->patrol[0].EndControl();
+                                r30b_work->patrol[0].EndControl();
                             }
                             if (CkCatchEm(1) == 0) {
-                                r30b_work.p->patrol[1].EndControl();
+                                r30b_work->patrol[1].EndControl();
                             }
                             if (CkCatchEm(2) == 0) {
-                                r30b_work.p->patrol[2].EndControl();
+                                r30b_work->patrol[2].EndControl();
                             }
                             if (CkCatchEm(3) == 0) {
-                                r30b_work.p->patrol[3].EndControl();
+                                r30b_work->patrol[3].EndControl();
                             }
                         } else {
                             c->step = 0;
@@ -858,7 +850,7 @@ static void R30bCrane()
                         if (p.y < -2000.0f) {
                             p.y = -2000.0f;
                         }
-                        r30b_work.p->em[c->catchIdx[i]].setPos(&p);
+                        r30b_work->em[c->catchIdx[i]].setPos(&p);
                     } else {
                         Vec p = {0.0f, 0.0f, 0.0f};
                         Vec ang = {0.0f, 0.0f, 0.0f};
@@ -874,8 +866,8 @@ static void R30bCrane()
                         if (p.y < -2000.0f) {
                             p.y = -2000.0f;
                         }
-                        r30b_work.p->em[c->catchIdx[i]].setPos(&p);
-                        r30b_work.p->em[c->catchIdx[i]].setAng(&ang);
+                        r30b_work->em[c->catchIdx[i]].setPos(&p);
+                        r30b_work->em[c->catchIdx[i]].setAng(&ang);
                     }
                 }
             }
@@ -896,9 +888,9 @@ static void R30bCrane()
                 }
             }
             if (pG->Room_flg[0] & 0x80000000) {
-                r30b_work.p->timer++;
+                r30b_work->timer++;
             }
-            eprintf(0x40, 0x20, 0, 0, "TRY:[%2d:%2d] Timer:[%d/%d]", r30b_work.p->tryLeft, 3, r30b_work.p->timer, 700);
+            eprintf(0x40, 0x20, 0, 0, "TRY:[%2d:%2d] Timer:[%d/%d]", r30b_work->tryLeft, 3, r30b_work->timer, 700);
             eprintf(0x40, 0x10, 0, 0, "CranePos:[%f, %f, %f]", c->pos.x, c->pos.y, c->pos.z);
             SceSleep(1);
         }
@@ -906,8 +898,8 @@ static void R30bCrane()
             int n;
 
             for (n = 0; n < 4; n++) {
-                if (r30b_work.p->em[idx[n]].isActive()) {
-                    r30b_work.p->em[idx[n]].setNoSuspend(0);
+                if (r30b_work->em[idx[n]].isActive()) {
+                    r30b_work->em[idx[n]].setNoSuspend(0);
                 }
             }
         }
@@ -953,8 +945,8 @@ void Evt_R30BS00_Func(Event* e)
 // The two patrols of the crane Ganado.
 void R30bEmWanderingSet()
 {
-    r30b_work.p->patrol[0].SetPatrol(0x35, r30b_patrolTbl0, 2, 2, 0);
-    r30b_work.p->patrol[2].SetPatrol(0x3F, r30b_patrolTbl1, 2, 2, 0);
+    r30b_work->patrol[0].SetPatrol(0x35, r30b_patrolTbl0, 2, 2, 0);
+    r30b_work->patrol[2].SetPatrol(0x3F, r30b_patrolTbl1, 2, 2, 0);
 }
 
 // The uncaught Ganado sit down at their posts.
@@ -963,37 +955,37 @@ static void R30bEmSitDownSet()
     int i;
 
     if (CkCatchEm(1) == 0) {
-        r30b_work.p->exec[1].SetRouteExec(0x36, r30b_sitTbl1, 2, 2, 1);
+        r30b_work->exec[1].SetRouteExec(0x36, r30b_sitTbl1, 2, 2, 1);
     }
     if (CkCatchEm(1) != 0) {
         if (CkCatchEm(2) == 0) {
-            r30b_work.p->patrol[2].EndControl();
+            r30b_work->patrol[2].EndControl();
         }
         if (CkCatchEm(2) == 0) {
-            r30b_work.p->exec[2].SetRouteExec(0x3F, r30b_sitTbl2, 2, 2, 1);
+            r30b_work->exec[2].SetRouteExec(0x3F, r30b_sitTbl2, 2, 2, 1);
         }
     } else {
         if (CkCatchEm(2) == 0) {
-            r30b_work.p->patrol[2].EndControl();
+            r30b_work->patrol[2].EndControl();
         }
         if (CkCatchEm(2) == 0) {
-            r30b_work.p->exec[2].SetRouteExec(0x3F, r30b_sitTbl2b, 1, 2, 1);
+            r30b_work->exec[2].SetRouteExec(0x3F, r30b_sitTbl2b, 1, 2, 1);
         }
     }
     for (i = 0; i < 10; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(0) == 0) {
-        r30b_work.p->patrol[0].EndControl();
+        r30b_work->patrol[0].EndControl();
     }
     if (CkCatchEm(0) == 0) {
-        r30b_work.p->exec[0].SetRouteExec(0x35, r30b_sitTbl0, 1, 2, 1);
+        r30b_work->exec[0].SetRouteExec(0x35, r30b_sitTbl0, 1, 2, 1);
     }
     for (i = 0; i < 10; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(3) == 0) {
-        r30b_work.p->exec[3].SetRouteExec(0x43, r30b_sitTbl3, 1, 2, 1);
+        r30b_work->exec[3].SetRouteExec(0x43, r30b_sitTbl3, 1, 2, 1);
     }
 }
 
@@ -1003,37 +995,37 @@ static void R30bEmGotoSet()
     int i;
 
     if (CkCatchEm(0) == 0) {
-        r30b_work.p->exec[0].EndControl();
+        r30b_work->exec[0].EndControl();
     }
     if (CkCatchEm(0) == 0) {
-        r30b_work.p->run[0].SetRouteRun(0x35, r30b_gotoTbl, 3, 2, 1);
+        r30b_work->run[0].SetRouteRun(0x35, r30b_gotoTbl, 3, 2, 1);
     }
     for (i = 0; i < 20; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(1) == 0) {
-        r30b_work.p->exec[1].EndControl();
+        r30b_work->exec[1].EndControl();
     }
     if (CkCatchEm(1) == 0) {
-        r30b_work.p->run[1].SetRouteRun(0x36, r30b_gotoTbl, 3, 2, 1);
+        r30b_work->run[1].SetRouteRun(0x36, r30b_gotoTbl, 3, 2, 1);
     }
     for (i = 0; i < 20; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(3) == 0) {
-        r30b_work.p->exec[3].EndControl();
+        r30b_work->exec[3].EndControl();
     }
     if (CkCatchEm(3) == 0) {
-        r30b_work.p->run[3].SetRouteRun(0x43, r30b_gotoTbl, 3, 2, 1);
+        r30b_work->run[3].SetRouteRun(0x43, r30b_gotoTbl, 3, 2, 1);
     }
     for (i = 0; i < 10; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(2) == 0) {
-        r30b_work.p->exec[2].EndControl();
+        r30b_work->exec[2].EndControl();
     }
     if (CkCatchEm(2) == 0) {
-        r30b_work.p->run[2].SetRouteRun(0x3F, r30b_gotoTbl, 3, 2, 1);
+        r30b_work->run[2].SetRouteRun(0x3F, r30b_gotoTbl, 3, 2, 1);
     }
 }
 
@@ -1043,37 +1035,37 @@ static void R30bEmGotoSet2()
     int i;
 
     if (CkCatchEm(0) == 0) {
-        r30b_work.p->exec[0].EndControl();
+        r30b_work->exec[0].EndControl();
     }
     if (CkCatchEm(0) == 0) {
-        r30b_work.p->run[0].SetRouteRun(0x35, r30b_gotoTbl2, 1, 2, 1);
+        r30b_work->run[0].SetRouteRun(0x35, r30b_gotoTbl2, 1, 2, 1);
     }
     for (i = 0; i < 20; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(1) == 0) {
-        r30b_work.p->exec[1].EndControl();
+        r30b_work->exec[1].EndControl();
     }
     if (CkCatchEm(1) == 0) {
-        r30b_work.p->run[1].SetRouteRun(0x36, r30b_gotoTbl2, 1, 2, 1);
+        r30b_work->run[1].SetRouteRun(0x36, r30b_gotoTbl2, 1, 2, 1);
     }
     for (i = 0; i < 20; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(3) == 0) {
-        r30b_work.p->exec[3].EndControl();
+        r30b_work->exec[3].EndControl();
     }
     if (CkCatchEm(3) == 0) {
-        r30b_work.p->run[3].SetRouteRun(0x43, r30b_gotoTbl2, 1, 2, 1);
+        r30b_work->run[3].SetRouteRun(0x43, r30b_gotoTbl2, 1, 2, 1);
     }
     for (i = 0; i < 10; i++) {
         SceSleep(1);
     }
     if (CkCatchEm(2) == 0) {
-        r30b_work.p->exec[2].EndControl();
+        r30b_work->exec[2].EndControl();
     }
     if (CkCatchEm(2) == 0) {
-        r30b_work.p->run[2].SetRouteRun(0x3F, r30b_gotoTbl2, 1, 2, 1);
+        r30b_work->run[2].SetRouteRun(0x3F, r30b_gotoTbl2, 1, 2, 1);
     }
 }
 

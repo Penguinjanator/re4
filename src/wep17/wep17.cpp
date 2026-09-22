@@ -674,7 +674,7 @@ void wepDown(cPlayer* pl)
     obj->wep.mode = 3;
     obj->wep.step = 0;
     WEP_ATARI(pl)->clrFlag200();
-    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
+    pl->ang.y = pl->ang.y - pl->Waist->set(0.0f, 0.4f);
 }
 
 // r_no_2 == 4: the reload state. Step 0 starts the reload motion (VP70: 0x40/0x27/0x2A by reload

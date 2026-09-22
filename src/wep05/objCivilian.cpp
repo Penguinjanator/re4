@@ -49,7 +49,7 @@ void cObjCivilian::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    U16Set(wep.itemId, 0x29);
+    wep.itemId = 0x29;
     wep.motReset[0] = WEP_ARC_PTR(0x34);
     resetMotion();
     wep.shotFrame[0] = civilian_tbl[0];

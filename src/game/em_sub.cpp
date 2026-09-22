@@ -27,7 +27,6 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "motion.h"
-#include "ref_access.h"
 #include "em.h"
 
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
@@ -1939,7 +1938,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life < dmg) {
             dmg = (s16) pG->pl_life;
         }
-        U16SetI(pG->pl_life, pG->pl_life - dmg);
+        pG->pl_life = pG->pl_life - dmg;
         if ((s16) pG->pl_life <= 0) {
             if (flag & 1) {
                 pG->pl_life = 1;
@@ -1971,7 +1970,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->ashley_life < dmg) {
             dmg = (s16) pG->ashley_life;
         }
-        U16SetI(pG->ashley_life, pG->ashley_life - dmg);
+        pG->ashley_life = pG->ashley_life - dmg;
         if ((s16) pG->ashley_life <= 0) {
             if (flag & 1) {
                 pG->ashley_life = 1;
@@ -2039,14 +2038,14 @@ void PlSetDamage(int type, int dmg, int flag)
     pPL->dmg.set(0, 0x1E);
     pPL->subArc = pPL->subArc2;
     if (dmg != 0) {
-        LifeDownSet2(pPLS, dmg, 0, flag);
+        LifeDownSet2(pPL, dmg, 0, flag);
     }
     if ((s16) pG->pl_life <= 0) {
         if (type == PL_DM_AUTO) {
             type = PL_DM_BACK;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH)) {
-            U16SetI(pG->pl_life, pG->pl_life_max);
+            pG->pl_life = pG->pl_life_max;
             if (type == PL_DM_FRONT) {
                 type = PL_DM_MIDDLE_FRONT;
             }
@@ -2068,7 +2067,7 @@ void PlSetDamage(int type, int dmg, int flag)
         cPlayer* p;
 
         pG->pl_life = 0;
-        pPLS->dmg.m_Timer = 0x80;
+        pPL->dmg.m_Timer = 0x80;
         p = pPL;
         p->r_no_0 = 2;
         p->r_no_1 = 0;
@@ -2146,8 +2145,8 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     if (part == 0) {
         return 0;
     }
-    U16And(part->flags, 0xBFFF);
-    PSet(pPL->dmg.m_pDamageYarare, part);
+    part->flags &= 0xBFFF;
+    pPL->dmg.m_pDamageYarare = part;
     if ((pPos->x - pPosOld->x) * (pPos->x - pPosOld->x) + (pPos->z - pPosOld->z) * (pPos->z - pPosOld->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
@@ -2307,7 +2306,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
     int keep;
     f32 dy;
 
-    PSet(pPL->dmg.m_pDamageYarare, (YARARE_INFO*) part);
+    pPL->dmg.m_pDamageYarare = (YARARE_INFO*) part;
     if ((pPos->x - pPos2->x) * (pPos->x - pPos2->x) + (pPos->z - pPos2->z) * (pPos->z - pPos2->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
@@ -2384,11 +2383,11 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, f32 x, f32 y, f32 z, void (*a)(cPl
 
     r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &pPL->pos, r, PI));
-    FSet(em->Catch_dir, Muku2(em->ang.y, r, PI));
+    em->Catch_dir = Muku2(em->ang.y, r, PI);
     r = pPL->ang.y;
     r += Muku(&pPL->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    FSet(pPL->Catch_dir, Muku2(pPL->ang.y, r, PI));
+    pPL->Catch_dir = Muku2(pPL->ang.y, r, PI);
     PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->ang.y + pPL->Catch_dir));
     TransMatrix(m, &pPL->pos);
     p.x = x;
@@ -2401,9 +2400,9 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, f32 x, f32 y, f32 z, void (*a)(cPl
     switch (type) {
     case 0:
     default:
-        FSet(pPL->Catch_pos_adj.x, 0.0f);
-        FSet(pPL->Catch_pos_adj.y, 0.0f);
-        FSet(pPL->Catch_pos_adj.z, 0.0f);
+        pPL->Catch_pos_adj.x = 0.0f;
+        pPL->Catch_pos_adj.y = 0.0f;
+        pPL->Catch_pos_adj.z = 0.0f;
         em->Catch_pos_adj = d;
         break;
     case 1:
@@ -2420,8 +2419,8 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, f32 x, f32 y, f32 z, void (*a)(cPl
     }
     em->Catch_at_adj = em->pos;
     pPL->Catch_at_adj = pPL->pos;
-    PSet(em->pEmCatch, pPLS);
-    PSet(pPL->pEmCatch, em);
+    em->pEmCatch = pPL;
+    pPL->pEmCatch = em;
     pPL->subArc = em->subArc;
     SetPlDamage(em, a);
 }

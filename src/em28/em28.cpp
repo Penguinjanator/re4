@@ -325,8 +325,8 @@ static inline void em28BellSet(cEm28* em)
 {
     if (!StaFlagChk(pG, STA_SE_BURST)) {
         StaFlagOn(pG, STA_SE_BURST);
-        pGS->SeInfo.pos = em->pos;
-        pGS->SeInfo.type = 0;
+        pG->SeInfo.pos = em->pos;
+        pG->SeInfo.type = 0;
     }
 }
 

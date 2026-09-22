@@ -22,7 +22,6 @@
 #include "pad.h"
 #include "debug.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -135,16 +134,13 @@ struct TSceAtWork {
     char cmesName[512][64];  // 0x11DB8
 };
 
-struct TSceAtWorkPtr {
-    TSceAtWork* p;
-};
-static TSceAtWorkPtr sceAtWk;
-#define pW (sceAtWk.p)
+static TSceAtWork* sceAtWk;
+#define pW (sceAtWk)
 struct SceAtWorkPtr {
     SceAtWork* p;
 };
-static SceAtWorkPtr sceAtCur;
-#define pCur (sceAtCur.p)
+static SceAtWork* sceAtCur;
+#define pCur (sceAtCur)
 
 static const char* tSceAtTypeName[21] = {"NORMAL", "DOOR",     "EXEC",      "",           "FLG",       "MESSAGE",  "PLANTER",
                                           "JUMP",   "SAVE",     "SHD_DISP",  "DAMAGE",     "SCR_AT",    "VIEW_CTRL", "FIELD_INFO",
@@ -310,19 +306,19 @@ void tSceAtInit_base()
 {
     *((u8*) &pG->debug_mode) = 0x11;
     DbgFlagOn(pG, DBG_BACK_CLIP);
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x8000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Disp_flg, 0x20000000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
-    BitOn(pG->Disp_flg, 0x4000000);
-    BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->Disp_flg, 0x100000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x8000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Disp_flg |= 0x20000000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
+    pG->Disp_flg |= 0x4000000;
+    pG->Disp_flg |= 0x2000000;
+    pG->Disp_flg |= 0x100000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     pW->light = 1;
     SetToolLight(1);
@@ -1104,11 +1100,11 @@ void tSceAtDataInput_door_PosSet()
     if (pCur->dstPos.x == (z = zero) && pCur->dstPos.y == z && pCur->dstPos.z == z) {
         GetNextPos(pCur->dstStage, pCur->dstRoom);
     } else {
-        FSet(pG->NextPos.x, pCur->dstPos.x);
-        FSet(pG->NextPos.y, pCur->dstPos.y);
-        FSet(pG->NextPos.z, pCur->dstPos.z);
-        FSet(pG->NextY, pCur->dstAngle);
-        U16Set(pG->room_id_prev, pG->room_id);
+        pG->NextPos.x = pCur->dstPos.x;
+        pG->NextPos.y = pCur->dstPos.y;
+        pG->NextPos.z = pCur->dstPos.z;
+        pG->NextY = pCur->dstAngle;
+        pG->room_id_prev = pG->room_id;
         pG->Part_old = pG->Part;
         pG->Stage_next = pCur->dstStage;
         pG->Room_next = pCur->dstRoom;
@@ -1138,20 +1134,20 @@ void tSceAtDataInput_door_PosSet()
             PSVECAdd(&pPL->pos, &d, &pPL->pos);
             Draw_pos(&pPL->pos, 2000);
         } else {
-            BitOff(pG->Stop_flg, 0x80000000);
+            pG->Stop_flg &= ~0x80000000;
             DbgFlagOff(pG, DBG_PL_NOHIT);
         }
         TaskSleep(1);
     }
-    FSet(pCur->dstPos.x, pPL->pos.x);
-    FSet(pCur->dstPos.y, pPL->pos.y);
-    FSet(pCur->dstPos.z, pPL->pos.z);
-    FSet(pCur->dstAngle, pPL->ang.y);
-    FSet(pG->NextPos.x, pW->savePos.x);
-    FSet(pG->NextPos.y, pW->savePos.y);
-    FSet(pG->NextPos.z, pW->savePos.z);
-    FSet(pG->NextY, pW->saveRot.y);
-    U16Set(pG->room_id_prev, pG->room_id);
+    pCur->dstPos.x = pPL->pos.x;
+    pCur->dstPos.y = pPL->pos.y;
+    pCur->dstPos.z = pPL->pos.z;
+    pCur->dstAngle = pPL->ang.y;
+    pG->NextPos.x = pW->savePos.x;
+    pG->NextPos.y = pW->savePos.y;
+    pG->NextPos.z = pW->savePos.z;
+    pG->NextY = pW->saveRot.y;
+    pG->room_id_prev = pG->room_id;
     pG->Part_old = pG->Part;
     pG->Stage_next = pW->saveStage;
     pG->Room_next = pW->saveRoom;
@@ -2620,9 +2616,9 @@ static void tSceAtPreview()
 // Un-pauses the player and HUD (Stop / Disp / Debug flag bits) for the preview.
 static void tSceAtPreview_init()
 {
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Disp_flg, 0x40000000);
-    BitOff(pG->Disp_flg, 0x80000000);
+    pG->Stop_flg &= ~0x10000000;
+    pG->Disp_flg &= ~0x40000000;
+    pG->Disp_flg &= ~0x80000000;
     DbgFlagOff(pG, DBG_DBG_CAM);
     pW->sub = 1;
     pW->step = 0;
@@ -2688,15 +2684,15 @@ void tSceAtPreview_pl_pos()
 // Restores the tool flags and returns to the main menu.
 static void tSceAtPreview_exit()
 {
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x8000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x8000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     MODE_RESET();
 }

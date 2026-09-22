@@ -783,8 +783,8 @@ void termModelAlloc(SUB_SCREEN* wk)
     ssModInfoMgr.arrayAlloc(0x10);
     ssPartsMgr.roomInit();
     ssPartsMgr.arrayAlloc(0x180);
-    MGR_PTR(cModel::mm) = &ssModInfoMgr;
-    MGR_PTR(cModel::pm) = &ssPartsMgr;
+    cModel::mm = &ssModInfoMgr;
+    cModel::pm = &ssPartsMgr;
     MapMgr.roomInit();
     MapMgr.arrayAlloc(0x10);
     for (i = 0; i < 0x10; i++) {
@@ -854,7 +854,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
     u->be_flag &= ~8;
     u->rev_flag |= 0xF;
     sscrnMainMenuInit(wk, 0);
-    IntSet(x10, 0);
+    x10 = 0;
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pTerm, 4), 3);
     }

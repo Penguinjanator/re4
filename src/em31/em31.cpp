@@ -808,7 +808,7 @@ static void em31_R1_Wait(cEm31* em)
         }
         em->atari.throughOff();
         w->Timer = Rnd() % 60 + 90;
-        if (pGS->Game_level <= 3) {
+        if (pG->Game_level <= 3) {
             w->Timer = Rnd() % 60 + 120;
         }
         if (pG->Game_level <= 1) {
@@ -1571,7 +1571,7 @@ void em31EscapeCamMove(cEm31* em)
     b.x = -244.0f;
     b.y = 809.0f;
     b.z = 52.6f;
-    PSMTXMultVec(pPLS->mat, &a, &a);
+    PSMTXMultVec(pPL->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
     PosToPos(&g->Camera.param.at, &b, &w->Cam.param.at, 1.0f);
     PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 1.0f);
@@ -1734,7 +1734,7 @@ static inline void em31CatchEnd(cEm31* em, Em31Work* w)
     w->Berserk_wait = 450;
     w->Atk_wait = 60;
     w->Be_flg &= ~0x40;
-    if (pGS->Game_level <= 3) {
+    if (pG->Game_level <= 3) {
         w->Atk_wait = 90;
     }
     if (pG->Game_level <= 1) {
@@ -2773,7 +2773,7 @@ static void em31_R1_Dm_Normal(cEm31* em)
 // The player may climb the fallen giant's back: the action button while it lies near.
 static inline void em31ClimbBtnCk(cEm31* em)
 {
-    f32 dy = fabsf(em->pos.y - pPLS->pos.y);
+    f32 dy = fabsf(em->pos.y - pPL->pos.y);
 
     if (em->plDist2 < 56250000.0f && dy < 100.0f) {
         ActBtn.set(ACT_CLIMB, 0xB, (void*) em31SetActClimb, em, ACTCTR_NONE, DISP_A_NORMAL, ACT_FUNC_NORMAL, 0);
@@ -3029,7 +3029,7 @@ static void plem31_Climb(cPlayer* pl)
         if (em31CatchObj.p) {
             em31CatchObj.p->modelInit(EM_ARC(pl, 0x86), EM_ARC(pl, 0x85));
             em31CatchObj.p->atari.m_flag &= 0xFCFF;
-            em31CatchObj.p->pParts->pParent = pPLS->getPartsPtr(0xA);
+            em31CatchObj.p->pParts->pParent = pPL->getPartsPtr(0xA);
             em31CatchObj.p->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
             em31CatchObj.p->wep.parent = pPL;
             em31CatchObj.p->be_flag &= ~2;
@@ -3409,8 +3409,8 @@ static inline void em31PlCrush(cEm31* em)
 // Knock the player away from the giant.
 static inline void em31PlBlow(cEm31* em)
 {
-    pPLS->ang.y = GetXZAngle(&pPL->pos, &em->pos);
-    if ((s16) pGS->pl_life <= 0) {
+    pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
+    if ((s16) pG->pl_life <= 0) {
         EstSet(pPL, -1, 0, 0, EFF_EM31, 0x3A, 0, ESP_CORE_KIND_NONE, pPL, 0);
     } else {
         EstSet(pPL, -1, 0, 0, EFF_EM31, 0x3B, 0, ESP_CORE_KIND_NONE, pPL, 0);
@@ -3448,13 +3448,13 @@ int em31AtkCk(cEm31* em, Vec* pos, Vec* oldPos, int no)
             switch ((u32) no) {
             case 0:
                 SndCall(8, 0x2A, &pPL->pos, em->id, 0, pPL);
-                FSet(pPL->pos.x, pos->x);
+                pPL->pos.x = pos->x;
                 pPL->pos.z = pos->z;
                 SetPlDamage(em, plem31_dm_Stamp);
                 break;
             case 1:
                 SndCall(8, 0x2A, &pPL->pos, em->id, 0, pPL);
-                FSet(pPL->pos.x, pos->x);
+                pPL->pos.x = pos->x;
                 pPL->pos.z = pos->z;
                 SetPlDamage(em, plem31_dm_Stamp);
                 pPL->r_no_3 = 1;
@@ -3501,7 +3501,7 @@ static void plem31_dm_Stamp(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), EM_ARC(pl, 0x6B), 0, 3, 1, 0);
         PlSetFace(1);
         pl->atari.clrFlag200();
-        if ((s16) pGS->pl_life > 0) {
+        if ((s16) pG->pl_life > 0) {
             PlSetDamageSe(0);
         } else {
             PlSetDamageSe(0xD);
@@ -3523,7 +3523,7 @@ static void plem31_dm_Stamp(cPlayer* pl)
         if (MotionMove(pl, 0) || (pl->Motion.Seq_frame > 49.7f && pl->Motion.Seq_frame < 50.3f)) {
             if ((s16) pG->pl_life > 0) {
                 pl->atari.throughOff();
-                EmRoutineSet(pPLS, 1, 0, 0xA, 0);
+                EmRoutineSet(pPL, 1, 0, 0xA, 0);
             }
         }
         break;
@@ -3545,7 +3545,7 @@ void em31StampCamMove(cEm31* em)
     a.x = 0.0f;
     a.y = 3000.0f;
     a.z = -3000.0f;
-    PSMTXMultVec(pPLS->mat, &a, &a);
+    PSMTXMultVec(pPL->mat, &a, &a);
     PosToPos(&g->Camera.param.pos, &a, &w->Cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Camera.param.at, &p->world, &w->Cam.param.at, 0.3f);
@@ -3646,7 +3646,7 @@ void cEm31::setCranePos(int no)
     setPos(&p);
     pos_old = p;
     w->Atk_wait = 60;
-    if (pGS->Game_level <= 3) {
+    if (pG->Game_level <= 3) {
         w->Atk_wait = 90;
     }
     if (pG->Game_level <= 1) {
@@ -3998,13 +3998,13 @@ void em31EyelidMove(cEm31* em)
         case 0:
             SndCall(8, 0x2D, &em->getPartsPtr(e->Parts)->world, em->id, 0, em);
             e->Timer = Rnd() % 90 + 90;
-            if (pGS->Game_level > 6) {
+            if (pG->Game_level > 6) {
                 e->Timer = Rnd() % 60 + 60;
             }
-            if (pGS->Game_level <= 3) {
+            if (pG->Game_level <= 3) {
                 e->Timer = Rnd() % 90 + 150;
             }
-            if (pGS->Game_level <= 1) {
+            if (pG->Game_level <= 1) {
                 e->Timer = Rnd() % 90 + 250;
             }
             e->Rno++;
@@ -4025,7 +4025,7 @@ void em31EyelidMove(cEm31* em)
             }
             if (e->Timer == 0) {
                 e->Timer = Rnd() % 90 + 90;
-                if (pGS->Game_level <= 3) {
+                if (pG->Game_level <= 3) {
                     e->Timer = Rnd() % 60 + 60;
                 }
                 e->Rno++;
@@ -5174,7 +5174,7 @@ void em31WeakMove(cEm31* em)
             EYELID_WK* e = &w->Eyelid[i];
 
             if (e->pObj) {
-                if (StaFlagChk(pGS, STA_THERMO_GRAPH) && e->Hp > 0 && em->hp > 0 && e->Flag == 0) {
+                if (StaFlagChk(pG, STA_THERMO_GRAPH) && e->Hp > 0 && em->hp > 0 && e->Flag == 0) {
                     e->pObj->be_flag |= 2;
                 } else {
                     e->pObj->be_flag &= ~2;

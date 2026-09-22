@@ -1717,17 +1717,13 @@ u32 cLit::getMaxLight()
 u32 nArrayBak;
 cLight* pAliveBak;
 
-// Scalar (reference) accesses: a struct-member access through `this` and a global scalar are
-// assumed independent, and the scheduler would hoist the load above the store.
-static inline cLight* PGet(cLight*& p) { return p; }
-
 // Entering the sub screen: drops the room lights, limits the pool to 10 and disables kind 0x7F.
 void cLightMgr::inSscrn()
 {
     deleteScr();
     nArrayBak = nArray;
     nArray = 10;
-    pAliveBak = PGet(pAlive);
+    pAliveBak = pAlive;
     offKind(0x7F);
 }
 
@@ -1735,7 +1731,7 @@ void cLightMgr::inSscrn()
 // area cut, 2 thermal) and kind 0x7F.
 void cLightMgr::outSscrn(u32 mode)
 {
-    BitSet(nArray, nArrayBak);
+    nArray = nArrayBak;
     pAlive = pAliveBak;
     switch (mode) {
     case 0:

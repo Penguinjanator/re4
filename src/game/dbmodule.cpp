@@ -16,7 +16,6 @@
 #include "trans_ot.h"
 #include "joy.h"
 #include "eprintf.h"
-#include "ref_access.h"
 #include <dolphin/os/OSCache.h>
 #include <dolphin/gx/GXDispList.h>
 #include "trans.h"
@@ -875,7 +874,7 @@ void DrawObjWireframe(cObj* obj, int color)
     vtx = (s16*) md->vtxOrig;
     part = md->pParts;
     for (np = 0; np < md->displist_num; np++) {
-        ISet(DB_poly_num, DB_poly_num + part->nPoly);
+        DB_poly_num = DB_poly_num + part->nPoly;
         cmd = (u8*) part + 0x20;
         part = (ModelPart*) ((u8*) part + part->size + 0x20);
         do {

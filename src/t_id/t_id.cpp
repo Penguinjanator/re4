@@ -116,7 +116,7 @@ void toolIdInit(IdTool* w)
     DbgFlagOn(pG, DBG_DBG_CAM);
     DbgFlagOff(pG, DBG_PROC_BAR);
     DbgFlagOff(pG, DBG_COCKPIT_TOOL);
-    BitOff(pG->System_flg, 0x800);
+    pG->System_flg &= ~0x800;
     DbgFlagOn(pG, DBG_CINESCO_OFF);
     DbgFlagOn(pG, DBG_ID_TOOL);
     toolIdSetCamera(w);
@@ -179,7 +179,7 @@ static void toolIdQuit(IdTool* w)
     DbgFlagOff(pG, DBG_TEST_MODE);
     DbgFlagOff(pG, DBG_DBG_CAM);
     DbgFlagOn(pG, DBG_PROC_BAR);
-    BitOn(pG->System_flg, 0x800);
+    pG->System_flg |= 0x800;
     DbgFlagOff(pG, DBG_CINESCO_OFF);
     DbgFlagOff(pG, DBG_ID_TOOL);
     pG->Camera = w->camSave;
@@ -3842,11 +3842,11 @@ void toolIdSetCamera(IdTool* w)
     w->scrH = 480;
     t = tanf(fovy * 0.5f * PI / 180.0f);
     pos.z = (f32) w->scrH * 0.5f / t;
-    pGS->Camera.param.pos = pos;
-    pGS->Camera.param.at = at;
-    pGS->Camera.param.roll = roll;
-    pGS->Camera.param.fovy = fovy;
-    CameraSetOrientationRoll(&pGS->Camera);
+    pG->Camera.param.pos = pos;
+    pG->Camera.param.at = at;
+    pG->Camera.param.roll = roll;
+    pG->Camera.param.fovy = fovy;
+    CameraSetOrientationRoll(&pG->Camera);
 }
 
 // Snaps `in` to the grid step.

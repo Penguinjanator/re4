@@ -164,7 +164,7 @@ int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
     m_Pos.z += w->Range * fRandSeed1_1(seed);
     w->Base_alpha = m_Col_a;
     w->Min_y = gen->Vec0.x;
-    if (StaFlagChk(pGS, STA_CAMERA_IN_ROOM)) {
+    if (StaFlagChk(pG, STA_CAMERA_IN_ROOM)) {
         m_Col_a = 0.0f;
         w->Room_del_cnt = w->Room_del_frame;
     }

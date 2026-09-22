@@ -241,13 +241,13 @@ void objGondola_R0_Up(cObjGondola* obj)
         b.x = 21722.0f;
         b.y = 10274.0f;
         b.z = -35327.0f;
-        FSet(pPL->ang.y, -0.49f);
+        pPL->ang.y = -0.49f;
         pPL->setPos(&b);
         if (pSUB && w->Ride_sub) {
             b.x = 22577.0f;
             b.y = 10274.0f;
             b.z = -35864.0f;
-            FSet(pSUB->ang.y, -0.49f);
+            pSUB->ang.y = -0.49f;
             pSUB->setPos(&b);
         }
         StaFlagOff(pG, STA_RIDE_GONDOLA);
@@ -622,17 +622,17 @@ void cObjGondola::setRidePL()
     partsWorldCalc();
     v = getPartsPtr(0)->world;
     v.y -= 4828.03f;
-    FSet(pPL->ang.y, 2.84f);
+    pPL->ang.y = 2.84f;
     pPL->setPos(&v);
     w->Ride_sub = 0;
-    if (pSUBS) {
+    if (pSUB) {
         Vec v2;
 
         v2.x = -500.0f;
         v2.y = 0.0f;
         v2.z = -800.0f;
         PSMTXMultVec(pPL->mat, &v2, &v2);
-        FSet(pSUB->ang.y, 2.84f);
+        pSUB->ang.y = 2.84f;
         pSUB->setPos(&v2);
         w->Ride_sub = 1;
     }

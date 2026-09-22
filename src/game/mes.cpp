@@ -309,7 +309,7 @@ void MessageControl::setLayout(int no, int layout)
     p_layout = layout_tbl[MesData.lang][layout];
     setFontSize(no, p_layout[0], p_layout[1]);
     U16Set(MES(no)->charSpace, p_layout[3]);
-    U16Set(MES(no)->m_line_gap, p_layout[5]);
+    MES(no)->m_line_gap = p_layout[5];
 }
 
 // Selects the language block of the message files (0 Japanese, 1 English, 2..5 French/German/
@@ -492,7 +492,7 @@ void MessageControl::stageInit()
     }
     if (sz != 0) {
 #line 874 "D:/Bio4/Prog/mes.cpp"
-        PSet(pG->pStFnt, mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
+        (pG->pStFnt = mem_alloc(sz, __FILE__, __LINE__, 1, 0xD));
         fontBuf[2] = pG->pStFnt;
     } else {
         pLog->err(0, 0, "MesCtrl::init() Font file not found.");
@@ -651,9 +651,9 @@ void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, i
     m->m_scale_w = (f32) m->m_font_w / (f32) font->m_char_w;
     m->m_scale_h = (f32) m->m_font_h / (f32) font->m_char_h;
     if (!(attr & 0x80)) {
-        BitSet(m->stop_bak, pG->Stop_flg);
+        m->stop_bak = pG->Stop_flg;
         if (!(attr & 0x10)) {
-            BitSet(pG->Stop_flg, 0xFFFFFFFF);
+            pG->Stop_flg = 0xFFFFFFFF;
             SpfFlagOff(pG, SPF_ID_SYSTEM);
             KeyStop(0xEFCF0000);
         }

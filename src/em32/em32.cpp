@@ -43,7 +43,6 @@
 #include "dbmodule.h"
 #include "foot_shadow.h"
 #include "main_mem.h"
-#include "ref_access.h"
 #include "em.h"
 #include <string.h>
 #include <dolphin/os.h>
@@ -801,7 +800,10 @@ static void em32_R1_Parasite(cEm32* em)
     case 1:
         if (MotionMove(em, 0)) {
             w->wait = 10;
-            U8Set(w->mode, 1);
+            // A local for the 1: stored directly, it shares a register with EmRoutineSet's own
+            // literal arguments below instead of getting its own.
+            int n = 1;
+            w->mode = n;
             EmRoutineSet(em, 1, 6, 0, 0);
         }
         break;
@@ -2054,10 +2056,10 @@ static void em32_R1_LongAtk(cEm32* em)
         EstSet(em, -1, 0, 0, EFF_EM32, 0xA, 0, w->espKind[2], em, (void*) step);
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
         w->Atk_ck = step;
-        IntSet(w->longAtkWait, 600);
-        IntSet(w->timer2, 25);
-        IntSet(w->timer3, 15);
-        IntSet(w->timer, 10);
+        w->longAtkWait = 600;
+        w->timer2 = 25;
+        w->timer3 = 15;
+        w->timer = 10;
         if (pG->Game_level <= 3) {
             w->timer2 = 27;
             w->timer3 = 13;
@@ -2078,7 +2080,7 @@ static void em32_R1_LongAtk(cEm32* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.196349546f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.196349546f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -2334,8 +2336,8 @@ void em32EscapeCamMove(cEm32* em)
     at.x = -244.0f;
     at.y = 809.0f;
     at.z = 52.5999985f;
-    PSMTXMultVec(pPLS->mat, &pos, &pos);
-    PSMTXMultVec(pPLS->mat, &at, &at);
+    PSMTXMultVec(pPL->mat, &pos, &pos);
+    PSMTXMultVec(pPL->mat, &at, &at);
     PosToPos(&cam->param.at, &at, &w->cam.param.at, 1.0f);
     PosToPos(&cam->param.pos, &pos, &w->cam.param.pos, 1.0f);
     if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &hit, 0, 0x8000, 0)) {
@@ -2547,7 +2549,7 @@ static void em32_R1_TunnelAtk(cEm32* em)
         }
         w->actionSet = 0;
         w->Atk_ck = 0;
-        IntSet(w->timer, 15);
+        w->timer = 15;
         if (pG->Game_level <= 3) {
             w->timer2 = 18;
         }
@@ -2786,7 +2788,7 @@ static void em32_R1_C_Wait(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(9), 0, 10, 1, 0);
         EM32_EFFECT_DELETE(w->espKind[0], em);
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
-        IntSet(w->timer, Rnd() % 30 + 60);
+        (w->timer = Rnd() % 30 + 60);
         if (pG->Game_level <= 3) {
             w->timer = Rnd() % 60 + 90;
         }
@@ -2805,8 +2807,8 @@ static void em32_R1_C_Wait(cEm32* em)
         v.y = 0.0f;
         v.z = 2000.0f;
         PSMTXMultVec(pPL->mat, &v, &em->pos);
-        FSetP(em->pos.y, pPL->pos.y + 6000.0f);
-        em->ang.y = pPLS->ang.y + 3.14159274f;
+        em->pos.y = pPL->pos.y + 6000.0f;
+        em->ang.y = pPL->ang.y + 3.14159274f;
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMove(em, 0);
         if (em->hp <= 0) {
@@ -2877,7 +2879,7 @@ static void em32_R1_C_Atk(cEm32* em)
         em->be_flag |= 2;
         EstSet(em, -1, 0, 0, EFF_EM32, 0x12, 0, ESP_CORE_KIND_NONE, em, (void*) step);
         w->TmpU32 = Rnd() & 1;
-        if (pGS->Game_level <= 3) {
+        if (pG->Game_level <= 3) {
             w->TmpU32 = step;
         }
         em->r_no_2++;
@@ -2956,7 +2958,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
         EmCatchMotionMove(em, 1.0f, 1.0f);
         if (w->timer) {
             w->timer--;
-            LifeDownSet2(pPLS, 20, 0, 1);
+            LifeDownSet2(pPL, 20, 0, 1);
             PlGachaMove();
             if ((s16) pG->pl_life > 1 && (u32) PlGachaGet() > 30) {
                 em->r_no_2++;
@@ -2971,7 +2973,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
         }
         if (em->Motion.Seq_old.Free & 1) {
             em32PlHeadLost();
-            U16Set(pG->pl_life, 0);
+            pG->pl_life = 0;
             VibSetData(VIB_TBL, 0xB, 1);
         }
         if (em->Motion.Seq_old.Free & 4) {
@@ -3078,7 +3080,7 @@ static void em32_R1_P_Atk(cEm32* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.0981747732f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.0981747732f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMove(em, 0)) {
@@ -3317,9 +3319,9 @@ static void plem32_P_CatchHit(cPlayer* pl)
         if (obj) {
             obj->modelInit(EM_ARC(pl, 0xAC), EM_ARC(pl, 0xAB));
             w->pCatchObj->atari.m_flag &= 0xFCFF;
-            w->pCatchObj->pParts->pParent = pPLS->getPartsPtr(0xA);
+            w->pCatchObj->pParts->pParent = pPL->getPartsPtr(0xA);
             w->pCatchObj->LightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
-            w->pCatchObj->wep.parent = pPLS;
+            w->pCatchObj->wep.parent = pPL;
             w->pCatchObj->getPartsPtr(1)->ang.y = 3.14159274f;
         }
         pl->m_Work0 = 15;
@@ -3360,8 +3362,8 @@ static void em32_R1_Ground(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(0x7D), ARC(0x7E), 10, 1, 0);
         w->timer = 30;
         EM32_W_FRESH(w);   // COMPILER-DIFF #12
-        IntSet(w->timer2, Rnd() % 90 + 90);
-        IntSet(w->timer3, 20);
+        (w->timer2 = Rnd() % 90 + 90);
+        w->timer3 = 20;
         if (pG->Game_level <= 3) {
             w->timer3 = 25;
         }
@@ -3381,7 +3383,7 @@ static void em32_R1_Ground(cEm32* em)
         w->Atk_ck = 0;
         w->actionSet = 0;
         w->TmpU32 = Rnd() & 1;
-        em->ang.y = pPLS->ang.y;
+        em->ang.y = pPL->ang.y;
         GetPlPos(&em->pos, 18.0f, 0);
         PSMTXRotRad(m, 'y', em->ang.y);
         TransMatrix(m, &em->pos);
@@ -3715,9 +3717,9 @@ void em32RouteCk(cEm32* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->flags &= ~4;
-    if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
+    if (DbgFlagChk(pG, DBG_RTP_DISP)) {
         d = em->pos;
         d.y += 250.0f;
         Draw_line3d(&d, &w->targetPos, 0xFFFFFF40, 0);
@@ -3918,7 +3920,7 @@ int em32StepUpCk(cEm32* em)
         return 0;
     }
     a = em->pos;
-    b = pPLS->pos;
+    b = pPL->pos;
     a.y += 1000.0f;
     b.y += 1000.0f;
     if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
@@ -4241,7 +4243,7 @@ void em32GetJumpDownNo(cEm32* em)
     int i;
 
     w->pPoint = 0;
-    if (pGS->pEmi == 0) {
+    if (pG->pEmi == 0) {
         return;
     }
     best = 25000000.0f;
@@ -4256,7 +4258,7 @@ void em32GetJumpDownNo(cEm32* em)
         if (d > best) {
             continue;
         }
-        (void*&) w->pPoint = e;
+        w->pPoint = (Em32Point*) e;
         best = d;
     }
 }
@@ -4406,13 +4408,23 @@ void cEm32::setNext(int no)
         EmRoutineSet(this, no, 3, 0, 0);
         break;
     case 2:
-        U8Set(w->mode, 1);
+        // A local for the 1: stored directly, it shares a register with the hp/AtariOff work below
+        // instead of getting its own.
+        {
+            int n = 1;
+            w->mode = n;
+        }
         hp = hp_max;
         AtariOff(&atari, 0xFCFF);
         EmRoutineSet(this, 1, 4, 0, 0);
         break;
     case 4:
-        U8Set(w->mode, 1);
+        // A local for the 1: stored directly, it shares a register with the hp/AtariOff work below
+        // instead of getting its own.
+        {
+            int n = 1;
+            w->mode = n;
+        }
         hp = hp_max;
         AtariOff(&atari, 0xFCFF);
         flag &= ~1;
@@ -4424,7 +4436,12 @@ void cEm32::setNext(int no)
         EmRoutineSet(this, 1, 5, 0, 0);
         break;
     case 5:
-        U8Set(w->mode, 1);
+        // A local for the 1: stored directly, it shares a register with the hp/AtariOff work below
+        // instead of getting its own.
+        {
+            int n = 1;
+            w->mode = n;
+        }
         hp = hp_max;
         AtariOff(&atari, 0xFCFF);
         flag &= ~1;
@@ -4446,7 +4463,12 @@ void cEm32::setNext(int no)
         r_no_3 = 1;
         break;
     case 7:
-        U8Set(w->mode, 1);
+        // A local for the 1: stored directly, it shares a register with the w->wait store below
+        // instead of getting its own.
+        {
+            int n = 1;
+            w->mode = n;
+        }
         w->wait = 10;
         EM32_EFFECT_DELETE(w->espKind[1], this);
         em32TexrenderInit(this);
@@ -4523,7 +4545,7 @@ void em32GetStepDownPos(cEm32* em)
     int i;
     EmiEntry* e;
 
-    w->stepPos = pPLS->pos;
+    w->stepPos = pPL->pos;
     if (pG->pEmi == 0) {
         return;
     }
@@ -4803,21 +4825,21 @@ void em32PlDivideSet(cEm32* em)
 
     SetPlDamage(em, plemDivide);
     pG->pl_life = 0;
-    pPLS->be_flag &= ~2;
-    pPLS->ang.y = GetXZAngle(&em->pos, &pPLS->pos);
+    pPL->be_flag &= ~2;
+    pPL->ang.y = GetXZAngle(&em->pos, &pPL->pos);
     if (w->pDivide[0]) {
         ((cObj00*) w->pDivide[0])->setScrAtari(300.0f);
         w->pDivide[0]->be_flag |= 2;
-        w->pDivide[0]->pos = pPLS->pos;
-        w->pDivide[0]->ang = pPLS->ang;
+        w->pDivide[0]->pos = pPL->pos;
+        w->pDivide[0]->ang = pPL->ang;
         MotSetObj00(w->pDivide[0], ARC(0x9C), 1, 0);
         EstSet(w->pDivide[0], -1, 0, 0, EFF_EM32, 0x10, 0, ESP_CORE_KIND_NONE, w->pDivide[0], 0);
     }
     if (w->pDivide[1]) {
         ((cObj00*) w->pDivide[1])->setScrAtari(300.0f);
         w->pDivide[1]->be_flag |= 2;
-        w->pDivide[1]->pos = pPLS->pos;
-        w->pDivide[1]->ang = pPLS->ang;
+        w->pDivide[1]->pos = pPL->pos;
+        w->pDivide[1]->ang = pPL->ang;
         MotSetObj00(w->pDivide[1], ARC(0x9D), 1, 0);
         EstSet(w->pDivide[0], -1, 0, 0, EFF_EM32, 0x11, 0, ESP_CORE_KIND_NONE, w->pDivide[0], 0);
     }
@@ -4831,14 +4853,14 @@ void em32PlDivideSet2(cEm32* em)
 
     if (w->pDivide[0]) {
         w->pDivide[0]->be_flag |= 2;
-        w->pDivide[0]->pos = pPLS->pos;
-        w->pDivide[0]->ang = pPLS->ang;
+        w->pDivide[0]->pos = pPL->pos;
+        w->pDivide[0]->ang = pPL->ang;
         MotSetObj00(w->pDivide[0], ARC(0xA1), 1, 0);
     }
     if (w->pDivide[1]) {
         w->pDivide[1]->be_flag |= 2;
-        w->pDivide[1]->pos = pPLS->pos;
-        w->pDivide[1]->ang = pPLS->ang;
+        w->pDivide[1]->pos = pPL->pos;
+        w->pDivide[1]->ang = pPL->ang;
         MotSetObj00(w->pDivide[1], ARC(0xA2), 1, 0);
         EstSet(w->pDivide[1], -1, 0, 0, EFF_EM32, 0xF, 0, w->espKind[1], em, 0);
     }

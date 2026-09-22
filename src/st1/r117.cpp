@@ -74,12 +74,8 @@ struct R117Work {
     ReadModule* mod;      // 0x3C  enemy module 3 (the event data is swapped into its archive)
 };
 
-// One-member struct: every store into the work reloads the pointer afterwards.
-struct R117WorkPtr {
-    R117Work* p;
-};
-static R117WorkPtr r117_work;
-#define W r117_work.p
+static R117Work* r117_work;
+#define W r117_work
 
 static const Vec r117_smdPos = {0.0f, 9826.0f, -2072.0f};
 static const Vec r117_smdRot = {0.0f, 0.0f, 0.0f};
@@ -685,13 +681,13 @@ static void r117_EventChandelier()
 
     pPL->beginEvent(0);
     W->smd->beginEvent(0);
-    FSet(pPL->pos.x, -258.0f);
-    FSet(pPL->pos.z, r117_smdPos.z - 5927.0f);
+    pPL->pos.x = -258.0f;
+    pPL->pos.z = r117_smdPos.z - 5927.0f;
     {
         f32 ry;
         cPlayer* pl;
 
-        pl = pPLS;
+        pl = pPL;
         ry = ((Vec*) &r117_smdRot)->y; // non-const view: the load stays below the pos.z store
         pl->setPos(&pl->pos);
         ang.x = 0.0f;
@@ -751,13 +747,13 @@ static void r117_EventChandelier()
         }
         SceSleep(1);
     } while (loop != 0);
-    FSet(pPL->pos.x, px);
-    FSet(pPL->pos.z, pz);
+    pPL->pos.x = px;
+    pPL->pos.z = pz;
     {
         f32 ry;
         cPlayer* pl;
 
-        pl = pPLS;
+        pl = pPL;
         ry = pl->ang.y;
         pl->setPos(&pl->pos);
         ang.x = 0.0f;

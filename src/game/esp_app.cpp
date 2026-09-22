@@ -14,7 +14,6 @@
 #include "TexRender.h"
 #include "esp.h"
 #include "espgen.h"
-#include "ref_access.h"
 
 // laser line: cEsp19 (game/esp19.cpp) work
 struct Esp19Work {
@@ -106,11 +105,7 @@ EffSeFunc pSeFunc[8];
 // The mask read after the `repType = 1` store goes through a struct-member view of the pointer
 // (the pLog trick, db_log.h) so it stays below the store; the other reads use the plain global.
 TexRenderMng* g_pMgr;
-struct TexRenderMngPtr {
-    TexRenderMng* p;
-};
 #define pMgr g_pMgr
-#define pMgrView (((TexRenderMngPtr*) &g_pMgr)->p)
 
 // Fills the effect function table: for every effect id 0x00..0x52 registers its Create function and
 // its Trans (draw) function (EspCommonTrans for plain sprites). Called once from the effect system
@@ -270,7 +265,7 @@ int EspPlWaterCall(int type, Vec* pos)
 
     if (GetWaterHeight(pos, &h)) {
         if (pos->y < h - 90.0f) {
-            AddWaterPower(&pPL->pos, 0.25f);
+            AddWaterPower(pPL->pos, 0.25f);
             ret = 1;
             wpos = *pos;
             wpos.y = h;
@@ -434,8 +429,8 @@ void EffEm2d_setTexRender(cModel* m)
         }
         StaFlagOn(pG, STA_EFFEM2D_TEXRND);
         mgr = pMgr;
-        BitSet(mgr->m_W_size, 0x40);
-        BitSet(mgr->m_H_size, 0x40);
+        mgr->m_W_size = 0x40;
+        mgr->m_H_size = 0x40;
         pMgr->ReAllocBuf();
         tbl[0] = 4;
         tbl[1] = 0;
@@ -448,7 +443,7 @@ void EffEm2d_setTexRender(cModel* m)
         tbl[9] = mgr2->texId;
         tbl[0xA] = 6;
         tbl[0xB] = mgr2->texId;
-        ISet(mgr2->m_Rep_type, repType);
+        mgr2->m_Rep_type = repType;
         EstSet(0, -1, NULL, NULL, EFF_EM2D, 0x1F, pMgr->mask | 0x801, ESP_CORE_KIND_NONE, 0, NULL);
     }
     m->pModelInfo->setTexBlendTbl(tbl);
@@ -456,7 +451,7 @@ void EffEm2d_setTexRender(cModel* m)
 }
 
 // Draws one frame of the laser sight line (est owner 0 id 3, effect 0x19) from `from` to `to`;
-// `width` scales the record's max_laser_dist. In the pGS Status_flg[1] bit 0 mode (night vision /
+// `width` scales the record's max_laser_dist. In the pG Status_flg[1] bit 0 mode (night vision /
 // scope) the blend is switched to additive-ish and alpha is reduced to 80%. Debug_flg[3] bit 0x40 hides it.
 // The five `esp` reloads and the 0.8f pool high are local-alloc qtys allocated by priority
 // refs*log2(refs)/life over the sched1 order with +-1-insn fake lifetimes: the high (refs 2,
@@ -483,7 +478,7 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     e->m_Pos = from;
     w->Vec0 = to;
     w->max_laser_dist *= width;
-    if (StaFlagChk(pGS, STA_LASERSITE_NOADD)) {
+    if (StaFlagChk(pG, STA_LASERSITE_NOADD)) {
         cEsp* e1 = esp;
         e1->m_Blend_mode = 1;
         asm("" : "=m"(esp) : "r"(e1), "r"(e1)); // COMPILER-DIFF: candidate (local-alloc qty order)

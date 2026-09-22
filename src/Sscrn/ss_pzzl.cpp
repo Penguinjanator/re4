@@ -826,7 +826,7 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
     } else {
         b = wk->puzzlePlayer->cur;
     }
-    FSet(m->pos.x, pzlGrid::size * (p->m_pos_x + 0.5f));
+    m->pos.x = pzlGrid::size * (p->m_pos_x + 0.5f);
     m->pos.y = -pzlGrid::size * (p->m_pos_y + 0.5f);
     m->matUpdate();
     PSMTXConcat(b->m_mat, m->mat, m->mat);
@@ -1162,7 +1162,7 @@ void caseModelMove(int sw)
     PSVECScale(&u2->rot, &parts->ang, 0.017453292f);
     m->pos.z = pzzlDbgPos;
     m->matUpdate();
-    FSet(pzlGrid::size, size);
+    pzlGrid::size = size;
     b = wk->puzzlePlayer->m_board;
     {
         Mtx tmp;

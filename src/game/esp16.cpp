@@ -64,7 +64,7 @@ void cEsp16::move()
         PushEsp(this);
         return;
     }
-    FSet(m_Radius, 100000000.0f);
+    m_Radius = 100000000.0f;
     if (parent == pEffParentWorld) {
         pos0 = m_Pos;
     } else {
@@ -292,7 +292,7 @@ int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
     Vec z;
     int i;
 
-    BitSet(w->Num, (u8)(gen->Work8[0] + 2));
+    w->Num = (u8)(gen->Work8[0] + 2);
     if (parent != pEffParentWorld && (m_Release_time == 0xFF || m_Release_time <= m_Life_time)) {
         s8 no = gen->Work8[1];
 
@@ -313,8 +313,8 @@ int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->warn(0, 0, "ESP_16 : Buf alloc failed.");
         return 0;
     }
-    FSet(m_Radius, 100000000.0f);
-    BitOn16(m_Flg, 2);
+    m_Radius = 100000000.0f;
+    m_Flg |= 2;
     z.z = 0.0f;
     z.y = 0.0f;
     z.x = 0.0f;

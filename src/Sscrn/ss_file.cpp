@@ -433,7 +433,7 @@ void SsFileMain::init(SUB_SCREEN* wk)
     if (wk->type == 0x40) {
         int no = fileId2No(wk->get_item_id);
         ItemMgr.get(wk->get_item_id, 0);
-        S32Set(wk->model_flag, 1);
+        wk->model_flag = 1;
         if (pSys->language == 0) {
             cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);
         }
@@ -800,7 +800,7 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     SsFileWork* fw;
 
     x = (int) ((pos->scr.x + 320.0f) * 0.8f);
-    S16Set(y, (int) ((240.0f - pos->scr.y) * 0.8f));
+    y = (int) ((240.0f - pos->scr.y) * 0.8f);
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);
     }

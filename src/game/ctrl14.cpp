@@ -78,8 +78,8 @@ create:
         w->sat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
     }
     w->sat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
-    // pGS: the original loads pG after the sat[1] store; a plain pG here is hoisted above the argument setup
-    w->sat[2] = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 5), 0, &pos, &rot, 3);
+    // pG: the original loads pG after the sat[1] store; a plain pG here is hoisted above the argument setup
+    w->sat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
     return c;
 }
 

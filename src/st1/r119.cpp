@@ -98,7 +98,7 @@ extern "C" void Evt_R119S00_Func(Event* e);
 extern "C" void Evt_R119S10_Func(Event* e);
 extern "C" void Evt_R119S20_Func(Event* e);
 
-// Third SetTree block: the pRoomArc read goes through the struct view `pGS` so the `lwz pG` depends
+// Third SetTree block: the pRoomArc read goes through the struct view `pG` so the `lwz pG` depends
 // on the preceding pos/rot stores (a plain `pG` load is a fixed scalar that sched2 hoists above them).
 void R119Init()
 {
@@ -128,11 +128,11 @@ void R119Init()
     SmdGetObjPtr(0x25)->be_flag |= 0x20;
     SmdGetObjPtr(0x24)->be_flag |= 0x20;
     SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, SCE_PRIO_DEF_2, 0);
-    PSet(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
-    PSet(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
-    PSet(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
-    PSet(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
-    PSet(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    r119_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0);
+    r119_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0);
+    r119_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
+    r119_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0);
+    r119_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0);
     r119_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
     koya_init();
     if (RsfCheck(G_ROOM_ID, 4)) {
@@ -178,7 +178,7 @@ void R119Init()
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    tree = SetTree(ROOM_ARC_PTR(pGS->pRoom, 0x22), ROOM_ARC_PTR(pGS->pRoom, 0x23), &pos, &rot);
+    tree = SetTree(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     tree->LightInfo.SelectMask &= ~0x10000;
     if ((obj = SmdGetObjPtr(0x21)) != 0) {
         Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
@@ -380,7 +380,7 @@ static void r119_EventDogAppear()
     StaFlagOn(pG, STA_CAMERA_SET_ROOM);
     EvtMgr.EvtReadExec("event/evd/r119s10.evd", 0x2B, EvtReadFlagNone);
     StaFlagOff(pG, STA_CAMERA_SET_ROOM);
-    PSet(r119_work->dog, EmSetFromList2(0x29, 0));
+    r119_work->dog = EmSetFromList2(0x29, 0);
     pos.x = 116292.0f;
     pos.y = 2298.0f;
     pos.z = 4229.0f;

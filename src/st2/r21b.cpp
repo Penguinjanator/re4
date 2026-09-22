@@ -42,12 +42,8 @@ struct R21bWork {
     cSat* sat;              // 0x210
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R21bWorkPtr {
-    R21bWork* p;
-};
 
-static R21bWorkPtr r21b_work;
+static R21bWork* r21b_work;
 
 
 static R21bEmSet r21b_emTbl0[] = {{0, 0, 0xAE}, {1, 1, 0xA6}, {0x1C, 0x3D, 0x6D}, {-1, -1, 0}};
@@ -75,7 +71,7 @@ static void r21b_HalfWaySwitchMoveEndProc();
 void R21bInit()
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
-    R21bWork*& wp = r21b_work.p;   // the store's `lis` sits before the mem_calloc call
+    R21bWork*& wp = r21b_work;   // the store's `lis` sits before the mem_calloc call
     Vec rot = {0.0f, 0.0f, 0.0f};
 
 #line 46 "D:/Bio4/Prog/r21b.cpp"
@@ -95,9 +91,9 @@ void R21bInit()
         mot[8] = ROOM_ARC_PTR(pG->pRoom, 0x29);
         wp->trolley->setMotion(mot);
     }
-    r21b_work.p->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
-    r21b_work.p->hit[0]->setParent(SmdGetObjPtr(0xC8), 0, 0);
-    YarareInit(r21b_work.p->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
+    r21b_work->hit[0] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
+    r21b_work->hit[0]->setParent(SmdGetObjPtr(0xC8), 0, 0);
+    YarareInit(r21b_work->hit[0], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
     if (RsfCheck(G_ROOM_ID, 0)) {
         SmdGetObjPtr(0xB9)->be_flag &= ~2;
         SceAtSetEnable(2, 0);
@@ -113,15 +109,15 @@ void R21bInit()
     }
     PlRegistMotion(0, 0, 0, 0, 0, 0, 0, 0, ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B),
                    ROOM_ARC_PTR(pG->pRoom, 0x2C), ROOM_ARC_PTR(pG->pRoom, 0x2D));
-    r21b_work.p->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &pos, 7);
+    r21b_work->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &pos, 7);
 }
 
 // Per frame: the start switch hit by anything but a knife / grenade weapon type (0xD/0xE/0x12/0x13)
 // starts the cart; at the half-way stop the second switch likewise restarts it.
 void R21bMain()
 {
-    if (r21b_work.p->hit[0]->ckStatus() == 1) {
-        switch (r21b_work.p->hit[0]->dmg.m_Wep) {
+    if (r21b_work->hit[0]->ckStatus() == 1) {
+        switch (r21b_work->hit[0]->dmg.m_Wep) {
         case 0xD:
         case 0xE:
         case 0x12:
@@ -132,9 +128,9 @@ void R21bMain()
             break;
         }
     }
-    if (r21b_work.p->trolley->ckStop() == 1) {
-        if (r21b_work.p->hit[1] && r21b_work.p->hit[1]->ckStatus() == 1) {
-            switch (r21b_work.p->hit[1]->dmg.m_Wep) {
+    if (r21b_work->trolley->ckStop() == 1) {
+        if (r21b_work->hit[1] && r21b_work->hit[1]->ckStatus() == 1) {
+            switch (r21b_work->hit[1]->dmg.m_Wep) {
             case 0xD:
             case 0xE:
             case 0x12:
@@ -155,15 +151,15 @@ static void r21b_GanadoJumpDownCheck(int no)
     int wait;
 
     for (p = r21b_emTbl[no]; p->slot != -1; p++) {
-        r21b_work.p->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
+        r21b_work->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
     }
     do {
         wait = 0;
         for (p = r21b_emTbl[no]; p->slot != -1; p++) {
-            R21bEm* e = &r21b_work.p->em[p->slot];
+            R21bEm* e = &r21b_work->em[p->slot];
 
             if (e->set == 0) {
-                if (r21b_work.p->trolley->Motion.Seq_frame == (f32) p->frame) {
+                if (r21b_work->trolley->Motion.Seq_frame == (f32) p->frame) {
                     e->em.setFlag(1);
                     e->set = 1;
                 } else {
@@ -190,27 +186,27 @@ static void r21b_HalfWayGanadoSet()
     u32 cnt = 0;
     R21bEmSet* p;
 
-    while (r21b_work.p->trolley->ckStop() == 0) {
+    while (r21b_work->trolley->ckStop() == 0) {
         SceSleep(1);
     }
-    r21b_work.p->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
-    r21b_work.p->hit[1]->setParent(SmdGetObjPtr(0xC9), 0, 0);
-    YarareInit(r21b_work.p->hit[1], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
-    while (r21b_work.p->trolley->ckStop() == 1) {
+    r21b_work->hit[1] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), &pos, 0, 1);
+    r21b_work->hit[1]->setParent(SmdGetObjPtr(0xC9), 0, 0);
+    YarareInit(r21b_work->hit[1], 0.0f, 0.0f, 0.0f, 400.0f, 0.0f, 0, YAT_FLAG_ON);
+    while (r21b_work->trolley->ckStop() == 1) {
         if (cnt <= 12 && (u32) SceCountEmAlive(0x10, 0x20) <= 5) {
             for (p = tbl; p->slot != -1; p++) {
                 if (p->frame == 0) {
                     if (Rnd() & 1) {
-                        r21b_work.p->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
+                        r21b_work->em[p->slot].em.setEm(p->no, 5, 1, 1, 0);
                         cnt++;
-                        r21b_work.p->em[p->slot].em.setFlag(1);
+                        r21b_work->em[p->slot].em.setFlag(1);
                         p->frame = 1;
                         break;
                     }
-                } else if (r21b_work.p->em[p->slot].em.ckResetEnable() == 1) {
+                } else if (r21b_work->em[p->slot].em.ckResetEnable() == 1) {
                     cnt++;
-                    r21b_work.p->em[p->slot].em.setReset();
-                    r21b_work.p->em[p->slot].em.setFlag(1);
+                    r21b_work->em[p->slot].em.setReset();
+                    r21b_work->em[p->slot].em.setFlag(1);
                     break;
                 }
             }
@@ -232,8 +228,8 @@ static void r21b_SwitchMove(int no)
         }
         pG->Room_flg[0] |= 0x40000000;
         obj = SmdGetObjPtr(0xC8);
-        if (r21b_work.p->sat) {
-            r21b_work.p->sat->m_Flag &= ~4;
+        if (r21b_work->sat) {
+            r21b_work->sat->m_Flag &= ~4;
         }
     } else {
         if (pG->Room_flg[0] & 0x20000000) {
@@ -258,9 +254,9 @@ static void r21b_SwitchMove(int no)
         if (SceAtHitCheck(6) == 0) {
             SceSleep(1);
         }
-        r21b_work.p->trolley->setStart();
+        r21b_work->trolley->setStart();
     } else {
-        r21b_work.p->trolley->set2ndStart();
+        r21b_work->trolley->set2ndStart();
     }
 }
 
@@ -324,7 +320,7 @@ static void r21b_DoorOpen()
 // The ride stream starts once the cart passes frame 80 and the player reaches area 5.
 static void r21b_StrPlay()
 {
-    while (r21b_work.p->trolley->Motion.Seq_frame != 80.0f) {
+    while (r21b_work->trolley->Motion.Seq_frame != 80.0f) {
         SceSleep(1);
     }
     SndRoomStrStart(1, 0, 1);
@@ -342,7 +338,7 @@ static void r21b_HalfWaySwitchMove()
 
     obj->ang.x = 1.5707964f;
     obj->be_flag |= 0x20;
-    while (r21b_work.p->trolley->Motion.Seq_frame != 1878.0f) {
+    while (r21b_work->trolley->Motion.Seq_frame != 1878.0f) {
         SceSleep(1);
     }
     SceEventStart(1);
@@ -354,7 +350,7 @@ static void r21b_HalfWaySwitchMove()
     pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r21b_HalfWaySwitchMoveEndProc, 0, 0, 1);
     SceSleep(5);
-    r21b_work.p->se = RoomSeCall(4, &obj->pos, 0, 0, 0);
+    r21b_work->se = RoomSeCall(4, &obj->pos, 0, 0, 0);
     while (obj->ang.x > 0.0f) {
         obj->ang.x -= step;
         SceSleep(1);
@@ -374,8 +370,8 @@ static void r21b_HalfWaySwitchMoveEndProc()
     cObj* obj = SmdGetObjPtr(0xC9);
 
     if (pG->Room_flg[0] & 0x80000000) {
-        if (r21b_work.p->se) {
-            SndStop(r21b_work.p->se, 0);
+        if (r21b_work->se) {
+            SndStop(r21b_work->se, 0);
         }
     }
     obj->ang.x = 0.0f;

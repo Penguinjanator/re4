@@ -361,8 +361,8 @@ void shopModelAlloc(SUB_SCREEN* wk)
     ssModInfoMgr.arrayAlloc(pl->m_piece_max + 4);
     ssPartsMgr.roomInit();
     ssPartsMgr.arrayAlloc(0xBE);
-    MGR_PTR(cModel::mm) = &ssModInfoMgr;
-    MGR_PTR(cModel::pm) = &ssPartsMgr;
+    cModel::mm = &ssModInfoMgr;
+    cModel::pm = &ssPartsMgr;
     MapMgr.roomInit();
     MapMgr.arrayAlloc(pl->m_piece_max + 4);
     for (i = 0; i < pl->m_piece_max + 4; i++) {
@@ -1570,7 +1570,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
     switch (state) {
     case 0:
         if (searchItemPieceData(sw->buyId, piece_info)) {
-            IntSet(state, 1);
+            state = 1;
             if ((int) pG->peseta >= m->sellPrice(sw->buyId, sw->count)) {
                 switch (sw->buyId) {
                 case 0x3:

@@ -36,12 +36,8 @@ struct R20fWork {
     cSat* eat[3];           // 0x7D8
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R20fWorkPtr {
-    R20fWork* p;
-};
 
-static R20fWorkPtr r20f_work;
+static R20fWork* r20f_work;
 
 // Stores into the work the original keeps below the following `pG` load (scalar-reference stores).
 
@@ -86,21 +82,21 @@ void R20fInit()
     cObj* obj0;
     cObj* obj1;
 
-    R20fWork*& wp = r20f_work.p;
+    R20fWork*& wp = r20f_work;
 #line 45 "D:/Bio4/Prog/r20f.cpp"
     wp = (R20fWork*) MEM_CALLOC(sizeof(R20fWork), 1, 0xd);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     cEmDoor* door;
     for (i = 0; i < 3; i++) {
-        r20f_work.p->sat[i] = NULL;
-        r20f_work.p->eat[i] = NULL;
+        r20f_work->sat[i] = NULL;
+        r20f_work->eat[i] = NULL;
     }
-    PSet(r20f_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
-    PSet(r20f_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
-    PSet(r20f_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3));
-    PSet(r20f_work.p->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 2));
-    PSet(r20f_work.p->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
+    r20f_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+    r20f_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
+    r20f_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
+    r20f_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 2);
+    r20f_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     if (checkEmListNo(G_ROOM_ID) == 4 && FlagChk(pG->Em_flg[3], 219)) {
         EmListSetAlive(0xF, 0);
     }
@@ -135,20 +131,20 @@ void R20fInit()
                 v.z = z;
                 obj1->setAng(pv);
             }
-            if (r20f_work.p->sat[0]) {
-                r20f_work.p->sat[0]->m_Flag |= 4;
+            if (r20f_work->sat[0]) {
+                r20f_work->sat[0]->m_Flag |= 4;
             }
-            if (r20f_work.p->sat[1]) {
-                r20f_work.p->sat[1]->m_Flag &= ~4;
+            if (r20f_work->sat[1]) {
+                r20f_work->sat[1]->m_Flag &= ~4;
             }
-            if (r20f_work.p->sat[2]) {
-                r20f_work.p->sat[2]->m_Flag &= ~4;
+            if (r20f_work->sat[2]) {
+                r20f_work->sat[2]->m_Flag &= ~4;
             }
-            if (r20f_work.p->eat[1]) {
-                r20f_work.p->eat[1]->m_Flag &= ~4;
+            if (r20f_work->eat[1]) {
+                r20f_work->eat[1]->m_Flag &= ~4;
             }
-            if (r20f_work.p->eat[2]) {
-                r20f_work.p->eat[2]->m_Flag &= ~4;
+            if (r20f_work->eat[2]) {
+                r20f_work->eat[2]->m_Flag &= ~4;
             }
             SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) R20fSwitchMain, 0, 1);
         }
@@ -286,20 +282,20 @@ static void R20fSwitchEnd(int evt)
         rot.z = 1.5707964f;
         obj1->setAng(&rot);
     }
-    if (r20f_work.p->sat[0]) {
-        r20f_work.p->sat[0]->m_Flag &= ~4;
+    if (r20f_work->sat[0]) {
+        r20f_work->sat[0]->m_Flag &= ~4;
     }
-    if (r20f_work.p->sat[1]) {
-        r20f_work.p->sat[1]->m_Flag |= 4;
+    if (r20f_work->sat[1]) {
+        r20f_work->sat[1]->m_Flag |= 4;
     }
-    if (r20f_work.p->sat[2]) {
-        r20f_work.p->sat[2]->m_Flag |= 4;
+    if (r20f_work->sat[2]) {
+        r20f_work->sat[2]->m_Flag |= 4;
     }
-    if (r20f_work.p->eat[1]) {
-        r20f_work.p->eat[1]->m_Flag |= 4;
+    if (r20f_work->eat[1]) {
+        r20f_work->eat[1]->m_Flag |= 4;
     }
-    if (r20f_work.p->eat[2]) {
-        r20f_work.p->eat[2]->m_Flag |= 4;
+    if (r20f_work->eat[2]) {
+        r20f_work->eat[2]->m_Flag |= 4;
     }
     if (evt) {
         CamCtrl.Comeback(0);
@@ -345,18 +341,18 @@ static void R20fEmSetMain()
                 R20fEmResetB0();
             }
             if (RsfCheck(G_ROOM_ID, 4) == 0 && (pG->Room_flg[2] & 0x80000000)) {
-                int dead = r20f_work.p->em[2].isActive() == 0;
+                int dead = r20f_work->em[2].isActive() == 0;
 
-                if (r20f_work.p->em[3].isActive() == 0) {
+                if (r20f_work->em[3].isActive() == 0) {
                     dead++;
                 }
-                if (r20f_work.p->em[4].isActive() == 0) {
+                if (r20f_work->em[4].isActive() == 0) {
                     dead++;
                 }
-                if (r20f_work.p->em[5].isActive() == 0) {
+                if (r20f_work->em[5].isActive() == 0) {
                     dead++;
                 }
-                if (r20f_work.p->em[6].isActive() == 0) {
+                if (r20f_work->em[6].isActive() == 0) {
                     dead++;
                 }
                 if (dead > 2) {
@@ -375,8 +371,8 @@ void R20fEmResetA0()
     Vec pos = {49000.0f, 3500.0f, 26500.0f};
 
     SndCall(6, 3, &pos, 0, 0, 0);
-    r20f_work.p->em[7].setEm(0xE5, -1, 0, 1, 1);
-    r20f_work.p->em[8].setEm(0xE6, -1, 0, 1, 1);
+    r20f_work->em[7].setEm(0xE5, -1, 0, 1, 1);
+    r20f_work->em[8].setEm(0xE6, -1, 0, 1, 1);
 }
 
 // Guard alert: the player is below the platform level.
@@ -389,30 +385,30 @@ static int R20fCkEmGuard(cEmWrap* em)
 // below the platform level (R20fCkEmGuard).
 void R20fEmResetB0()
 {
-    r20f_work.p->em[9].setEm(0xE9, -1, 0, 1, 1);
-    r20f_work.p->em[10].setEm(0xEA, -1, 0, 1, 1);
-    r20f_work.p->guard[0].SetGuard(0xE9, &r20f_guardPos0, 1, R20fCkEmGuard, PI, 0, 1);
-    r20f_work.p->guard[1].SetGuard(0xEA, &r20f_guardPos1, 1, R20fCkEmGuard, PI, 0, 1);
+    r20f_work->em[9].setEm(0xE9, -1, 0, 1, 1);
+    r20f_work->em[10].setEm(0xEA, -1, 0, 1, 1);
+    r20f_work->guard[0].SetGuard(0xE9, &r20f_guardPos0, 1, R20fCkEmGuard, PI, 0, 1);
+    r20f_work->guard[1].SetGuard(0xEA, &r20f_guardPos1, 1, R20fCkEmGuard, PI, 0, 1);
 }
 
 // Reset wave B1: Ganado 0xED spawns and guards guardPos2.
 void R20fEmResetB1()
 {
-    r20f_work.p->em[13].setEm(0xED, -1, 0, 1, 1);
-    r20f_work.p->guard[2].SetGuard(0xED, &r20f_guardPos2, 1, R20fCkEmGuard, PI, 0, 1);
+    r20f_work->em[13].setEm(0xED, -1, 0, 1, 1);
+    r20f_work->guard[2].SetGuard(0xED, &r20f_guardPos2, 1, R20fCkEmGuard, PI, 0, 1);
 }
 
 // The initial Ganados: 0xDC / 0xE1 / 0xE2 patrol the three route tables, 0xDF / 0xE0 are just tracked.
 static void R20fEmWanderingSet()
 {
-    r20f_work.p->patrol[0].SetPatrol(0xDC, r20f_patrolTbl0, 4, 0, 0);
-    r20f_work.p->patrol[1].SetPatrol(0xE1, r20f_patrolTbl1, 2, 0, 0);
-    r20f_work.p->patrol[2].SetPatrol(0xE2, r20f_patrolTbl2, 4, 0, 0);
-    r20f_work.p->em[2].setPtr(0xDC, -1, 0);
-    r20f_work.p->em[3].setPtr(0xDF, -1, 0);
-    r20f_work.p->em[4].setPtr(0xE0, -1, 0);
-    r20f_work.p->em[5].setPtr(0xE1, -1, 0);
-    r20f_work.p->em[6].setPtr(0xE2, -1, 0);
+    r20f_work->patrol[0].SetPatrol(0xDC, r20f_patrolTbl0, 4, 0, 0);
+    r20f_work->patrol[1].SetPatrol(0xE1, r20f_patrolTbl1, 2, 0, 0);
+    r20f_work->patrol[2].SetPatrol(0xE2, r20f_patrolTbl2, 4, 0, 0);
+    r20f_work->em[2].setPtr(0xDC, -1, 0);
+    r20f_work->em[3].setPtr(0xDF, -1, 0);
+    r20f_work->em[4].setPtr(0xE0, -1, 0);
+    r20f_work->em[5].setPtr(0xE1, -1, 0);
+    r20f_work->em[6].setPtr(0xE2, -1, 0);
 }
 
 // The module's .data continues 8-aligned (st2.cpp).

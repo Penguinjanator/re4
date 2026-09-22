@@ -279,7 +279,7 @@ static void em23_R0_Init(cEm23* em)
     w->x24 = 0.0f;
     w->stateTimer = Rnd() % 300 + 150;
     w->flyHeight = (f32) (em->emset_no % 5) * 1000.0f + 8000.0f;
-    if (pGS->room_id == 0x30A) {
+    if (pG->room_id == 0x30A) {
         w->flyHeight = (f32) (em->emset_no % 5) * 2000.0f + 20000.0f;
     }
     w->pCtrl11 = GetCtrlCtrl11();

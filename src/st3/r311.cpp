@@ -263,7 +263,7 @@ static void r311_moveEmDoor(int open)
     cObj* o = SmdGetObjPtr(0x9C);
 
     if (o) {
-        IntSet(r311_work->doorOpen, open);
+        r311_work->doorOpen = open;
         if (r311_work->doorOpen == 1) {
             SceAtSetEnable(6, 0);
             SndCall(6, 6, &o->pos, 0, 0, 0);
@@ -307,7 +307,7 @@ void r311_execEmAppear_end()
         em[i].setPtr(list[i], -1, 0);
         em[i].setPos(&center);
     }
-    BitOn(pG->Room_flg[0], 0x80000000);
+    pG->Room_flg[0] |= 0x80000000;
     r311_work->appear = 0;
 }
 
@@ -343,7 +343,7 @@ static void r311_execEmAppear()
     SceSleep(15);
     em[6].setGoto(&center, 0xB);
     SceSleep(25);
-    BitOn(pG->Room_flg[0], 0x80000000);
+    pG->Room_flg[0] |= 0x80000000;
     r311_work->appear = 0;
 }
 
@@ -360,7 +360,7 @@ static void r311_checkEmReset()
     u32 lim;
     int can;
 
-    BitOff(pG->Room_flg[0], 0x80000000);
+    pG->Room_flg[0] &= ~0x80000000;
     if ((int) R311_SAVE_FLAGS >= 0) {
         int r;
 
@@ -435,7 +435,7 @@ static void r311_checkEmReset()
         }
         SceSleep(1);
     }
-    U32Set(r311_work->resetCnt, 4);
+    r311_work->resetCnt = 4;
     can = 1;
     switch (pG->Game_level) {
     case 0:
@@ -559,7 +559,7 @@ static void r311_throwIronBall()
     int skip = 0;
     u32 i;
 
-    IntSet(r311_work->throwing, 1);
+    r311_work->throwing = 1;
     if (r311_work->ball && r311_work->crane) {
         SndCall(6, 0, &r311_work->crane->pos, 0, 0, 0);
         r311_work->crane->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 10, 0, 1, 0);
@@ -569,7 +569,7 @@ static void r311_throwIronBall()
         SndCall(6, 1, &r311_work->ball->pos, 0, 0, 0);
         r311_work->ball->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 1, 0);
         SceExec(0x12, (TaskFunc) r311_throwIronBall_se, 0, 2, 2, 0);
-        U32Set(r311_work->throwCnt, r311_work->throwCnt + 1);
+        r311_work->throwCnt = r311_work->throwCnt + 1;
         switch (r311_work->throwCnt) {
         case 1:
             SceEventStart(1);
@@ -653,7 +653,7 @@ static void r311_execAshleyOperateTerminal()
         Vec* rot;
 
         PSMTXMultVec(r311_work->crane->mat, &p, &p);
-        FSet(pSUB->ang.y, r311_work->crane->ang.y + PI);
+        pSUB->ang.y = r311_work->crane->ang.y + PI;
         sub = pSUB;
         rot = &sub->ang;
         sub->setPos(&p);
@@ -770,30 +770,30 @@ static void r311_checkIronBallTerminal()
 // The iron ball (arc 0x1F/0x20, hit box 1100 x 2000 below it) and the crane (0x23/0x24).
 void r311_initIronBall()
 {
-    PSet(r311_work->ball, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1));
+    r311_work->ball = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
     if (r311_work->ball) {
         r311_work->ball->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
-        BitOn(r311_work->ball->be_flag, 0x1000);
+        r311_work->ball->be_flag |= 0x1000;
         r311_work->ball->atari.init(0.0f, -2000.0f, 0.0f, 0.0f, 1100.0f, 1100.0f, 2000.0f, 10, 0x18, 0);
     }
     {
         Vec pos = {-9219.7f, 2309.3f, -4995.9f};
         Vec rot = {0.0f, -2.9146998f, 0.0f};
 
-        PSet(r311_work->crane, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot, 0x10, 1));
+        r311_work->crane = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot, 0x10, 1);
     }
     if (r311_work->crane) {
         r311_work->crane->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 10, 0, 1, 0);
         r311_work->crane->be_flag |= 0x1000;
     }
-    IntSet(r311_work->throwing, 0);
-    PSet(r311_work->terminal, 0);
-    IntSet(r311_work->eff, 0);
+    r311_work->throwing = 0;
+    r311_work->terminal = 0;
+    r311_work->eff = 0;
     if (!(R311_SAVE_FLAGS & 0x40000000)) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r311_checkIronBallTerminal, 0, 1);
         SceAtSetEnable(0, 0);
         r311_work->throwCnt = 0;
-        IntSet(r311_work->eff, EspPullCoreKind());
+        r311_work->eff = EspPullCoreKind();
         EstSet(0, -1, 0, 0, EFF_ROOM, 2, 1, r311_work->eff, 0, 0);
     } else {
         SceAtSetEnable(2, 0);

@@ -67,12 +67,8 @@ struct DrWork {
     char* pStr;              // 0xBAB8
 };
 
-// every store through the work pointer reloads it: the pointer is a struct member
-struct DrWorkPtr {
-    DrWork* p;
-};
-static DrWorkPtr drWork;
-#define DR (drWork.p)
+static DrWork* drWork;
+#define DR (drWork)
 
 static void tDrExit();
 static void tDrMainMenu();

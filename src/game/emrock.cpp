@@ -753,7 +753,7 @@ void emRock_R1_Roll(cEmRock* em)
         }
         emRockPushCk(em, 0);
         em->atari.m_flag &= ~0x200;
-        pPLS->ang.y = em->ang.y;
+        pPL->ang.y = em->ang.y;
         SetPlDamage(em, plemRockEscape);
         w->Roll_wait = 75;
         w->spd.x = 0.0f;
@@ -935,10 +935,10 @@ void emRock_R1_Drop2(cEmRock* em)
     case 2:
         w->Timer = 25;
         emRockPushCk(em, 50);
-        FSet(pPL->ang.y, -0.1f);
-        FSet(pPL->pos.x, -4924.0f);
-        FSet(pPL->pos.y, -11950.0f);
-        FSet(pPL->pos.z, -14770.0f);
+        pPL->ang.y = -0.1f;
+        pPL->pos.x = -4924.0f;
+        pPL->pos.y = -11950.0f;
+        pPL->pos.z = -14770.0f;
         pPL->setPos(&pPL->pos);
         pPL->dmg.m_Timer = 2;
         SetPlDamage(em, plemDropFind);
@@ -1396,7 +1396,7 @@ int emRockSetRollRoute(cEmRock* em)
     {
         u32 o = idx * 0x40 + 8;
 
-        w->pRoute = (EmiEntry*) ((u8*) pGS->pEmi + o);
+        w->pRoute = (EmiEntry*) ((u8*) pG->pEmi + o);
     }
     return 1;
 }
@@ -1437,7 +1437,7 @@ int emRockSetRollSpd(cEmRock* em)
         {
             u32 o = idx * 0x40 + 8;
 
-            e = (EmiEntry*) ((u8*) pGS->pEmi + o);
+            e = (EmiEntry*) ((u8*) pG->pEmi + o);
         }
         w->pRoute = e;
     }
@@ -1476,7 +1476,7 @@ int emRockRollStartCk(cEmRock* em)
     GlobalWork* g;
 
     emi = pG->pEmi;
-    g = pGS;  // the struct-view read is a second pG pseudo (`mr r11,r9`) that the pl_life test reads
+    g = *(GlobalWork**) &pG;  // a second pG pseudo (`mr r11,r9`) that the pl_life test reads
     if (emi == 0) {
         return 0;
     }
@@ -1528,21 +1528,21 @@ void plemRockEscape(cPlayer* pl)
         switch (pG->room_no) {
         case 4:
         default:
-            FSet(pPL->pos.x, 57947.0f);
-            FSet(pPL->pos.y, 3273.0f);
-            FSet(pPL->pos.z, -27900.0f);
+            pPL->pos.x = 57947.0f;
+            pPL->pos.y = 3273.0f;
+            pPL->pos.z = -27900.0f;
             pl->ang.y = 1.67f;
             break;
         case 6:
-            FSet(pPL->pos.x, 28428.0f);
-            FSet(pPL->pos.y, -5465.0f);
-            FSet(pPL->pos.z, 2765.0f);
+            pPL->pos.x = 28428.0f;
+            pPL->pos.y = -5465.0f;
+            pPL->pos.z = 2765.0f;
             pl->ang.y = -1.99f;
             break;
         case 0xA:
-            FSet(pPL->pos.x, -38340.0f);
-            FSet(pPL->pos.y, 5111.0f);
-            FSet(pPL->pos.z, 68313.0f);
+            pPL->pos.x = -38340.0f;
+            pPL->pos.y = 5111.0f;
+            pPL->pos.z = 68313.0f;
             pl->ang.y = -1.86f;
             break;
         }
@@ -1819,7 +1819,7 @@ void plemRockEscapeCamMove(cPlayer* pl, f32 rate)
     GlobalWork* g = pG;
     Camera* cam = &emRockCam;
 
-    FSet(cam->param.fovy, 27.0f);
+    cam->param.fovy = 27.0f;
     PSMTXMultVec(pl->mat, &emRock_campos, &p0);
     PSMTXMultVec(pl->mat, &emRock_target, &p1);
     PosToPos(&g->Camera.param.at, &p1, &emRockCam.param.at, rate);

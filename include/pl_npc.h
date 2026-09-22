@@ -166,12 +166,6 @@ public:
 
 extern cSubChar* pSUB;   // game/em.cpp
 
-// Struct-member view of pSUB (see pPLS in player.h).
-struct SubCharPtr {
-    cSubChar* p;
-};
-#define pSUBS (((SubCharPtr*) &pSUB)->p)
-
 u32 SubCharGetStatus();  // game/pl_npc.cpp: routine bits for the camera / scenario (C++ linkage)
 
 extern "C" {

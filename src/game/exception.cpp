@@ -23,7 +23,6 @@
 
 #define _DOLPHIN_TYPES_H_
 #include <dolphin/os/OSError.h>
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 #include <dolphin/base/PPCArch.h>
@@ -410,7 +409,7 @@ void excepMemoryDumpMove(MemDump* w, int y)
         if (Joy[0].trg & 0x100) {
             w->mode = 0;
             if ((addr & ~0xF) >= 0x80000000 && (addr & ~0xF) <= 0x817FFFF0) {
-                U32Set(w->addr, addr & ~0xF);
+                w->addr = addr & ~0xF;
                 w->curAddr = addr;
             }
         }
@@ -550,7 +549,7 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     w = &test;
     n = 0;
     memclr_asm(w, sizeof(MemDump));
-    ISet(call_stack_num, n); // the reference store keeps `lwz pContext` below it
+    call_stack_num = n; // the reference store keeps `lwz pContext` below it
     sp = (u32*) pContext->gpr[1];
     if (sp != 0 && sp != (u32*) -1) {
         i = 0;

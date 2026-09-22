@@ -349,7 +349,7 @@ static void em18_R1_Trade(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 10, 1, 0);
         SndCall(8, 0xA, &em->pos, em->id, 0, 0);
         w->sndId = SndCall(8, 7, &em->pos, em->id, 0, 0);
-        pGS->Stop_flg &= 0x7FFFFFFF;
+        pG->Stop_flg &= 0x7FFFFFFF;
         em->r_no_2++;
     case 4:
         if (em->Motion.Seq_frame > 33.7f && em->Motion.Seq_frame < 34.3f) {
@@ -423,7 +423,7 @@ static void em18TradeAction(cEm18* em)
         if (w->Be_flg & 0x20) {
             SubScreenOpen(SS_OPEN_SHOP, 0);
         } else {
-            BitOn(w->Be_flg, 0x20);
+            w->Be_flg |= 0x20;
             EmRoutineSet(em, 1, 1, 0, 0);
             pPL->dmg.set(0, 30);
         }

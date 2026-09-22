@@ -6,7 +6,6 @@
 #include "sce_sys.h"
 #include "player.h"
 #include "math_sub.h"
-#include "ref_access.h"
 #include <string.h>
 
 
@@ -283,8 +282,8 @@ void cEmGuard::TaskMove(cEmGuard* g)
                 break;
             }
         } else if (g->alerted != 1) {
-            IntSet(g->alerted, 1);
-            IntSet(g->step, 0);
+            g->alerted = 1;
+            g->step = 0;
             em->setGoto(&pPL->pos, 0);
             em->setCharacter(0);
             em->setGuard_r(g->guard_r);

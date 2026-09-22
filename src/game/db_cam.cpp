@@ -22,7 +22,6 @@
 #include "player.h"
 #include "db_cam.h"
 #include "motion.h"
-#include "ref_access.h"
 #include <string.h>
 #include "dbmodule.h"
 #include "view.h"
@@ -76,7 +75,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 m_timer = 5;
                 m_menu_sw = 1;
                 save_mode = pG->debug_mode;
-                pGS->debug_mode = 1;
+                pG->debug_mode = 1;
                 m_cam_play = 0;
                 adjust_qFPS(NULL, 0, 0, 1, NULL);
             } else {
@@ -529,7 +528,7 @@ void debugCamera::menu(Camera* cam, JOY* joy)
                 u8* d2 = (u8*) &pG->Camera.up;
                 memcpy(d2, &up, sizeof(Vec));
             }
-            FSet(pG->Camera.param.roll, 0.0f);
+            pG->Camera.param.roll = 0.0f;
             // COMPILER-DIFF: candidate (sched2 tie, second half; see the campos copy above).
             asm("" : "=m"(ProjType) : "r"(t));
             CameraSetOrientationUp(&pG->Camera);
@@ -1256,13 +1255,13 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         case 2: {
             f32 step = (joy->on & JOY_X) ? 0.01f : 0.1f;
             if (joy->rep & JOY_LEFT) {
-                FSet(g_local_floor_ratio, g_local_floor_ratio - step);
+                g_local_floor_ratio = g_local_floor_ratio - step;
             }
             if (joy->rep & JOY_RIGHT) {
-                FSet(g_local_floor_ratio, g_local_floor_ratio + step);
+                g_local_floor_ratio = g_local_floor_ratio + step;
             }
-            FSet(g_local_floor_ratio,
-                 g_local_floor_ratio < 0.0f ? 0.0f : (g_local_floor_ratio > 2.0f ? 2.0f : g_local_floor_ratio));
+            g_local_floor_ratio =
+                 g_local_floor_ratio < 0.0f ? 0.0f : (g_local_floor_ratio > 2.0f ? 2.0f : g_local_floor_ratio);
             if (joy->trg & JOY_A) {
                 ret = 5;
                 q->setFloorRatio(g_local_floor_ratio);
@@ -1404,8 +1403,8 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             PSMTXMultVec(inv, &g->Camera.param.at, &QOFS(p_offset)->target);
             if (symmetry_flag) {
                 memcpy(p_counter, p_offset, sizeof(QfpsOfs));
-                FSet(QOFS(p_counter)->Campos.x, -QOFS(p_counter)->Campos.x);
-                FSet(QOFS(p_counter)->target.x, -QOFS(p_counter)->target.x);
+                QOFS(p_counter)->Campos.x = -QOFS(p_counter)->Campos.x;
+                QOFS(p_counter)->target.x = -QOFS(p_counter)->target.x;
             }
             q->setAreaData(g_local_ready, g_local_trans);
             PSMTXMultVec(pPL->mat, &QOFS(p_offset)->campos2, &CamCtrl.camera.param.pos);
@@ -1426,7 +1425,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             PSMTXMultVec(inv, &g->Camera.param.pos, &QOFS(p_offset)->campos2);
             if (symmetry_flag) {
                 memcpy(p_counter + QOFS_CAMPOS2, p_offset + QOFS_CAMPOS2, sizeof(Vec));
-                FSet(QOFS(p_counter)->campos2.x, -QOFS(p_counter)->campos2.x);
+                QOFS(p_counter)->campos2.x = -QOFS(p_counter)->campos2.x;
             }
             q->setAreaData(g_local_ready, g_local_trans);
             ret = 3;
@@ -1442,7 +1441,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         }
         if (joy->rep & JOY_LEFT) {
-            ISet(yes_no, 1);
+            yes_no = 1;
         }
         if (joy->rep & JOY_RIGHT) {
             yes_no = 0;
@@ -1467,7 +1466,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         }
         if (joy->trg & JOY_UP) {
-            ISet(near_far, 0);
+            near_far = 0;
         }
         if (joy->trg & JOY_DOWN) {
             near_far = 1;
@@ -1478,10 +1477,10 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 step = 10.0f;
             }
             if (joy->rep & JOY_LEFT) {
-                FSet(g_local_fovy[near_far], g_local_fovy[near_far] - step);
+                g_local_fovy[near_far] = g_local_fovy[near_far] - step;
             }
             if (joy->rep & JOY_RIGHT) {
-                FSet(g_local_fovy[near_far], g_local_fovy[near_far] + step);
+                g_local_fovy[near_far] = g_local_fovy[near_far] + step;
             }
             g_local_fovy[near_far] = g_local_fovy[near_far] < 1.0f
                                          ? 1.0f

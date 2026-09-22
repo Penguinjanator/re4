@@ -138,7 +138,7 @@ void* cEsp::operator new(unsigned int size)
     u32 ofs;
 
     if (old_hit >= sys->nEsp) {
-        BitSet(old_hit, 0);
+        old_hit = 0;
     }
     i = old_hit;
     start = i;

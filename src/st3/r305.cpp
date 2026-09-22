@@ -85,7 +85,7 @@ void R305Init()
     } else {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        PSet(r305_work->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 2));
+        r305_work->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 2);
         if (r305_work->em[0].setEm(0x2A, 6, 0, 1, 0)) {
             r305_work->em[0].getPos(&r305_work->pos[0]);
             r305_work->em[0].getAng(&r305_work->ang[0]);
@@ -281,11 +281,11 @@ void cR305Shutter::init()
     if (obj) {
         int on = 1;
 
-        BitOn(obj->be_flag, 0x20);
+        obj->be_flag |= 0x20;
         basePos = obj->pos;
         height = 2700.0f;
-        sat = SatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 5), 0, &zero, &zero, 1);
-        eat = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &zero, &zero, 1);
+        sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 1);
+        eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &zero, &zero, 1);
         SceAtSetEnable(4, 1);
         enable = on;
     }

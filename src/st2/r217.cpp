@@ -43,13 +43,9 @@ struct R217Work {
     Vec pos[76];         // 0x0A8  saved scale of the scaffold objects
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R217WorkPtr {
-    R217Work* p;
-};
 
 static Vec r217_savePos[76];
-static R217WorkPtr r217_work;
+static R217Work* r217_work;
 
 static u8 r217_objTbl[76] = {
     0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
@@ -114,20 +110,20 @@ static inline int r217_emDead(cEm* e)
 void R217Init()
 {
 #line 174 "D:/Bio4/Prog/r217.cpp"
-    r217_work.p = (R217Work*) MEM_CALLOC(sizeof(R217Work), 1, 0xd);
+    r217_work = (R217Work*) MEM_CALLOC(sizeof(R217Work), 1, 0xd);
     RsfSet(G_ROOM_ID, 2);
     RsfSet(G_ROOM_ID, 3);
     for (u32 i = 0; i < 5; i++) {
         if (RsfCheck(G_ROOM_ID, i + 2) == 0) {
-            r217_work.p->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
+            r217_work->hit[i] = SetEmHit((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore),
                                          &SmdGetObjPtr(0x83 + i)->pos, &SmdGetObjPtr(0x83 + i)->ang, 0);
-            YarareInitCube(r217_work.p->hit[i], 0.0f, r217_cubeY[0], r217_cubeZ[0], r217_cubeW[0], r217_cubeH[0], r217_cubeD[0], 0, YAT_FLAG_ON);
+            YarareInitCube(r217_work->hit[i], 0.0f, r217_cubeY[0], r217_cubeZ[0], r217_cubeW[0], r217_cubeH[0], r217_cubeD[0], 0, YAT_FLAG_ON);
         } else {
             SmdGetObjPtr(0x83 + i)->be_flag &= ~2;
         }
     }
     for (u32 j = 0; j < 76; j++) {
-        PSVECScale(R217_OBJ_VEC(SmdGetObjPtr(r217_objTbl[j])), &r217_work.p->pos[j], 1.0f);
+        PSVECScale(R217_OBJ_VEC(SmdGetObjPtr(r217_objTbl[j])), &r217_work->pos[j], 1.0f);
     }
     if (!ScfFlagChk(pG, SCF_R217_PUZZLE_CLEAR)) {
         for (u32 k = 0; k < 76; k++) {
@@ -143,7 +139,7 @@ void R217Init()
         SceAtSetEnable(5, 0);
         SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         for (u32 n = 0; n < 3; n++) {
-            r217_work.p->em[n].setEm(r217_emTbl[n], -1, 0, 1, 1);
+            r217_work->em[n].setEm(r217_emTbl[n], -1, 0, 1, 1);
         }
     }
     if (!ScfFlagChk(pG, SCF_R217_PUZZLE_CLEAR)) {
@@ -175,14 +171,14 @@ void R217Main()
     done = 0;
     for (i = 0; i < 5; i++) {
         if (RsfCheck(G_ROOM_ID, i + 2) == 0) {
-            if (r217_work.p->hit[i]->ckStatus() == 1 || DebugTrg(1) != 0) {
+            if (r217_work->hit[i]->ckStatus() == 1 || DebugTrg(1) != 0) {
                 Vec v;
 
                 RsfSet(G_ROOM_ID, i + 2);
-                v = r217_work.p->hit[i]->ang;
+                v = r217_work->hit[i]->ang;
                 v.y += 1.5707964f;
-                SndCall(6, 4, &r217_work.p->hit[i]->pos, 0, 0, 0);
-                EstSet(0, -1, &r217_work.p->hit[i]->pos, &v, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
+                SndCall(6, 4, &r217_work->hit[i]->pos, 0, 0, 0);
+                EstSet(0, -1, &r217_work->hit[i]->pos, &v, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 SmdGetObjPtr(0x83 + i)->be_flag &= ~2;
             }
         } else {
@@ -197,35 +193,35 @@ void R217Main()
         cEm* e;
 
         if (!(pG->Room_flg[0] & 0x80000000)) {
-            if (r217_work.p->em[0].ckFindPL()) {
-                r217_work.p->em[0].setFlag(1);
+            if (r217_work->em[0].ckFindPL()) {
+                r217_work->em[0].setFlag(1);
             }
         }
-        r217_work.p->timer--;
-        if (r217_work.p->timer <= 0) {
-            r217_work.p->timer = 360;
-            r217_work.p->em[0].setFlag(1);
-            r217_work.p->em[1].setFlag(1);
-            r217_work.p->em[2].setFlag(1);
+        r217_work->timer--;
+        if (r217_work->timer <= 0) {
+            r217_work->timer = 360;
+            r217_work->em[0].setFlag(1);
+            r217_work->em[1].setFlag(1);
+            r217_work->em[2].setFlag(1);
         }
         hit = 0;
-        e = r217_work.p->em[0].getPtr();
+        e = r217_work->em[0].getPtr();
         if (e) {
             if (r217_emDead(e)) {
-                if (r217_work.p->cnt0 != 0) {
+                if (r217_work->cnt0 != 0) {
                     hit = 1;
                 }
             }
         }
-        if (r217_work.p->em[0].ckBowgunFire() == 1 || hit) {
-            if (__builtin_fabsf(pPL->pos.y - r217_work.p->em[0].getPosY()) < 1000.0f) {
-                r217_work.p->cnt0++;
-                if (r217_work.p->cnt0 > 1) {
+        if (r217_work->em[0].ckBowgunFire() == 1 || hit) {
+            if (__builtin_fabsf(pPL->pos.y - r217_work->em[0].getPosY()) < 1000.0f) {
+                r217_work->cnt0++;
+                if (r217_work->cnt0 > 1) {
                     R217Work* w;
 
-                    r217_work.p->cnt0 = 0;
-                    r217_work.p->em[0].setGoto(&r217_pos0[r217_work.p->idx0], 1);
-                    w = r217_work.p;
+                    r217_work->cnt0 = 0;
+                    r217_work->em[0].setGoto(&r217_pos0[r217_work->idx0], 1);
+                    w = r217_work;
                     if (w->idx0 > 2) {
                         w->idx0 = 1;
                     } else {
@@ -234,37 +230,37 @@ void R217Main()
                 }
             }
         }
-        if (__builtin_fabsf(pPL->pos.y - r217_work.p->em[1].getPosY()) < 1000.0f) {
-            r217_work.p->cnt1--;
-            if (r217_work.p->cnt1 < 0) {
-                if (r217_work.p->side1 == 0) {
-                    r217_work.p->side1 = 1;
-                    r217_work.p->em[1].setGoto(&r217_pos1[0], 0xC);
-                    r217_work.p->cnt1 = 240;
-                } else if (r217_work.p->side1 == 1) {
-                    r217_work.p->side1 = 0;
-                    r217_work.p->em[1].setGoto(&r217_pos1[1], 0xC);
-                    r217_work.p->cnt1 = 240;
+        if (__builtin_fabsf(pPL->pos.y - r217_work->em[1].getPosY()) < 1000.0f) {
+            r217_work->cnt1--;
+            if (r217_work->cnt1 < 0) {
+                if (r217_work->side1 == 0) {
+                    r217_work->side1 = 1;
+                    r217_work->em[1].setGoto(&r217_pos1[0], 0xC);
+                    r217_work->cnt1 = 240;
+                } else if (r217_work->side1 == 1) {
+                    r217_work->side1 = 0;
+                    r217_work->em[1].setGoto(&r217_pos1[1], 0xC);
+                    r217_work->cnt1 = 240;
                 }
             }
         }
-        e = r217_work.p->em[2].getPtr();
+        e = r217_work->em[2].getPtr();
         if (e) {
             if (r217_emDead(e)) {
-                if (r217_work.p->cnt2 != 0) {
+                if (r217_work->cnt2 != 0) {
                     hit = 1;
                 }
             }
         }
-        if (r217_work.p->em[1].ckBowgunFire() == 1 || hit) {
-            if (__builtin_fabsf(pPL->pos.y - r217_work.p->em[2].getPosY()) < 1000.0f) {
-                r217_work.p->cnt2++;
-                if (r217_work.p->cnt2 > 2) {
+        if (r217_work->em[1].ckBowgunFire() == 1 || hit) {
+            if (__builtin_fabsf(pPL->pos.y - r217_work->em[2].getPosY()) < 1000.0f) {
+                r217_work->cnt2++;
+                if (r217_work->cnt2 > 2) {
                     R217Work* w;
 
-                    r217_work.p->cnt2 = 0;
-                    r217_work.p->em[2].setGoto(&r217_pos1[r217_work.p->idx2], 0xC);
-                    w = r217_work.p;
+                    r217_work->cnt2 = 0;
+                    r217_work->em[2].setGoto(&r217_pos1[r217_work->idx2], 0xC);
+                    w = r217_work;
                     if (w->idx2 > 2) {
                         w->idx2 = 1;
                     } else {
@@ -279,8 +275,8 @@ void R217Main()
             if (!(pG->Room_flg[0] & 0x02000000)) {
                 pG->Room_flg[0] |= 0x02000000;
                 Vec p = {-5674.0f, 0.0f, -8930.0f};
-                r217_work.p->em[8].setGoto(&p, 1);
-                r217_work.p->em[9].setGoto(&pPL->pos, 1);
+                r217_work->em[8].setGoto(&p, 1);
+                r217_work->em[9].setGoto(&pPL->pos, 1);
             }
         }
     }
@@ -296,26 +292,26 @@ static void r217_2nd_set()
     SndCall(6, 7, 0, 0, 0, 0);
     SceEventStart(1);
     for (u32 i = 3; i < 8; i++) {
-        r217_work.p->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
-        r217_work.p->em[i].setFlag(1);
-        r217_work.p->em[i].setNoSuspend(1);
+        r217_work->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
+        r217_work->em[i].setFlag(1);
+        r217_work->em[i].setNoSuspend(1);
     }
     for (u32 i = 8; i < 10; i++) {
-        r217_work.p->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
-        r217_work.p->em[i].setNoSuspend(1);
+        r217_work->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
+        r217_work->em[i].setNoSuspend(1);
     }
-    r217_work.p->em[3].setGoto(&pPL->pos, 8);
+    r217_work->em[3].setGoto(&pPL->pos, 8);
     Vec p = {-5674.0f, 0.0f, -8930.0f};
     Vec ang;
     CamCtrl.CutCall(4);
     SceSleep(30);
-    r217_work.p->em[7].setGoto(&p, 1);
+    r217_work->em[7].setGoto(&p, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(9);
     for (u32 i = 0; i < 20; i++) {
-        cEmWrap* e = &r217_work.p->em[8];
+        cEmWrap* e = &r217_work->em[8];
         Vec* pa = &ang;
         f32 y = 2.99f;
 
@@ -326,9 +322,9 @@ static void r217_2nd_set()
         SceSleep(1);
     }
     StaFlagOff(pG, STA_SUSPEND);
-    pPLS->dmg.set(0, 0x80);
+    pPL->dmg.set(0, 0x80);
     for (u32 i = 8; i < 10; i++) {
-        r217_work.p->em[i].setFlag(1);
+        r217_work->em[i].setFlag(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         Vec* pa = &ang;
@@ -337,14 +333,14 @@ static void r217_2nd_set()
         ang.x = 0.0f;
         pa->y = y;
         ang.z = 0.0f;
-        r217_work.p->em[8].setAng(pa);
+        r217_work->em[8].setAng(pa);
         SceSleep(1);
     }
     for (u32 i = 3; i < 8; i++) {
-        r217_work.p->em[i].setNoSuspend(0);
+        r217_work->em[i].setNoSuspend(0);
     }
     for (u32 i = 8; i < 10; i++) {
-        r217_work.p->em[i].setNoSuspend(0);
+        r217_work->em[i].setNoSuspend(0);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -357,7 +353,7 @@ static void r217_1st_set()
     u32 i;
 
     for (i = 0; i < 3; i++) {
-        r217_work.p->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
+        r217_work->em[i].setEm(r217_emTbl[i], -1, 0, 1, 1);
     }
 }
 
@@ -425,7 +421,7 @@ static void r217_Puzzle_exit()
         for (i = 0; i < 76; i++) {
             Vec* v = R217_OBJ_VEC(SmdGetObjPtr(r217_objTbl[i]));
 
-            PSVECScale(&r217_work.p->pos[i], v, 1.0f);
+            PSVECScale(&r217_work->pos[i], v, 1.0f);
             SmdGetObjPtr(r217_objTbl[i])->be_flag |= 0x20;
         }
         SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r217_1st_set, 0, 1);

@@ -515,7 +515,7 @@ void plobjTrolleyDie(cPlayer* pl)
         em->ang.y = 0.0f;
         MotionSetCore(em, &em->Motion, w->mot[5], 0, 0, 1, 0);
         em->atari.throughOn();
-        pGS->pl_life = step;
+        pG->pl_life = step;
         em->be_flag &= ~0x10;
         em->r_no_2++;
     case 1:

@@ -455,7 +455,6 @@ static EmListIdInfo EmListIdTbl[64] = {
 #include "dbmodule.h"
 #include "db_cam.h"
 #include "cam_ctrl.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -658,12 +657,12 @@ void emlist_init()
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
-    BitOn(pG->Stop_flg, 0x200000);
-    BitOn(pG->Disp_flg, 0x1000000);
-    BitOn(pG->Disp_flg, 0x800000);
+    pG->Stop_flg |= 0x200000;
+    pG->Disp_flg |= 0x1000000;
+    pG->Disp_flg |= 0x800000;
     DbgFlagOn(pG, DBG_TEST_MODE);
     DbgFlagOn(pG, DBG_BACK_CLIP);
-    BitOn(pG->Stop_flg, 0x800000);
+    pG->Stop_flg |= 0x800000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     EmListCtrl* ctl = &EmList;
 
@@ -711,11 +710,11 @@ void emlist_init()
 // Restores the flags, frees the work and ends the task.
 void emlist_exit()
 {
-    BitOff(pG->Stop_flg, 0x200000);
-    BitOff(pG->Disp_flg, 0x1000000);
-    BitOff(pG->Disp_flg, 0x800000);
+    pG->Stop_flg &= ~0x200000;
+    pG->Disp_flg &= ~0x1000000;
+    pG->Disp_flg &= ~0x800000;
     DbgFlagOff(pG, DBG_TEST_MODE);
-    BitOff(pG->Stop_flg, 0x800000);
+    pG->Stop_flg &= ~0x800000;
     DbgFlagOff(pG, DBG_DBG_CAM);
     TutilQuitDefault();
     TaskSignal(0);
@@ -850,7 +849,7 @@ static void emlist_r0_target()
                 do {
                     EmList.wk->listNo--;
                     if (EmList.wk->listNo < 0) {
-                        ISet(EmList.wk->listNo, 0);
+                        EmList.wk->listNo = 0;
                     }
                     p = EMLIST_ENT(EmList.wk->listNo);
                     if (EMLIST_ROOM_MATCH(p)) {
@@ -871,7 +870,7 @@ static void emlist_r0_target()
                 do {
                     EmList.wk->listNo++;
                     if (EmList.wk->listNo > 0xFE) {
-                        ISet(EmList.wk->listNo, 0xFE);
+                        EmList.wk->listNo = 0xFE;
                     }
                     p = EMLIST_ENT(EmList.wk->listNo);
                     if (EMLIST_ROOM_MATCH(p)) {
@@ -1003,7 +1002,7 @@ static void emlist_r0_target()
         if (EmList.wk->joy.trg & JOY_A) {
             EmList.wk->catchNo = emlist_catch_em();
             if (EmList.wk->catchNo != -1) {
-                ISet(EmList.wk->listNo, EmList.wk->catchNo);
+                EmList.wk->listNo = EmList.wk->catchNo;
                 p = EMLIST_ENT(EmList.wk->listNo);
             }
         }
@@ -1021,7 +1020,7 @@ static void emlist_r0_target()
                 i = EmList.wk->listNo;
                 while (i <= 0xFE) {
                     if (EMLIST_ENT_I(i)->id == 0) {
-                        ISet(EmList.wk->listNo, i);
+                        EmList.wk->listNo = i;
                         p = EMLIST_ENT(EmList.wk->listNo);
                         break;
                     }
@@ -1030,7 +1029,7 @@ static void emlist_r0_target()
                 if (p->id != 0) {
                     for (i = EmList.wk->listNo; i >= 0; i--) {
                         if (EMLIST_ENT_I(i)->id == 0) {
-                            ISet(EmList.wk->listNo, i);
+                            EmList.wk->listNo = i;
                             p = EMLIST_ENT(EmList.wk->listNo);
                             break;
                         }
@@ -1083,7 +1082,7 @@ static void emlist_r0_target()
                     do {
                         EmList.wk->listNo--;
                         if (EmList.wk->listNo < 0) {
-                            ISet(EmList.wk->listNo, 0);
+                            EmList.wk->listNo = 0;
                         }
                         p = EMLIST_ENT(EmList.wk->listNo);
                         if (EMLIST_ROOM_MATCH(p)) {
@@ -1104,7 +1103,7 @@ static void emlist_r0_target()
                     do {
                         EmList.wk->listNo++;
                         if (EmList.wk->listNo > 0xFE) {
-                            ISet(EmList.wk->listNo, 0xFE);
+                            EmList.wk->listNo = 0xFE;
                         }
                         p = EMLIST_ENT(EmList.wk->listNo);
                         if (EMLIST_ROOM_MATCH(p)) {
@@ -1910,7 +1909,7 @@ static void emlist_r0_set_exit()
         int no = pG->em_list_no;
         if (no >= 0) {
             u32* tbl = EM_FLG_ROW(no);  // pG->Em_flg[no], tool style
-            BitOff(tbl[i >> 5], 0x80000000 >> (i & 0x1F));
+            (tbl[i >> 5] &= ~(0x80000000 >> (i & 0x1F)));
         }
     }
     EmSetFromList();
@@ -2750,10 +2749,10 @@ void emlistCameraMove()
     }
     if (EmList.wk->camMode != 0) {
         CamDbg.move(&pG->Camera, &Joy[0], 0);
-        BitSet(EmList.wk->joy.trg, 0);
-        BitSet(EmList.wk->joy.on, 0);
-        BitSet(EmList.wk->joy.rep, 0);
-        BitSet(EmList.wk->joy.rep2, 0);
+        EmList.wk->joy.trg = 0;
+        EmList.wk->joy.on = 0;
+        EmList.wk->joy.rep = 0;
+        EmList.wk->joy.rep2 = 0;
         DbgFlagOn(pG, DBG_DBG_CAM);
         if (pG->Frame_cnt & 0x10) {
             eprintf(0x140, 0x18, 4, 0, "1P CAMERA MODE");

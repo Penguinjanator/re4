@@ -64,7 +64,7 @@ void cObjHkSniper::init(cModel* parent)
 {
     void* bin;
 
-    U16Set(wep.itemId, 0x2F);
+    wep.itemId = 0x2F;
     if (pG->weapon_type == 0) {
         bin = WEP_ARC_PTR(0xA);
     } else {

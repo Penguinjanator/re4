@@ -400,7 +400,7 @@ void emItem_R1_Break(cEmItem* em)
         w->Status = 2;
         em->hp = 0;
         em->be_flag &= ~2;
-        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }

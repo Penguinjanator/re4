@@ -16,7 +16,6 @@
 #include "dbmodule.h"
 #include "math_sub.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -106,11 +105,8 @@ struct TBlockWork {
     u32 fileSize;                // 0x5388
 };
 
-struct TBlockWorkPtr {
-    TBlockWork* p;
-};
-static TBlockWorkPtr blockWk;
-#define pW (blockWk.p)
+static TBlockWork* blockWk;
+#define pW (blockWk)
 
 extern "C" {
 void tBlockInit_base();
@@ -222,20 +218,20 @@ void tBlockInit_base()
 {
     *((u8*) &pG->debug_mode) = 0x11;
     DbgFlagOn(pG, DBG_BACK_CLIP);
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x8000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Stop_flg, 0x200);
-    BitOn(pG->Disp_flg, 0x20000000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
-    BitOn(pG->Disp_flg, 0x4000000);
-    BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->Disp_flg, 0x100000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x8000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Stop_flg |= 0x200;
+    pG->Disp_flg |= 0x20000000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
+    pG->Disp_flg |= 0x4000000;
+    pG->Disp_flg |= 0x2000000;
+    pG->Disp_flg |= 0x100000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     SetToolLight(1);
 }
@@ -249,7 +245,7 @@ void tBlockInit()
     int j;
 
     TutilInitDefault();
-    U32Set(pW->saveStopFlag, pG->Stop_flg);
+    pW->saveStopFlag = pG->Stop_flg;
     pW->saveDispFlag = pG->Disp_flg;
     tBlockInit_base();
     pW->x0 = 0x28;
@@ -346,7 +342,7 @@ static void tBlockExit()
         DC.dbgHeap = 0;
         Block.noMemCtrl = 0;
         file_unlock(pW->pathX);
-        BitSet(pG->Disp_flg, pW->saveDispFlag);
+        pG->Disp_flg = pW->saveDispFlag;
         pG->Stop_flg = pW->saveStopFlag;
         Debug_free(pW);
         DbgFlagOff(pG, DBG_DBG_CAM);

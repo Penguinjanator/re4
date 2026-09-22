@@ -155,10 +155,6 @@ public:
     int lightAnalysis();
 };
 
-// The tool pointer is a struct member: every store through it reloads the pointer.
-struct cLightToolPtr {
-    cLightTool* p;
-};
 
 int tcCurrentCameraNo();
 
@@ -212,14 +208,10 @@ static const char* path_litpath = "x:\\soft/room/etc/core/litpath.bin";
 static const GXColor blackTemplate = {0, 0, 0, 0};
 static const f32 yAxis[3] = {0.0f, 1.0f, 0.0f};  // 4-aligned (an f32[3], not a Vec) after the vtables
 
-// The path header pointer is a struct member too: its load stays after the path table stores.
-struct cLitPathPtr {
-    cLightPathHeader* p;
-};
-static cLitPathPtr LitPathPtr;
-#define pLitPath (LitPathPtr.p)
-static cLightToolPtr LightToolPtr;
-#define pTool (LightToolPtr.p)
+static cLightPathHeader* LitPathPtr;
+#define pLitPath (LitPathPtr)
+static cLightTool* LightToolPtr;
+#define pTool (LightToolPtr)
 // The light count is a struct member: its load is not hoisted above the stores through pTool.
 struct LightWorkNum {
     u32 n;
@@ -388,8 +380,8 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     cy = 0;
     col = 0;
     table_y = 0;
-    color = pGS->debug_mode;
-    PrintNoBak = pGS->debug_mode;
+    color = pG->debug_mode;
+    PrintNoBak = pG->debug_mode;
     pLightEnv = LightMgr.getEnvPtr();
     nLightWork = LightMgr.getArrayNum();
     Lit.init(*LightMgr.getLitPPtr());
@@ -4782,7 +4774,7 @@ static void quit()
     if (pTool->Pad1.rep & JOY_A) {
         if (pTool->cursor == 0) {
             pTool->ret = 0;
-            pGS->debug_mode = pTool->PrintNoBak;
+            pG->debug_mode = pTool->PrintNoBak;
             pLog->modeReset();
             pTool->updateLit();
             pTool->clearWork();
@@ -5280,9 +5272,9 @@ int editColor(int x, int y, GXColor* col)
     }
     if (link) {
         if (pTool->Pad1.rep & JOY_RIGHT) {
-            FSet(r, r + step * 10.0f);
-            FSet(g, g + step * 10.0f);
-            FSet(b, b + step * 10.0f);
+            r = r + step * 10.0f;
+            g = g + step * 10.0f;
+            b = b + step * 10.0f;
         }
         if (pTool->Pad1.rep & JOY_LEFT) {
             r -= step * 10.0f;
@@ -5311,7 +5303,7 @@ int editColor(int x, int y, GXColor* col)
         switch (pTool->cursor) {
         case 0:
             if (pTool->Pad1.rep & JOY_RIGHT) {
-                FSet(r, r + step * 10.0f);
+                r = r + step * 10.0f;
             }
             if (pTool->Pad1.rep & JOY_LEFT) {
                 r -= step * 10.0f;
@@ -5325,7 +5317,7 @@ int editColor(int x, int y, GXColor* col)
             break;
         case 1:
             if (pTool->Pad1.rep & JOY_RIGHT) {
-                FSet(g, g + step * 10.0f);
+                g = g + step * 10.0f;
             }
             if (pTool->Pad1.rep & JOY_LEFT) {
                 g -= step * 10.0f;
@@ -5339,7 +5331,7 @@ int editColor(int x, int y, GXColor* col)
             break;
         case 2:
             if (pTool->Pad1.rep & JOY_RIGHT) {
-                FSet(b, b + step * 10.0f);
+                b = b + step * 10.0f;
             }
             if (pTool->Pad1.rep & JOY_LEFT) {
                 b -= step * 10.0f;
@@ -5353,7 +5345,7 @@ int editColor(int x, int y, GXColor* col)
             break;
         case 3:
             if (pTool->Pad1.rep & JOY_RIGHT) {
-                FSet(a, a + step * 10.0f);
+                a = a + step * 10.0f;
             }
             if (pTool->Pad1.rep & JOY_LEFT) {
                 a -= step * 10.0f;

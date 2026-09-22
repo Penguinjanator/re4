@@ -34,11 +34,6 @@
 
 cSceSys SceSys;
 static ScePrim* pCSceTask;
-// Struct-member view of pCSceTask (the pLog trick): the store keeps the following p->task load below it.
-struct ScePrimPtr {
-    ScePrim* p;
-};
-#define CSCE_TASK (((ScePrimPtr*) &pCSceTask)->p)
 static u32 SceExecOt;
 
 // Boot: clears the scenario system.
@@ -76,7 +71,7 @@ void ScenarioRoomInit()
     SceSys.m_door_fade_eff = 0;
     SceSys.m_item_get = 0;
     SceSys.pause = 0;
-    ScfFlagOff(pGS, SCF_NO_ASHLEY_DIST_CK);
+    ScfFlagOff(pG, SCF_NO_ASHLEY_DIST_CK);
     ScenarioTaskAllOff();
     SceInitItemEvent();
     SceAtSetSaveItem();
@@ -216,9 +211,8 @@ void cSceSys::scheduler()
             continue;
         }
         p->running = 1;
-        CSCE_TASK = p;
-        pCTask = p->task;
-        TaskSchedulerMain(p->task);
+        pCSceTask = p;
+        TaskSchedulerMain(pCTask = p->task);
         if (pCTask->Status == 3) {
             SceTaskDelete(pCTask);
             pCTask->Status = running;

@@ -13,7 +13,6 @@
 #include "db_log.h"
 #include "main_mem.h"
 #include "trans_ot.h"
-#include "ref_access.h"
 #include "trans.h"
 
 
@@ -69,7 +68,7 @@ void clearOtWork(OtWork* w)
     OtData* q;
 
     w->prev_kind = 0;
-    ISet(g_NowExecOtType, OT_MAX);
+    g_NowExecOtType = OT_MAX;
     p = &w->list[w->max - 1];
     do {
         q = p;

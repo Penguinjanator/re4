@@ -43,7 +43,7 @@ void Wep28_init(cModel* m)
     pl->Wep->pObj2 = obj;
     obj->init(pl);
     obj->setDisp(1, 0);
-    PSet(pl->Wep->m_pWep->bow.allow, obj);
+    pl->Wep->m_pWep->bow.allow = obj;
     EspDataLoad((u32) WEP_ARC_PTR(0x4), EFF_WEP28, 1);
 }
 
@@ -136,7 +136,7 @@ void cObjBow::init(cModel* parent)
     pParts->pParent = parent->getPartsPtr(0x10);
     wepLightInit(this);
     wep.parent = parent;
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x2D));
+    wep.motReset[0] = WEP_ARC_PTR(0x2D);
     wep.motReset[1] = WEP_ARC_PTR(0x2D);
     resetMotion();
     setDispAllow(0);

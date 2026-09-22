@@ -1923,8 +1923,8 @@ void mapModelAlloc(SUB_SCREEN* wk)
     ssModInfoMgr.arrayAlloc(0x80);
     ssPartsMgr.roomInit();
     ssPartsMgr.arrayAlloc(0x100);
-    MGR_PTR(cModel::mm) = &ssModInfoMgr;
-    MGR_PTR(cModel::pm) = &ssPartsMgr;
+    cModel::mm = &ssModInfoMgr;
+    cModel::pm = &ssPartsMgr;
     MapMgr.roomInit();
     MapMgr.arrayAlloc(0x80);
 }
@@ -2303,9 +2303,9 @@ int zoomMove(SsMapWork* m, int max, int cnt)
     PSVECScale(&to->at, &a, t);
     PSVECScale(&from->at, &b, s);
     PSVECAdd(&a, &b, &pG->Camera.param.at);
-    // pGS loads pG separately from the earlier pG loads, so pG is reloaded for the call after the copy
-    pGS->Camera.up = up;
-    CameraSetOrientationUp(&pGS->Camera);
+    // pG loads pG separately from the earlier pG loads, so pG is reloaded for the call after the copy
+    pG->Camera.up = up;
+    CameraSetOrientationUp(&pG->Camera);
     return t >= 1.0f;
 }
 
@@ -2881,7 +2881,7 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     u->timer[2] = 0;
     u->timer[1] = 0;
     u->timer[0] = 0;
-    if (ScfFlagChk(pGS, SCF_R104_MEET_MERCHANT)) {
+    if (ScfFlagChk(pG, SCF_R104_MEET_MERCHANT)) {
         u = IdSub.unitPtr(0x61, IDC_SSCRN_NEAR_0);
         u->be_flag &= ~8;
     }

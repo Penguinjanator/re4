@@ -20,7 +20,6 @@
 #include "dvd.h"
 #include "snd.h"
 #include "debug.h"
-#include "ref_access.h"
 #include <string.h>
 #include <stdlib.h>
 #include <dolphin/os.h>
@@ -161,7 +160,7 @@ void processBarDisp()
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
     t->h = x0;
-    if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+    if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
         t->y0 = PROG_Y(30);
         t->h = PROG_H(t->h);
     }
@@ -179,7 +178,7 @@ void processBarDisp()
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
     t->h = x1 - x0;
-    if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+    if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
     }
@@ -197,7 +196,7 @@ void processBarDisp()
     t->c0.b = 0x80;
     t->c0.cd = 0xFF;
     t->h = x2 - x0;
-    if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+    if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
     }
@@ -226,7 +225,7 @@ void processBarDisp()
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
     t->h = TICKX(proc_tick[3]) - x0;
-    if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+    if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
     }
@@ -243,7 +242,7 @@ void processBarDisp()
     t->c0.g = 8;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+    if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
         t->y0 = 78;
         t->h = 300;
     }
@@ -260,7 +259,7 @@ void processBarDisp()
     t->c0.g = 8;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+    if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
         t->y0 = 78;
         t->h = 300;
     }
@@ -361,7 +360,7 @@ void PrimitiveBuffDisp()
         t->c0.cd = 0xFF;
         t->z0 = 0;
         int z = 0;
-        if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+        if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
             t->y0 = 74;
             t->h = 3;
         }
@@ -378,7 +377,7 @@ void PrimitiveBuffDisp()
         t->c0.r = 0x14;
         t->c0.g = 0x14;
         t->c0.cd = 0xFF;
-        if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+        if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
             t->y0 = 74;
             t->h = 3;
         }
@@ -395,7 +394,7 @@ void PrimitiveBuffDisp()
         t->h = 4;
         t->c0.b = 0x14;
         t->c0.cd = 0xFF;
-        if (CfgFlagChk(SysRef(pSys), CFG_WIDE_MODE)) {
+        if (CfgFlagChk(pSys, CFG_WIDE_MODE)) {
             t->y0 = 74;
             t->h = 3;
         }

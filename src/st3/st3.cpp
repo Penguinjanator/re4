@@ -187,7 +187,6 @@ extern "C" void _unresolved()
 #include "datactrl.h"
 #include "snd.h"
 #include "fade.h"
-#include "ref_access.h"
 
 void st3_checkCountDown();
 void st3_dieDemoEvent();
@@ -282,7 +281,7 @@ void st3_dieDemoEvent()
     st3_endCountDown();
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
-    S16Set(pPL->hp, 0);
+    pPL->hp = 0;
     StaFlagOn(pG, STA_EVENT_CANCEL);
     DiedemoExec(0, 1);
     SceSleep(1);

@@ -34,7 +34,6 @@
 #include "global.h"
 #include "math_sub.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "em_mod.h"
 
@@ -804,7 +803,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
             }
             if (w->timer) {
                 w->timer--;
-                AddWaterPower(&em->pos, 3.0f);
+                AddWaterPower(em->pos, 3.0f);
             }
             if (em->Motion.Seq_frame > 129.7f && em->Motion.Seq_frame < 130.3f) {
                 em->flag |= 0x40;
@@ -915,7 +914,7 @@ static void em2f_R1_Packman(cEm2f* em)
             }
             if (w->timer) {
                 w->timer--;
-                AddWaterPower(&em->pos, 3.0f);
+                AddWaterPower(em->pos, 3.0f);
             }
             if (em->Motion.Seq_frame > 59.7f && em->Motion.Seq_frame < 60.3f) {
                 em->flag |= 0x40;
@@ -1314,7 +1313,7 @@ void em2fRouteCk(cEm2f* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
+    w->pTarget = pPL;
     w->flags &= ~4;
     if (w->flags & 2) {
         if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
@@ -1322,7 +1321,7 @@ void em2fRouteCk(cEm2f* em)
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;
             w->targetDist = em->l_sub;
-            w->pTarget = pSUBS;
+            w->pTarget = pSUB;
             w->flags |= 4;
         }
     }
@@ -1348,7 +1347,7 @@ static inline void em2fWaterPower(cEm2f* em, int no)
 {
     cModel* p = em->getPartsPtr(no);
 
-    AddWaterPower(&p->world, fRand0_1() * 0.3f + 0.3f);
+    AddWaterPower(p->world, fRand0_1() * 0.3f + 0.3f);
 }
 
 // Water effects on the swim: the wake / splash at the body parts every effTimer2 (surfaced), effTimer3
@@ -1436,7 +1435,7 @@ int em2fSetNextRoute(cEm2f* em)
     {
         EmiEntry* e;
 
-        IntSet(w->routeIdx, idx);  // reference store: the pG reload waits for it (idx frees r10)
+        w->routeIdx = idx;  // reference store: the pG reload waits for it (idx frees r10)
         e = &(pG->pEmi)->entry[idx];
         w->nextPos = e->pos;
         return e->sub;
@@ -1461,7 +1460,7 @@ void em2fSetPosBetweenBoat(cEm2f* em)
             continue;
         }
         em->ang.x = 0.0f;
-        em->ang.y = pPLS->ang.y;
+        em->ang.y = pPL->ang.y;
         em->ang.z = 0.0f;
         em->be_flag |= 2;
         em2fEffectDelete(em, w);
@@ -1575,7 +1574,7 @@ void em2fSetPosHideMode(cEm2f* em)
     v.y = 0.0f;
     PSMTXMultVec(m, &v, &em->pos);
     em->pos.y = w->waterY - 37894.84f - 4882.0f;
-    em->ang.y = GetXZAngle(&em->pos, &pPLS->pos);
+    em->ang.y = GetXZAngle(&em->pos, &pPL->pos);
     em->ang.y += PI;
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     PSMTXRotRad(m, 'y', em->ang.y);
@@ -1689,7 +1688,7 @@ void em2fChangeRoute(cEm2f* em)
         w->nextPos = em2f_route_tbl[i];
         return;
     }
-    IntSet(w->routeIdx, best);  // reference store: the pG reload stays below it
+    w->routeIdx = best;  // reference store: the pG reload stays below it
     e = &(pG->pEmi)->entry[best];
     prev = &(pG->pEmi)->entry[bestPrev];
     w->nextPos = e->pos;

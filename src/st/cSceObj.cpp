@@ -5,7 +5,6 @@
 #include "rnd.h"
 #include "db_log.h"
 #include "cSceObj.h"
-#include "ref_access.h"
 
 // Scenario object mover (D:/Bio4/Prog/cSceObj.cpp), shared by the st2_0/st2_3/st4_0 stage RELs.
 // The original REL link dead-stripped the members no room of the module calls (STRIP_UNUSED).
@@ -447,7 +446,7 @@ void cSceObj::setMove1_all(u32 nFrame, Vec* dp, Vec* dr, f32 acc, f32 dec, int f
     frame = nFrame;
     dPos = *dp;
     dRot = *dr;
-    f32 r = FCRef(rate);
+    f32 r = *(const f32*) &rate;
     accR0 = acc * r;
     decR0 = dec * r;
     decR = decR0;

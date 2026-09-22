@@ -45,11 +45,11 @@ void cObjFn57::init(cModel* parent)
 
     switch (pG->weapon_type) {
     case 0:
-        U16Set(wep.itemId, 0x21);
+        wep.itemId = 0x21;
         bin = WEP_ARC_PTR(0x6);
         break;
     case 1:
-        U16Set(wep.itemId, 0x22);
+        wep.itemId = 0x22;
         bin = WEP_ARC_PTR(0x7);
         break;
     }
@@ -67,7 +67,7 @@ void cObjFn57::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
+    wep.motReset[0] = WEP_ARC_PTR(0x34);
     wep.motReset[1] = WEP_ARC_PTR(0x39);
     resetMotion();
     wep.shotFrame[0] = fn57_tbl[0];

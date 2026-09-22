@@ -180,7 +180,7 @@ void LightAreaUpdateSub(cEm* em, int type)
             la->flags &= ~2;
         }
     }
-    FSet(la->scale, scale);
+    la->scale = scale;
     if (em == pPL) {
         if (WEP_OBJ_EM() != 0) {
             cEm* wep;

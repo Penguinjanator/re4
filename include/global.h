@@ -60,9 +60,9 @@ struct PlArc {
 // Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
 #define WEP_ARC_PTR(no) PL_ARC_PTR(pG->pWep, no)
 // Slot `idx` of player `pl`'s motion table (m_MotTbl) set to entry `no` of the weapon / player archive.
-#define WEP_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], WEP_ARC_PTR(no))
-#define PLA_MOT(pl, idx, no) PSet((pl)->m_MotTbl[idx], PL_ARC_PTR(pG->pPlayer, no))
-#define NO_MOT(pl, idx) PSet((pl)->m_MotTbl[idx], (void*) 0)
+#define WEP_MOT(pl, idx, no) ((pl)->m_MotTbl[idx] = WEP_ARC_PTR(no))
+#define PLA_MOT(pl, idx, no) ((pl)->m_MotTbl[idx] = PL_ARC_PTR(pG->pPlayer, no))
+#define NO_MOT(pl, idx) ((pl)->m_MotTbl[idx] = (void*) 0)
 
 // Room archive at pG->pRoomArc: offsets to its sub-files (GetDataExt finds them by tag; ctrl14 indexes it).
 struct RoomArc {
@@ -301,11 +301,6 @@ extern SYSTEM_SAVE_WORK SystemSave;
 static inline void BitOn(u32& f, u32 b) { f |= b; }
 static inline void BitOff(u32& f, u32 b) { f &= ~b; }
 
-// Same mechanism for a plain float store. The original compiler never hoisted a load of a
-// global (pG, a static float) above a store made through `this`/a member pointer; ProDG 3.9.3
-// does, unless the store goes through a scalar reference. Use where the target asm shows the
-// global load after such a store (esp10, esp15, esp17 ...).
-static inline void FSet(f32& d, f32 v) { d = v; }
 static inline void BitOn16(u16& f, u16 b) { f |= b; }
 // `f &= ~b` with b a parameter keeps the 32-bit mask: `rlwinm` instead of the folded `andi.` (pl_sub).
 static inline void BitOff16(u16& f, u16 b) { f &= ~b; }
@@ -1245,7 +1240,7 @@ enum KEY_FLAG {
 
 // Test flag `no` in the word array at `base` (bit 31 - (no & 31) of word no >> 5).  The base is an
 // address rather than a field so a check can read the flags through whichever pointer the caller
-// holds: pG for most of the game, pGS where the code reaches them through the save block.
+// holds.
 #define FlagChk(base, no) (*(u32*) ((((no) >> 5) << 2) + (u32) (base)) & (0x80000000 >> ((no) & 31)))
 
 // The same test written as a shift into the sign bit, for a condition that tests two bits of one
@@ -1379,15 +1374,9 @@ enum EXT_FLAG {
 #define ExtFlagOn(g, n) FlagOn(&(g)->Extra_flg, n)
 #define ExtFlagOff(g, n) FlagOff(&(g)->Extra_flg, n)
 
-static inline void BitSet(u32& f, u32 v) { f = v; }
-
-// Struct-member view of pG (the pLog trick, db_log.h): a load through it is not hoisted above a
-// preceding struct-member store (esp15 SetFreeWork: `w->floorY = ...; if (pGS->flags ...)`), where
-// FSet would fold the address into `this` and a plain `pG` load moves above the store.
-struct GlobalWorkPtr {
-    GlobalWork* p;
-};
-#define pGS (((GlobalWorkPtr*) &pG)->p)
+// The stored value is a register of its own, as when passed as a parameter: a constant assigned
+// directly is scheduled elsewhere.
+static inline void U16Set(u16& d, u16 v) { d = v; }
 
 // Vec copy whose destination is a word pointer variable. That block move is a store the compiler cannot
 // place against the cached pG / pPL loads, so they are reloaded afterwards; `memcpy(&pG->field, ...)`, a Vec*

@@ -337,8 +337,8 @@ void drawPoint(Vec* p0, Vec* p1)
         }
     }
     esp->m_Pos = *p1;
-    FSet(esp->m_Size_base_x, esp->m_Size_base_x * size);
-    FSet(esp->m_Size_base_y, esp->m_Size_base_y * size);
+    esp->m_Size_base_x = esp->m_Size_base_x * size;
+    esp->m_Size_base_y = esp->m_Size_base_y * size;
     if (StaFlagChk(pG, STA_LASERSITE_NOADD)) {
         // COMPILER-DIFF: #17. `esp` is address-taken, so each store reloads it; the original's first
         // reload sits in r11 (r9 was still held by the previous reload at its sched1 position), ours

@@ -58,8 +58,8 @@ void ObjGovernment_init(cObj* obj)
 // wep.shotFrame[0..2] = 0x14, default lock spread.
 void cObjGovernment::init(cModel* parent)
 {
-    PSet(wep.motReset[0], WEP_ARC_PTR(0x34));
-    PSet(wep.motReset[1], WEP_ARC_PTR(0x3A));
+    wep.motReset[0] = WEP_ARC_PTR(0x34);
+    wep.motReset[1] = WEP_ARC_PTR(0x3A);
     wep.itemId = 0x2A;
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
         pLog->err(0, 0, "cObjWep::init() failed.");

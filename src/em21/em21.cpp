@@ -399,10 +399,10 @@ static void em21_R1_Escape(cEm21* em)
         }
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
-        if (!StaFlagChk(pGS, STA_SE_BURST)) {
+        if (!StaFlagChk(pG, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            pGS->SeInfo.pos = em->pos;
-            pGS->SeInfo.type = 0;
+            pG->SeInfo.pos = em->pos;
+            pG->SeInfo.type = 0;
         }
     }
     w->escTimer = 2;
@@ -1012,7 +1012,7 @@ void Em21RouteCk(cEm21* em)
         return;
     }
     w->flags &= ~1;
-    if (RouteCkToPos(em, &pPLS->pos, &w->routePos, 0, 0)) {
+    if (RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0)) {
         w->flags |= 1;
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
@@ -1038,10 +1038,10 @@ void Em21RouteCk(cEm21* em)
         w->targetAng = w->routeAng;
         w->targetAngAbs = w->routeAngAbs;
         w->targetDist2 = em->plDist2;
-        w->pTarget = pPLS;
+        w->pTarget = pPL;
     }
     w->flags &= ~4;
-    w->plDist = RouteCkPosToPosDis(&em->pos, &pPLS->pos);
+    w->plDist = RouteCkPosToPosDis(&em->pos, &pPL->pos);
     if (w->escTimer) {
         RouteCkEscEm(em, pPL, &w->targetPos);
     }

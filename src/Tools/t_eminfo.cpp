@@ -12,7 +12,6 @@
 #include "dbmodule.h"
 #include "t_prim.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include <string.h>
 #include <stdio.h>
 #include "math_sub.h"
@@ -52,14 +51,10 @@ struct EmInfoTool {
     u8 pad_42DF;
 };
 
-// The work pointer is a struct member: every store through it reloads the pointer.
-struct EmInfoToolPtr {
-    EmInfoTool* p;
-};
 
-static EmInfoToolPtr emInfo;
+static EmInfoTool* emInfo;
 static void* emInfoFileBuf;
-#define W emInfo.p
+#define W emInfo
 
 static char menuName[5][0x40] = {
     "Cancel", "Save", "Load", "Clear data", "Exit",
@@ -157,7 +152,7 @@ static inline void eminfoCursorCenter()
 }
 
 // Blinking cursor mark: on for half of the frames, always while a button is held.
-#define eminfoBlink() ((U32Ref(pG->Frame_cnt) & 0x10) || W->joy.on)
+#define eminfoBlink() ((pG->Frame_cnt & 0x10) || W->joy.on)
 
 // Enemy info editor entry (debug menu 35): loads the room's .emi, then every frame moves the debug
 // camera / cursor (TutilMoveCursor), finds the point nearest the cursor and runs tbl[mode]: 0 menu,
@@ -1364,10 +1359,10 @@ void eminfoCameraMove()
     }
     if (W->camMode) {
         CamDbg.move(&pG->Camera, Joy, 0);
-        BitSet(W->joy.trg, 0);
-        BitSet(W->joy.on, 0);
-        BitSet(W->joy.rep, 0);
-        BitSet(W->joy.rep2, 0);
+        W->joy.trg = 0;
+        W->joy.on = 0;
+        W->joy.rep = 0;
+        W->joy.rep2 = 0;
         DbgFlagOn(pG, DBG_DBG_CAM);
         if (pG->Frame_cnt & 0x10) {
             eprintf(320, 24, 4, 0, "1P CAMERA MODE");

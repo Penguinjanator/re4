@@ -867,7 +867,7 @@ static void em22_R1_Run(cEm22* em)
         if (em->plDist2 < 20250000.0f && w->routeAngAbs < 0.5235988f && em22PlRunCk(em) == 0) {
             if (w->plDeadWait == 0) {
                 a = em->pos;
-                b = pPLS->pos;
+                b = pPL->pos;
                 a.y += 500.0f;
                 b.y += 500.0f;
                 if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0 && em22ScreenInCk(em) && (u8) (Rnd() % 10) > 4 && (w->flags & 1)) {
@@ -881,7 +881,7 @@ static void em22_R1_Run(cEm22* em)
         } else if (em->plDist2 < 4000000.0f && w->routeAngAbs < 0.5235988f) {
             if (w->plDeadWait == 0) {
                 a = em->pos;
-                b = pPLS->pos;
+                b = pPL->pos;
                 a.y += 500.0f;
                 b.y += 500.0f;
                 hit = SatMgr.hitCheck(&a, &b, 0, 0, 0, 0);
@@ -986,8 +986,8 @@ static void em22_R1_Escape(cEm22* em)
         }
         if (!StaFlagChk(pG, STA_SE_BURST)) {
             StaFlagOn(pG, STA_SE_BURST);
-            pGS->SeInfo.pos = em->pos;
-            pGS->SeInfo.type = 0;
+            pG->SeInfo.pos = em->pos;
+            pG->SeInfo.type = 0;
         }
     }
     w->escTimer = 2;
@@ -1072,7 +1072,7 @@ static void em22_R1_Threat(cEm22* em)
             }
         } else if (em->plDist2 < 16000000.0f && w->routeAngAbs < 0.5235988f && w->plDeadWait == 0) {
             a = em->pos;
-            b = pPLS->pos;
+            b = pPL->pos;
             a.y += 500.0f;
             b.y += 500.0f;
             if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
@@ -1080,7 +1080,7 @@ static void em22_R1_Threat(cEm22* em)
             }
         } else if (em22PlRunCk2(em) && em->plDist2 < 49000000.0f && w->plDeadWait == 0) {
             a = em->pos;
-            c = pPLS->pos;
+            c = pPL->pos;
             a.y += 500.0f;
             c.y += 500.0f;
             if (SatMgr.hitCheck(&a, &c, 0, 0, 0, 0) == 0) {
@@ -1309,7 +1309,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 3, 1, 0);
         w->sndId[0] = SndCall(8, 0x12, &em->pos, em->id, 0, em);
-        w->sndId[2] = SndCall(8, 0x21, &pPLS->pos, em->id, 0, em);
+        w->sndId[2] = SndCall(8, 0x21, &pPL->pos, em->id, 0, em);
         EstSet(em, -1, 0, 0, EFF_EM22, 0xD, 0, ESP_CORE_KIND_NONE, em, 0);
         w->timer = 0;
         em->r_no_2++;
@@ -1491,7 +1491,7 @@ static void em22_R1_ParaAtk(cEm22* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
+            em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.19634955f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (w->timer2) {
@@ -1568,7 +1568,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
     case 1:
         if (pl->m_Work0) {
             pl->m_Work0--;
-            LifeDownSet2(pPLS, 10, 0, 0);
+            LifeDownSet2(pPL, 10, 0, 0);
             if (pl->m_Work0 == 0 && (s16) pG->pl_life <= 0) {
                 PlSetDamageSe(0xD);
                 PlSetDamage(PL_DM_FRONT, 0, 0);
@@ -2031,7 +2031,7 @@ void Em22RouteCk(cEm22* em)
         return;
     }
     w->flags &= ~1;
-    RouteCkToPos(em, &pPLS->pos, &w->plRoutePos, 0, 0);
+    RouteCkToPos(em, &pPL->pos, &w->plRoutePos, 0, 0);
     w->routeAng = Muku(&em->pos, &w->plRoutePos, em->ang.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
     a.x = em->pos.x;
@@ -2047,8 +2047,8 @@ void Em22RouteCk(cEm22* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist2 = em->plDist2;
-    w->pTarget = pPLS;
-    w->plDist = RouteCkPosToPosDis(&em->pos, &pPLS->pos);
+    w->pTarget = pPL;
+    w->plDist = RouteCkPosToPosDis(&em->pos, &pPL->pos);
     if (w->gotoOn) {
         RouteCkToPos(em, &w->gotoPos, &w->routePos, 0, 0);
         w->targetAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
@@ -2056,7 +2056,7 @@ void Em22RouteCk(cEm22* em)
         dz = em->pos.z - w->gotoPos.z;
         dx = em->pos.x - w->gotoPos.x;
         w->targetDist2 = dx * dx + dz * dz;
-        if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
+        if (DbgFlagChk(pG, DBG_RTP_DISP)) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);
@@ -2066,13 +2066,13 @@ void Em22RouteCk(cEm22* em)
         RouteCkEscEm(em, pPL, &w->routePos);
         w->targetAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
-        if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
+        if (DbgFlagChk(pG, DBG_RTP_DISP)) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);
         }
     } else {
-        if (DbgFlagChk(pGS, DBG_RTP_DISP)) {
+        if (DbgFlagChk(pG, DBG_RTP_DISP)) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->routePos, 0xFFFFFF40, 0);

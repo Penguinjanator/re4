@@ -15,7 +15,6 @@
 #include "db_log.h"
 #include "math_sub.h"
 #include "main_mem.h"
-#include "ref_access.h"
 
 extern "C" {
 void LightSetInit();
@@ -166,7 +165,7 @@ void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
     u32 mask;
     int i;
 
-    ISet(obj_flag, 0);
+    obj_flag = 0;
     obj_pos = *pos;
     obj_size = size;
     mask = 0;

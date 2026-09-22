@@ -394,7 +394,7 @@ void SubScreenExec()
             }
             StaFlagOff(pG, STA_SUSPEND);
             wk->disp_bak = pG->Disp_flg;
-            BitSet(pG->Disp_flg, 0xFFFFFFFF);
+            pG->Disp_flg = 0xFFFFFFFF;
             DpfFlagOff(pG, DPF_COCKPIT);
             DpfFlagOff(pG, DPF_ID_SYSTEM);
             DpfFlagOff(pG, DPF_MESSAGE);
@@ -569,8 +569,8 @@ void SubScreenExitCore(SubScreenWork* wk)
         MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
         DC.m_data_ctrl_flag = 1;
         RoomData.restartRelData();
-        MGR_PTR(cModel::mm) = &ModInfoMgr;
-        MGR_PTR(cModel::pm) = &PartsMgr;
+        cModel::mm = &ModInfoMgr;
+        cModel::pm = &PartsMgr;
         StaFlagOff(pG, STA_SUB_SCRN);
     }
 }
@@ -673,7 +673,7 @@ void SubScreenExit()
             systemVISetBlack(0);
             pG->Camera = wk->camera_bak;
             View.move();
-            BitSet(pG->Disp_flg, wk->disp_bak);
+            pG->Disp_flg = wk->disp_bak;
             if (wk->binocular_flag == 0) {
                 SpfFlagOff(pG, SPF_KEY);
             }

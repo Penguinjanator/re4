@@ -28,7 +28,7 @@ static void Pl11Init(cEm* em)
 // the partner effects (archive 0x11 as group 4), and registers herself as pSUB.
 cSubAshley::cSubAshley()
 {
-    hp = pGS->ashley_life;
+    hp = pG->ashley_life;
     litArea.on(1);
     pFootShadowTbl = pl_fs_tbl;
     EspDataLoad((u32) SUB_ARC(this, 0x11), EFF_PL01, 0);

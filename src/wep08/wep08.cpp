@@ -75,7 +75,7 @@ void cObjStriker::init(cModel* parent)
         LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
-    U16Set(wep.itemId, 0x2D);
+    wep.itemId = 0x2D;
     wep.motReset[0] = WEP_ARC_PTR(0x31);
     resetMotion();
     wep.shotFrame[0] = 0x2E;

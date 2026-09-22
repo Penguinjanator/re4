@@ -86,12 +86,8 @@ struct R318EspView {
     Vec pos2;
 };
 
-// The work pointer is a struct member: every store through the work reloads it (r203).
-struct R318WorkPtr {
-    R318Work* p;
-};
 
-static R318WorkPtr r318_work;
+static R318Work* r318_work;
 
 static SceElevatorData r318_elvArrive = {0, 3, {0.0f, 0.0f, 0.0f}, {27850.0f, 826.0f, 4380.0f}, {0.0f, -1.48f, 0.0f}, 2, 0, 2, 0, 1, {3085.0f, 0.0f, -100.0f}, {0.0f, 1.35f, 0.0f}, 0x31A};
 static SceElevatorData r318_elvLeave = {1, 3, {0.0f, 0.0f, 0.0f}, {27850.0f, 826.0f, 4380.0f}, {0.0f, -1.48f, 0.0f}, 2, 0, 0, 0, 1, {3085.0f, 0.0f, -100.0f}, {0.0f, 1.35f, 0.0f}, 0x31A};
@@ -139,7 +135,7 @@ void R318Init()
     int i;
 
 #line 86 "D:/Bio4/Prog/r318.cpp"
-    r318_work.p = (R318Work*) MEM_CALLOC(sizeof(R318Work), 1, 0xd);
+    r318_work = (R318Work*) MEM_CALLOC(sizeof(R318Work), 1, 0xd);
     SceAtSetEnable(0xA, 0);
     SceAtSetEnable(0xB, 0);
     SceAtSetEnable(0xF, 0);
@@ -162,17 +158,17 @@ void R318Init()
     r318_memset(&pos, 0, sizeof(Vec));
     r318_memset(&rot, 0, sizeof(Vec));
     for (i = 0; i < 15; i++) {
-        r318_work.p->laser[i] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
-        if (r318_work.p->laser[i]) {
-            cObj* laser = r318_work.p->laser[i];
+        r318_work->laser[i] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
+        if (r318_work->laser[i]) {
+            cObj* laser = r318_work->laser[i];
 
             cObjScrSetCallBack(laser, R318LaserCallBackFunc);
             laser->LightInfo.EnableMask = 4;
             laser->be_flag = (laser->be_flag | 0x1000) & ~2;
         }
     }
-    r318_work.p->str = 0;
-    r318_work.p->laserSnd = 0;
+    r318_work->str = 0;
+    r318_work->laserSnd = 0;
 }
 
 // Per-frame room main: nothing.
@@ -186,16 +182,16 @@ static void R318ExecSitMain()
     cPlayer* pl = pPL;
 
     SceEventStart(0);
-    r318_work.p->str = SndStrReq(1, 0xEB, 0x80000003, 0, 0, 0.0f);
-    r318_work.p->plPos = pPLS->pos;
-    r318_work.p->plRot = pPLS->ang;
+    r318_work->str = SndStrReq(1, 0xEB, 0x80000003, 0, 0, 0.0f);
+    r318_work->plPos = pPL->pos;
+    r318_work->plRot = pPL->ang;
     SceSetEventCancel(1, (TaskFunc) R318ExecSitEnd, 0, -1, 1);
-    FSet(pPL->pos.x, 0.0f);
-    FSet(pPL->pos.y, 0.0f);
-    FSet(pPL->pos.z, 0.0f);
-    FSet(pPL->ang.x, 0.0f);
-    FSet(pPL->ang.y, 0.0f);
-    FSet(pPL->ang.z, 0.0f);
+    pPL->pos.x = 0.0f;
+    pPL->pos.y = 0.0f;
+    pPL->pos.z = 0.0f;
+    pPL->ang.x = 0.0f;
+    pPL->ang.y = 0.0f;
+    pPL->ang.z = 0.0f;
     AtariOffRaw(&pPL->atari, 0xFCFF);
     pPL->beginEvent(0);
     pPL->setNoSuspend(1);
@@ -209,7 +205,7 @@ static void R318ExecSitMain()
     {
         u32 str = SndStrPlayBlock(1, 0xEC, 0.0f);
 
-        U32Set(r318_work.p->str, str);
+        r318_work->str = str;
     }
     MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x88), 0, 0, 0x201, 0);
     MotionMove(pPL, 0);
@@ -226,17 +222,17 @@ static void R318ExecSitEnd()
 {
     cPlayer* pl = pPL;
 
-    FSet(pPL->pos.x, 19760.0f);
-    FSet(pPL->pos.y, 448.0f);
-    FSet(pPL->pos.z, 4375.0f);
-    FSet(pPL->ang.x, 0.0f);
-    FSet(pPL->ang.y, -1.57f);
-    FSet(pPL->ang.z, 0.0f);
+    pPL->pos.x = 19760.0f;
+    pPL->pos.y = 448.0f;
+    pPL->pos.z = 4375.0f;
+    pPL->ang.x = 0.0f;
+    pPL->ang.y = -1.57f;
+    pPL->ang.z = 0.0f;
     pPL->setNoSuspend(0);
     pPL->endEvent(0);
     AtariOnRaw(&pPL->atari, 0x300);
     pl->Wep->setTrans(1, 0);
-    SndStrReq(r318_work.p->str, 8, 0, 0);
+    SndStrReq(r318_work->str, 8, 0, 0);
     SceEventEnd(0);
 }
 
@@ -326,7 +322,7 @@ static void R318AutoDoorMgr(int no)
 // piece per half (3000 tall, polygons along z).
 void R318AutoDoorInit(int no, u32 id1, u32 id0)
 {
-    R318Door* d = &r318_work.p->door[no];
+    R318Door* d = &r318_work->door[no];
     Vec pos;
     Vec rot;
 
@@ -356,7 +352,7 @@ void R318AutoDoorInit(int no, u32 id1, u32 id0)
 // Snap automatic door `no` closed: halves back at their closed z with their pieces following, flags cleared.
 void R318AutoDoorReset(int no)
 {
-    R318Door* d = &r318_work.p->door[no];
+    R318Door* d = &r318_work->door[no];
 
     if (d->obj0 && d->obj1) {
         d->open = 0;
@@ -388,7 +384,7 @@ void R318AutoDoorReset(int no)
 // first so flagNo dies at the `and`, tie with the `lis 0x8000` -> LUID order).
 void R318AutoDoor(int no, int flagNo, u32 id0, u32 id1)
 {
-    R318Door* d = &r318_work.p->door[no];
+    R318Door* d = &r318_work->door[no];
 
     R318AutoDoorInit(no, id0, id1);
     R318AutoDoorReset(no);
@@ -505,7 +501,7 @@ static void R318ExecSwitchCheck()
         if (pG->Room_flg[0] & 0x40) {
             return;
         }
-        BitOn(pG->Room_flg[0], 0x40);
+        pG->Room_flg[0] |= 0x40;
         void* tbl[15] = {ROOM_ARC_PTR(pG->pRoom, 0x42), ROOM_ARC_PTR(pG->pRoom, 0x43), ROOM_ARC_PTR(pG->pRoom, 0x44),
                          ROOM_ARC_PTR(pG->pRoom, 0x45), ROOM_ARC_PTR(pG->pRoom, 0x46), ROOM_ARC_PTR(pG->pRoom, 0x47),
                          ROOM_ARC_PTR(pG->pRoom, 0x48), ROOM_ARC_PTR(pG->pRoom, 0x49), ROOM_ARC_PTR(pG->pRoom, 0x4A),
@@ -513,7 +509,7 @@ static void R318ExecSwitchCheck()
                          ROOM_ARC_PTR(pG->pRoom, 0x4E), ROOM_ARC_PTR(pG->pRoom, 0x4F), ROOM_ARC_PTR(pG->pRoom, 0x50)};
 
         for (i = 0; i < 15; i++) {
-            laser = r318_work.p->laser[i];
+            laser = r318_work->laser[i];
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, tbl[i], 0, 0, 0, (u16) (FcvGetMaxFrame((u16*) tbl[i]) - 20));
             }
@@ -531,14 +527,14 @@ static void R318ExecSwitchCheck()
                          ROOM_ARC_PTR(pG->pRoom, 0x5B), ROOM_ARC_PTR(pG->pRoom, 0x5C), ROOM_ARC_PTR(pG->pRoom, 0x5D),
                          ROOM_ARC_PTR(pG->pRoom, 0x5E), ROOM_ARC_PTR(pG->pRoom, 0x5F), ROOM_ARC_PTR(pG->pRoom, 0x60)};
 
-        r318_work.p->plPos = pPLS->pos;
-        __builtin_memcpy((u8*) r318_work.p + 0xD8, &pPLS->ang, sizeof(Vec));
-        FSet(pPL->pos.x, 0.0f);
-        FSet(pPL->pos.y, 0.0f);
-        FSet(pPL->pos.z, 0.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        r318_work->plPos = pPL->pos;
+        __builtin_memcpy((u8*) r318_work + 0xD8, &pPL->ang, sizeof(Vec));
+        pPL->pos.x = 0.0f;
+        pPL->pos.y = 0.0f;
+        pPL->pos.z = 0.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         AtariOffRaw(&pPL->atari, 0xFCFF);
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
@@ -546,7 +542,7 @@ static void R318ExecSwitchCheck()
         EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xC, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
         MotionMove(pPL, 0);
         for (i = 0; i < 15; i++) {
-            laser = r318_work.p->laser[i];
+            laser = r318_work->laser[i];
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, tbl[i], 0, 0, 0, 0);
                 laser->be_flag |= 2;
@@ -554,7 +550,7 @@ static void R318ExecSwitchCheck()
         }
         R318LaserEspInit(15, 0, 2);
         SndCall(6, 3, 0, 0, 0, 0);
-        r318_work.p->xE4 = 0;
+        r318_work->xE4 = 0;
         while (MotionGetState(pPL) == 0) {
             pPL->dmg.m_Timer = 5;
             SceSleep(1);
@@ -571,12 +567,12 @@ void R318ExecSwitchCheckEnd()
     AtariOnRaw(&pPL->atari, 0x300);
     pPL->setNoSuspend(0);
     pPL->endEvent(0);
-    FSet(pPL->pos.x, r318_work.p->plPos.x);
-    FSet(pPL->pos.y, r318_work.p->plPos.y);
-    FSet(pPL->pos.z, r318_work.p->plPos.z);
-    FSet(pPL->ang.x, r318_work.p->plRot.x);
-    FSet(pPL->ang.y, r318_work.p->plRot.y);
-    FSet(pPL->ang.z, r318_work.p->plRot.z);
+    pPL->pos.x = r318_work->plPos.x;
+    pPL->pos.y = r318_work->plPos.y;
+    pPL->pos.z = r318_work->plPos.z;
+    pPL->ang.x = r318_work->plRot.x;
+    pPL->ang.y = r318_work->plRot.y;
+    pPL->ang.z = r318_work->plRot.z;
     EffectDelete(0x2001, ESP_CORE_KIND_ROOM04);
     {
         Vec v;
@@ -596,8 +592,8 @@ static void R318EventLaserStMain()
     if ((pG->Room_flg[0] & 0x80000000) == 0) {
         R318Door* d;
 
-        BitOn(pG->Room_flg[0], 0x80000000);
-        BitOn(pG->Room_flg[0], 0x40000000);
+        pG->Room_flg[0] |= 0x80000000;
+        pG->Room_flg[0] |= 0x40000000;
         SceAtSetEnable(8, 0);
         pG->Room_flg[0] &= ~0x20;
         SceEventStart(0);
@@ -605,7 +601,7 @@ static void R318EventLaserStMain()
         pPL->beginEvent(0);
         pPL->setNoSuspend(1);
         CamCtrl.CutCall(3);
-        d = &r318_work.p->door[0];
+        d = &r318_work->door[0];
         if (d->obj0 && d->obj1) {
             int i;
 
@@ -626,7 +622,7 @@ static void R318EventLaserStMain()
                 void* tbl[3] = {ROOM_ARC_PTR(pG->pRoom, 0x84), ROOM_ARC_PTR(pG->pRoom, 0x85), ROOM_ARC_PTR(pG->pRoom, 0x86)};
 
                 for (i = 0; i < 3; i++) {
-                    cObj* laser = r318_work.p->laser[i];
+                    cObj* laser = r318_work->laser[i];
 
                     if (laser) {
                         MotionSetCore(laser, &laser->Motion, tbl[i], 0, 0, 0, 0);
@@ -638,7 +634,7 @@ static void R318EventLaserStMain()
             R318LaserEspInit(3, 0, 2);
             SndCall(6, 3, 0, 0, 0, 0);
             {
-                cObj* laser = r318_work.p->laser[0];
+                cObj* laser = r318_work->laser[0];
 
                 if (laser) {
                     while (MotionGetState(laser) == 0) {
@@ -713,7 +709,7 @@ void R318LaserEspInit(int n, int type, int kind)
     int i;
 
     for (i = 0; i < n; i++) {
-        cObj* laser = r318_work.p->laser[i];
+        cObj* laser = r318_work->laser[i];
 
         if (laser) {
             void* zero;
@@ -722,7 +718,7 @@ void R318LaserEspInit(int n, int type, int kind)
                 pG->Room_flg[0] |= 0x00020000;
             }
             if (type == 2) {
-                r318_work.p->laserSnd = SndCall(6, 0xC, &laser->pos, 0, 0, 0);
+                r318_work->laserSnd = SndCall(6, 0xC, &laser->pos, 0, 0, 0);
             }
             zero = 0;
             EstSet(laser, -1, 0, 0, EFF_ROOM, (u8) type, 1, (u8) kind, zero, zero);
@@ -789,12 +785,12 @@ static void R318EventLaserMove(int no)
     void** mot = tbl[no];
     int num = cnt[no];
 
-    BitOff(pG->Room_flg[0], 0x00080000);
-    BitOff(pG->Room_flg[0], 0x00040000);
-    BitOff(pG->Room_flg[0], 0x00010000);
-    r318_work.p->escCount = 0;
-    r318_work.p->xE4 = 0;
-    r318_work.p->dodgeTimer = 0;
+    pG->Room_flg[0] &= ~0x00080000;
+    pG->Room_flg[0] &= ~0x00040000;
+    pG->Room_flg[0] &= ~0x00010000;
+    r318_work->escCount = 0;
+    r318_work->xE4 = 0;
+    r318_work->dodgeTimer = 0;
     switch (no) {
     case 0:
         pre = 0;
@@ -815,7 +811,7 @@ static void R318EventLaserMove(int no)
         hokan = 0;
         break;
     case 4:
-        r318_work.p->xE4 = 0x100;
+        r318_work->xE4 = 0x100;
         pre = 0;
         esp = 0;
         mode = 0;
@@ -843,19 +839,19 @@ static void R318EventLaserMove(int no)
     }
     if (pre == 1) {
         for (i = 0; i < preNum; i++) {
-            laser = r318_work.p->laser[i];
+            laser = r318_work->laser[i];
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, preMot[i], 0, 0, (u16) hokan, 0);
                 laser->be_flag |= 2;
             }
         }
-        laser = r318_work.p->laser[0];
+        laser = r318_work->laser[0];
         while (MotionGetState(laser) == 0) {
             SceSleep(1);
         }
     }
     for (int j = 0; j < num; j++) {  // its own counter: the pre loop's `i` count is r28, this one's r30
-        laser = r318_work.p->laser[j];
+        laser = r318_work->laser[j];
         if (laser) {
             MotionSetCore(laser, &laser->Motion, mot[j], 0, 0, (u16) hokan, 0);
             laser->be_flag |= 2;
@@ -866,7 +862,7 @@ static void R318EventLaserMove(int no)
         if ((pG->Room_flg[0] & 0x00040000) == 0) {
             if (mode == 2) {
                 for (i = 0; i < num; i++) {
-                    laser = r318_work.p->laser[i];
+                    laser = r318_work->laser[i];
                     if (laser) {
                         cModel* p2 = laser->getPartsPtr(2);
                         cModel* p4 = laser->getPartsPtr(4);
@@ -878,7 +874,7 @@ static void R318EventLaserMove(int no)
                 }
             }
             if (mode == 1) {
-                laser = r318_work.p->laser[0];
+                laser = r318_work->laser[0];
                 if (laser) {
                     cModel* p2 = laser->getPartsPtr(2);
 
@@ -890,7 +886,7 @@ static void R318EventLaserMove(int no)
                             int zero = 0;
 
                             if ((pG->Room_flg[0] & 0x00010000) == 0) {
-                                IntSet(r318_work.p->dodgeTimer, 60);
+                                r318_work->dodgeTimer = 60;
                                 pG->Room_flg[0] |= 0x00010000;
                             }
                             ActBtn.set(ACT_GUARD, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_L_R, ACT_FUNC_SCE, zero);
@@ -901,11 +897,11 @@ static void R318EventLaserMove(int no)
                         }
                         u32 zero2 = 0;
                         if (pG->Room_flg[0] & 0x00010000) {
-                            r318_work.p->dodgeTimer--;
-                            if (r318_work.p->dodgeTimer <= 0 || __builtin_fabsf(p2->world.x - pPL->pos.x) >= dist[no]) {
-                                if (r318_work.p->laserSnd) {
-                                    SndStop(r318_work.p->laserSnd, 0);
-                                    r318_work.p->laserSnd = zero2;
+                            r318_work->dodgeTimer--;
+                            if (r318_work->dodgeTimer <= 0 || __builtin_fabsf(p2->world.x - pPL->pos.x) >= dist[no]) {
+                                if (r318_work->laserSnd) {
+                                    SndStop(r318_work->laserSnd, 0);
+                                    r318_work->laserSnd = zero2;
                                 }
                                 EffectDelete(1, ESP_CORE_KIND_ROOM02);
                                 R318LaserEspInit(num, 0, 2);
@@ -917,7 +913,7 @@ static void R318EventLaserMove(int no)
                 }
             }
             if (mode == 0) {
-                laser = r318_work.p->laser[0];
+                laser = r318_work->laser[0];
                 if (laser) {
                     cModel* p2 = laser->getPartsPtr(2);
 
@@ -964,7 +960,7 @@ void R318EventLaserEnd(int no)
     int i;
 
     for (i = 0; i < 15; i++) {
-        cObj* laser = r318_work.p->laser[i];
+        cObj* laser = r318_work->laser[i];
 
         if (laser) {
             void* zero = 0;
@@ -1005,7 +1001,7 @@ void R318EventLaserEnd(int no)
         break;
     }
     EffectDelete(1, ESP_CORE_KIND_ROOM00);
-    BitOff(pG->Room_flg[0], 0x00020000);
+    pG->Room_flg[0] &= ~0x00020000;
     pG->Room_flg[0] |= 0x00080000;
     if (no == 4) {
         SceExec(0x12, (TaskFunc) R318ExecSwitchClear, 0, 0, 2, 0);
@@ -1022,20 +1018,20 @@ static void playerEscape02(cPlayer* pl)
 
     switch (pl->r_no_2) {
     case 0:
-        r318_work.p->plPos = pPLS->pos;
-        __builtin_memcpy((u8*) r318_work.p + 0xD8, &pPLS->ang, sizeof(Vec));
-        FSet(pPL->pos.x, 0.0f);
-        FSet(pPL->pos.y, 0.0f);
-        FSet(pPL->pos.z, 0.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        r318_work->plPos = pPL->pos;
+        __builtin_memcpy((u8*) r318_work + 0xD8, &pPL->ang, sizeof(Vec));
+        pPL->pos.x = 0.0f;
+        pPL->pos.y = 0.0f;
+        pPL->pos.z = 0.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot, 0, 0, 0x201, 0);
         EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xB, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
-        r318_work.p->str = SndStrPlayBlock(1, 0xC3, 0.0f);
+        r318_work->str = SndStrPlayBlock(1, 0xC3, 0.0f);
         for (i = 0; i < 5; i++) {
-            cObj* laser = r318_work.p->laser[i];
+            cObj* laser = r318_work->laser[i];
 
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, tbl[i], 0, 0, 0, 0);
@@ -1071,54 +1067,54 @@ static void playerEscape03(cPlayer* pl)
     case 0: {
         int i;
 
-        r318_work.p->plPos = pPLS->pos;
-        __builtin_memcpy((u8*) r318_work.p + 0xD8, &pPLS->ang, sizeof(Vec));
-        FSet(pPL->pos.x, 0.0f);
-        FSet(pPL->pos.y, 0.0f);
-        FSet(pPL->pos.z, 0.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        r318_work->plPos = pPL->pos;
+        __builtin_memcpy((u8*) r318_work + 0xD8, &pPL->ang, sizeof(Vec));
+        pPL->pos.x = 0.0f;
+        pPL->pos.y = 0.0f;
+        pPL->pos.z = 0.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot0, 0, 0, 0x201, 0);
         EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xD, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
-        r318_work.p->str = SndStrPlayBlock(1, 0xC4, 0.0f);
+        r318_work->str = SndStrPlayBlock(1, 0xC4, 0.0f);
         for (i = 0; i < 8; i++) {
-            cObj* laser = r318_work.p->laser[i];
+            cObj* laser = r318_work->laser[i];
 
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, tbl0[i], 0, 0, 0, 0);
             }
         }
-        r318_work.p->escCount = 0;
-        r318_work.p->escFrame = 0;
+        r318_work->escCount = 0;
+        r318_work->escFrame = 0;
         pl->r_no_2++;
     }
     case 1:
-        if (r318_work.p->escCount <= 9) {
-            r318_work.p->escCount++;
+        if (r318_work->escCount <= 9) {
+            r318_work->escCount++;
         }
-        if (r318_work.p->escCount == 10) {
-            r318_work.p->escCount = 11;
-            if (r318_work.p->laserSnd) {
-                SndStop(r318_work.p->laserSnd, 0);
-                r318_work.p->laserSnd = 0;
+        if (r318_work->escCount == 10) {
+            r318_work->escCount = 11;
+            if (r318_work->laserSnd) {
+                SndStop(r318_work->laserSnd, 0);
+                r318_work->laserSnd = 0;
             }
             EffectDelete(1, ESP_CORE_KIND_ROOM02);
             R318LaserEspInit(8, 0, 2);
             SndCall(6, 3, 0, 0, 0, 0);
         }
         pl->dmg.m_Timer = 0x78;
-        r318_work.p->escFrame++;
-        if (r318_work.p->escFrame > 0x20) {
+        r318_work->escFrame++;
+        if (r318_work->escFrame > 0x20) {
             ActBtn.set(ACT_GUARD, 5, 0, 0, ACTCTR_ENFORCE_EXEC, DISP_L_R, ACT_FUNC_SCE, 0);
             if (DodgePressed()) {
                 pl->r_no_2++;
                 break;
             }
         }
-        if (MotionMove(pl, 0) || r318_work.p->escFrame > 0x3E) {
-            BitOn(pG->Room_flg[0], 0x00040000);
+        if (MotionMove(pl, 0) || r318_work->escFrame > 0x3E) {
+            pG->Room_flg[0] |= 0x00040000;
             VibSetData((VibDataTbl*) (pG->pCore->ofs_1C + (u32) pG->pCore), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             SetPlDamage(0, playerDie);
@@ -1127,23 +1123,23 @@ static void playerEscape03(cPlayer* pl)
     case 2: {
         int i;
 
-        FSet(pPL->pos.x, 0.0f);
-        FSet(pPL->pos.y, 0.0f);
-        FSet(pPL->pos.z, 0.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        pPL->pos.x = 0.0f;
+        pPL->pos.y = 0.0f;
+        pPL->pos.z = 0.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         MotionSetCore(pl, &pl->Motion, mot1, 0, 0, 0x201, 0);
         EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xF, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
-        r318_work.p->str = SndStrPlayBlock(1, 0xC5, 0.0f);
+        r318_work->str = SndStrPlayBlock(1, 0xC5, 0.0f);
         for (i = 0; i < 8; i++) {
-            cObj* laser = r318_work.p->laser[i];
+            cObj* laser = r318_work->laser[i];
 
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, tbl1[i], 0, 0, 0, 0);
             }
         }
-        r318_work.p->escFrame = 0;
+        r318_work->escFrame = 0;
         pl->r_no_2++;
     }
     case 3:
@@ -1172,20 +1168,20 @@ static void playerEscape04(cPlayer* pl)
 
     switch (pl->r_no_2) {
     case 0:
-        r318_work.p->plPos = pPLS->pos;
-        __builtin_memcpy((u8*) r318_work.p + 0xD8, &pPLS->ang, sizeof(Vec));
-        FSet(pPL->pos.x, 0.0f);
-        FSet(pPL->pos.y, 0.0f);
-        FSet(pPL->pos.z, 0.0f);
-        FSet(pPL->ang.x, 0.0f);
-        FSet(pPL->ang.y, 0.0f);
-        FSet(pPL->ang.z, 0.0f);
+        r318_work->plPos = pPL->pos;
+        __builtin_memcpy((u8*) r318_work + 0xD8, &pPL->ang, sizeof(Vec));
+        pPL->pos.x = 0.0f;
+        pPL->pos.y = 0.0f;
+        pPL->pos.z = 0.0f;
+        pPL->ang.x = 0.0f;
+        pPL->ang.y = 0.0f;
+        pPL->ang.z = 0.0f;
         AtariOffRaw(&pPL->atari, 0xFCFF);
         MotionSetCore(pl, &pl->Motion, mot, 0, 0, 0x201, 0);
         EstSet(pPL, -1, 0, 0, EFF_ROOM, 0xD, 0x2001, ESP_CORE_KIND_ROOM04, 0, 0);
-        r318_work.p->str = SndStrPlayBlock(1, 0xC6, 0.0f);
+        r318_work->str = SndStrPlayBlock(1, 0xC6, 0.0f);
         for (i = 0; i < 15; i++) {
-            cObj* laser = r318_work.p->laser[i];
+            cObj* laser = r318_work->laser[i];
 
             if (laser) {
                 MotionSetCore(laser, &laser->Motion, tbl[i], 0, 0, 0, 0);

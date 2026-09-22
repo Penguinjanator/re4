@@ -63,12 +63,6 @@ extern KeyWork Key;
 struct SYSTEM_SAVE_WORK;
 extern SYSTEM_SAVE_WORK* pSys;
 
-// Struct-member view of pSys (see pPLS in player.h).
-struct SystemWorkPtr {
-    SYSTEM_SAVE_WORK* p;
-};
-#define pSysS (((SystemWorkPtr*) &pSys)->p)
-
 extern "C" int GetSystemVcnt();
 extern "C" void SetSystemVcnt(int vcnt);
 

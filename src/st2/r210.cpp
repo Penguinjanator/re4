@@ -133,8 +133,8 @@ void R210Init()
         }
     }
     if (pSUB) {
-        U16And(pSUB->atari.m_flag, 0xEFFF);
-        BitOn16(pSUB->atari.m_flag, 0x2000);
+        pSUB->atari.m_flag &= 0xEFFF;
+        pSUB->atari.m_flag |= 0x2000;
     }
     SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r222_dai_go, 0, 1);
     SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r222_dai_ret, 0, 1);
@@ -168,7 +168,7 @@ static void r222_dai_set()
     SceAtSetEnable(5, 1);
     SceAtSetEnable(6, 1);
     if (pG->Room_flg[0] & 0x80000000) {
-        BitOff(pG->Room_flg[0], 0x80000000);
+        pG->Room_flg[0] &= ~0x80000000;
         ScfFlagOff(pG, SCF_NO_ASHLEY_DIST_CK);
     }
 }
@@ -180,7 +180,7 @@ static void funcAshley2(cEm* p)
         cAtariInfo* at = &pSUB->atari;
 
         at->throughOn();
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x2D, 0x2D, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 0x2D, 0x2D, 1, 0);
         p->r_no_2 = 1;
         p->Motion.Seq_speed = 0.2f;
     }
@@ -189,7 +189,7 @@ static void funcAshley2(cEm* p)
 
         // Reference store: the `lwz pSUB` (fixed scalar) below depends on an unflagged MEM store but
         // not on an in-struct one, which is what ranks the 1.0 chain above the routine bytes.
-        FSet(p->Motion.Seq_speed, 1.0f);
+        (p->Motion.Seq_speed = 1.0f);
         EmRoutineSet(p, 0, 0, 0, 0);
         at = &pSUB->atari;
         at->throughOff();
@@ -286,7 +286,7 @@ static void r222_dai_go()
         dz = spd * dist;
         SmdGetObjPtr(0x20)->ang.x += spd;
         SmdGetObjPtr(0x21)->pos.z += dz;
-        FAdd(SmdGetObjPtr(0x20)->pos.z, dz);
+        SmdGetObjPtr(0x20)->pos.z += dz;
         pPL->pos.z += dz;
         SceSleep(1);
     }
@@ -340,7 +340,7 @@ static void r222_dai_ret()
         dz = spd * dist;
         SmdGetObjPtr(0x20)->ang.x += spd;
         SmdGetObjPtr(0x21)->pos.z += dz;
-        FAdd(SmdGetObjPtr(0x20)->pos.z, dz);
+        SmdGetObjPtr(0x20)->pos.z += dz;
         pPL->pos.z += dz;
         SceSleep(1);
     }
@@ -379,7 +379,7 @@ static void toroko_go(int dir)
     {
         // the 0.0 volume is loaded AFTER the be_flag store (a pool constant would float above it)
         static const f32 vol = 0.0f;
-        SndStrReq(1, 0xE4, 0x80000003, 0, 0, FCRef(vol));
+        SndStrReq(1, 0xE4, 0x80000003, 0, 0, *(const f32*) &vol);
     }
     SceEventStart(0);
     pl->setRightHand(1);

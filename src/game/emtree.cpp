@@ -674,7 +674,7 @@ void emTree_R1_Shot(cEmTree* em)
             em->ang.x = -atan2f(-em->pos.y, len);
             em->ang.y = atan2f(-em->pos.x, -em->pos.z);
             em->ang.z = 0.0f;
-            if ((s16) pGS->pl_life <= 0) {
+            if ((s16) pG->pl_life <= 0) {
                 w->fallTimer = 0;
             } else {
                 w->fallTimer = 30;

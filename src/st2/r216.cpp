@@ -91,12 +91,8 @@ struct R216Work {
     ScePrim* prim;       // 0x198  r216_ArmorAppearCamera task
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R216WorkPtr {
-    R216Work* p;
-};
 
-static R216WorkPtr r216_work;
+static R216Work* r216_work;
 
 
 static int r216_pole_obj[3][3] = {{0x2F, 0x5B, 0x66}, {0x30, 0x5C, 0x65}, {0x31, 0x5A, 0x67}};
@@ -123,22 +119,22 @@ void R216Init()
     u32 i;
 
 #line 88 "D:/Bio4/Prog/r216.cpp"
-    r216_work.p = (R216Work*) MEM_CALLOC(sizeof(R216Work), 1, 0xd);
-    r216_work.p->door.init();
-    r216_work.p->pole[0].init(0);
-    r216_work.p->pole[1].init(1);
-    r216_work.p->pole[2].init(2);
-    r216_work.p->door.setOpened();
+    r216_work = (R216Work*) MEM_CALLOC(sizeof(R216Work), 1, 0xd);
+    r216_work->door.init();
+    r216_work->pole[0].init(0);
+    r216_work->pole[1].init(1);
+    r216_work->pole[2].init(2);
+    r216_work->door.setOpened();
     if (RsfCheck(G_ROOM_ID, 0)) {
-        r216_work.p->pole[0].setOpened();
-        r216_work.p->pole[1].setOpened();
-        r216_work.p->pole[2].setOpened();
+        r216_work->pole[0].setOpened();
+        r216_work->pole[1].setOpened();
+        r216_work->pole[2].setOpened();
     } else {
         SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r216_BattleStart, 0, 1);
-        r216_work.p->armor[0].em.setEm(0xE5, -1, 1, 1, 1);
-        r216_work.p->armor[1].em.setEm(0xE6, -1, 1, 1, 1);
-        r216_work.p->armor[2].em.setEm(0xE7, -1, 1, 1, 1);
-        r216_work.p->armor[3].em.setEm(0xE8, -1, 1, 1, 1);
+        r216_work->armor[0].em.setEm(0xE5, -1, 1, 1, 1);
+        r216_work->armor[1].em.setEm(0xE6, -1, 1, 1, 1);
+        r216_work->armor[2].em.setEm(0xE7, -1, 1, 1, 1);
+        r216_work->armor[3].em.setEm(0xE8, -1, 1, 1, 1);
         SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r216_ArmorDispOnOff, (void*) 1, 1);
         SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r216_ArmorDispOnOff, 0, 1);
     }
@@ -147,10 +143,10 @@ void R216Init()
 // Per frame: step the door and the three pole state machines.
 void R216Main()
 {
-    r216_work.p->door.move();
-    r216_work.p->pole[0].move();
-    r216_work.p->pole[1].move();
-    r216_work.p->pole[2].move();
+    r216_work->door.move();
+    r216_work->pole[0].move();
+    r216_work->pole[1].move();
+    r216_work->pole[2].move();
 }
 
 // The knights come alive: the door closes, the poles turn the first armors out.
@@ -170,9 +166,9 @@ static void r216_BattleStart()
     }
     SceEventStart(0);
     for (i = 0; i < 3; i++) {
-        e = &r216_work.p->em[r216_em_idx[i][0]];
+        e = &r216_work->em[r216_em_idx[i][0]];
         e->em.setEm(r216_em_no[i][0], -1, 1, 1, 1);
-        r216_work.p->pole[i].setEm(&e->em);
+        r216_work->pole[i].setEm(&e->em);
         e->em.setNoSuspend(1);
     }
     cModel* mdl = NULL;   // the zero of the EstSet stack arguments (r30, set before CutCall)
@@ -180,24 +176,24 @@ static void r216_BattleStart()
     pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r216_BattleStartEndProc, 0, 2, 1);
     EstSet(0, -1, NULL, NULL, EFF_ROOM, 6, 1, ESP_CORE_KIND_ROOM03, 0, mdl);
-    r216_work.p->door.setClose();
-    while (r216_work.p->door.getStatus() != 0) {
+    r216_work->door.setClose();
+    while (r216_work->door.getStatus() != 0) {
         SceSleep(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     pG->Room_flg[0] &= ~0x08000000;
-    r216_work.p->prim = SceExec(0x12, (TaskFunc) r216_ArmorAppearCamera, 0, 0, SCE_PRIO_DEF_2, NULL);
-    r216_work.p->pole[0].setOpen();
-    r216_work.p->pole[1].setOpen();
-    r216_work.p->pole[2].setOpen();
-    while (r216_work.p->pole[0].getStatus() != 1) {
+    r216_work->prim = SceExec(0x12, (TaskFunc) r216_ArmorAppearCamera, 0, 0, SCE_PRIO_DEF_2, NULL);
+    r216_work->pole[0].setOpen();
+    r216_work->pole[1].setOpen();
+    r216_work->pole[2].setOpen();
+    while (r216_work->pole[0].getStatus() != 1) {
         SceSleep(1);
     }
     SceSleep(0x5A);
     for (i = 0; i < 3; i++) {
-        e = &r216_work.p->em[r216_em_idx[i][0]];
+        e = &r216_work->em[r216_em_idx[i][0]];
         e->em.setFlag(1);
         e->set = 1;
     }
@@ -216,18 +212,18 @@ static void r216_BattleStartEndProc()
     u32 i;
 
     if (pG->Room_flg[0] & 0x20000000) {
-        if (r216_work.p->prim) {
-            SceKill(r216_work.p->prim);
+        if (r216_work->prim) {
+            SceKill(r216_work->prim);
         }
         for (i = 0; i < 3; i++) {
             R216Em* e;
 
-            r216_work.p->pole[i].setOpened();
-            e = &r216_work.p->em[r216_em_idx[i][0]];
+            r216_work->pole[i].setOpened();
+            e = &r216_work->em[r216_em_idx[i][0]];
             e->em.setFlag(1);
             e->set = 1;
         }
-        r216_work.p->door.setClosed();
+        r216_work->door.setClosed();
         EffectEspDelete(1, ESP_CORE_KIND_ROOM03, 0, NULL);
         EffectEspgenDelete(1, ESP_CORE_KIND_ROOM03, 0);
         EffectEfmDelete(1, ESP_CORE_KIND_ROOM03, 0);
@@ -235,9 +231,9 @@ static void r216_BattleStartEndProc()
     }
     CamCtrl.Comeback(0);
     SceExec(0x12, (TaskFunc) r216_BattleEndCheck, 0, 0, SCE_PRIO_DEF_2, NULL);
-    r216_work.p->em[6].em.setNoSuspend(0);
-    r216_work.p->em[7].em.setNoSuspend(0);
-    r216_work.p->em[8].em.setNoSuspend(0);
+    r216_work->em[6].em.setNoSuspend(0);
+    r216_work->em[7].em.setNoSuspend(0);
+    r216_work->em[8].em.setNoSuspend(0);
     SceEventEnd(0);
 }
 
@@ -262,26 +258,26 @@ static void r216_2ndArmorAppear()
     u32 i;
 
     SceCTask()->task->flag &= ~2;
-    r216_work.p->pole[0].setClose();
-    r216_work.p->pole[1].setClose();
-    r216_work.p->pole[2].setClose();
-    while (r216_work.p->pole[0].getStatus() != 0) {
+    r216_work->pole[0].setClose();
+    r216_work->pole[1].setClose();
+    r216_work->pole[2].setClose();
+    while (r216_work->pole[0].getStatus() != 0) {
         SceSleep(1);
     }
     SceSleep(0x3C);
     for (i = 0; i < 3; i++) {
-        r216_work.p->em[r216_em_idx[i][1]].em.setEm(r216_em_no[i][1], -1, 1, 1, 1);
-        r216_work.p->pole[i].setEm(&r216_work.p->em[r216_em_idx[i][1]].em);
+        r216_work->em[r216_em_idx[i][1]].em.setEm(r216_em_no[i][1], -1, 1, 1, 1);
+        r216_work->pole[i].setEm(&r216_work->em[r216_em_idx[i][1]].em);
     }
-    r216_work.p->pole[0].setOpen();
-    r216_work.p->pole[1].setOpen();
-    r216_work.p->pole[2].setOpen();
-    while (r216_work.p->pole[0].getStatus() != 1) {
+    r216_work->pole[0].setOpen();
+    r216_work->pole[1].setOpen();
+    r216_work->pole[2].setOpen();
+    while (r216_work->pole[0].getStatus() != 1) {
         SceSleep(1);
     }
     SceSleep(0xF);
     for (i = 0; i < 3; i++) {
-        R216Em* e = &r216_work.p->em[r216_em_idx[i][1]];
+        R216Em* e = &r216_work->em[r216_em_idx[i][1]];
 
         e->em.setFlag(1);
         SceSleep(1);
@@ -297,7 +293,7 @@ static void r216_BattleEndCheck()
         u32 i;
 
         for (i = 0; i < 9; i++) {
-            R216Em* e = &r216_work.p->em[i];
+            R216Em* e = &r216_work->em[i];
 
             if (e->em.isAlive() == 1 && e->set == 1 && e->em.isActive() == 0) {
                 dead++;
@@ -324,8 +320,8 @@ static void r216_BattleEnd()
     CamCtrl.CutCall(1);
     pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, (TaskFunc) r216_BattleEndEndProc, 0, -1, 1);
-    r216_work.p->door.setOpen();
-    while (r216_work.p->door.getStatus() != 1) {
+    r216_work->door.setOpen();
+    while (r216_work->door.getStatus() != 1) {
         SceSleep(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -339,7 +335,7 @@ static void r216_BattleEnd()
 static void r216_BattleEndEndProc()
 {
     if (pG->Room_flg[0] & 0x20000000) {
-        r216_work.p->door.setOpened();
+        r216_work->door.setOpened();
     }
     CamCtrl.Comeback(0);
     RsfSet(G_ROOM_ID, 0);
@@ -349,10 +345,10 @@ static void r216_BattleEndEndProc()
 // Areas 5/6: show (on = 1) / hide the four display armors (draw distance culling by hand).
 static void r216_ArmorDispOnOff(int on)
 {
-    r216_work.p->armor[0].em.setTrans(on);
-    r216_work.p->armor[1].em.setTrans(on);
-    r216_work.p->armor[2].em.setTrans(on);
-    r216_work.p->armor[3].em.setTrans(on);
+    r216_work->armor[0].em.setTrans(on);
+    r216_work->armor[1].em.setTrans(on);
+    r216_work->armor[2].em.setTrans(on);
+    r216_work->armor[3].em.setTrans(on);
 }
 
 // Pole `no`: its three scroll objects (r216_pole_obj) marked script-moved.

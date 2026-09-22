@@ -47,14 +47,10 @@ struct R228Work {
     u8 texTbl[0x384];       // 0x128  its blend table
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R228WorkPtr {
-    R228Work* p;
-};
 
 static u8 r228_texTbl0[0x20];
 static u8 r228_texTbl1[0x20];
-static R228WorkPtr r228_work;
+static R228Work* r228_work;
 
 static void r228_execSalazarNeckDown();
 static void r228_checkSalazarBattle();
@@ -71,15 +67,15 @@ void setTexRender();
 void R228Init()
 {
 #line 57 "D:/Bio4/Prog/r228.cpp"
-    r228_work.p = (R228Work*) MEM_CALLOC(sizeof(R228Work), 1, 0xd);
+    r228_work = (R228Work*) MEM_CALLOC(sizeof(R228Work), 1, 0xd);
     setTexRender();
     EvtMgr.SetFunc("evt_r228s00_func", (void*) Evt_R228S00_Func);
     EvtMgr.SetFunc("evt_r228s01_func", (void*) Evt_R228S01_Func);
     EvtMgr.SetFunc("evt_r228s02_func", (void*) Evt_R228S02_Func);
-    r228_work.p->eff2 = EspPullCoreKind();
+    r228_work->eff2 = EspPullCoreKind();
     r228_initEvent00();
-    TexRenderInit(&r228_work.p->texEvt, 0xE0, 2);
-    EstSet(0, -1, 0, 0, EFF_ROOM, 3, r228_work.p->texEvt->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
+    TexRenderInit(&r228_work->texEvt, 0xE0, 2);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 3, r228_work->texEvt->mask | 0x3001, ESP_CORE_KIND_NONE, 0, 0);
 }
 
 // Per-frame room main: nothing.
@@ -109,7 +105,7 @@ static void r228_execSalazarNeckDown()
     CamCtrl.Comeback(0);
     StaFlagOff(pG, STA_ESP_COMPULSION_NOSUSPEND);
     SceEventEnd(0);
-    r228_work.p->se = 0;
+    r228_work->se = 0;
 }
 
 // The boss fight: waits for the boss to die, then the death camera cuts 9..12.
@@ -136,19 +132,19 @@ static void r228_checkSalazarBattle()
 
             if (e && ((cEm38*) e)->ckDown() == 1) {
                 RsfSet(G_ROOM_ID, 2);
-                r228_work.p->se = 0;
-                r228_work.p->se = SceExec(0x12, (TaskFunc) r228_execSalazarNeckDown, 0, 0, SCE_PRIO_DEF_2, 0);
+                r228_work->se = 0;
+                r228_work->se = SceExec(0x12, (TaskFunc) r228_execSalazarNeckDown, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         SceSleep(1);
     }
     SndRoomStrStop(3);
-    if (r228_work.p->se) {
-        SceKill(r228_work.p->se);
+    if (r228_work->se) {
+        SceKill(r228_work->se);
     }
-    r228_work.p->eff = EspPullCoreKind();
-    f32 y = SatMgr.getFloor(&pPLS->pos, 0, 600.0f, 100000.0f, 0);
-    FSetP(pPL->pos.y, y);
+    r228_work->eff = EspPullCoreKind();
+    f32 y = SatMgr.getFloor(&pPL->pos, 0, 600.0f, 100000.0f, 0);
+    pPL->pos.y = y;
     pPL->setPos(&pPL->pos);
     SceEventStart(0);
     boss.setNoSuspend(1);
@@ -158,31 +154,31 @@ static void r228_checkSalazarBattle()
     em3.setNoSuspend(1);
     cEm* e0 = em0.getPtr();
     cEm* eb = boss.getPtr();
-    EstSet(e0, -1, 0, 0, EFF_EM38, 0x10, 1, (u8) r228_work.p->eff, 0, 0);
+    EstSet(e0, -1, 0, 0, EFF_EM38, 0x10, 1, (u8) r228_work->eff, 0, 0);
     CamCtrl.CutCall(9);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
-    EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
-    EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet(eb, -1, 0, 0, EFF_EM38, 0x11, 1, (u8) r228_work.p->eff, 0, 0);
+    EffectEspDelete(0, (u8) r228_work->eff, 0, 0);
+    EffectEspgenDelete(0, (u8) r228_work->eff, 0);
+    EffectEfmDelete(0, (u8) r228_work->eff, 0);
+    EstSet(eb, -1, 0, 0, EFF_EM38, 0x11, 1, (u8) r228_work->eff, 0, 0);
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
-    EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
-    EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet(e0, -1, 0, 0, EFF_EM38, 0x12, 1, (u8) r228_work.p->eff, 0, 0);
+    EffectEspDelete(0, (u8) r228_work->eff, 0, 0);
+    EffectEspgenDelete(0, (u8) r228_work->eff, 0);
+    EffectEfmDelete(0, (u8) r228_work->eff, 0);
+    EstSet(e0, -1, 0, 0, EFF_EM38, 0x12, 1, (u8) r228_work->eff, 0, 0);
     CamCtrl.CutCall(0xB);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
-    EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
-    EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
-    EstSet(0, -1, 0, 0, EFF_EM38, 0x13, 1, (u8) r228_work.p->eff, 0, 0);
+    EffectEspDelete(0, (u8) r228_work->eff, 0, 0);
+    EffectEspgenDelete(0, (u8) r228_work->eff, 0);
+    EffectEfmDelete(0, (u8) r228_work->eff, 0);
+    EstSet(0, -1, 0, 0, EFF_EM38, 0x13, 1, (u8) r228_work->eff, 0, 0);
     CamCtrl.CutCall(0xC);
     boss.destroy();
     em0.destroy();
@@ -202,17 +198,17 @@ static void r228_checkSalazarBattle()
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    EffectEspDelete(0, (u8) r228_work.p->eff, 0, 0);
-    EffectEspgenDelete(0, (u8) r228_work.p->eff, 0);
-    EffectEfmDelete(0, (u8) r228_work.p->eff, 0);
+    EffectEspDelete(0, (u8) r228_work->eff, 0, 0);
+    EffectEspgenDelete(0, (u8) r228_work->eff, 0);
+    EffectEfmDelete(0, (u8) r228_work->eff, 0);
     SceAtSetEnable(2, 1);
     SceEventEnd(0);
     EstSet(0, -1, 0, 0, EFF_ROOM, 4, 0, ESP_CORE_KIND_NONE, 0, 0);
     RsfSet(G_ROOM_ID, 1);
     ScfFlagOn(pG, SCF_83);
     SceAtSetEnable(0x8C, 1);
-    SatMgr.destroy(r228_work.p->sat);
-    EatMgr.destroy(r228_work.p->eat);
+    SatMgr.destroy(r228_work->sat);
+    EatMgr.destroy(r228_work->eat);
 }
 
 // Area 7: the three-part event, then the fight starts.
@@ -230,19 +226,19 @@ static void r228_execEvent00()
         }
     }
     SceEventEnd(0);
-    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0x801, (u8) r228_work.p->eff2, zero, zero);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 2, 0x801, (u8) r228_work->eff2, zero, zero);
     SceAtSetEnable(8, 1);
-    if (r228_work.p->obj76) {
-        r228_work.p->obj76->be_flag |= 2;
+    if (r228_work->obj76) {
+        r228_work->obj76->be_flag |= 2;
     }
-    if (r228_work.p->obj78) {
-        r228_work.p->obj78->be_flag |= 2;
+    if (r228_work->obj78) {
+        r228_work->obj78->be_flag |= 2;
     }
-    if (r228_work.p->obj77) {
-        r228_work.p->obj77->be_flag &= ~2;
+    if (r228_work->obj77) {
+        r228_work->obj77->be_flag &= ~2;
     }
-    if (r228_work.p->obj79) {
-        r228_work.p->obj79->be_flag &= ~2;
+    if (r228_work->obj79) {
+        r228_work->obj79->be_flag &= ~2;
     }
     SndRoomStrStart(1, 0, 1);
     cEmWrap em0;
@@ -260,7 +256,7 @@ static void r228_execEvent00()
     setEm(0x30, -1, 1, 1, 1);
     setEm(0x31, -1, 1, 1, 1);
     setEm(0x32, -1, 1, 1, 1);
-    TexRenderModSet(em1.getPtr(), 1, r228_work.p->texTbl, r228_work.p->texEvt, 0, 1, 1, 1, 1.0f);
+    TexRenderModSet(em1.getPtr(), 1, r228_work->texTbl, r228_work->texEvt, 0, 1, 1, 1, 1.0f);
     SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
@@ -270,10 +266,10 @@ static void r228_execEvent00()
 // fight watcher and Salazar's look-down.
 void r228_initEvent00()
 {
-    r228_work.p->obj76 = SmdGetObjPtr(0x76);
-    r228_work.p->obj78 = SmdGetObjPtr(0x78);
-    r228_work.p->obj77 = SmdGetObjPtr(0x77);
-    PSet(r228_work.p->obj79, SmdGetObjPtr(0x79));
+    r228_work->obj76 = SmdGetObjPtr(0x76);
+    r228_work->obj78 = SmdGetObjPtr(0x78);
+    r228_work->obj77 = SmdGetObjPtr(0x77);
+    r228_work->obj79 = SmdGetObjPtr(0x79);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadMram("event/evd/r228s00.evd", 0, 0, 0, 0);
         SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r228_execEvent00, 0, 1);
@@ -282,33 +278,33 @@ void r228_initEvent00()
         if (o) {
             o->be_flag &= ~2;
         }
-        if (r228_work.p->obj76) {
-            r228_work.p->obj76->be_flag &= ~2;
+        if (r228_work->obj76) {
+            r228_work->obj76->be_flag &= ~2;
         }
-        if (r228_work.p->obj78) {
-            r228_work.p->obj78->be_flag &= ~2;
+        if (r228_work->obj78) {
+            r228_work->obj78->be_flag &= ~2;
         }
         SceAtSetEnable(0x8C, 0);
     } else {
         SceAtSetEnable(8, 1);
-        if (r228_work.p->obj77) {
-            r228_work.p->obj77->be_flag &= ~2;
+        if (r228_work->obj77) {
+            r228_work->obj77->be_flag &= ~2;
         }
-        if (r228_work.p->obj79) {
-            r228_work.p->obj79->be_flag &= ~2;
+        if (r228_work->obj79) {
+            r228_work->obj79->be_flag &= ~2;
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    r228_work.p->sat = 0;
-    PSet(r228_work.p->eat, 0);
+    r228_work->sat = 0;
+    r228_work->eat = 0;
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtSetEnable(2, 0);
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
-        PSet(r228_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
-        r228_work.p->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
+        r228_work->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+        r228_work->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     } else {
         cObj* o = SmdGetObjPtr(0x32);
         if (o) {
@@ -411,7 +407,7 @@ extern "C" void Evt_R228S00_Func(Event* e)
         SmdSetTrans(1, 1);
         break;
     case 3:
-        BitOn(pG->Room_flg[0], 0x80000000);
+        pG->Room_flg[0] |= 0x80000000;
         if (pG->Room_flg[0] & 0x00200000) {
             EvtMgr.EvtFree("event/evd/r228s01.evd");
         }
@@ -461,7 +457,7 @@ extern "C" void Evt_R228S01_Func(Event* e)
         SmdSetTrans(1, 1);
         break;
     case 3:
-        BitOn(pG->Room_flg[0], 0x80000000);
+        pG->Room_flg[0] |= 0x80000000;
         if (pG->Room_flg[0] & 0x00100000) {
             EvtMgr.EvtFree("event/evd/r228s02.evd");
         }
@@ -526,21 +522,21 @@ extern "C" void Evt_R228S02_Func(Event* e)
             break;
         case 8:
             if (e->NowFrame == 0) {
-                if (r228_work.p->obj77) {
-                    r228_work.p->obj77->be_flag &= ~2;
+                if (r228_work->obj77) {
+                    r228_work->obj77->be_flag &= ~2;
                 }
-                if (r228_work.p->obj76) {
-                    r228_work.p->obj76->be_flag |= 2;
+                if (r228_work->obj76) {
+                    r228_work->obj76->be_flag |= 2;
                 }
             }
             break;
         case 9:
             if (e->NowFrame == 0) {
-                if (r228_work.p->obj79) {
-                    r228_work.p->obj79->be_flag &= ~2;
+                if (r228_work->obj79) {
+                    r228_work->obj79->be_flag &= ~2;
                 }
-                if (r228_work.p->obj78) {
-                    r228_work.p->obj78->be_flag |= 2;
+                if (r228_work->obj78) {
+                    r228_work->obj78->be_flag |= 2;
                 }
             }
             break;
@@ -548,7 +544,7 @@ extern "C" void Evt_R228S02_Func(Event* e)
         if (e->NowCut == 0) {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "em3800", 0, 0) == 1) {
-                    TexRenderModSet((cModel*) mod, 1, r228_work.p->texTbl, r228_work.p->texEvt, 0, 1, 1, 1, 1.0f);
+                    TexRenderModSet((cModel*) mod, 1, r228_work->texTbl, r228_work->texEvt, 0, 1, 1, 1, 1.0f);
                 }
             }
         }
@@ -581,23 +577,23 @@ void setTexRender()
     u8* tbl0 = r228_texTbl0;
     u8* tbl1 = r228_texTbl1;
 
-    if (GetTexRenderMgr(&r228_work.p->tex[0])) {
+    if (GetTexRenderMgr(&r228_work->tex[0])) {
         tbl0[0] = 1;
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
-        tbl0[5] = r228_work.p->tex[0]->texId;
-        r228_work.p->tex[0]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r228_work.p->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl0[5] = r228_work->tex[0]->texId;
+        r228_work->tex[0]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r228_work->tex[0]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
-    if (GetTexRenderMgr(&r228_work.p->tex[1])) {
+    if (GetTexRenderMgr(&r228_work->tex[1])) {
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
-        tbl1[5] = r228_work.p->tex[1]->texId;
-        r228_work.p->tex[1]->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 1, r228_work.p->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl1[5] = r228_work->tex[1]->texId;
+        r228_work->tex[1]->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 1, r228_work->tex[1]->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }

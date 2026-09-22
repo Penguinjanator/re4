@@ -320,13 +320,6 @@ void pl_R1_Event_Smooth(cPlayer* pl);
 
 extern cPlayer* pPL;
 
-// Struct-member view of pPL. GCC 2.95 does not reload a pointer read through a struct member after
-// stores through other pointers, so the load stays below such stores, as in the original code.
-struct PlayerPtr {
-    cPlayer* p;
-};
-#define pPLS (((PlayerPtr*) &pPL)->p)
-
 // Face model info of `pl`: the diagonal of its matrix (the face scale) set to `v` (pl_knife, pl_rocket).
 // A plain block: a do/while(0) body's loop notes lengthen the live ranges around it and flip the
 // callee-saved order of pl_rocket down30's pl / joyLKamae result. Needs main_mem.h (VALID_PTR) and

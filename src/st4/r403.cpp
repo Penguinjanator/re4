@@ -45,14 +45,10 @@ struct R403Work {
     TexRenderMng* tex;   // 0x2C
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R403WorkPtr {
-    R403Work* p;
-};
 
 
 static u8 r403_texTbl[0x20];
-static R403WorkPtr r403_work;
+static R403Work* r403_work;
 
 static Vec r403_pos[3] = {{31558.0f, 8314.0f, 38823.0f}, {49963.0f, 20536.0f, 17277.0f}, {51563.0f, 11411.0f, -5610.0f}};
 static Vec r403_rot[3] = {{0.0f, 2.345f, 0.0f}, {0.0f, -0.9f, 0.0f}, {0.0f, 1.25f, 0.0f}};
@@ -105,7 +101,7 @@ void R403Init()
     cEmWindow* win;
 
 #line 53 "D:/Bio4/Prog/r403.cpp"
-    r403_work.p = (R403Work*) MEM_CALLOC(sizeof(R403Work), 1, 0xd);
+    r403_work = (R403Work*) MEM_CALLOC(sizeof(R403Work), 1, 0xd);
     setLadderMotion(0);
     setLadderMotion(0x1D);
     if (getRoomEtcWindow(0x1E, &win, 1)) {
@@ -116,17 +112,17 @@ void R403Init()
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     {
-        PSet(r403_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot, 0x10, 1));
+        r403_work->slide = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot, 0x10, 1);
     }
     if (pG->pl_type == 2) {
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
+        r403_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
     } else {
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
+        r403_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
     }
     int one = 1;
-    r403_work.p->slide->Motion.Seq_speed = 0.0f;
-    r403_work.p->slide->be_flag |= 0x1000;
-    r403_work.p->slide->setNoSuspend(0);
+    r403_work->slide->Motion.Seq_speed = 0.0f;
+    r403_work->slide->be_flag |= 0x1000;
+    r403_work->slide->setNoSuspend(0);
     SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) slide_move, 0, 1);
     setTexRender();
     R403MercInit init;
@@ -213,7 +209,7 @@ static void r403_DuraluminCaseOpened(int no)
 // Resets list entry `no` (chk: only while fewer than 10 enemies are alive); 1 when it was set.
 static int em_reset(int no, int chk)
 {
-    if (chk == 1 && r403_work.p->cnt > 9) {
+    if (chk == 1 && r403_work->cnt > 9) {
         return 0;
     }
     if (pG->Em_list[no].be_flag & 2) {
@@ -222,8 +218,8 @@ static int em_reset(int no, int chk)
     cEmWrap em;
     em.setEm(no, -1, 1, 1, 1);
     em.setGoto(&pPL->pos, 0xC);
-    r403_work.p->base++;
-    r403_work.p->cnt++;
+    r403_work->base++;
+    r403_work->cnt++;
     SceDebugDisp("RESET[%d]", no);
     return 1;
 }
@@ -538,18 +534,18 @@ void R403Main()
     SceDebugDisp("");
     SceDebugDisp("");
     if (!StaFlagChk(pG, STA_EVENT)) {
-        if (r403_work.p->timer == 1 && !(pG->Room_flg[0] & 0x80000000)) {
-            U32Set(r403_work.p->base, r403_work.p->cnt);
+        if (r403_work->timer == 1 && !(pG->Room_flg[0] & 0x80000000)) {
+            r403_work->base = r403_work->cnt;
             pG->Room_flg[0] |= 0x80000000;
         }
-        r403_work.p->timer++;
-        if (r403_work.p->timer > 300) {
-            r403_work.p->timer = 1;
+        r403_work->timer++;
+        if (r403_work->timer > 300) {
+            r403_work->timer = 1;
             em_destroy();
         }
-        r403_work.p->cnt = SceCountEmAlive(0x10, 0x20);
-        SceDebugDisp("EM_NUM[%d/%d]", r403_work.p->cnt, r403_work.p->base);
-        if (r403_work.p->timer > 1800) {
+        r403_work->cnt = SceCountEmAlive(0x10, 0x20);
+        SceDebugDisp("EM_NUM[%d/%d]", r403_work->cnt, r403_work->base);
+        if (r403_work->timer > 1800) {
             if (pG->Room_flg[2] & 0x80000000) {
                 reset_40();
             }
@@ -599,7 +595,7 @@ void R403Main()
         if (pG->Room_flg[2] & 0x00010000) {
             reset_4f();
         }
-        if (r403_work.p->timer > 1800) {
+        if (r403_work->timer > 1800) {
             if (pG->Room_flg[2] & 0x8000) {
                 reset_50();
             }
@@ -619,13 +615,13 @@ void R403Main()
         if (pG->Room_flg[2] & 0x400) {
             reset_55();
         }
-        if (r403_work.p->base != 0 && r403_work.p->base - r403_work.p->cnt > 19) {
+        if (r403_work->base != 0 && r403_work->base - r403_work->cnt > 19) {
             if (!(pG->Room_flg[0] & 0x40000000)) {
                 pG->Room_flg[0] |= 0x40000000;
                 emset_gatling(0x89);
             }
         }
-        if (r403_work.p->base != 0 && r403_work.p->base - r403_work.p->cnt > 44) {
+        if (r403_work->base != 0 && r403_work->base - r403_work->cnt > 44) {
             if (!(pG->Room_flg[0] & 0x20000000)) {
                 pG->Room_flg[0] |= 0x20000000;
                 emset_gatling(0x8A);
@@ -643,9 +639,9 @@ static void slide_move()
     u32 i;
 
     pl->beginAction();
-    pPLS->atari.clrFlag100();
-    pPLS->atari.clrFlag200();
-    pPLS->atari.setPriority(PRI_LV1);
+    pPL->atari.clrFlag100();
+    pPL->atari.clrFlag200();
+    pPL->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);
@@ -663,7 +659,7 @@ static void slide_move()
         v.z = 0.0f;
         pPL->setAng(&v);
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 0x201, 0);
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
+        r403_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
     } else {
         cModel* m = pPL;
 
@@ -676,9 +672,9 @@ static void slide_move()
         v.z = 0.0f;
         pPL->setAng(&v);
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
+        r403_work->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
     }
-    r403_work.p->slide->Motion.Seq_speed = 1.0f;
+    r403_work->slide->Motion.Seq_speed = 1.0f;
     SndCall(6, 0x18, 0, 0, 0, 0);
     max = (u32) MotionGetMaxFrame(&pPL->Motion);
     for (i = 0; i < max; i++) {
@@ -695,9 +691,9 @@ static void slide_move()
     pl->Wep->setTrans(1, 0);
     pl->endAction(5);
     pPL->dmg.clear();
-    pPLS->atari.setFlag100();
-    pPLS->atari.setFlag200();
-    pPLS->atari.setPriority(0);
+    pPL->atari.setFlag100();
+    pPL->atari.setFlag200();
+    pPL->atari.setPriority(0);
     pl->be_flag |= 0x10;
 }
 
@@ -707,13 +703,13 @@ static void setTexRender()
     cObj* obj;
     u8* tbl = r403_texTbl;
 
-    if (GetTexRenderMgr(&r403_work.p->tex)) {
+    if (GetTexRenderMgr(&r403_work->tex)) {
         tbl[0] = 1;
         tbl[1] = 0;
         tbl[4] = 0xF7;
-        tbl[5] = r403_work.p->tex->texId;
-        r403_work.p->tex->m_Rep_type = 1;
-        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r403_work.p->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
+        tbl[5] = r403_work->tex->texId;
+        r403_work->tex->m_Rep_type = 1;
+        EstSet(0, -1, 0, 0, EFF_ROOM, 0, r403_work->tex->mask | 1, ESP_CORE_KIND_NONE, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
@@ -748,7 +744,7 @@ static void setLadderMotion(int no)
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x35);
+                mot[9] = ROOM_ARC_PTR(pG->pRoom, 0x35);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");

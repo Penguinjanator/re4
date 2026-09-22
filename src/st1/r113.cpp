@@ -112,7 +112,7 @@ void R113Init()
     SceAtDataSet_hide(4, r113_execHide);
     FlrAtSetDefVal(0, 0, 3);
     if (!ItfFlagChk(pG, ITF_R103_FILE)) {
-        U32Set(r113_work->eff, EspPullCoreKind());
+        r113_work->eff = EspPullCoreKind();
         EstSet(0, -1, 0, 0, EFF_ROOM, 6, 1, (u8) r113_work->eff, 0, 0);
         SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r113_getFile, 0, 1);
     }
@@ -195,7 +195,7 @@ static void r113_EventRideShoulder()
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r113_EventRideShoulder_end, 0, -1, 1);
     SubCharCtrl(SCC_AUX_MOT, 0);
-    U32Set(r113_work->strId, SndStrReq(1, 0x27, 0x80000003, 0, 0, 0.0f));
+    r113_work->strId = SndStrReq(1, 0x27, 0x80000003, 0, 0, 0.0f);
     pPL->setNoSuspend(1);
     pSUB->setNoSuspend(1);
     PlSetHand(1, 0);
@@ -218,7 +218,7 @@ static void r113_EventRideShoulder()
             // OPEN: the original hoists this constant's `lis` into r17 at the function top and issues
             // the `lfs f31` right before setPos; ours keeps both at the declaration.
             f32 ry = ryc;
-            cPlayer* pl = pPLS;
+            cPlayer* pl = pPL;
             Vec* pa = &ang;
 
             pl->setPos(&pos);

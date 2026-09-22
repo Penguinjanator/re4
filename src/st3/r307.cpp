@@ -68,11 +68,8 @@ struct R307Work {
     u8 x85[9];        // 0x85
 };
 
-struct R307WorkPtr {
-    R307Work* p;
-};
 
-static R307WorkPtr r307_work;
+static R307Work* r307_work;
 
 
 static R307Piece r307_piece[9] = {
@@ -151,7 +148,7 @@ void R307Init()
 {
     cEmWindow* win;
 
-    R307Work*& wp = r307_work.p;
+    R307Work*& wp = r307_work;
 #line 43 "D:/Bio4/Prog/r307.cpp"
     wp = (R307Work*) MEM_CALLOC(sizeof(R307Work), 1, 0xd);
     if (getRoomEtcWindow(0xA, &win, 1)) {
@@ -213,10 +210,10 @@ int r307_checkPiece()
             const R307Sol* s = &r307_pattern[i].sol[j];
             u8 piece = s->piece;
 
-            if (s->rot != r307_work.p->rot.rot[piece]) {
+            if (s->rot != r307_work->rot.rot[piece]) {
                 break;
             }
-            r307_work.p->done[piece] = 1;
+            r307_work->done[piece] = 1;
         }
         if (j == r307_pattern[i].num) {
             ok = 1;
@@ -224,12 +221,12 @@ int r307_checkPiece()
         }
     }
     for (i = 0; i < 9; i++) {
-        if (r307_work.p->done[i] == 1) {
+        if (r307_work->done[i] == 1) {
             void* zero = 0;
-            R307_EFF_DELETE(r307_work.p->eff[i]);
-            R307_EFF_DELETE(r307_work.p->eff2[i]);
-            EstSet(0, -1, &r307_piece[i].pos, 0, EFF_ROOM, r307_effDone[r307_piece[i].no][r307_work.p->rot.rot[i]], 1, (u8) r307_work.p->eff[i], zero, zero);
-            EstSet(0, -1, &r307_piece[i].pos, 0, EFF_ROOM, 0x18, 1, (u8) r307_work.p->eff2[i], zero, zero);
+            R307_EFF_DELETE(r307_work->eff[i]);
+            R307_EFF_DELETE(r307_work->eff2[i]);
+            EstSet(0, -1, &r307_piece[i].pos, 0, EFF_ROOM, r307_effDone[r307_piece[i].no][r307_work->rot.rot[i]], 1, (u8) r307_work->eff[i], zero, zero);
+            EstSet(0, -1, &r307_piece[i].pos, 0, EFF_ROOM, 0x18, 1, (u8) r307_work->eff2[i], zero, zero);
         }
     }
     if (ok != 1) {
@@ -245,7 +242,7 @@ int r307_checkPiece()
     if (k != 2) {
         tbl = 0;
     }
-    EstSet(0, -1, 0, 0, EFF_ROOM, tbl->p[pat].eff, 1, (u8) r307_work.p->effTerm, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, tbl->p[pat].eff, 1, (u8) r307_work->effTerm, 0, 0);
     return 1;
 }
 
@@ -255,23 +252,23 @@ void r307_turnPiece(int no)
     u32 k;
 
     for (k = 0; k < 9; k++) {
-        if (r307_piece[k].no == no || r307_work.p->done[k] == 1) {
-            R307_EFF_DELETE(r307_work.p->eff[k]);
-            R307_EFF_DELETE(r307_work.p->eff2[k]);
+        if (r307_piece[k].no == no || r307_work->done[k] == 1) {
+            R307_EFF_DELETE(r307_work->eff[k]);
+            R307_EFF_DELETE(r307_work->eff2[k]);
         }
     }
     for (k = 0; k < 9; k++) {
         if (r307_piece[k].no == no) {
-            int next = r307_work.p->rot.rot[k];
+            int next = r307_work->rot.rot[k];
 
             next++;
             next = (next < 0) ? 3 : ((next > 3) ? 0 : next);
-            r307_work.p->rot.rot[k] = next;
-            EstSet(0, -1, &r307_piece[k].pos, 0, EFF_ROOM, r307_effPiece[no][next], 1, (u8) r307_work.p->eff[k], 0, 0);
-        } else if (r307_work.p->done[k] == 1) {
-            EstSet(0, -1, &r307_piece[k].pos, 0, EFF_ROOM, r307_effPiece[r307_piece[k].no][r307_work.p->rot.rot[k]], 1, (u8) r307_work.p->eff[k], 0, 0);
+            r307_work->rot.rot[k] = next;
+            EstSet(0, -1, &r307_piece[k].pos, 0, EFF_ROOM, r307_effPiece[no][next], 1, (u8) r307_work->eff[k], 0, 0);
+        } else if (r307_work->done[k] == 1) {
+            EstSet(0, -1, &r307_piece[k].pos, 0, EFF_ROOM, r307_effPiece[r307_piece[k].no][r307_work->rot.rot[k]], 1, (u8) r307_work->eff[k], 0, 0);
         }
-        r307_work.p->done[k] = 0;
+        r307_work->done[k] = 0;
     }
 }
 
@@ -281,10 +278,10 @@ void r307_delPiece()
     u32 k;
 
     for (k = 0; k < 9; k++) {
-        R307_EFF_DELETE(r307_work.p->eff[k]);
-        R307_EFF_DELETE(r307_work.p->eff2[k]);
+        R307_EFF_DELETE(r307_work->eff[k]);
+        R307_EFF_DELETE(r307_work->eff2[k]);
     }
-    R307_EFF_DELETE(r307_work.p->effTerm);
+    R307_EFF_DELETE(r307_work->effTerm);
 }
 
 // The pieces at their start rotation, with their effects.
@@ -293,17 +290,17 @@ void r307_initPiece()
     u32 k;
 
     // byte-pointer destination: the work pointer is reloaded after the copy (joy.h JOY_COPY)
-    memcpy((u8*) r307_work.p + 0x58, &r307_initRot, sizeof(R307RotTbl));
-    memclr_asm(r307_work.p->done, 9);
-    memclr_asm(r307_work.p->x85, 9);
+    memcpy((u8*) r307_work + 0x58, &r307_initRot, sizeof(R307RotTbl));
+    memclr_asm(r307_work->done, 9);
+    memclr_asm(r307_work->x85, 9);
     for (k = 0; k < 9; k++) {
         void* zero = 0;
         int no = r307_piece[k].no;
-        u8 eff = r307_effPiece[no][r307_work.p->rot.rot[k]];
+        u8 eff = r307_effPiece[no][r307_work->rot.rot[k]];
 
-        EstSet(0, -1, &r307_piece[k].pos, 0, EFF_ROOM, eff, 1, (u8) r307_work.p->eff[k], zero, zero);
+        EstSet(0, -1, &r307_piece[k].pos, 0, EFF_ROOM, eff, 1, (u8) r307_work->eff[k], zero, zero);
     }
-    EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, (u8) r307_work.p->effTerm, 0, 0);
+    EstSet(0, -1, 0, 0, EFF_ROOM, 0x17, 1, (u8) r307_work->effTerm, 0, 0);
 }
 
 // Area 5: the terminal. Choices 1..4 turn a colour, 5 leaves; a solved pattern unlocks the barred door.
@@ -374,13 +371,13 @@ static void r307_checkPuzzleTerminal()
             r307_delPiece();
             CamCtrl.CutCall(8);
             pPL->setNoSuspend(0);
-            if (r307_work.p->barred) {
+            if (r307_work->barred) {
                 SceSleep(10);
-                R307_EFF_DELETE(r307_work.p->effBarred);
-                EstSet(r307_work.p->barred, -1, 0, 0, EFF_ROOM, 2, 1, (u8) r307_work.p->effBarred, zero, zero);
+                R307_EFF_DELETE(r307_work->effBarred);
+                EstSet(r307_work->barred, -1, 0, 0, EFF_ROOM, 2, 1, (u8) r307_work->effBarred, zero, zero);
                 SndCall(6, 7, 0, 0, 0, 0);
                 SceSleep(30);
-                ((cEmBarred*) r307_work.p->barred)->setLockMode(0);
+                ((cEmBarred*) r307_work->barred)->setLockMode(0);
                 SceSleep(30);
             }
             CamCtrl.Comeback(0);
@@ -400,23 +397,23 @@ void r307_initPuzzle()
     void* zero = 0;
     u32 k;
 
-    r307_work.p->effBarred = EspPullCoreKind();
-    getRoomEtcBarred(0x32, &r307_work.p->barred, 1);
+    r307_work->effBarred = EspPullCoreKind();
+    getRoomEtcBarred(0x32, &r307_work->barred, 1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r307_checkPuzzleTerminal, 0, 1);
-        if (r307_work.p->barred) {
-            ((cEmBarred*) r307_work.p->barred)->setLockMode(1);
-            EstSet(r307_work.p->barred, -1, 0, 0, EFF_ROOM, 1, 1, (u8) r307_work.p->effBarred, zero, zero);
+        if (r307_work->barred) {
+            ((cEmBarred*) r307_work->barred)->setLockMode(1);
+            EstSet(r307_work->barred, -1, 0, 0, EFF_ROOM, 1, 1, (u8) r307_work->effBarred, zero, zero);
         }
         for (k = 0; k < 9; k++) {
-            r307_work.p->eff[k] = EspPullCoreKind();
-            r307_work.p->eff2[k] = EspPullCoreKind();
+            r307_work->eff[k] = EspPullCoreKind();
+            r307_work->eff2[k] = EspPullCoreKind();
         }
-        r307_work.p->effTerm = EspPullCoreKind();
+        r307_work->effTerm = EspPullCoreKind();
     } else {
         SceAtSetEnable(9, 0);
-        if (r307_work.p->barred) {
-            EstSet(r307_work.p->barred, -1, 0, 0, EFF_ROOM, 3, 1, (u8) r307_work.p->effBarred, zero, zero);
+        if (r307_work->barred) {
+            EstSet(r307_work->barred, -1, 0, 0, EFF_ROOM, 3, 1, (u8) r307_work->effBarred, zero, zero);
         }
     }
 }
@@ -462,7 +459,7 @@ static void r307_checkBgm()
 static void r307_execEmCut_end()
 {
     CamCtrl.Comeback(0);
-    SndStrReq(r307_work.p->str, 4, 200, 0);
+    SndStrReq(r307_work->str, 4, 200, 0);
     cEmWrap em;
     em.setPtr(0x32, -1, 1);
     em.setNoSuspend(0);
@@ -474,7 +471,7 @@ static void r307_execEmCut()
 {
     RsfSet(G_ROOM_ID, 1);
     SceSetEventCancel(1, (TaskFunc) r307_execEmCut_end, 0, -1, 1);
-    r307_work.p->str = SndStrReq(0, 3, 0x80000003, 0, 0, 0.0f);
+    r307_work->str = SndStrReq(0, 3, 0x80000003, 0, 0, 0.0f);
     SceEventStart(0);
     cEmWrap em;
     em.setPtr(0x32, -1, 1);

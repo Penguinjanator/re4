@@ -593,7 +593,7 @@ void plobjLadderClimb(cPlayer* pl)
     f32 fl;
 
     em->subArc = pPL->pEmCatch->subArc;
-    StaFlagOn(pGS, STA_PL_LADDER);
+    StaFlagOn(pG, STA_PL_LADDER);
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -855,7 +855,7 @@ void subobjLadderClimb(cEm* pl)
     case 5:
         if (((cSubChar*) em)->m_Work1) {
             ((cSubChar*) em)->m_Work1--;
-            StaFlagOn(pGS, STA_SUB_LADDER);
+            StaFlagOn(pG, STA_SUB_LADDER);
         }
         if (obj->getType() == 1) {
             if (em->Motion.Seq_frame > 11.7f && em->Motion.Seq_frame < 12.3f) {

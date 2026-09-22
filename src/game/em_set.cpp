@@ -9,7 +9,6 @@
 #include "em_set.h"
 #include "global.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include "em.h"
 #include "player.h"
 
@@ -346,7 +345,7 @@ void EmSetDie(cEm* em)
 // Counts a kill in the chapter and game kill counters (results screen).
 void EmSetDieCnt(cEm* pEm)
 {
-    U32Inc(pG->c_kill_cnt);
+    pG->c_kill_cnt++;
     pG->g_kill_cnt++;
 }
 

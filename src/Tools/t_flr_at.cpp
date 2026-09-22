@@ -14,7 +14,6 @@
 #include "flr_at.h"
 #include "player.h"
 #include "t_util.h"
-#include "ref_access.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -93,16 +92,10 @@ struct FlrAtWork {
 };
 
 static int flrAtSaveNum;
-struct FlrAtWorkPtr {
-    FlrAtWork* p;
-};
-static FlrAtWorkPtr flrAtWk;
-#define pW (flrAtWk.p)
-struct TFlrAtPtr {
-    TFlrAt* p;
-};
-static TFlrAtPtr flrAtCur;
-#define pCur (flrAtCur.p)
+static FlrAtWork* flrAtWk;
+#define pW (flrAtWk)
+static TFlrAt* flrAtCur;
+#define pCur (flrAtCur)
 
 static const char* flrAtTypeName[4] = {"FOOT SE", "SE VOL CTRL", "BGM VOL CTRL", "THUNDER VOL"};
 static int flrAtSeType[3] = {0, 1, 3};
@@ -144,18 +137,18 @@ void flrAtInit()
     int zero = 0;
 
     TutilInitDefault();
-    BitSet(pW->saveStop, pG->Stop_flg);
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitSet(pW->saveDisp, pG->Disp_flg);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
-    BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->Disp_flg, 0x100000);
+    pW->saveStop = pG->Stop_flg;
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pW->saveDisp = pG->Disp_flg;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
+    pG->Disp_flg |= 0x2000000;
+    pG->Disp_flg |= 0x100000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     SetToolLight(1);
     pW->x0 = 0x2D;
@@ -180,8 +173,8 @@ void flrAtInit()
 // EXIT: restores the FlrAt system pointer, the tool light and flags, frees the work, ends the task.
 static void flrAtExit()
 {
-    BitSet(pG->Disp_flg, pW->saveDisp);
-    BitSet(pG->Stop_flg, pW->saveStop);
+    pG->Disp_flg = pW->saveDisp;
+    pG->Stop_flg = pW->saveStop;
     DbgFlagOff(pG, DBG_DBG_CAM);
     SetToolLight(-1);
     pFlrSys = pW->saveFlrSys;
@@ -1033,7 +1026,7 @@ static void flrAtDataLoad()
         break;
     case 3:
         if (pW->firstLoad == 1) {
-            sprintf(pW->path, "x:/soft/room/st%1x/r%03x/r%03x.fse", pGS->stage_no, pGS->room_id, pGS->room_id);
+            sprintf(pW->path, "x:/soft/room/st%1x/r%03x/r%03x.fse", pG->stage_no, pG->room_id, pG->room_id);
         }
         ret = HDRead(pW->path, &pW->fileHead);
         if (ret == 0) {
@@ -1169,8 +1162,8 @@ static void flrAtDataSave()
 
     eprintf(pW->x, pW->y, 4, 0, "[DATA SAVE]");
     pW->y += 0x10;
-    sprintf(pathX, "x:\\soft\\room\\st%1x\\r%03x\\r%03x.fse", pGS->stage_no, pGS->room_id, pGS->room_id);
-    sprintf(pathD, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.fse", pGS->stage_no, pGS->room_id, pGS->room_id);
+    sprintf(pathX, "x:\\soft\\room\\st%1x\\r%03x\\r%03x.fse", pG->stage_no, pG->room_id, pG->room_id);
+    sprintf(pathD, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.fse", pG->stage_no, pG->room_id, pG->room_id);
     switch (pW->sub) {
     case 0:
         flrAtSaveNum = 0;
@@ -1180,7 +1173,7 @@ static void flrAtDataSave()
                     if (pW->area[i].priority == 15 - j) {
                         pW->area[i].no = i;
                         pW->file[flrAtSaveNum] = pW->area[i];
-                        flrAtSaveNum = IGet(flrAtSaveNum) + 1;
+                        flrAtSaveNum = flrAtSaveNum + 1;
                     }
                 }
             }
@@ -1273,14 +1266,14 @@ static void flrAtPreview()
 // Un-pauses the player / HUD for the preview.
 static void preview_init()
 {
-    ISet(pW->dispType, -1);
-    BitOff(pG->Stop_flg, 0x10000000);
-    BitOff(pG->Disp_flg, 0x40000000);
-    BitOff(pG->Disp_flg, 0x80000000);
+    pW->dispType = -1;
+    pG->Stop_flg &= ~0x10000000;
+    pG->Disp_flg &= ~0x40000000;
+    pG->Disp_flg &= ~0x80000000;
     DbgFlagOff(pG, DBG_DBG_CAM);
     pFlrSys = &pW->flrSys;
-    PSet(pFlrSys->pData, &pW->head);
-    ASet(pFlrSys->pList, (FlrAt*) pW->area);
+    pFlrSys->pData = &pW->head;
+    pFlrSys->pList = (FlrAt*) pW->area;
     pFlrSys->group = 0xFF;
     pW->sub = 1;
     pW->step = 0;
@@ -1305,14 +1298,14 @@ static void preview_main()
 // Restores the tool flags, back to the sub menu.
 static void preview_exit()
 {
-    BitOn(pG->Stop_flg, 0x20000000);
-    BitOn(pG->Stop_flg, 0x10000000);
-    BitOn(pG->Stop_flg, 0x800000);
-    BitOn(pG->Stop_flg, 0x400000);
-    BitOn(pG->Stop_flg, 0x10000);
-    BitOn(pG->Stop_flg, 0x2000);
-    BitOn(pG->Disp_flg, 0x40000000);
-    BitOn(pG->Disp_flg, 0x80000000);
+    pG->Stop_flg |= 0x20000000;
+    pG->Stop_flg |= 0x10000000;
+    pG->Stop_flg |= 0x800000;
+    pG->Stop_flg |= 0x400000;
+    pG->Stop_flg |= 0x10000;
+    pG->Stop_flg |= 0x2000;
+    pG->Disp_flg |= 0x40000000;
+    pG->Disp_flg |= 0x80000000;
     DbgFlagOn(pG, DBG_DBG_CAM);
     pW->dispGroup = -1;
     pW->mode = 5;
@@ -1330,7 +1323,7 @@ static const char* flrAtTitleName[3] = {"SE DATA EDIT", "BGM DATA EDIT", NULL};
 // area edit, preview, data load, data save, sub menu).
 void ToolFlrAt()
 {
-    FlrAtWork*& wp = flrAtWk.p;
+    FlrAtWork*& wp = flrAtWk;
 
     wp = (FlrAtWork*) Debug_alloc(sizeof(FlrAtWork), 1);
     flrAtInit();

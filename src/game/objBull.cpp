@@ -1144,7 +1144,7 @@ void Sub_bull_operation(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pGS->pRoom, 51), 0, 3, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 51), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
@@ -1167,7 +1167,7 @@ void Sub_bull_lookback(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pGS->pRoom, 66), 0, 3, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 66), 0, 3, 1, 0);
         parts = em->getPartsPtr(3);
         if (em->r_no_3) {
             SndStop(((cSubChar*) em)->m_StopSe, 0);
@@ -1196,7 +1196,7 @@ void Sub_bull_look(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pGS->pRoom, 67), 0, 3, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 67), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);

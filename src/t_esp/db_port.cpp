@@ -172,10 +172,10 @@ static inline int flagOn(u32 f, u32 bit)
 }
 
 // the event's cut number as written in the debug data (two ascii digits) through the caller's buffer
-// the room id read through the struct view of pG (global.h pGS) right after the "x:/soft/room/" template copy: the
+// the room id read through the struct view of pG (global.h pG) right after the "x:/soft/room/" template copy: the
 // pG load then depends on the copy's stores and the target's store order (word 1 last, `stw r9,4(r30)` right before
 // `lwz r9,pG`) follows; the plain G_ROOM_ID read is a fixed scalar the stores do not order
-#define G_ROOM_ID_S (*(u16*) &pGS->stage_no)
+#define G_ROOM_ID_S (*(u16*) &pG->stage_no)
 // COMPILER-DIFF: #13 -- the j loop's `&EvtDebug` is a fresh `lis/addi` in the target (a REG_EQUIV lo_sum pseudo that the
 // original never allocated, re-materialised at its copy); a distinct SYMBOL_REF ("*EvtDebug" string, so cse/gcse do not
 // merge it with the pScr block's lo_sum) gives that with a symbol-based alias base for the loop's loads
@@ -1023,16 +1023,16 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     em->Refract_ratio = 0x90;
                 }
                 if (db_cutNo == 6) {
-                    BitOn(INFO7(em)->be_flag, 8);
-                    BitOff(INFO8(em)->be_flag, 8);
+                    INFO7(em)->be_flag |= 8;
+                    INFO8(em)->be_flag &= ~8;
                 }
                 if (db_cutNo == 7) {
-                    BitOff(INFO7(em)->be_flag, 8);
-                    BitOn(INFO8(em)->be_flag, 8);
+                    INFO7(em)->be_flag &= ~8;
+                    INFO8(em)->be_flag |= 8;
                 }
                 if (db_cutNo == 8) {
-                    BitOn(INFO7(em)->be_flag, 8);
-                    BitOff(INFO8(em)->be_flag, 8);
+                    INFO7(em)->be_flag |= 8;
+                    INFO8(em)->be_flag &= ~8;
                 }
                 // a second `if` after the reference stores (BitOn: a non-struct store invalidates the db_cutNo load in cse)
                 if (db_cutNo == 8) {

@@ -41,7 +41,6 @@
 #include "rnd.h"
 #include "math_sub.h"
 #include "db_log.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 #include "em_sub.h"
 #include "pl_mod.h"
@@ -241,7 +240,7 @@ static void pl0e_R0_Init(cPl0e* em)
     w->spdX = 0.0f;
     w->floorY0 = em->pos.y;
     w->floorY1 = em->pos.y;
-    w->pWave = SetObj00((void*) (pGS->pCore->ofs_20 + (u32) pGS->pCore), (void*) (pGS->pCore->ofs_24 + (u32) pGS->pCore), 0, 0);
+    w->pWave = SetObj00((void*) (pG->pCore->ofs_20 + (u32) pG->pCore), (void*) (pG->pCore->ofs_24 + (u32) pG->pCore), 0, 0);
     w->espKind = EspPullCoreKind();
     em->r_no_1 = 0;
     em->r_no_2 = 0;
@@ -375,7 +374,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             if (w->flags & 8) {
                 MotionSetCore(em, &em->Motion, ARC(0x14), 0, 0xA, 1, 0);
                 EmRoutineSet(pPL, 0, 0xF, 2, 0);
-                U32Set(pPL->m_Work0, 2);
+                pPL->m_Work0 = 2;
                 if (pSUB) {
                     SetSubDamage(em, subBoatJump);
                     pSUB->r_no_3 = 2;
@@ -383,7 +382,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             } else {
                 MotionSetCore(em, &em->Motion, ARC(0xE), 0, 0xA, 1, 0);
                 EmRoutineSet(pPL, 0, 0xF, 2, 0);
-                U32Set(pPL->m_Work0, 1);
+                pPL->m_Work0 = 1;
                 if (pSUB) {
                     SetSubDamage(em, subBoatJump);
                     pSUB->r_no_3 = 1;
@@ -392,7 +391,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         } else {
             MotionSetCore(em, &em->Motion, ARC(0xB), 0, 0xA, 1, 0);
             EmRoutineSet(pPL, 0, 0xF, 2, 0);
-            U32Set(pPL->m_Work0, 0);
+            pPL->m_Work0 = 0;
             if (pSUB) {
                 SetSubDamage(em, subBoatJump);
             }
@@ -430,7 +429,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         w->blendRate = 0.0f;
         w->frame = 0;
         w->frameOld = 0;
-        EmRoutineSet(pPLS, 0, 0xF, 3, 0);
+        EmRoutineSet(pPL, 0, 0xF, 3, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatLanding);
         }
@@ -514,10 +513,10 @@ static void pl0e_R1_Sink(cPl0e* em)
         MotionSetCore(em, &em->Motion, ARC(0x12), 0, 0, 1, 0);
         EstSet(em, -1, 0, 0, EFF_PL0E, 0xC, 0, ESP_CORE_KIND_NONE, em, 0);
         w->flags |= 4;
-        pGS->pl_life = 0;
+        pG->pl_life = 0;
         DiedemoExec(0x1E, 0);
         w->xD4 = 0x14;
-        EmRoutineSet(pPLS, 0, 0xF, 5, 0);
+        EmRoutineSet(pPL, 0, 0xF, 5, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatSink);
         }
@@ -554,7 +553,7 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
         pG->pl_life = 0;
         DiedemoExec(0x1E, 0);
         w->xD4 = 0x14;
-        EmRoutineSet(pPLS, 0, 0xF, 6, 0);
+        EmRoutineSet(pPL, 0, 0xF, 6, 0);
         if (pSUB) {
             SetSubDamage(em, subBoatJumpMiss);
         }
@@ -754,7 +753,7 @@ void cPl0e::setRide()
         // Reference store: the pPL reload of EmRoutineSet then depends on it (cost 2) and is not
         // ready when the BoatMoveFunc store is, so sched1 issues that store first and the
         // PlBoatMove address dies before the reload is born (both r9; the zero takes r10).
-        (void*&) pl->m_pBoat = this;
+        pl->m_pBoat = this;
         BoatMoveFunc = PlBoatMove;
         EmRoutineSet(pPL, 0, 0xF, 0, 0);
         if (pSUB) {
@@ -980,7 +979,7 @@ static void plboat_R2_Sink(cPlayer* pl)
             cAtariInfo* at = &pl->atari;
             at->m_flag &= 0xFCFF;
         }
-        pGS->pl_life = 0;
+        pG->pl_life = 0;
         pl->r_no_3++;
     case 1:
         MotionMove(pl, 0);
@@ -1005,7 +1004,7 @@ static void plboat_R2_JumpMiss(cPlayer* pl)
             cAtariInfo* at = &pl->atari;
             at->m_flag &= 0xFCFF;
         }
-        pGS->pl_life = 0;
+        pG->pl_life = 0;
         pl->r_no_3++;
     case 1:
         MotionMove(pl, 0);
@@ -1335,7 +1334,7 @@ void cPl0e::setRail(void* path)
         w->seg = 0;
         w->dist = 0.0f;
         w->pPath = path;
-        w->spd = FRef(pl0e_spd_max);
+        w->spd = pl0e_spd_max;
         w->length = PathGetLength(path);
         w->pathPos = pos;
         w->pathPosOld = pos;
@@ -1416,13 +1415,13 @@ void pl0ePathMove(cPl0e* em, int jump)
     w->dist += w->spd;
     if (jump != 0) {
         if (w->jumpCnt <= 1) {
-            SPD_ADJUST(w->spd, FRef(pl0e_spd_max));
+            SPD_ADJUST(w->spd, pl0e_spd_max);
         }
     } else {
         if (Key.on & 3) {
             if (Key.on & 1) {
                 w->spd += 25.0f;
-                if (w->spd > FRef(pl0e_spd_boost)) {
+                if (w->spd > pl0e_spd_boost) {
                     w->spd = pl0e_spd_boost;
                 }
                 w->pitch104 += 4;
@@ -1430,7 +1429,7 @@ void pl0ePathMove(cPl0e* em, int jump)
                     w->pitch104 = 500;
                 }
             } else {
-                SPD_ADJUST(w->spd, FRef(pl0e_spd_slow));
+                SPD_ADJUST(w->spd, pl0e_spd_slow);
                 if (w->pitch104 > 4) {
                     w->pitch104 -= 4;
                 } else {
@@ -1438,7 +1437,7 @@ void pl0ePathMove(cPl0e* em, int jump)
                 }
             }
         } else {
-            SPD_ADJUST(w->spd, FRef(pl0e_spd_max));
+            SPD_ADJUST(w->spd, pl0e_spd_max);
             if (w->pitch104 > 4) {
                 w->pitch104 -= 4;
             } else {

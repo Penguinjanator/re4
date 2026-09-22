@@ -65,12 +65,8 @@ struct R206Work {
     u8 texTbl[0x454 - 0xD0];  // 0x0D0
 };
 
-// The work pointer is a struct member: every store through the work reloads it.
-struct R206WorkPtr {
-    R206Work* p;
-};
 
-static R206WorkPtr r206_work;
+static R206Work* r206_work;
 
 void r206_die_event();
 static void r206_gouryuu_event();
@@ -141,7 +137,7 @@ static Vec r206_ashleyGoal = {5250.0f, 0.0f, -19342.0f};
 void R206Init()
 {
 #line 102 "D:/Bio4/Prog/r206.cpp"
-    r206_work.p = (R206Work*) MEM_CALLOC(sizeof(R206Work), 1, 0xd);
+    r206_work = (R206Work*) MEM_CALLOC(sizeof(R206Work), 1, 0xd);
     SceSetItemEvent(9, 0x80, 8, 0xA, r206_openShelf, r206_openedShelf, 0, 0);
     SceAtSetEnable(0xB, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -182,7 +178,7 @@ void R206Init()
         SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r206_asl_call, 0, 1);
     }
     SceExec(0x12, (TaskFunc) r206_snipe_end, 0, 0, SCE_PRIO_DEF_2, 0);
-    TexRenderInit(&r206_work.p->tex, 0, 2);
+    TexRenderInit(&r206_work->tex, 0, 2);
 }
 
 // Per-frame room main: nothing.
@@ -219,7 +215,7 @@ static void item_chk()
 
     RsfSet(G_ROOM_ID, 9);
     ItemMgr.takeOver();
-    U32Set(pG->peseta, pG->peseta + pG->peseta_bak);
+    pG->peseta = pG->peseta + pG->peseta_bak;
     pG->peseta_bak = zero;
     SubScreenOpen(SS_OPEN_NORMAL, SS_ATTR_ASHLEY);
     SceSleep(1);
@@ -357,12 +353,12 @@ static void Evt_R206S00_Func(Event* e)
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
                     ((cModel*) mod)->ot_type = 1;
-                    TexRenderModSet((cModel*) mod, 0, r206_work.p->texTbl, r206_work.p->tex, 0, 1, 1, 1, 1.0f);
+                    TexRenderModSet((cModel*) mod, 0, r206_work->texTbl, r206_work->tex, 0, 1, 1, 1, 1.0f);
                 }
-                EffectEspDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
-                EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
-                EffectEfmDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
-                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspgenDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEfmDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EstSet(0, -1, 0, 0, EFF_ROOM, 2, r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
             }
             break;
         default:
@@ -370,9 +366,9 @@ static void Evt_R206S00_Func(Event* e)
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
                     TexRenderModRes((cModel*) mod, 0);
                 }
-                EffectEspDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
-                EffectEspgenDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
-                EffectEfmDelete(r206_work.p->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEspDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0, 0);
+                EffectEspgenDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
+                EffectEfmDelete(r206_work->tex->mask | 0x3001, ESP_CORE_KIND_ROOM00, 0);
             }
             break;
         }
@@ -431,7 +427,7 @@ static void funcAshley(cEm* p)
     switch (p->r_no_2) {
     case 0:
         AtariOff(&pSUB->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xA, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xA, 0, 1, 0);
         SndCall(6, 0xD, &pSUB->pos, 0, 0, 0);
         p->r_no_2 = 1;
     case 1:
@@ -466,7 +462,7 @@ static void funcAshley2(cEm* p)
 {
     if (p->r_no_2 == 0) {
         AtariOff(&pSUB->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x19, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 0x19, 0, 1, 0);
         p->r_no_2 = 1;
     }
     if (p->motionMove() != 0) {
@@ -484,8 +480,8 @@ static void funcAshley3(cEm* p)
     switch (step) {
     case 0:
         AtariOff(&pSUB->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x31), 0x19, 0, 1, 0);
-        r206_work.p->cnt3 = step;
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x31), 0x19, 0, 1, 0);
+        r206_work->cnt3 = step;
         p->r_no_2 = 1;
     case 1:
         if (p->motionMove() != 0) {
@@ -493,8 +489,8 @@ static void funcAshley3(cEm* p)
         }
         break;
     case 2:
-        r206_work.p->cnt3++;
-        if (r206_work.p->cnt3 > 0x1E) {
+        r206_work->cnt3++;
+        if (r206_work->cnt3 > 0x1E) {
             p->r_no_2 = 3;
         }
         break;
@@ -528,10 +524,10 @@ static void r206_checkEmDead()
     while (SceAtItemFlgCk(0x82) == 0) {
         SceSleep(1);
     }
-    r206_work.p->head->be_flag &= ~2;
-    EffectEspDelete(0, r206_work.p->esp, 0, 0);
-    EffectEspgenDelete(0, r206_work.p->esp, 0);
-    EffectEfmDelete(0, r206_work.p->esp, 0);
+    r206_work->head->be_flag &= ~2;
+    EffectEspDelete(0, r206_work->esp, 0, 0);
+    EffectEspgenDelete(0, r206_work->esp, 0);
+    EffectEfmDelete(0, r206_work->esp, 0);
 }
 
 // 1 when Ashley stands in a fire / explosion damage area (DmgMgr kinds 1 / 7).
@@ -573,21 +569,21 @@ static void r206_snipe()
     ScfFlagOn(pG, SCF_NO_ASHLEY_DIST_CK);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         hit0 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos0, &r206_hitRot, 0);
-        BitOn(obj0->be_flag, 0x20);
+        obj0->be_flag |= 0x20;
         YarareInitCube(hit0, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, YAT_FLAG_ON);
     } else {
         obj0->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         hit1 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos1, &r206_hitRot, 0);
-        BitOn(obj1->be_flag, 0x20);
+        obj1->be_flag |= 0x20;
         YarareInitCube(hit1, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, YAT_FLAG_ON);
     } else {
         obj1->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         hit2 = SetEmHit(ROOM_ARC_PTR(pG->pCore, 8), ROOM_ARC_PTR(pG->pCore, 9), &r206_hitPos2, &r206_hitRot, 0);
-        BitOn(obj2->be_flag, 0x20);
+        obj2->be_flag |= 0x20;
         YarareInitCube(hit2, 0.0f, r206_cubeY, r206_cubeZ, r206_cubeW, r206_cubeH, r206_cubeD, 0, YAT_FLAG_ON);
     } else {
         obj2->be_flag &= ~2;
@@ -612,24 +608,24 @@ static void r206_snipe()
 
         pSUB->setPos(&pos);
     }
-    r206_work.p->timer = 0xF0;
+    r206_work->timer = 0xF0;
     do {
-        r206_work.p->timer--;
-        if (r206_work.p->timer == 0) {
+        r206_work->timer--;
+        if (r206_work->timer == 0) {
             u32 rsf;
             u32 zero;
 
-            r206_work.p->timer = (u32) (fRand0_1() * 60.0f) + 0x3C;
-            rsf = RsfCheck(*(u16*) &pGS->stage_no, 6);
+            r206_work->timer = (u32) (fRand0_1() * 60.0f) + 0x3C;
+            rsf = RsfCheck(*(u16*) &pG->stage_no, 6);
             zero = 0;
             if (rsf) {
-                r206_work.p->cnt++;
+                r206_work->cnt++;
             }
-            if (r206_work.p->cnt > 8) {
-                U32Set(r206_work.p->cnt, zero);
-                r206_work.p->snd = SndCall(6, 5, &pSUB->pos, 0, 0, 0);
+            if (r206_work->cnt > 8) {
+                r206_work->cnt = zero;
+                r206_work->snd = SndCall(6, 5, &pSUB->pos, 0, 0, 0);
             } else {
-                r206_work.p->snd = SndCall(6, 6, &pSUB->pos, 0, 0, 0);
+                r206_work->snd = SndCall(6, 6, &pSUB->pos, 0, 0, 0);
             }
         }
         done = 0;
@@ -638,12 +634,12 @@ static void r206_snipe()
                 RsfSet(G_ROOM_ID, 1);
                 EstSet(0, -1, &r206_hitPos0, &r206_hitRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 obj0->be_flag &= ~2;
-                if (r206_work.p->snd != 0) {
-                    SndStop(r206_work.p->snd, 0);
+                if (r206_work->snd != 0) {
+                    SndStop(r206_work->snd, 0);
                 }
                 SndCall(6, 4, &obj0->pos, 0, 0, 0);
                 SndCall(6, 0xA, &obj0->pos, 0, 0, 0);
-                r206_work.p->timer = 0x5A;
+                r206_work->timer = 0x5A;
             }
         } else {
             done = 1;
@@ -653,14 +649,14 @@ static void r206_snipe()
                 RsfSet(G_ROOM_ID, 2);
                 EstSet(0, -1, &r206_hitPos1, &r206_hitRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 obj1->be_flag &= ~2;
-                if (r206_work.p->snd != 0) {
-                    SndStop(r206_work.p->snd, 0);
+                if (r206_work->snd != 0) {
+                    SndStop(r206_work->snd, 0);
                 }
                 SndCall(6, 4, &obj1->pos, 0, 0, 0);
                 if (done == 0) {
                     SndCall(6, 0xA, &obj1->pos, 0, 0, 0);
                 }
-                r206_work.p->timer = 0x5A;
+                r206_work->timer = 0x5A;
             }
         } else {
             done++;
@@ -670,30 +666,30 @@ static void r206_snipe()
                 RsfSet(G_ROOM_ID, 3);
                 EstSet(0, -1, &r206_hitPos2, &r206_hitRot, EFF_ROOM, 0, 0, ESP_CORE_KIND_NONE, 0, 0);
                 obj2->be_flag &= ~2;
-                if (r206_work.p->snd != 0) {
-                    SndStop(r206_work.p->snd, 0);
+                if (r206_work->snd != 0) {
+                    SndStop(r206_work->snd, 0);
                 }
                 SndCall(6, 4, &obj2->pos, 0, 0, 0);
                 if (done == 0) {
                     SndCall(6, 0xA, &obj2->pos, 0, 0, 0);
                 }
-                r206_work.p->timer = 0x5A;
+                r206_work->timer = 0x5A;
             }
         } else {
             done++;
         }
         if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 2)) {
-            if (r206_work.p->frame == 0) {
+            if (r206_work->frame == 0) {
                 pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
-                *(u32*) &r206_work.p->maxFrame = (u32) MotionGetMaxFrame(&pSUB->Motion);
+                *(u32*) &r206_work->maxFrame = (u32) MotionGetMaxFrame(&pSUB->Motion);
                 YarareInitCube(subHit0, 0.0f, r206_subCubeY, r206_subCubeZ, r206_subCubeW, r206_subCubeH * 0.85f,
                                r206_subCubeD, 0, YAT_FLAG_ON);
                 YarareInitCube(subHit1, 0.0f, r206_subCube2Y, r206_subCube2Z, r206_subCube2W, r206_subCube2H * 0.7f,
                                r206_subCube2D, 0, YAT_FLAG_ON);
-            } else if (r206_work.p->frame == r206_work.p->maxFrame) {
+            } else if (r206_work->frame == r206_work->maxFrame) {
                 pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 5, 0);
             }
-            r206_work.p->frame++;
+            r206_work->frame++;
         }
         if (DbgFlagChk(pG, DBG_NO_DEATH) == 0) {
             if (fire_die_ck() == 1 || subHit0->ckStatus() == 1 || subHit1->ckStatus() == 1) {
@@ -724,12 +720,12 @@ snipe_done:
     RsfSet(G_ROOM_ID, 6);
     pSUB->dmg.clear();
     SubCharMoveTo(0.0f, 0.0f, -2000.0f, 193.0f, 1);
-    r206_work.p->em[0].setEm(0x60, -1, 1, 1, 1);
-    r206_work.p->em[1].setEm(0x61, -1, 1, 1, 1);
-    r206_work.p->em[2].setEm(0x62, -1, 1, 1, 1);
-    r206_work.p->em[0].setBeFlag(0x10000, 1);
-    r206_work.p->em[1].setBeFlag(0x10000, 1);
-    r206_work.p->em[2].setBeFlag(0x10000, 1);
+    r206_work->em[0].setEm(0x60, -1, 1, 1, 1);
+    r206_work->em[1].setEm(0x61, -1, 1, 1, 1);
+    r206_work->em[2].setEm(0x62, -1, 1, 1, 1);
+    r206_work->em[0].setBeFlag(0x10000, 1);
+    r206_work->em[1].setBeFlag(0x10000, 1);
+    r206_work->em[2].setBeFlag(0x10000, 1);
     SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r206_checkDoorToR20c, 0, 1);
     SceSleep(1);
     while (chkAliveGanadeNum() != 0) {
@@ -769,50 +765,50 @@ snipe_done:
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     pSUB->setNoSuspend(0);
-    r206_work.p->gotoNo = 0;
-    r206_work.p->em[4].setEm(0x64, -1, 1, 1, 1);
-    r206_work.p->em[5].setEm(0x65, -1, 1, 1, 1);
-    r206_work.p->em[6].setEm(0x66, -1, 1, 1, 1);
-    r206_work.p->em[7].setEm(0x67, -1, 1, 1, 1);
-    r206_work.p->em[4].setBeFlag(0x10000, 1);
-    r206_work.p->em[5].setBeFlag(0x10000, 1);
-    r206_work.p->em[6].setBeFlag(0x10000, 1);
-    if (r206_work.p->em[7].isAlive() == 1) {
+    r206_work->gotoNo = 0;
+    r206_work->em[4].setEm(0x64, -1, 1, 1, 1);
+    r206_work->em[5].setEm(0x65, -1, 1, 1, 1);
+    r206_work->em[6].setEm(0x66, -1, 1, 1, 1);
+    r206_work->em[7].setEm(0x67, -1, 1, 1, 1);
+    r206_work->em[4].setBeFlag(0x10000, 1);
+    r206_work->em[5].setBeFlag(0x10000, 1);
+    r206_work->em[6].setBeFlag(0x10000, 1);
+    if (r206_work->em[7].isAlive() == 1) {
         Vec ofs = {0.0f, -2.0f, 180.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        r206_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30), &ofs, &rot);
-        r206_work.p->head->setNoSuspend(1);
-        OyaSetObj00(r206_work.p->head, r206_work.p->em[7].getPtr(), 2);
-        r206_work.p->esp = EspPullCoreKind();
+        r206_work->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30), &ofs, &rot);
+        r206_work->head->setNoSuspend(1);
+        OyaSetObj00(r206_work->head, r206_work->em[7].getPtr(), 2);
+        r206_work->esp = EspPullCoreKind();
         SceExec(0x12, (TaskFunc) r206_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    r206_work.p->em[4].setNoSuspend(1);
-    r206_work.p->em[5].setNoSuspend(1);
-    r206_work.p->em[7].setNoSuspend(1);
+    r206_work->em[4].setNoSuspend(1);
+    r206_work->em[5].setNoSuspend(1);
+    r206_work->em[7].setNoSuspend(1);
     if (getRoomEtcBarred(0x11, &gate, 1) == 1) {
         gate->setNoSuspend(1);
         ((cEmBarred*) gate)->setOpen(0);
     }
     SceEventStart(1);
     CamCtrl.CutCall(4);
-    r206_work.p->em[7].setGoto(&r206_readerPos[r206_work.p->gotoNo], 1);
-    while (r206_work.p->em[7].ckGoto() != 0) {
+    r206_work->em[7].setGoto(&r206_readerPos[r206_work->gotoNo], 1);
+    while (r206_work->em[7].ckGoto() != 0) {
         SceSleep(1);
     }
-    r206_work.p->em[7].setGoto(&r206_readerPos[r206_work.p->gotoNo], 8);
-    r206_work.p->em[4].setGoto(&r206_readerPos[r206_work.p->gotoNo], 1);
-    r206_work.p->em[5].setGoto(&r206_chaserPos[0], 1);
-    r206_work.p->em[6].setGoto(&r206_chaserPos[0], 1);
-    r206_work.p->em[5].setFindPL();
-    r206_work.p->em[6].setFindPL();
+    r206_work->em[7].setGoto(&r206_readerPos[r206_work->gotoNo], 8);
+    r206_work->em[4].setGoto(&r206_readerPos[r206_work->gotoNo], 1);
+    r206_work->em[5].setGoto(&r206_chaserPos[0], 1);
+    r206_work->em[6].setGoto(&r206_chaserPos[0], 1);
+    r206_work->em[5].setFindPL();
+    r206_work->em[6].setFindPL();
     SceSleep(0x37);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    r206_work.p->em[4].setNoSuspend(0);
-    r206_work.p->em[5].setNoSuspend(0);
-    r206_work.p->em[6].setNoSuspend(0);
-    r206_work.p->em[7].setNoSuspend(0);
+    r206_work->em[4].setNoSuspend(0);
+    r206_work->em[5].setNoSuspend(0);
+    r206_work->em[6].setNoSuspend(0);
+    r206_work->em[7].setNoSuspend(0);
     SceExec(0x12, (TaskFunc) chkReaderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SubCharMoveTo(4316.0f, 0.0f, -6652.0f, 193.0f, 0);
     moved = 0;
@@ -822,32 +818,32 @@ snipe_done:
             moved = 1;
             SubCharMoveTo(0.0f, 0.0f, -2300.0f, 193.0f, 0);
         }
-        if (r206_work.p->em[7].isActive() == 0) {
+        if (r206_work->em[7].isActive() == 0) {
             goto wave_done;
         }
         if ((u32) SceCountEmAlive(0x10, 0x20) <= 2) {
-            r206_work.p->em[7].setGoto(&pSUB->pos, 8);
+            r206_work->em[7].setGoto(&pSUB->pos, 8);
             if (wave == 0) {
-                r206_work.p->em[8].setEm(0x5A, -1, 1, 1, 1);
-                r206_work.p->em[9].setEm(0x5B, -1, 1, 1, 1);
-                r206_work.p->em[8].setFindPL();
-                r206_work.p->em[9].setFindPL();
-                r206_work.p->em[8].setBeFlag(0x10000, 1);
-                r206_work.p->em[9].setBeFlag(0x10000, 1);
+                r206_work->em[8].setEm(0x5A, -1, 1, 1, 1);
+                r206_work->em[9].setEm(0x5B, -1, 1, 1, 1);
+                r206_work->em[8].setFindPL();
+                r206_work->em[9].setFindPL();
+                r206_work->em[8].setBeFlag(0x10000, 1);
+                r206_work->em[9].setBeFlag(0x10000, 1);
             } else if (wave == 1) {
-                r206_work.p->em[10].setEm(0x5C, -1, 1, 1, 1);
-                r206_work.p->em[11].setEm(0x5D, -1, 1, 1, 1);
-                r206_work.p->em[10].setFindPL();
-                r206_work.p->em[11].setFindPL();
-                r206_work.p->em[10].setBeFlag(0x10000, 1);
-                r206_work.p->em[11].setBeFlag(0x10000, 1);
+                r206_work->em[10].setEm(0x5C, -1, 1, 1, 1);
+                r206_work->em[11].setEm(0x5D, -1, 1, 1, 1);
+                r206_work->em[10].setFindPL();
+                r206_work->em[11].setFindPL();
+                r206_work->em[10].setBeFlag(0x10000, 1);
+                r206_work->em[11].setBeFlag(0x10000, 1);
             } else if (wave == 2) {
-                r206_work.p->em[12].setEm(0x5E, -1, 1, 1, 1);
-                r206_work.p->em[13].setEm(0x5F, -1, 1, 1, 1);
-                r206_work.p->em[12].setFindPL();
-                r206_work.p->em[13].setFindPL();
-                r206_work.p->em[12].setBeFlag(0x10000, 1);
-                r206_work.p->em[13].setBeFlag(0x10000, 1);
+                r206_work->em[12].setEm(0x5E, -1, 1, 1, 1);
+                r206_work->em[13].setEm(0x5F, -1, 1, 1, 1);
+                r206_work->em[12].setFindPL();
+                r206_work->em[13].setFindPL();
+                r206_work->em[12].setBeFlag(0x10000, 1);
+                r206_work->em[13].setBeFlag(0x10000, 1);
                 goto wave_done;
             }
             wave++;
@@ -926,22 +922,22 @@ static void chkReaderMove()
     int near = 0;
     cEm* em;
 
-    while (r206_work.p->em[7].isActive() != 0) {
+    while (r206_work->em[7].isActive() != 0) {
         cnt++;
-        em = r206_work.p->em[7].getPtr();
+        em = r206_work->em[7].getPtr();
         if (em != NULL) {
             Vec d;
             f32 dist;
             int n;
 
-            PSVECSubtract(&em->pos, &r206_readerPos[r206_work.p->gotoNo], &d);
+            PSVECSubtract(&em->pos, &r206_readerPos[r206_work->gotoNo], &d);
             dist = PSVECMag(&d);
             if (dist < 2500.0f) {
                 if (dist < 1000.0f && near == 0) {
                     near = 1;
-                    r206_work.p->em[7].setGoto(&pSUB->pos, 8);
+                    r206_work->em[7].setGoto(&pSUB->pos, 8);
                 }
-                if ((r206_work.p->gotoNo == 0 && cnt == 0x1A4)
+                if ((r206_work->gotoNo == 0 && cnt == 0x1A4)
                     || (cnt > 0x257 && (em->be_flag & 0x201) == 1 && em->checkStatus(EM_STATUS_ACTIVE) == 1
                         && EmDeadCk(em))) {
                     timer = 0x5A;
@@ -950,24 +946,24 @@ static void chkReaderMove()
                     timer--;
                 }
                 if (timer == 1) {
-                    r206_work.p->gotoNo++;
-                    if (r206_work.p->gotoNo > 4) {
-                        r206_work.p->gotoNo = 0;
+                    r206_work->gotoNo++;
+                    if (r206_work->gotoNo > 4) {
+                        r206_work->gotoNo = 0;
                     }
                     near = 0;
-                    r206_work.p->em[7].setGoto(&r206_readerPos[r206_work.p->gotoNo], 1);
-                    r206_work.p->em[4].setGoto(&r206_readerPos[r206_work.p->gotoNo], 1);
-                    r206_work.p->em[6].setGoto(&r206_readerPos[r206_work.p->gotoNo], 1);
+                    r206_work->em[7].setGoto(&r206_readerPos[r206_work->gotoNo], 1);
+                    r206_work->em[4].setGoto(&r206_readerPos[r206_work->gotoNo], 1);
+                    r206_work->em[6].setGoto(&r206_readerPos[r206_work->gotoNo], 1);
                 }
             } else {
-                r206_work.p->em[7].setGoto(&r206_readerPos[r206_work.p->gotoNo], 1);
+                r206_work->em[7].setGoto(&r206_readerPos[r206_work->gotoNo], 1);
             }
             n = SceCountEmAlive(0x10, 0x20);
             if (n == 0) {
                 break;
             }
             if (n == 1) {
-                r206_work.p->em[7].setGoto(&pSUB->pos, 1);
+                r206_work->em[7].setGoto(&pSUB->pos, 1);
                 if (em->hp > 0x2BC) {
                     em->hp = 0x2BC;
                 }
@@ -980,22 +976,22 @@ static void chkReaderMove()
         int n = SceCountEmAlive(0x10, 0x20);
 
         if (n == 1) {
-            if (r206_work.p->em[4].isActive() != 0) {
-                r206_work.p->em[4].getPtr()->flag |= 0x40;
+            if (r206_work->em[4].isActive() != 0) {
+                r206_work->em[4].getPtr()->flag |= 0x40;
             }
-            if (r206_work.p->em[6].isActive() != 0) {
-                r206_work.p->em[6].getPtr()->flag |= 0x40;
+            if (r206_work->em[6].isActive() != 0) {
+                r206_work->em[6].getPtr()->flag |= 0x40;
             }
-            r206_work.p->em[4].setGoto(&pSUB->pos, 1);
-            r206_work.p->em[6].setGoto(&pSUB->pos, 1);
+            r206_work->em[4].setGoto(&pSUB->pos, 1);
+            r206_work->em[6].setGoto(&pSUB->pos, 1);
             SceSleep(0x168);
         }
         if (n == 2) {
-            if (r206_work.p->em[4].isActive() != 0 && r206_work.p->em[6].isActive() != 0) {
-                if (r206_work.p->em[4].isActive() != 0) {
-                    r206_work.p->em[4].getPtr()->flag |= 0x40;
+            if (r206_work->em[4].isActive() != 0 && r206_work->em[6].isActive() != 0) {
+                if (r206_work->em[4].isActive() != 0) {
+                    r206_work->em[4].getPtr()->flag |= 0x40;
                 }
-                r206_work.p->em[4].setGoto(&pSUB->pos, 1);
+                r206_work->em[4].setGoto(&pSUB->pos, 1);
                 SceSleep(0x168);
             }
         }
@@ -1018,13 +1014,13 @@ static void r206_checkDoorToR20c()
 // Area 8 once: Ashley calls out (SE 6/5) under camera cut 9.
 static void r206_asl_call()
 {
-    r206_work.p->timer = 0x5A;
-    SndStop(r206_work.p->snd, 0);
+    r206_work->timer = 0x5A;
+    SndStop(r206_work->snd, 0);
     if (pSUB != NULL) {
         pSUB->setNoSuspend(1);
     }
     SceEventStart(1);
-    r206_work.p->snd = SndCall(6, 5, &pSUB->pos, 0, 0, 0);
+    r206_work->snd = SndCall(6, 5, &pSUB->pos, 0, 0, 0);
     CamCtrl.CutCall(9);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

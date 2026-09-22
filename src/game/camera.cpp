@@ -194,6 +194,6 @@ void CamPos2ScrnVec(f32 sx, f32 sy, Vec* out)
     ang = ang * PI;
     ang = ang / 180.0f;
     out->y *= h / Screen.height;
-    FSet(out->z, -(cosf(ang) * 240.0f / sinf(ang)));
+    out->z = -(cosf(ang) * 240.0f / sinf(ang));
     PSMTXMultVecSR(pG->Camera.mat, out, out);
 }

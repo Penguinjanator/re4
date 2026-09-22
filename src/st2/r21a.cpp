@@ -54,12 +54,8 @@ struct R21aWork {
     int cnt[23];        // 0x24C  [13]/[14]: frames the two roof Ganados have been dead
 };
 
-// One-member struct: every store through the work reloads the pointer.
-struct R21aWorkPtr {
-    R21aWork* p;
-};
 
-static R21aWorkPtr r21a_work;
+static R21aWork* r21a_work;
 
 R21aRoof r21a_roofTbl[4] = {
     {0, -2545.0f, -38.0f, 3534.0f, 500.0f, 0.0f, 3, 7, 5},
@@ -97,7 +93,7 @@ void R21aInit()
     cEmDoor* door;
     u32 i;
 
-    R21aWork*& wp = r21a_work.p;
+    R21aWork*& wp = r21a_work;
 #line 50 "D:/Bio4/Prog/r21a.cpp"
     wp = (R21aWork*) MEM_CALLOC(sizeof(R21aWork), 1, 0xd);
     SceSetItemEvent(0xA, 0x84, 5, 1, r21a_moveShelf, r21a_movedShelf, 0x84, 0);
@@ -130,7 +126,7 @@ void R21aInit()
                 if (hit) {
                     hit->setParent(obj, 0, 0);
                     YarareInit(hit, r->x, r->Y, r->Z, r->w, r->h, 0, YAT_FLAG_ON);
-                    r21a_work.p->hit[r->slot] = hit;
+                    r21a_work->hit[r->slot] = hit;
                 }
             }
         }
@@ -142,20 +138,20 @@ void R21aInit()
         if (door) {
             door->setCloseLock();
         }
-        r21a_work.p->em[13].setPtr(0x64, -1, 0);
-        r21a_work.p->em[14].setPtr(0x65, -1, 0);
-        r21a_work.p->em[15].setPtr(0x66, -1, 0);
-        r21a_work.p->em[16].setPtr(0x67, -1, 0);
-        r21a_work.p->em[13].destroy();
-        r21a_work.p->em[14].destroy();
-        r21a_work.p->em[15].destroy();
-        r21a_work.p->em[16].destroy();
+        r21a_work->em[13].setPtr(0x64, -1, 0);
+        r21a_work->em[14].setPtr(0x65, -1, 0);
+        r21a_work->em[15].setPtr(0x66, -1, 0);
+        r21a_work->em[16].setPtr(0x67, -1, 0);
+        r21a_work->em[13].destroy();
+        r21a_work->em[14].destroy();
+        r21a_work->em[15].destroy();
+        r21a_work->em[16].destroy();
     }
     SceExec(0x12, (TaskFunc) R21aEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
     SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
-    r21a_work.p->x248 = 0;
+    r21a_work->x248 = 0;
     for (i = 0; i < 23; i++) {
-        r21a_work.p->cnt[i] = 0;
+        r21a_work->cnt[i] = 0;
     }
 }
 
@@ -208,79 +204,79 @@ static void r21a_moveShelf(int no)
 static void R21aEmSetMain()
 {
     SceSleep(1);
-    r21a_work.p->em[0].setPtr(0x53, -1, 0);
-    r21a_work.p->em[1].setPtr(0x54, -1, 0);
-    r21a_work.p->em[2].setPtr(0x55, -1, 0);
-    r21a_work.p->em[3].setPtr(0x56, -1, 0);
-    r21a_work.p->em[4].setPtr(0x58, -1, 0);
-    r21a_work.p->em[5].setPtr(0x59, -1, 0);
-    r21a_work.p->em[6].setPtr(0x5B, -1, 0);
-    r21a_work.p->em[7].setPtr(0x5C, -1, 0);
-    r21a_work.p->patrol.SetPatrol(0x5B, r21a_patrolTbl, 2, 0, 0);
+    r21a_work->em[0].setPtr(0x53, -1, 0);
+    r21a_work->em[1].setPtr(0x54, -1, 0);
+    r21a_work->em[2].setPtr(0x55, -1, 0);
+    r21a_work->em[3].setPtr(0x56, -1, 0);
+    r21a_work->em[4].setPtr(0x58, -1, 0);
+    r21a_work->em[5].setPtr(0x59, -1, 0);
+    r21a_work->em[6].setPtr(0x5B, -1, 0);
+    r21a_work->em[7].setPtr(0x5C, -1, 0);
+    r21a_work->patrol.SetPatrol(0x5B, r21a_patrolTbl, 2, 0, 0);
     for (;;) {
         if (ItfFlagChk(pG, ITF_R21A_ITEM)) {
             if (RsfCheck(G_ROOM_ID, 2) == 0) {
                 int cnt = 0;
 
-                if (r21a_work.p->em[0].isActive() == 0) {
+                if (r21a_work->em[0].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[1].isActive() == 0) {
+                if (r21a_work->em[1].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[2].isActive() == 0) {
+                if (r21a_work->em[2].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[3].isActive() == 0) {
+                if (r21a_work->em[3].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[4].isActive() == 0) {
+                if (r21a_work->em[4].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[5].isActive() == 0) {
+                if (r21a_work->em[5].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[6].isActive() == 0) {
+                if (r21a_work->em[6].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[7].isActive() == 0) {
+                if (r21a_work->em[7].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[17].isActive() == 0) {
+                if (r21a_work->em[17].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[18].isActive() == 0) {
+                if (r21a_work->em[18].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[19].isActive() == 0) {
+                if (r21a_work->em[19].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[20].isActive() == 0) {
+                if (r21a_work->em[20].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[21].isActive() == 0) {
+                if (r21a_work->em[21].isActive() == 0) {
                     cnt++;
                 }
-                if (r21a_work.p->em[22].isActive() == 0) {
+                if (r21a_work->em[22].isActive() == 0) {
                     cnt++;
                 }
                 if (cnt > 8) {
                     RsfSet(G_ROOM_ID, 2);
-                    r21a_work.p->em[8].setPtr(0x5E, -1, 0);
-                    r21a_work.p->em[9].setPtr(0x5F, -1, 0);
-                    r21a_work.p->em[10].setPtr(0x60, -1, 0);
+                    r21a_work->em[8].setPtr(0x5E, -1, 0);
+                    r21a_work->em[9].setPtr(0x5F, -1, 0);
+                    r21a_work->em[10].setPtr(0x60, -1, 0);
                 }
             }
         }
         if (pG->Room_flg[0] & 0x01000000) {
             if (RsfCheck(G_ROOM_ID, 3) == 0) {
                 RsfSet(G_ROOM_ID, 3);
-                r21a_work.p->em[17].setPtr(0x69, -1, 0);
-                r21a_work.p->em[18].setPtr(0x6A, -1, 0);
-                r21a_work.p->em[19].setPtr(0x6B, -1, 0);
-                r21a_work.p->em[20].setPtr(0x6C, -1, 0);
-                r21a_work.p->em[21].setPtr(0x6D, -1, 0);
-                r21a_work.p->em[22].setPtr(0x6E, -1, 0);
+                r21a_work->em[17].setPtr(0x69, -1, 0);
+                r21a_work->em[18].setPtr(0x6A, -1, 0);
+                r21a_work->em[19].setPtr(0x6B, -1, 0);
+                r21a_work->em[20].setPtr(0x6C, -1, 0);
+                r21a_work->em[21].setPtr(0x6D, -1, 0);
+                r21a_work->em[22].setPtr(0x6E, -1, 0);
             }
         }
         SceSleep(1);
@@ -367,8 +363,8 @@ static void R21aFallRoofStartMain()
     }
     pG->Room_flg[0] |= 0x80000000;
     SceAtSetEnable(7, 0);
-    r21a_work.p->se = 0;
-    r21a_work.p->str = 0;
+    r21a_work->se = 0;
+    r21a_work->str = 0;
     for (int i = 0; i < 4; i++) {
         if (obj) {
             EstSet(obj, -1, 0, 0, EFF_ROOM, (u8) r21a_roofTbl[i].est, 1, (u8) r21a_roofTbl[i].eff, 0, 0);
@@ -379,7 +375,7 @@ static void R21aFallRoofStartMain()
     pG->Room_flg[0] |= 0x00800000;
     SceSleep(2);
     SndRoomStrStop(6);
-    r21a_work.p->str = SndStrReq(0, 0x20, 0x80000003, 0, 0, 0.0f);
+    r21a_work->str = SndStrReq(0, 0x20, 0x80000003, 0, 0, 0.0f);
     SceSetEventCancel(1, (TaskFunc) R21aFallRoofStartEnd, 0, -1, 1);
     CamCtrl.CutCall(4);
     EstSet(0, -1, 0, 0, EFF_ROOM, 0xC, 1, ESP_CORE_KIND_NONE, 0, 0);
@@ -400,18 +396,18 @@ static void R21aFallRoofStartMain()
     }
     SceSleep(10);
     CamCtrl.CutCall(5);
-    r21a_work.p->em[13].setEm(0x64, -1, 0, 1, 1);
-    r21a_work.p->em[13].setNoSuspend(1);
-    r21a_work.p->em[14].setEm(0x65, -1, 0, 1, 1);
-    r21a_work.p->em[14].setNoSuspend(1);
+    r21a_work->em[13].setEm(0x64, -1, 0, 1, 1);
+    r21a_work->em[13].setNoSuspend(1);
+    r21a_work->em[14].setEm(0x65, -1, 0, 1, 1);
+    r21a_work->em[14].setNoSuspend(1);
     SceSleep(40);
-    r21a_work.p->em[13].setNoSuspend(0);
-    r21a_work.p->em[14].setNoSuspend(0);
+    r21a_work->em[13].setNoSuspend(0);
+    r21a_work->em[14].setNoSuspend(0);
     CamCtrl.CutCall(6);
     obj = SmdGetObjPtr(0x3F);
     if (obj) {
         EstSet(0, -1, 0, 0, EFF_ROOM, 0xD, 1, ESP_CORE_KIND_NONE, 0, 0);
-        r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
+        r21a_work->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
         for (int i = 0; i < 10; i++) {
             obj->setAng(0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
             SceSleep(1);
@@ -444,8 +440,8 @@ static void R21aFallRoofStartEnd()
     }
     obj = SmdGetObjPtr(0x3F);
     if (obj) {
-        if (r21a_work.p->se == 0) {
-            r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
+        if (r21a_work->se == 0) {
+            r21a_work->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
         }
         obj->setAng(0.0f, 0.0f, 0.0f);
         obj->setPos(obj->pos.x, 3095.0f, obj->pos.z);
@@ -454,13 +450,13 @@ static void R21aFallRoofStartEnd()
     if (door) {
         door->setCloseLock();
     }
-    if (r21a_work.p->em[13].isActive() == 0) {
-        r21a_work.p->em[13].setEm(0x64, -1, 0, 1, 1);
-        r21a_work.p->em[13].setNoSuspend(0);
+    if (r21a_work->em[13].isActive() == 0) {
+        r21a_work->em[13].setEm(0x64, -1, 0, 1, 1);
+        r21a_work->em[13].setNoSuspend(0);
     }
-    if (r21a_work.p->em[14].isActive() == 0) {
-        r21a_work.p->em[14].setEm(0x65, -1, 0, 1, 1);
-        r21a_work.p->em[14].setNoSuspend(0);
+    if (r21a_work->em[14].isActive() == 0) {
+        r21a_work->em[14].setEm(0x65, -1, 0, 1, 1);
+        r21a_work->em[14].setNoSuspend(0);
     }
     SceExec(0x12, (TaskFunc) R21aFallRoofMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceEventEnd(0);
@@ -608,11 +604,11 @@ static void R21aFallRoofMove()
             break;
         }
         for (i = 0; i < 4; i++) {
-            cEmHit* hit = r21a_work.p->hit[r21a_roofTbl[i].slot];
+            cEmHit* hit = r21a_work->hit[r21a_roofTbl[i].slot];
 
             if (hit && hit->ckStatus() == 1) {
                 hit->hp = 0;
-                FlagOnVar(&pGS->Room_flg, (u32) (i + 1));
+                FlagOnVar(&pG->Room_flg, (u32) (i + 1));
                 EffectEspDelete(1, (u8) r21a_roofTbl[i].eff, 0, 0);
                 EffectEspgenDelete(1, (u8) r21a_roofTbl[i].eff, 0);
                 EffectEfmDelete(1, (u8) r21a_roofTbl[i].eff, 0);
@@ -630,23 +626,23 @@ static void R21aFallRoofMove()
             SceExec(0x12, (TaskFunc) R21aFallRoofEndMain, 0, 0, SCE_PRIO_DEF_2, 0);
             return;
         }
-        if (r21a_work.p->em[13].isActive() == 0) {
+        if (r21a_work->em[13].isActive() == 0) {
             if ((pG->Room_flg[0] & 0x04000000) == 0) {
-                IntSet(r21a_work.p->cnt[13], r21a_work.p->cnt[13] + 1);
-                if (r21a_work.p->cnt[13] > 0x1C1) {
-                    BitOn(pG->Room_flg[0], 0x04000000);
-                    r21a_work.p->em[15].setEm(0x66, -1, 0, 1, 1);
-                    r21a_work.p->em[15].setNoSuspend(0);
+                r21a_work->cnt[13] = r21a_work->cnt[13] + 1;
+                if (r21a_work->cnt[13] > 0x1C1) {
+                    pG->Room_flg[0] |= 0x04000000;
+                    r21a_work->em[15].setEm(0x66, -1, 0, 1, 1);
+                    r21a_work->em[15].setNoSuspend(0);
                 }
             }
         }
-        if (r21a_work.p->em[14].isActive() == 0) {
+        if (r21a_work->em[14].isActive() == 0) {
             if ((pG->Room_flg[0] & 0x02000000) == 0) {
-                IntSet(r21a_work.p->cnt[14], r21a_work.p->cnt[14] + 1);
-                if (r21a_work.p->cnt[14] > 0x1C1) {
-                    BitOn(pG->Room_flg[0], 0x02000000);
-                    r21a_work.p->em[16].setEm(0x67, -1, 0, 1, 1);
-                    r21a_work.p->em[16].setNoSuspend(0);
+                r21a_work->cnt[14] = r21a_work->cnt[14] + 1;
+                if (r21a_work->cnt[14] > 0x1C1) {
+                    pG->Room_flg[0] |= 0x02000000;
+                    r21a_work->em[16].setEm(0x67, -1, 0, 1, 1);
+                    r21a_work->em[16].setNoSuspend(0);
                 }
             }
         }
@@ -665,7 +661,7 @@ static void R21aFallRoofEndMain()
     }
     RsfSet(G_ROOM_ID, 1);
     SceEventStart(0);
-    SndStop(r21a_work.p->se, 0);
+    SndStop(r21a_work->se, 0);
     SceSetEventCancel(1, (TaskFunc) R21aFallRoofEndEnd, 0, -1, 1);
     CamCtrl.CutCall(6);
     obj = SmdGetObjPtr(0x3F);
@@ -683,10 +679,10 @@ static void R21aFallRoofEndMain()
         v.z = 0.0f;
         obj->setAng(&v);
     }
-    if (r21a_work.p->str) {
-        SndStrReq(r21a_work.p->str, 4, 1000, 0);
+    if (r21a_work->str) {
+        SndStrReq(r21a_work->str, 4, 1000, 0);
     }
-    r21a_work.p->str = 0;
+    r21a_work->str = 0;
     SceSleep(30);
     CamCtrl.CutCall(7);
     obj = SmdGetObjPtr(0x40);
@@ -724,8 +720,8 @@ static void R21aFallRoofEndEnd()
         v.z = 0.0f;
         obj->setAng(&v);
     }
-    if (r21a_work.p->str) {
-        SndStrReq(r21a_work.p->str, 8, 0, 0);
+    if (r21a_work->str) {
+        SndStrReq(r21a_work->str, 8, 0, 0);
     }
     SceAtSetEnable(6, 0);
     SceAtSetEnable(4, 0);

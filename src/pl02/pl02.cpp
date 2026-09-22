@@ -15,7 +15,6 @@
 #include "pendulum.h"
 #include "db_log.h"
 #include "esp.h"
-#include "ref_access.h"
 #include <dolphin/os.h>
 
 
@@ -206,15 +205,15 @@ void cPlAda::setModel()
         return;
     }
     addModel(info);
-    PSet(Body->pHair, info);
+    Body->pHair = info;
     info = ModInfoMgr.create(PL_ARC(8), PL_ARC(7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    PSet(Body->pShape, info);
-    PSet(Body->pHeadData, PL_ARC(8));
+    Body->pShape = info;
+    Body->pHeadData = PL_ARC(8);
     info = ModInfoMgr.create(PL_ARC(9), PL_ARC(0xA));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlAshley::setModel() failed.");
@@ -300,7 +299,7 @@ void cPlAda::setLeftHand(u32 no)
     }
     Body->oldLhandNo = Body->nowLhandNo;
     Body->nowLhandNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 5));
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pG->pPlayer, 5));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
@@ -351,7 +350,7 @@ void cPlAda::setHead(int no)
     }
     deleteModelInfo(Body->pHair);
     Body->pHair = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xB), PL_ARC_PTR(pG->pPlayer, 7));
     if (info) {
         addModel(info);
     }

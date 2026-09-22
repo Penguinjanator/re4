@@ -63,7 +63,7 @@ void ToolScreenShot()
         }
         TaskSleep(1);
     }
-    BitSet(pG->Stop_flg, stop_bak);
+    pG->Stop_flg = stop_bak;
     DbgFlagOff(pG, DBG_TEST_MODE);
     TaskExit();
 }
